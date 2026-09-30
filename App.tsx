@@ -1,45 +1,14 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React, {useState} from 'react';
+import {StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View} from 'react-native';
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
-
-function App() {
-  const isDarkMode = useColorScheme() === 'dark';
-
-  return (
-    <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
-    </SafeAreaProvider>
-  );
-}
-
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
-
-  return (
-    <View style={styles.container}>
-      <NewAppScreen
-        templateFileName="App.tsx"
-        safeAreaInsets={safeAreaInsets}
-      />
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});
-
-export default App;
+const C={bg:'#07141c',card:'#102631',cyan:'#12c8ff',text:'#f5fafc',muted:'#8fa8b5'};
+const SafeAreaView=({children,style}:any)=><View style={[style,{paddingTop:StatusBar.currentHeight??0}]}>{children}</View>;
+const Btn=({t,go}:{t:string;go:()=>void})=><TouchableOpacity onPress={go} style={s.btn}><Text style={s.btnText}>{t}</Text></TouchableOpacity>;
+const Tabs=({go}:{go:(p:string)=>void})=><View style={s.tabs}>{['Home','Tutor Search','Sessions','Messages','Profile'].map(p=><TouchableOpacity key={p} style={s.tab} onPress={()=>go(p)}><Text style={s.tabText}>{p}</Text></TouchableOpacity>)}</View>;
+export default function App(){const [page,setPage]=useState('Onboarding');const [logged,setLogged]=useState(false);const header=(t:string)=><View style={s.header}>{logged&&<TouchableOpacity onPress={()=>setPage('Home')}><Text style={s.back}>‹</Text></TouchableOpacity>}<Text style={s.title}>{t}</Text></View>;
+if(page==='Onboarding')return <SafeAreaView style={s.safe}><StatusBar barStyle="light-content"/><View style={s.onboard}><View style={s.logo}><Text style={s.house}>⌂</Text><Text style={s.c}>C</Text></View><Text style={s.brand}>Campus<Text style={s.blue}>4</Text>Change</Text><Text style={s.muted}>Learn together. Grow together.</Text><Text style={s.muted}>Change your campus.</Text><View style={{flex:1}}/><Btn t="GET STARTED" go={()=>setPage('Login')}/><Text style={s.footer}>Find help. Share knowledge. Make an impact.</Text></View></SafeAreaView>;
+if(page==='Login')return <SafeAreaView style={s.safe}>{header('Welcome back!')}<View style={s.pad}><Text style={s.muted}>Sign in to continue</Text><Text style={s.label}>Email or Student ID</Text><TextInput style={s.input} placeholder="Enter your email or student ID" placeholderTextColor={C.muted}/><Text style={s.label}>Password</Text><TextInput style={s.input} secureTextEntry placeholder="Enter your password" placeholderTextColor={C.muted}/><Btn t="SIGN IN" go={()=>{setLogged(true);setPage('Home')}}/><Btn t="CREATE ACCOUNT" go={()=>{setLogged(true);setPage('Home')}}/></View></SafeAreaView>;
+if(page==='Tutor Search')return <SafeAreaView style={s.safe}>{header('Find a Tutor')}<View style={s.pad}><TextInput style={s.input} placeholder="Search subject or tutor" placeholderTextColor={C.muted}/><Text style={s.section}>Recommended tutors</Text>{['Jamie Dela Cruz','Mika Santos','Renzo Lim'].map((n,i)=><TouchableOpacity key={n} style={s.tutor} onPress={()=>setPage('Tutor Details')}><View style={s.avatar}><Text>{n[0]}</Text></View><View><Text style={s.name}>{n}</Text><Text style={s.muted}>Calculus I • {i===0?'Algebra':'Physics'}</Text><Text style={s.star}>★ {4.9-i/10}</Text></View></TouchableOpacity>)}</View><Tabs go={setPage}/></SafeAreaView>;
+if(page==='Tutor Details')return <SafeAreaView style={s.safe}>{header('Tutor Profile')}<View style={s.pad}><View style={s.bigAvatar}><Text>J</Text></View><Text style={s.profile}>Jamie Dela Cruz</Text><Text style={s.muted}>BS Computer Science • 3rd Year</Text><Text style={s.star}>★ 4.9 • 36 sessions • 98% response</Text><Text style={s.section}>Subjects</Text><Text style={s.chip}>Calculus I   Algebra   Programming</Text><Text style={s.section}>About</Text><Text style={s.muted}>I explain concepts using simple examples and step-by-step problem solving.</Text><View style={{flex:1}}/><Btn t="BOOK SESSION" go={()=>setPage('Sessions')}/><Btn t="MESSAGE TUTOR" go={()=>setPage('Messages')}/></View></SafeAreaView>;
+return <SafeAreaView style={s.safe}>{header(page==='Home'?'Campus4Change':page)}<View style={s.pad}>{page==='Home'?<><Text style={s.greeting}>Hello, Alex!</Text><Text style={s.muted}>What would you like to learn or teach today?</Text><TextInput style={s.input} placeholder="Search subjects, skills, or tutors..." placeholderTextColor={C.muted}/><View style={s.card}><Text style={s.muted}>YOUR NEXT MATCH AWAITS</Text><Text style={s.match}>Need help in Calculus I?</Text><Btn t="VIEW MATCHES" go={()=>setPage('Tutor Search')}/></View><Text style={s.section}>Quick Actions</Text><Btn t="FIND A TUTOR" go={()=>setPage('Tutor Search')}/></>:<><Text style={s.section}>{page}</Text><View style={s.card}><Text style={s.name}>{page==='Messages'?'Jamie Dela Cruz':'Calculus I'}</Text><Text style={s.muted}>{page==='Messages'?'See you at 2 PM.':'Today • 2:00 PM'}</Text></View><View style={s.card}><Text style={s.name}>{page==='Profile'?'Alex Rivera':'Integration Techniques Review'}</Text><Text style={s.muted}>Campus4Change demo content</Text></View></>}</View><Tabs go={setPage}/></SafeAreaView>}
+const s=StyleSheet.create({safe:{flex:1,backgroundColor:C.bg},onboard:{flex:1,width:'100%',maxWidth:520,alignSelf:'center',alignItems:'center',padding:28},logo:{width:210,height:210,borderRadius:105,backgroundColor:'#0e3444',marginTop:120,alignItems:'center',justifyContent:'center'},house:{fontSize:64,color:C.cyan},c:{position:'absolute',fontWeight:'bold'},brand:{fontSize:30,fontWeight:'bold',color:C.text,marginTop:28},blue:{color:C.cyan},muted:{color:C.muted,fontSize:13,lineHeight:20},footer:{color:C.muted,fontSize:10,marginTop:16},header:{height:84,flexDirection:'row',alignItems:'center',padding:20},back:{fontSize:38,color:C.text,marginRight:16},title:{color:C.text,fontSize:24,fontWeight:'bold'},pad:{flex:1,width:'100%',maxWidth:520,alignSelf:'center',padding:20},label:{color:C.text,marginTop:16,marginBottom:6},input:{height:48,borderRadius:12,borderWidth:1,borderColor:'#21404e',color:C.text,paddingHorizontal:16,marginTop:10},btn:{height:48,borderRadius:12,backgroundColor:C.cyan,alignItems:'center',justifyContent:'center',marginTop:14},btnText:{fontWeight:'bold',fontSize:13,color:C.bg},tabs:{height:64,backgroundColor:'#0a1b25',flexDirection:'row'},tab:{flex:1,alignItems:'center',justifyContent:'center'},tabText:{color:C.muted,fontSize:10,textAlign:'center'},section:{color:C.text,fontSize:17,fontWeight:'bold',marginTop:22,marginBottom:12},tutor:{backgroundColor:C.card,borderRadius:14,padding:16,marginBottom:14,flexDirection:'row',gap:14},avatar:{height:32,width:32,borderRadius:16,backgroundColor:C.cyan,alignItems:'center',justifyContent:'center'},bigAvatar:{height:56,width:56,borderRadius:28,backgroundColor:C.cyan,alignSelf:'center',alignItems:'center',justifyContent:'center'},name:{color:C.text,fontWeight:'bold',fontSize:16},star:{color:'#ffd75e',marginTop:8},profile:{color:C.text,fontSize:24,fontWeight:'bold',textAlign:'center',marginTop:12},chip:{color:C.cyan,backgroundColor:C.card,padding:12,borderRadius:10},greeting:{color:C.text,fontSize:20,fontWeight:'bold'},card:{backgroundColor:C.card,borderRadius:14,padding:16,marginTop:16},match:{color:C.text,fontSize:24,fontWeight:'bold',marginTop:8}});
