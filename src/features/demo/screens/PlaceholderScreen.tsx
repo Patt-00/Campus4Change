@@ -1,11 +1,11 @@
 import React from 'react';
 import {Text, View} from 'react-native';
-import {AppHeader} from '../components/AppHeader';
-import {BottomTabs} from '../components/BottomTabs';
-import {StatusBarSafeArea} from '../components/StatusBarSafeArea';
-import {demoProfileName, latestMessage, nextSession} from '../data/demo';
-import {s} from '../theme/styles';
-import type {Navigate, Page} from '../types/navigation';
+import {AppHeader} from '../../../shared/components/AppHeader';
+import {BottomTabs} from '../../../shared/components/BottomTabs';
+import {StatusBarSafeArea} from '../../../shared/components/StatusBarSafeArea';
+import {demoProfileName, latestMessage, nextSession} from '../../../shared/data/demo';
+import {s} from '../../../shared/theme/styles';
+import type {Navigate, Page} from '../../../navigation/types';
 
 type PlaceholderPage = Extract<Page, 'Sessions' | 'Messages' | 'Profile'>;
 

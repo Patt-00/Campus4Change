@@ -1,12 +1,12 @@
 import React from 'react';
 import {Text, TextInput, TouchableOpacity, View} from 'react-native';
-import {AppHeader} from '../components/AppHeader';
-import {BottomTabs} from '../components/BottomTabs';
-import {StatusBarSafeArea} from '../components/StatusBarSafeArea';
-import {tutorNames} from '../data/demo';
-import {C} from '../theme/colors';
-import {s} from '../theme/styles';
-import type {Navigate} from '../types/navigation';
+import {AppHeader} from '../../../shared/components/AppHeader';
+import {BottomTabs} from '../../../shared/components/BottomTabs';
+import {StatusBarSafeArea} from '../../../shared/components/StatusBarSafeArea';
+import {tutorNames} from '../../../shared/data/demo';
+import {C} from '../../../shared/theme/colors';
+import {s} from '../../../shared/theme/styles';
+import type {Navigate} from '../../../navigation/types';
 
 export function TutorSearchScreen({go}: {go: Navigate}) {
   return (

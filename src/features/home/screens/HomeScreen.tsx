@@ -1,12 +1,12 @@
 import React from 'react';
 import {Text, TextInput, View} from 'react-native';
-import {AppButton} from '../components/AppButton';
-import {AppHeader} from '../components/AppHeader';
-import {BottomTabs} from '../components/BottomTabs';
-import {StatusBarSafeArea} from '../components/StatusBarSafeArea';
-import {C} from '../theme/colors';
-import {s} from '../theme/styles';
-import type {Navigate} from '../types/navigation';
+import {AppButton} from '../../../shared/components/AppButton';
+import {AppHeader} from '../../../shared/components/AppHeader';
+import {BottomTabs} from '../../../shared/components/BottomTabs';
+import {StatusBarSafeArea} from '../../../shared/components/StatusBarSafeArea';
+import {C} from '../../../shared/theme/colors';
+import {s} from '../../../shared/theme/styles';
+import type {Navigate} from '../../../navigation/types';
 
 export function HomeScreen({go}: {go: Navigate}) {
   return (

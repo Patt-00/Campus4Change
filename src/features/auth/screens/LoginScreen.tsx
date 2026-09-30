@@ -1,10 +1,10 @@
 import React from 'react';
 import {Text, TextInput, View} from 'react-native';
-import {AppButton} from '../components/AppButton';
-import {AppHeader} from '../components/AppHeader';
-import {StatusBarSafeArea} from '../components/StatusBarSafeArea';
-import {C} from '../theme/colors';
-import {s} from '../theme/styles';
+import {AppButton} from '../../../shared/components/AppButton';
+import {AppHeader} from '../../../shared/components/AppHeader';
+import {StatusBarSafeArea} from '../../../shared/components/StatusBarSafeArea';
+import {C} from '../../../shared/theme/colors';
+import {s} from '../../../shared/theme/styles';
 
 export function LoginScreen({onAuth}: {onAuth: () => void}) {
   return (

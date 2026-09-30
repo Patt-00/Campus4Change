@@ -1,7 +1,7 @@
 import React from 'react';
 import {Text, TouchableOpacity, View} from 'react-native';
 import {s} from '../theme/styles';
-import type {Navigate, Page} from '../types/navigation';
+import type {Navigate, Page} from '../../navigation/types';
 
 const tabPages: Page[] = [
   'Home',

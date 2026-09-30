@@ -1,11 +1,11 @@
 import React from 'react';
 import {Text, View} from 'react-native';
-import {AppButton} from '../components/AppButton';
-import {AppHeader} from '../components/AppHeader';
-import {StatusBarSafeArea} from '../components/StatusBarSafeArea';
-import {tutorNames} from '../data/demo';
-import {s} from '../theme/styles';
-import type {Navigate} from '../types/navigation';
+import {AppButton} from '../../../shared/components/AppButton';
+import {AppHeader} from '../../../shared/components/AppHeader';
+import {StatusBarSafeArea} from '../../../shared/components/StatusBarSafeArea';
+import {tutorNames} from '../../../shared/data/demo';
+import {s} from '../../../shared/theme/styles';
+import type {Navigate} from '../../../navigation/types';
 
 export function TutorDetailsScreen({go}: {go: Navigate}) {
   return (

@@ -1,9 +1,9 @@
 import React from 'react';
 import {StatusBar, Text, View} from 'react-native';
-import {AppButton} from '../components/AppButton';
-import {StatusBarSafeArea} from '../components/StatusBarSafeArea';
-import {s} from '../theme/styles';
-import type {Navigate} from '../types/navigation';
+import {AppButton} from '../../../shared/components/AppButton';
+import {StatusBarSafeArea} from '../../../shared/components/StatusBarSafeArea';
+import {s} from '../../../shared/theme/styles';
+import type {Navigate} from '../../../navigation/types';
 
 export function OnboardingScreen({go}: {go: Navigate}) {
   return (
