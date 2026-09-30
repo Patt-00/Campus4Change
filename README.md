@@ -1,4 +1,4 @@
-Campus4Change is a React Native CLI Android prototype. See [the architecture guide](docs/ARCHITECTURE.md) for its current folder structure, screen flow, and demo-only boundaries.
+Campus4Change is a React Native CLI Android prototype. See [the architecture guide](docs/ARCHITECTURE.md) for its folder structure and screen flow, and [the build guide](docs/BUILDING.md) for PC and Termux instructions.
 
 This project was bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
 

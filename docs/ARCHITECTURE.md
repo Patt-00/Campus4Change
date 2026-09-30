@@ -39,7 +39,7 @@ flowchart LR
 - Navigation is a typed `page` value in React state, not a navigation library or Android activity per screen. Tapping a button or tab calls `setPage`; signing in also sets `logged` to `true`.
 - The login fields, tutor search, profiles, sessions, and messages are UI-only examples. No API, database, authentication service, or persistent storage is connected. Demo tutor and session values live in `src/data/demo.ts`.
 - Shared UI is in `src/components/`; colors and styles are in `src/theme/`. The custom safe-area wrapper only adds Android status-bar top padding.
-- `android/` is the native Android build project. The project also contains an iOS scaffold, but the prototype APK is built from Android. Android is configured for `arm64-v8a` with Hermes enabled.
+- `android/` is the native Android build project. The project also contains an iOS scaffold, but the prototype APK is built from Android. Hermes is enabled; the Termux build wrapper limits its APK to `arm64-v8a`, while PC builds use the normal ABI selection.
 - `__tests__/App.test.tsx` is a single render smoke test; it does not cover navigation or business behavior.
 
 ## Main files

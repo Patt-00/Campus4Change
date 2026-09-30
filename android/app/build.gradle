@@ -44,9 +44,11 @@ react {
 
     /* Hermes Commands */
     //   The hermes compiler command to run. By default it is 'hermesc'
-    // Termux runs on ARM64, while React Native ships an x86_64 Linux hermesc.
-    // This wrapper runs that compiler through the installed user-mode emulator.
-    hermesCommand = "$rootDir/../scripts/hermesc-qemu.sh"
+    // Only the Termux build needs QEMU for React Native's x86_64 Linux compiler.
+    // Desktop builds use the React Native Gradle plugin's OS-aware default.
+    if (providers.gradleProperty("termuxBuild").orNull == "true") {
+        hermesCommand = "$rootDir/../scripts/hermesc-qemu.sh"
+    }
     //
     //   The list of flags to pass to the Hermes compiler. By default is "-O", "-output-source-map"
     // hermesFlags = ["-O", "-output-source-map"]
