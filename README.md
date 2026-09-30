@@ -1,4 +1,6 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+Campus4Change is a React Native CLI Android prototype. See [the architecture guide](docs/ARCHITECTURE.md) for its current folder structure, screen flow, and demo-only boundaries.
+
+This project was bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
 
 # Getting Started
 
