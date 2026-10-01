@@ -1,52 +1,40 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { BackHandler, Text, View } from 'react-native';
 import { HomeScreen } from '../features/home/screens/HomeScreen';
 import { AboutScreen } from '../features/about/screens/AboutScreen';
-import {
-  LoginScreen,
-  SignUpScreen,
-  type AuthActions,
-} from '../features/auth/screens/LoginScreen';
+import { CreateScreen } from '../features/create/screens/CreateScreen';
+import { LoginScreen } from '../features/auth/screens/LoginScreen';
+import { SignUpScreen } from '../features/auth/screens/SignUpScreen';
 import { OnboardingScreen } from '../features/onboarding/screens/OnboardingScreen';
 import { TutorDetailsScreen } from '../features/tutors/screens/TutorDetailsScreen';
 import { TutorSearchScreen } from '../features/tutors/screens/TutorSearchScreen';
-import {
-  BookingConfirmedScreen,
-  BookingScreen,
-} from '../features/tutors/screens/BookingScreen';
-import {
-  CreateGroupScreen,
-  GroupDetailsScreen,
-  GroupPostScreen,
-  GroupsScreen,
-} from '../features/groups/screens/GroupScreens';
-import {
-  SessionDetailsScreen,
-  SessionsScreen,
-} from '../features/sessions/screens/SessionScreens';
+import { BookingScreen } from '../features/tutors/screens/BookingScreen';
+import { BookingConfirmedScreen } from '../features/tutors/screens/BookingConfirmedScreen';
+import { CreateGroupScreen } from '../features/groups/screens/CreateGroupScreen';
+import { GroupDetailsScreen } from '../features/groups/screens/GroupDetailsScreen';
+import { GroupPostScreen } from '../features/groups/screens/GroupPostScreen';
+import { GroupsScreen } from '../features/groups/screens/GroupsScreen';
+import { SessionDetailsScreen } from '../features/sessions/screens/SessionDetailsScreen';
+import { SessionsScreen } from '../features/sessions/screens/SessionsScreen';
 import { StudyRoomScreen } from '../features/sessions/screens/StudyRoomScreen';
-import {
-  ChatScreen,
-  MessagesScreen,
-} from '../features/messages/screens/MessageScreens';
+import { ChatScreen } from '../features/messages/screens/ChatScreen';
+import { MessagesScreen } from '../features/messages/screens/MessagesScreen';
 import { NotificationsScreen } from '../features/notifications/screens/NotificationsScreen';
-import {
-  BeTutorScreen,
-  EditProfileScreen,
-  ProfileScreen,
-} from '../features/profile/screens/ProfileScreens';
+import { BeTutorScreen } from '../features/profile/screens/BeTutorScreen';
+import { EditProfileScreen } from '../features/profile/screens/EditProfileScreen';
+import { ProfileScreen } from '../features/profile/screens/ProfileScreen';
 import { AppButton } from '../shared/components/AppButton';
 import { Empty, Link } from '../shared/components/UI';
 import { Screen } from '../shared/components/Screen';
-import { initialState, uid } from '../shared/data/demo';
+import { uid } from '../shared/data/demo';
 import {
   directoryTutors,
   knownTutors,
   visibleGroups,
 } from '../shared/data/catalog';
-import type { CampusState, Tutor } from '../shared/data/types';
-import { hasConflict, reducer, type Action } from '../shared/state/reducer';
-import { deviceStore, parseAccount, parseState } from '../shared/state/storage';
+import type { Tutor } from '../shared/data/types';
+import { hasConflict } from '../shared/state/reducer';
+import { useCampusSession } from '../shared/state/useCampusSession';
 import { s } from '../shared/theme/styles';
 import type { Navigate, Page, Route } from './types';
 
@@ -60,10 +48,17 @@ const tabs = new Set<Page>([
 export function AppNavigator() {
   const [route, setRoute] = useState<Route>({ page: 'Onboarding' });
   const [history, setHistory] = useState<Route[]>([]);
-  const [state, setState] = useState<CampusState | null>(null);
-  const [saveError, setSaveError] = useState('');
-  const snapshot = useRef(state);
-  snapshot.current = state;
+  const { state, saveError, auth, dispatch, signOut, retrySave } =
+    useCampusSession({
+      onSignedIn: () => {
+        setHistory([]);
+        setRoute({ page: 'Home' });
+      },
+      onSignedOut: () => {
+        setHistory([]);
+        setRoute({ page: 'Login' });
+      },
+    });
   const go: Navigate = useCallback(
     next => {
       const target = typeof next === 'string' ? { page: next } : next;
@@ -105,68 +100,6 @@ export function AppNavigator() {
     });
     return () => listener.remove();
   }, [back, history.length, route.page]);
-  useEffect(() => {
-    if (!state) {
-      return;
-    }
-    let cancelled = false;
-    deviceStore()
-      .saveState(JSON.stringify(state))
-      .then(() => {
-        if (!cancelled) {
-          setSaveError('');
-        }
-      })
-      .catch(e => {
-        if (!cancelled) {
-          setSaveError(e instanceof Error ? e.message : String(e));
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [state]);
-  async function enter(value: string) {
-    try {
-      const account = parseAccount(value);
-      const saved = await deviceStore().loadState();
-      const next = saved ? parseState(saved) : initialState(account);
-      if (next.profile.id !== account.id) {
-        throw new Error('Saved data belongs to a different account.');
-      }
-      setSaveError('');
-      setState(next);
-      setHistory([]);
-      setRoute({ page: 'Home' });
-    } catch (e) {
-      await deviceStore().signOut();
-      throw e;
-    }
-  }
-  const auth: AuthActions = {
-    signIn: async (id, password) =>
-      enter(await deviceStore().signIn(id, password)),
-    signUp: async (name, email, studentId, password) =>
-      enter(await deviceStore().signUp(name, email, studentId, password)),
-    biometrics: async () => enter(await deviceStore().biometricSignIn()),
-  };
-  function dispatch(action: Action) {
-    setState(prev => (prev ? reducer(prev, action) : prev));
-  }
-  async function signOut() {
-    try {
-      if (snapshot.current) {
-        await deviceStore().saveState(JSON.stringify(snapshot.current));
-      }
-      await deviceStore().signOut();
-      setState(null);
-      setSaveError('');
-      setHistory([]);
-      setRoute({ page: 'Login' });
-    } catch (e) {
-      setSaveError(e instanceof Error ? e.message : String(e));
-    }
-  }
   if (route.page === 'Onboarding') {
     return <OnboardingScreen go={go} />;
   }
@@ -479,24 +412,7 @@ export function AppNavigator() {
       );
       break;
     case 'Create':
-      screen = (
-        <Screen title="Create" go={go} tab="Create">
-          <Text style={s.section}>Make learning happen</Text>
-          <AppButton
-            title="BOOK A SESSION"
-            onPress={() => go('Tutor Search')}
-          />
-          <AppButton
-            title="CREATE STUDY GROUP"
-            onPress={() => go('Create Group')}
-          />
-          <AppButton
-            title="BE A TUTOR"
-            outline
-            onPress={() => go('Be a Tutor')}
-          />
-        </Screen>
-      );
+      screen = <CreateScreen go={go} />;
       break;
     case 'Study Room':
       if (session || group?.joined) {
@@ -554,17 +470,7 @@ export function AppNavigator() {
       {saveError && (
         <View style={s.banner}>
           <Text style={s.error}>Data has not been saved: {saveError}</Text>
-          <Link
-            label="Retry saving"
-            onPress={() => {
-              if (snapshot.current) {
-                deviceStore()
-                  .saveState(JSON.stringify(snapshot.current))
-                  .then(() => setSaveError(''))
-                  .catch(e => setSaveError(String(e)));
-              }
-            }}
-          />
+          <Link label="Retry saving" onPress={retrySave} />
         </View>
       )}
       {screen ?? (

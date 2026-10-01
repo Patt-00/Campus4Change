@@ -12,26 +12,8 @@ import type { Tutor } from '../../../shared/data/types';
 import { C } from '../../../shared/theme/colors';
 import { s } from '../../../shared/theme/styles';
 import type { Navigate } from '../../../navigation/types';
+import { filterTutors } from '../data/search';
 
-export function filterTutors(
-  list: Tutor[],
-  query: string,
-  subject: string,
-  available: boolean,
-  top: boolean,
-) {
-  const q = query.trim().toLowerCase();
-  return list
-    .filter(
-      t =>
-        (!q ||
-          (t.name + ' ' + t.subjects.join(' ')).toLowerCase().includes(q)) &&
-        (!subject ||
-          t.subjects.some(x => x.toLowerCase() === subject.toLowerCase())) &&
-        (!available || t.available),
-    )
-    .sort((a, b) => (top ? b.rating - a.rating : 0));
-}
 export function TutorSearchScreen({
   go,
   back,

@@ -2,7 +2,15 @@
 
 Verified on Windows on 2026-10-01. Phone testing is left to the user. No installation, launch, or device interaction was performed for this version.
 
-## Results
+## Source refactor after the release
+
+The later source cleanup was checked on 2026-10-01. Each screen now has its own file, account loading and saving live in `useCampusSession`, and tutor filtering lives with tutor data. Screen behavior, saved JSON version 1, dependencies, and PC/Termux build configuration are unchanged.
+
+TypeScript, ESLint, all 25 Jest tests, production Android JavaScript bundling with Metro, and `git diff --check` passed. The three added tests passed before and after the refactor and cover account-data mismatch, saving before sign-out, and keeping the account open when its final save fails. The moved screen functions and their style values were compared with the original source. Feature dependency boundaries were also checked.
+
+No native APK was rebuilt or installed for this structural refactor. The published v1.2.0 APK remains the build from commit `61b3ac547e26dc0ceb91e78a56d57f53400cbb54`; the release checks and artifact identity below apply to that APK.
+
+## Release build results
 
 | Check | Result |
 | --- | --- |
@@ -23,7 +31,7 @@ Verified on Windows on 2026-10-01. Phone testing is left to the user. No install
 | Native encryption, biometrics, and persistence after restart | Not tested for 1.2.0 |
 | Pixel comparison with Figma | Not verified on a device |
 
-The temporary browser preview rendered the actual screen components with React Native Web and sample state. It checked icons, spacing, blank profile fields, and long custom-interest wrapping. It used neither Android storage nor a phone keyboard. It is not proof of Android runtime behavior. Preview tooling stays in ignored `.tools/` and `artifacts/`; app dependencies are unchanged.
+The temporary browser preview rendered the actual screen components with React Native Web and sample state. It checked icons, spacing, blank profile fields, and long custom-interest wrapping. It used neither Android storage nor a phone keyboard. It is not proof of Android runtime behavior. The temporary preview tools and outputs were removed during local directory cleanup; app dependencies are unchanged.
 
 The APK contains Hermes bytecode, bundled Inter fonts, and `libhermestooling.so` and `libhermesvm.so` for each ABI. Jest mocks the native storage interface; its results cover the tested React flows and state rules.
 

@@ -1,16 +1,15 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Alert, Text, TouchableOpacity, View, StyleSheet } from 'react-native';
-import { AppButton } from '../../../shared/components/AppButton';
 import { Screen } from '../../../shared/components/Screen';
-import { Avatar, ErrorText, Field, Link } from '../../../shared/components/UI';
+import { Avatar, Link } from '../../../shared/components/UI';
 import { deviceStore } from '../../../shared/state/storage';
-import type { CampusState, Profile } from '../../../shared/data/types';
+import type { CampusState } from '../../../shared/data/types';
 import { s } from '../../../shared/theme/styles';
 import { C } from '../../../shared/theme/colors';
 import type { Navigate } from '../../../navigation/types';
-import { InterestEditor } from '../components/InterestEditor';
 import { Icon } from '../../../shared/components/Icon';
 import { version } from '../../../../package.json';
+
 export function ProfileScreen({
   go,
   state,
@@ -139,158 +138,6 @@ export function ProfileScreen({
     </Screen>
   );
 }
-export function EditProfileScreen({
-  back,
-  profile,
-  save,
-  preferences = false,
-}: {
-  back: () => void;
-  profile: Profile;
-  save: (changes: Partial<Profile>) => void;
-  preferences?: boolean;
-}) {
-  const [name, setName] = useState(profile.name);
-  const [course, setCourse] = useState(profile.course);
-  const [year, setYear] = useState(profile.year);
-  const [school, setSchool] = useState(profile.school);
-  const [interests, setInterests] = useState(profile.interests);
-  const [error, setError] = useState('');
-  return (
-    <Screen
-      title={preferences ? 'Learning Preferences' : 'Edit Profile'}
-      back={back}
-    >
-      {!preferences && (
-        <>
-          <Field
-            label="Full name"
-            icon="N"
-            value={name}
-            onChangeText={setName}
-          />
-          <Field
-            label="Course"
-            placeholder="Your course (optional)"
-            icon="C"
-            value={course}
-            onChangeText={setCourse}
-          />
-          <Field
-            label="Year level"
-            placeholder="Your year level (optional)"
-            icon="Y"
-            value={year}
-            onChangeText={setYear}
-          />
-          <Field
-            label="School"
-            placeholder="Your school (optional)"
-            value={school}
-            onChangeText={setSchool}
-          />
-        </>
-      )}
-      <Text style={s.section}>Learning interests</Text>
-      <InterestEditor value={interests} onChange={setInterests} />
-      <View style={s.bigGap} />
-      <ErrorText value={error} />
-      <AppButton
-        title="SAVE CHANGES"
-        onPress={() => {
-          if (!preferences && name.trim().length < 2) {
-            setError('Enter your full name.');
-            return;
-          }
-          save(
-            preferences
-              ? { interests }
-              : {
-                  name: name.trim(),
-                  course: course.trim(),
-                  year: year.trim(),
-                  school: school.trim(),
-                  interests,
-                },
-          );
-          back();
-        }}
-      />
-    </Screen>
-  );
-}
-export function BeTutorScreen({
-  back,
-  profile,
-  save,
-}: {
-  back: () => void;
-  profile: Profile;
-  save: (changes: Partial<Profile>) => void;
-}) {
-  const [subjects, setSubjects] = useState(profile.tutorSubjects.join(', '));
-  const [bio, setBio] = useState(profile.bio);
-  const [error, setError] = useState('');
-  return (
-    <Screen title="Be a Tutor" back={back}>
-      <Text style={[s.muted, styles.marginBottom24]}>
-        Add the subjects or skills you can help with. Your listing is saved on
-        this device.
-      </Text>
-      <Field
-        label="Subjects (separate with commas)"
-        placeholder="Writing, design, biology"
-        value={subjects}
-        onChangeText={setSubjects}
-      />
-      <Field
-        label="About you"
-        multiline
-        placeholder="How do you help other students?"
-        value={bio}
-        onChangeText={setBio}
-      />
-      <ErrorText value={error} />
-      <AppButton
-        title="SAVE TUTOR PROFILE"
-        onPress={() => {
-          const list = [
-            ...new Set(
-              subjects
-                .split(',')
-                .map(x => x.trim())
-                .filter(Boolean),
-            ),
-          ];
-          if (!list.length || bio.trim().length < 10) {
-            setError(
-              'Add at least one subject and an introduction of at least 10 characters.',
-            );
-            return;
-          }
-          save({
-            tutorSubjects: list,
-            bio: bio.trim(),
-          });
-          back();
-        }}
-      />
-      {!!profile.tutorSubjects.length && (
-        <Link
-          label="Remove tutor listing"
-          danger
-          onPress={() => {
-            save({
-              tutorSubjects: [],
-              bio: '',
-            });
-            back();
-          }}
-        />
-      )}
-    </Screen>
-  );
-}
 const styles = StyleSheet.create({
   alignItemscenterpaddingTop8: {
     alignItems: 'center',
@@ -312,8 +159,5 @@ const styles = StyleSheet.create({
   minHeight54justifyContentcenter: {
     minHeight: 54,
     justifyContent: 'center',
-  },
-  marginBottom24: {
-    marginBottom: 24,
   },
 });

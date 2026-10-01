@@ -1,5 +1,5 @@
 import { initialState, tutors } from '../src/shared/data/demo';
-import { filterTutors } from '../src/features/tutors/screens/TutorSearchScreen';
+import { filterTutors } from '../src/features/tutors/data/search';
 import { hasConflict, reducer } from '../src/shared/state/reducer';
 import { parseState } from '../src/shared/state/storage';
 import type { Session } from '../src/shared/data/types';

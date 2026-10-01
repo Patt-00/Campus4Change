@@ -1,8 +1,15 @@
 import React from 'react';
-import { BackHandler, Text, TextInput, TouchableOpacity } from 'react-native';
+import {
+  Alert,
+  BackHandler,
+  Text,
+  TextInput,
+  TouchableOpacity,
+} from 'react-native';
 import ReactTestRenderer from 'react-test-renderer';
 import App from '../App';
 import type { Account } from '../src/shared/data/types';
+import { initialState } from '../src/shared/data/demo';
 
 const demo: Account = {
   id: 'demo',
@@ -75,6 +82,17 @@ async function login() {
   await press('GET STARTED');
   await press('USE DEMO ACCOUNT');
 }
+async function confirmSignOut() {
+  const alert = jest.spyOn(Alert, 'alert');
+  await press('Sign out');
+  const confirm = alert.mock.calls
+    .at(-1)?.[2]
+    ?.find(b => b.text === 'Sign out');
+  expect(confirm?.onPress).toBeDefined();
+  await ReactTestRenderer.act(async () => {
+    await confirm!.onPress!();
+  });
+}
 beforeEach(() => {
   mockCurrent = demo;
   mockSaved = {};
@@ -104,6 +122,53 @@ test('shows an authentication failure without opening the app', async () => {
   await press('SIGN IN');
   expect(hasText('Incorrect password.')).toBe(true);
   expect(hasText('Quick Actions')).toBe(false);
+});
+test('rejects saved data from another account and clears the native sign-in', async () => {
+  mockStore.loadState.mockResolvedValueOnce(
+    JSON.stringify(initialState({ ...demo, id: 'other-account' })),
+  );
+  await login();
+  expect(hasText('Saved data belongs to a different account.')).toBe(true);
+  expect(hasText('Quick Actions')).toBe(false);
+  expect(mockStore.signOut).toHaveBeenCalledTimes(1);
+  expect(mockStore.saveState).not.toHaveBeenCalled();
+});
+test('sign-out saves the latest profile and resets navigation to login', async () => {
+  await login();
+  await press('Profile');
+  await press('Edit profile');
+  await fill('Full name', 'Saved Before Sign Out');
+  await press('SAVE CHANGES');
+  mockStore.saveState.mockClear();
+  await confirmSignOut();
+  expect(mockStore.saveState).toHaveBeenCalledTimes(1);
+  expect(mockStore.signOut).toHaveBeenCalledTimes(1);
+  expect(mockStore.saveState.mock.invocationCallOrder[0]).toBeLessThan(
+    mockStore.signOut.mock.invocationCallOrder[0],
+  );
+  expect(JSON.parse(mockSaved.demo).profile.name).toBe('Saved Before Sign Out');
+  expect(hasText('SIGN IN')).toBe(true);
+  await press('Back');
+  expect(hasText('GET STARTED')).toBe(true);
+  await press('GET STARTED');
+  await press('USE DEMO ACCOUNT');
+  await press('Profile');
+  expect(hasText('Saved Before Sign Out')).toBe(true);
+});
+test('a failed sign-out save keeps the account open and can be retried', async () => {
+  await login();
+  await press('Profile');
+  mockStore.saveState.mockRejectedValueOnce(new Error('Storage is full.'));
+  await confirmSignOut();
+  expect(mockStore.signOut).not.toHaveBeenCalled();
+  expect(hasText('SIGN IN')).toBe(false);
+  expect(hasText('Edit profile')).toBe(true);
+  expect(hasText('Retry saving')).toBe(true);
+  await press('Retry saving');
+  expect(hasText('Retry saving')).toBe(false);
+  await confirmSignOut();
+  expect(mockStore.signOut).toHaveBeenCalledTimes(1);
+  expect(hasText('SIGN IN')).toBe(true);
 });
 test('search selects the actual tutor, books a future session, and opens details', async () => {
   await login();
