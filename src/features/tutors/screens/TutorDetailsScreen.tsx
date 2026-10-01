@@ -6,6 +6,7 @@ import { Avatar, Chip } from '../../../shared/components/UI';
 import type { Tutor } from '../../../shared/data/types';
 import { s } from '../../../shared/theme/styles';
 import type { Navigate } from '../../../navigation/types';
+import { bookingSlots } from '../data/booking';
 export function TutorDetailsScreen({
   go,
   back,
@@ -20,15 +21,20 @@ export function TutorDetailsScreen({
   return (
     <Screen title="Tutor Profile" back={back}>
       <View style={styles.alignItemscenterpaddingTop8}>
-        <Avatar name={tutor.name} />
+        <Avatar name={tutor.name} size={72} />
         <Text style={[s.heading, styles.marginTop16]}>{tutor.name}</Text>
         <Text style={s.muted}>
-          {tutor.course} • {tutor.year}
+          {[tutor.course, tutor.year].filter(Boolean).join(' • ')}
         </Text>
-        <Text style={s.star}>
-          ★ {tutor.rating || 'New'} • {tutor.sessions} sessions •{' '}
-          {tutor.response}% response
-        </Text>
+        {tutor.sample ? (
+          <Text style={s.star}>
+            ★ {tutor.rating || 'New'} • {tutor.sessions} sessions •{' '}
+            {tutor.response}% response
+          </Text>
+        ) : (
+          <Text style={s.muted}>Your tutor listing</Text>
+        )}
+        {tutor.sample && <Text style={s.muted}>Sample tutor · Demo data</Text>}
       </View>
       <View style={s.divider} />
       <Text style={[s.section, styles.marginTop0]}>Subjects</Text>
@@ -40,12 +46,27 @@ export function TutorDetailsScreen({
       <Text style={s.section}>About</Text>
       <Text style={s.text}>{tutor.about}</Text>
       <View style={s.gap} />
-      <Text style={s.section}>Available times</Text>
-      <View style={s.wrap}>
-        {['2:00 PM', '4:30 PM', '6:00 PM'].map(time => (
-          <Chip
-            key={time}
-            label={time}
+      {!tutor.own && (
+        <>
+          <Text style={s.section}>Booking times</Text>
+          <View style={s.wrap}>
+            {bookingSlots.map((time, slot) => (
+              <Chip
+                key={time.label}
+                label={time.label}
+                onPress={() =>
+                  go({
+                    page: 'Book Session',
+                    tutorId: tutor.id,
+                    slot,
+                  })
+                }
+              />
+            ))}
+          </View>
+          <View style={s.bigGap} />
+          <AppButton
+            title="BOOK SESSION"
             onPress={() =>
               go({
                 page: 'Book Session',
@@ -53,19 +74,19 @@ export function TutorDetailsScreen({
               })
             }
           />
-        ))}
-      </View>
-      <View style={s.bigGap} />
-      <AppButton
-        title="BOOK SESSION"
-        onPress={() =>
-          go({
-            page: 'Book Session',
-            tutorId: tutor.id,
-          })
-        }
-      />
-      <AppButton title="MESSAGE TUTOR" outline onPress={() => message(tutor)} />
+          <AppButton
+            title="MESSAGE TUTOR"
+            outline
+            onPress={() => message(tutor)}
+          />
+        </>
+      )}
+      {tutor.own && (
+        <AppButton
+          title="EDIT TUTOR PROFILE"
+          onPress={() => go('Be a Tutor')}
+        />
+      )}
     </Screen>
   );
 }

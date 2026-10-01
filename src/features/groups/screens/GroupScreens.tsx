@@ -10,7 +10,9 @@ import {
   Link,
 } from '../../../shared/components/UI';
 import type { Group, Post } from '../../../shared/data/types';
-import { dateLabel } from '../../../shared/data/demo';
+import { dateLabel, sessionTime } from '../../../shared/data/demo';
+import { IconBadge } from '../../../shared/components/Icon';
+import { parseMeetup } from '../data/meetup';
 import { s } from '../../../shared/theme/styles';
 import type { Navigate } from '../../../navigation/types';
 export function GroupsScreen({
@@ -42,13 +44,12 @@ export function GroupsScreen({
           })
         }
       >
-        <View style={styles.width52height52}>
-          <Text style={[s.heading, s.blue]}>{g.name[0]}</Text>
-        </View>
+        <IconBadge name="users" />
         <View style={s.grow}>
           <Text style={s.name}>{g.name}</Text>
           <Text style={s.muted}>
-            {g.members} members • {g.joined ? 'Your group' : 'Public'}
+            {g.members} {g.members === 1 ? 'member' : 'members'} •{' '}
+            {g.joined ? 'Joined' : 'Not joined'}
           </Text>
           <Text style={[s.link, styles.marginTop8]}>Open group</Text>
         </View>
@@ -72,7 +73,11 @@ export function GroupsScreen({
       <Text style={s.section}>Discover</Text>
       {cards(filtered.filter(g => !g.joined))}
       {!filtered.some(g => !g.joined) && (
-        <Text style={s.muted}>No more groups match this search.</Text>
+        <Text style={s.muted}>
+          {groups.length
+            ? 'No more groups match this search.'
+            : 'Create your first group to organize study notes.'}
+        </Text>
       )}
     </Screen>
   );
@@ -110,8 +115,10 @@ export function GroupDetailsScreen({
       <Text style={s.section}>Next meetup</Text>
       <View style={s.card}>
         <Text style={s.name}>{group.meetup}</Text>
-        <Text style={s.muted}>Friday • 4:00 PM</Text>
-        <Text style={s.muted}>Room {group.room} • local demo</Text>
+        <Text style={s.muted}>
+          {group.meetupAt ? sessionTime(group.meetupAt) : 'No meetup scheduled'}
+        </Text>
+        <Text style={s.muted}>Focus room • {group.room}</Text>
       </View>
       <Text style={s.section}>Recent posts</Text>
       {group.posts.map(p => (
@@ -141,6 +148,8 @@ export function GroupDetailsScreen({
       {group.joined && (
         <>
           <Text style={s.section}>Share with the group</Text>
+          <Text style={s.muted}>Posts and replies stay on this device.</Text>
+          <View style={s.gap} />
           <Field
             placeholder="Write a study note..."
             multiline
@@ -167,26 +176,33 @@ export function CreateGroupScreen({
   create,
 }: {
   back: () => void;
-  create: (name: string, subject: string, meetup: string) => void;
+  create: (
+    name: string,
+    subject: string,
+    meetup: string,
+    meetupAt?: string,
+  ) => void;
 }) {
   const [name, setName] = useState('');
   const [subject, setSubject] = useState('');
   const [meetup, setMeetup] = useState('');
+  const [date, setDate] = useState('');
+  const [time, setTime] = useState('');
   const [error, setError] = useState('');
   return (
     <Screen title="Create Study Group" back={back}>
       <Text style={[s.muted, styles.marginBottom20]}>
-        Build a space to learn with your campus peers.
+        Organize a subject, a study schedule, and your notes.
       </Text>
       <Field
         label="Group name"
-        placeholder="Example: Calculus Study Circle"
+        placeholder="Example: Exam Review Team"
         value={name}
         onChangeText={setName}
       />
       <Field
         label="Subject"
-        placeholder="Example: Calculus"
+        placeholder="Any subject or skill"
         value={subject}
         onChangeText={setSubject}
       />
@@ -195,6 +211,23 @@ export function CreateGroupScreen({
         placeholder="What will you study together?"
         value={meetup}
         onChangeText={setMeetup}
+      />
+      <Text style={s.section}>Schedule a meetup (optional)</Text>
+      <Field
+        label="Meetup date"
+        placeholder="YYYY-MM-DD"
+        value={date}
+        onChangeText={setDate}
+        maxLength={10}
+        keyboardType="numbers-and-punctuation"
+      />
+      <Field
+        label="Meetup time"
+        placeholder="HH:mm (24-hour time)"
+        value={time}
+        onChangeText={setTime}
+        maxLength={5}
+        keyboardType="numbers-and-punctuation"
       />
       <ErrorText value={error} />
       <AppButton
@@ -206,15 +239,27 @@ export function CreateGroupScreen({
             );
             return;
           }
+          const meetupAt =
+            date.trim() || time.trim() ? parseMeetup(date, time) : undefined;
+          if (
+            (date.trim() || time.trim()) &&
+            (!meetupAt || new Date(meetupAt).getTime() <= Date.now())
+          ) {
+            setError(
+              'Enter a valid future date and time, or leave both fields empty.',
+            );
+            return;
+          }
           create(
             name.trim(),
             subject.trim(),
             meetup.trim() || subject.trim() + ' review',
+            meetupAt,
           );
         }}
       />
       <Text style={[s.muted, styles.marginTop16]}>
-        Groups in this version are stored on this device.
+        Saved on this device. Group changes are not shared with other people.
       </Text>
     </Screen>
   );
@@ -285,14 +330,6 @@ const styles = StyleSheet.create({
   minHeight104: {
     minHeight: 104,
   },
-  width52height52: {
-    width: 52,
-    height: 52,
-    borderRadius: 12,
-    backgroundColor: '#112832',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   marginTop8: {
     marginTop: 8,
   },
@@ -303,7 +340,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   fontSize9marginTop12: {
-    fontSize: 9,
+    fontSize: 12,
     marginTop: 12,
   },
   marginBottom20: {

@@ -1,15 +1,22 @@
 import React, { useState } from 'react';
-import { Text, TouchableOpacity, View, StyleSheet } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Screen } from '../../../shared/components/Screen';
-import { Avatar, Chip, Empty, Field } from '../../../shared/components/UI';
+import {
+  Avatar,
+  Chip,
+  Empty,
+  Field,
+  Link,
+} from '../../../shared/components/UI';
 import type { Tutor } from '../../../shared/data/types';
 import { C } from '../../../shared/theme/colors';
 import { s } from '../../../shared/theme/styles';
 import type { Navigate } from '../../../navigation/types';
+
 export function filterTutors(
   list: Tutor[],
   query: string,
-  calculus: boolean,
+  subject: string,
   available: boolean,
   top: boolean,
 ) {
@@ -19,8 +26,8 @@ export function filterTutors(
       t =>
         (!q ||
           (t.name + ' ' + t.subjects.join(' ')).toLowerCase().includes(q)) &&
-        (!calculus ||
-          t.subjects.some(x => x.toLowerCase().includes('calculus'))) &&
+        (!subject ||
+          t.subjects.some(x => x.toLowerCase() === subject.toLowerCase())) &&
         (!available || t.available),
     )
     .sort((a, b) => (top ? b.rating - a.rating : 0));
@@ -37,92 +44,115 @@ export function TutorSearchScreen({
   initialQuery?: string;
 }) {
   const [query, setQuery] = useState(initialQuery);
-  const [calculus, setCalculus] = useState(false);
+  const [subject, setSubject] = useState('');
+  const [showSubjects, setShowSubjects] = useState(false);
   const [available, setAvailable] = useState(false);
   const [top, setTop] = useState(false);
-  const results = filterTutors(list, query, calculus, available, top);
+  const subjects = [...new Set(list.flatMap(t => t.subjects))].sort();
+  const results = filterTutors(list, query, subject, available, top);
+  const filtered = !!query.trim() || !!subject || available || top;
   return (
     <Screen title="Find a Tutor" back={back} go={go} tab="Home">
       <Field
+        icon="search"
         placeholder="Search subject or tutor"
         value={query}
         onChangeText={setQuery}
         autoCorrect={false}
+        returnKeyType="search"
       />
-      <View style={s.wrap}>
-        <Chip
-          label="Calculus"
-          selected={calculus}
-          onPress={() => setCalculus(!calculus)}
+      {!!list.length && (
+        <View style={s.wrap}>
+          <Chip
+            label={subject || 'Subjects'}
+            selected={showSubjects || !!subject}
+            onPress={() => setShowSubjects(!showSubjects)}
+          />
+          <Chip
+            label="Taking requests"
+            color={C.green}
+            selected={available}
+            onPress={() => setAvailable(!available)}
+          />
+          <Chip
+            label="Top rated"
+            color={C.yellow}
+            selected={top}
+            onPress={() => setTop(!top)}
+          />
+        </View>
+      )}
+      {showSubjects && (
+        <View style={[s.wrap, styles.space]}>
+          <Chip
+            label="All subjects"
+            selected={!subject}
+            onPress={() => setSubject('')}
+          />
+          {subjects.map(x => (
+            <Chip
+              key={x}
+              label={x}
+              selected={subject === x}
+              onPress={() => setSubject(subject === x ? '' : x)}
+            />
+          ))}
+        </View>
+      )}
+      {filtered && (
+        <Link
+          label="Clear filters"
+          onPress={() => {
+            setQuery('');
+            setSubject('');
+            setAvailable(false);
+            setTop(false);
+          }}
         />
-        <Chip
-          label="Available now"
-          color={C.green}
-          selected={available}
-          onPress={() => setAvailable(!available)}
-        />
-        <Chip
-          label="Top rated"
-          color={C.yellow}
-          selected={top}
-          onPress={() => setTop(!top)}
-        />
-      </View>
-      <Text style={s.section}>Recommended tutors</Text>
+      )}
+      <Text style={s.section}>Tutor directory · {results.length}</Text>
       {results.map(t => (
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel={t.name + ', view profile'}
           key={t.id}
-          style={[s.card, styles.minHeight120]}
-          onPress={() =>
-            go({
-              page: 'Tutor Details',
-              tutorId: t.id,
-            })
-          }
+          style={s.card}
+          onPress={() => go({ page: 'Tutor Details', tutorId: t.id })}
         >
-          <View style={[s.row, styles.alignItemsflexstart]}>
-            <Avatar name={t.name} />
+          <View style={s.row}>
+            <Avatar name={t.name} size={44} />
             <View style={s.grow}>
               <Text style={s.name}>{t.name}</Text>
-              <Text style={[s.muted, styles.fontSize10]}>
-                {t.subjects.slice(0, 2).join(' • ')}
-              </Text>
-              <Text style={s.star}>★ {t.rating || 'New'}</Text>
+              <Text style={s.muted}>{t.subjects.join(' · ')}</Text>
+              {t.sample && (
+                <Text style={s.star}>★ {t.rating} · Sample tutor</Text>
+              )}
+              {t.own && <Text style={[s.muted, s.blue]}>Your listing</Text>}
             </View>
-            <Chip
-              label={t.availability}
-              color={t.available ? C.green : C.cyan}
-            />
           </View>
-          <Text style={[s.link, styles.textAlignrightmarginTop6]}>
-            View profile
-          </Text>
+          <Text style={[s.link, styles.profile]}>View profile</Text>
         </TouchableOpacity>
       ))}
-      {results.length === 0 && (
+      {!results.length && (
         <Empty
-          title="No tutors found"
-          body="Try another subject or clear the filters."
+          title={list.length ? 'No tutors found' : 'Your directory is empty'}
+          body={
+            list.length
+              ? 'Try another subject or clear the filters.'
+              : 'Your tutor profile will appear here. The demo account contains sample tutors.'
+          }
         />
+      )}
+      {!list.length && (
+        <>
+          <Link label="Create tutor profile" onPress={() => go('Be a Tutor')} />
+          <Link label="About the tutor directory" onPress={() => go('About')} />
+        </>
       )}
     </Screen>
   );
 }
 const styles = StyleSheet.create({
-  minHeight120: {
-    minHeight: 120,
-  },
-  alignItemsflexstart: {
-    alignItems: 'flex-start',
-  },
-  fontSize10: {
-    fontSize: 10,
-  },
-  textAlignrightmarginTop6: {
-    textAlign: 'right',
-    marginTop: 6,
-    marginRight: 32,
-  },
+  space: { marginTop: 14 },
+  profile: { textAlign: 'right', marginTop: 12 },
 });

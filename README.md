@@ -2,7 +2,7 @@
 
 Campus4Change is a school Android app for tutoring, study groups, and campus learning. It uses React Native CLI, TypeScript, and Hermes.
 
-Version 1.1.0 adds working local flows for all 17 screens in the [Figma prototype](https://www.figma.com/proto/i23zbYooPqV1EkTLXfnxMo/Campus4Change-Mobile-App-Prototype?node-id=1-2&starting-point-node-id=1%3A2). Exact pixel matching has not been verified on a device.
+Version 1.2.0 adds custom learning interests, personal school details, clear icons, readable controls, and accurate dashboard and group schedules. The local flows cover all 17 screens in the [Figma prototype](https://www.figma.com/proto/i23zbYooPqV1EkTLXfnxMo/Campus4Change-Mobile-App-Prototype?node-id=1-2&starting-point-node-id=1%3A2). Exact pixel matching has not been verified on a device.
 
 ## Features
 
@@ -14,6 +14,9 @@ Version 1.1.0 adds working local flows for all 17 screens in the [Figma prototyp
 - A local study room with a focus timer and saved notes.
 - Conversation search, saved messages, in-app notifications, and learning preferences.
 - A tutor profile that is listed in this account's local directory.
+- Add and remove any learning topic; course, year level, and school are optional user-entered fields.
+- Optional group meetup dates and times, with valid-date and future-time checks.
+- About screen with device storage, demo data, and service limits.
 
 Accounts and app data stay on this Android device and remain after closing the app. Each account has separate personal data. Reopening the app requires sign-in.
 
@@ -23,7 +26,9 @@ There is no server or sharing between devices. Sample tutors do not receive book
 
 Tap **GET STARTED**, then **USE DEMO ACCOUNT**.
 
-The public demo credentials are email `alex@campus.demo` or Student ID `DEMO`, password `Campus123!`. The demo includes sample sessions, conversations, and memberships. New accounts start without personal bookings or messages.
+The public demo credentials are email `alex@campus.demo` or Student ID `DEMO`, password `Campus123!`. The demo includes sample tutors, groups, sessions, conversations, and memberships. New accounts start with empty interests, school fields, tutor directories, groups, bookings, and messages. Your own tutor listing appears when you create it.
+
+Updating preserves saved account data. Earlier bookings and conversations still open their saved sample tutors. Previously joined or edited sample groups stay visible; untouched sample groups are hidden from personal accounts. Existing interests are kept and can be edited.
 
 ## Run and build
 

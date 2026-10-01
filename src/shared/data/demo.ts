@@ -25,7 +25,7 @@ export const tutors: Tutor[] = [
     sessions: 24,
     response: 96,
     available: false,
-    availability: 'Today 4 PM',
+    availability: 'Sample schedule',
     about:
       'Let’s make physics and calculus easier with diagrams, worked examples, and practice problems.',
   },
@@ -39,7 +39,7 @@ export const tutors: Tutor[] = [
     sessions: 42,
     response: 94,
     available: false,
-    availability: 'Tomorrow',
+    availability: 'Sample schedule',
     about:
       'I help you understand the reasoning behind each step, from calculus to statistics.',
   },
@@ -62,7 +62,13 @@ export function dateLabel(iso: string) {
   if (d.toDateString() === now.toDateString()) {
     return 'Today';
   }
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return d.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    ...(d.getFullYear() !== now.getFullYear()
+      ? { year: 'numeric' as const }
+      : {}),
+  });
 }
 export function timeLabel(iso: string) {
   return new Date(iso).toLocaleTimeString('en-US', {
@@ -82,16 +88,17 @@ export function timeRange(iso: string) {
 }
 
 export function initialState(account: Account): CampusState {
-  const today = dayAt(0).toISOString();
+  const today = dayAt(1, 10).toISOString();
   const before = dayAt(-7).toISOString();
   return {
     version: 1,
     profile: {
       ...account,
-      course: 'BS Computer Science',
-      year: '2nd Year',
-      school: 'Technological Institute of the Philippines',
-      interests: ['Calculus', 'Java', 'Machine Learning'],
+      course: account.id === 'demo' ? 'BS Computer Science' : '',
+      year: account.id === 'demo' ? '2nd Year' : '',
+      school: account.id === 'demo' ? 'Sample campus' : '',
+      interests:
+        account.id === 'demo' ? ['Calculus', 'Java', 'Machine Learning'] : [],
       tutorSubjects: [],
       bio: '',
     },
@@ -116,53 +123,59 @@ export function initialState(account: Account): CampusState {
             },
           ]
         : [],
-    groups: [
-      {
-        id: 'calculus',
-        name: 'Calculus Study Circle',
-        subject: 'Calculus',
-        members: 12,
-        joined: account.id === 'demo',
-        meetup: 'Integration Techniques Review',
-        room: 'Q-5221',
-        posts: [
-          {
-            id: 'post-mika',
-            author: 'Mika',
-            text: 'I uploaded a short reviewer for integration by parts.',
-            createdAt: before,
-            replies: [],
-          },
-          {
-            id: 'post-renzo',
-            author: 'Renzo',
-            text: 'Who wants to practice before Friday?',
-            createdAt: before,
-            replies: [],
-          },
-        ],
-      },
-      {
-        id: 'java',
-        name: 'Java OOP Review',
-        subject: 'Java',
-        members: 8,
-        joined: account.id === 'demo',
-        meetup: 'Classes, objects, and inheritance',
-        room: 'J-1010',
-        posts: [],
-      },
-      {
-        id: 'physics',
-        name: 'Physics Problem Solvers',
-        subject: 'Physics',
-        members: 24,
-        joined: false,
-        meetup: 'Mechanics practice',
-        room: 'P-2400',
-        posts: [],
-      },
-    ],
+    groups:
+      account.id === 'demo'
+        ? [
+            {
+              id: 'calculus',
+              name: 'Calculus Study Circle',
+              subject: 'Calculus',
+              members: 12,
+              joined: account.id === 'demo',
+              meetup: 'Integration Techniques Review',
+              meetupAt: dayAt(2, 16).toISOString(),
+              room: 'Q-5221',
+              posts: [
+                {
+                  id: 'post-mika',
+                  author: 'Mika',
+                  text: 'I uploaded a short reviewer for integration by parts.',
+                  createdAt: before,
+                  replies: [],
+                },
+                {
+                  id: 'post-renzo',
+                  author: 'Renzo',
+                  text: 'Who wants to practice before Friday?',
+                  createdAt: before,
+                  replies: [],
+                },
+              ],
+            },
+            {
+              id: 'java',
+              name: 'Java OOP Review',
+              subject: 'Java',
+              members: 8,
+              joined: account.id === 'demo',
+              meetup: 'Classes, objects, and inheritance',
+              meetupAt: dayAt(3, 10).toISOString(),
+              room: 'J-1010',
+              posts: [],
+            },
+            {
+              id: 'physics',
+              name: 'Physics Problem Solvers',
+              subject: 'Physics',
+              members: 24,
+              joined: false,
+              meetup: 'Mechanics practice',
+              meetupAt: dayAt(4, 15).toISOString(),
+              room: 'P-2400',
+              posts: [],
+            },
+          ]
+        : [],
     conversations:
       account.id === 'demo'
         ? [
@@ -191,7 +204,7 @@ export function initialState(account: Account): CampusState {
                 },
                 {
                   id: 'm4',
-                  text: 'See you at 2 PM.',
+                  text: 'See you at ' + timeLabel(today) + '.',
                   mine: false,
                   sentAt: today,
                 },
@@ -239,8 +252,8 @@ export function initialState(account: Account): CampusState {
             },
             {
               id: 'n3',
-              title: 'Tutor match found',
-              body: '3 sample tutors are available for Calculus I.',
+              title: 'Explore tutors',
+              body: 'See sample tutor profiles and subjects.',
               read: false,
             },
           ]

@@ -153,6 +153,7 @@ test('creates a group, publishes a post, and saves a reply', async () => {
   await fill('Subject', 'Physics');
   await press('CREATE GROUP');
   expect(hasText('Exam Review Team')).toBe(true);
+  expect(hasText('No meetup scheduled')).toBe(true);
   await fill('Write a study note...', 'Review Newton laws');
   await press('POST NOTE');
   await press('Post by Alex Rivera');
@@ -191,6 +192,87 @@ test('sign-up validates fields and creates a separate local account', async () =
     'TestPass123',
   );
   expect(JSON.parse(mockSaved['new-user']).sessions).toHaveLength(0);
+  expect(JSON.parse(mockSaved['new-user']).profile.interests).toEqual([]);
+  expect(JSON.parse(mockSaved['new-user']).groups).toHaveLength(0);
+});
+
+test('custom interests can be added, deduplicated, removed, and reopened without requiring school fields', async () => {
+  mockCurrent = { ...demo, id: 'fresh-user', name: 'New Student' };
+  await render();
+  await press('GET STARTED');
+  await fill('Email or Student ID', 'new@school.edu');
+  await fill('Password', 'TestPass123');
+  await press('SIGN IN');
+  expect(hasText('Choose what to learn')).toBe(true);
+  await press('ADD INTERESTS');
+  await fill('Add an interest', '  Nursing   care  ');
+  await press('ADD INTEREST');
+  await fill('Add an interest', 'nursing care');
+  await press('ADD INTEREST');
+  expect(hasText('That interest is already in your list.')).toBe(true);
+  await fill('Add an interest', 'Drawing');
+  await press('ADD INTEREST');
+  await press('Remove Drawing');
+  await press('SAVE CHANGES');
+  expect(hasText('Nursing care')).toBe(true);
+  const saved = JSON.parse(mockSaved['fresh-user']);
+  expect(saved.profile.interests).toEqual(['Nursing care']);
+  expect(saved.profile.school).toBe('');
+  await ReactTestRenderer.act(async () => renderer.unmount());
+  await render();
+  await press('GET STARTED');
+  await fill('Email or Student ID', 'new@school.edu');
+  await fill('Password', 'TestPass123');
+  await press('SIGN IN');
+  expect(hasText('Nursing care')).toBe(true);
+  await press('Find a Tutor');
+  expect(hasText('Your directory is empty')).toBe(true);
+  expect(hasText('Mika Santos')).toBe(false);
+});
+
+test('a chosen tutor time is retained by the booking form', async () => {
+  await login();
+  await press('Find a Tutor');
+  await press('Mika Santos, view profile');
+  await press('6:00 PM');
+  await press('Date 1');
+  await press('CONFIRM BOOKING');
+  expect(hasText('Session booked!')).toBe(true);
+  const booked = JSON.parse(mockSaved.demo).sessions[0];
+  expect(booked.tutorId).toBe('mika');
+  expect(new Date(booked.startsAt).getHours()).toBe(18);
+});
+
+test('group creation rejects invalid schedules and stores the chosen meetup', async () => {
+  await login();
+  await press('Study Groups');
+  await press('+ CREATE GROUP');
+  await fill('Group name', 'Drawing Circle');
+  await fill('Subject', 'Drawing');
+  await fill('Meetup date', '2030-02-30');
+  await fill('Meetup time', '16:30');
+  await press('CREATE GROUP');
+  expect(
+    hasText('Enter a valid future date and time, or leave both fields empty.'),
+  ).toBe(true);
+  await fill('Meetup date', '2030-04-20');
+  await press('CREATE GROUP');
+  expect(hasText('Drawing Circle')).toBe(true);
+  expect(hasText('No meetup scheduled')).toBe(false);
+  const group = JSON.parse(mockSaved.demo).groups.find(
+    (g: { name: string }) => g.name === 'Drawing Circle',
+  );
+  expect(new Date(group.meetupAt).getHours()).toBe(16);
+  expect(new Date(group.meetupAt).getMinutes()).toBe(30);
+});
+
+test('About explains device-only behavior before sign-in and returns to login', async () => {
+  await render();
+  await press('GET STARTED');
+  await press('About Campus4Change');
+  expect(hasText('Connecting with other students')).toBe(true);
+  await press('Back');
+  expect(hasText('SIGN IN')).toBe(true);
 });
 test('Android back preserves written and empty study drafts, and a session can be completed', async () => {
   const listener = jest.spyOn(BackHandler, 'addEventListener');

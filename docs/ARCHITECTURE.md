@@ -23,6 +23,7 @@ src/
     messages/
     notifications/
     profile/
+    about/
   shared/
     assets/        local images and font license
     components/    common controls and screen layout
@@ -45,7 +46,9 @@ Put feature-only UI or data inside that feature. Keep common controls, types, st
 
 `shared/data/types.ts` defines profiles, tutors, sessions, groups, conversations, and notices. A session has an ID, tutor ID, subject, ISO start time, note, status, and optional rating. Sessions last one hour. Booking and session history use this same record.
 
-`demo.ts` supplies sample tutors and initial state. Only the public demo account receives sample personal bookings and messages. Other accounts have separate state with unjoined sample groups.
+`demo.ts` supplies sample tutors and initial state. Only the public demo account receives sample school details, interests, groups, bookings, and messages. Other accounts start empty. `catalog.ts` selects directory tutors and visible groups while retaining historical tutor IDs for older bookings. Used sample groups remain visible after an update; saved records are not deleted.
+
+The profile feature owns the custom-interest editor. The tutor feature owns booking slot definitions shared by its details and booking forms. The group feature owns meetup date validation. A group's optional `meetupAt` ISO timestamp is compatible with version-1 saved state; old groups without it show no scheduled meetup.
 
 `shared/state/reducer.ts` applies profile edits, bookings, session changes, memberships, posts, replies, messages, read notices, and study-note drafts. It rejects overlapping bookings, invalid ratings, and group posts/messages from non-members.
 
@@ -67,7 +70,7 @@ This is local prototype authentication, not school identity verification. There 
 
 ## UI and builds
 
-Shared controls provide the screen wrapper, header, tabs, buttons, inputs, chips, and avatars. Inter fonts are bundled under Android assets. Figma circle images are bundled as PNGs, with source SVGs retained. The Inter license is in `shared/assets/Inter-OFL.txt`.
+Shared controls provide the screen wrapper, header, tabs, buttons, inputs, chips, avatars, and icons. Inter fonts are bundled under Android assets. Figma circle images are bundled as PNGs, with source SVGs retained. The app's outline icons also have local SVG sources and PNG assets, without an icon-library dependency. The Inter license is in `shared/assets/Inter-OFL.txt`.
 
 A normal full-screen View is retained. Safe-area insets pad status and navigation bar edges. Forms scroll, Android resizes for the keyboard, tablet content width is limited, and portrait orientation is retained.
 
@@ -78,5 +81,7 @@ Release builds bundle JavaScript, fonts, and images and run without Metro. Herme
 `App.test.tsx` verifies login validation/failure, selected-tutor booking, persisted messages, groups/posts/replies, profile edits, new-account separation, Android Back handling for study drafts, session completion, save retries, and linked notifications.
 
 `state.test.ts` checks overlap and adjacency, rescheduling, ratings, membership restrictions, fresh account state, combined search filters, and saved-state compatibility.
+
+Version 1.2.0 tests also cover custom-interest addition/removal/deduplication and reopening, optional school fields, empty personal directories, historical sample data, selected booking slots, group schedule validation, and About navigation before sign-in.
 
 Jest mocks Android storage. Native encryption, biometric prompts, installation, cold launch, and Android layout require device checks. See [VERIFICATION.md](VERIFICATION.md).

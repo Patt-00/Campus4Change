@@ -39,7 +39,7 @@ Outputs are `app-debug.apk` in `android/app/build/outputs/apk/debug/` and `app-r
 
 Release APKs bundle JavaScript, Hermes bytecode, fonts, and images and run without Metro. Normal PC builds include default ARM/x86 ABIs. A known ARM64 device can use `-PreactNativeArchitectures=arm64-v8a`.
 
-The 1.1.0 Windows verification used local SDK/JDK tools in ignored `.tools/`. Other machines use their own tools and `local.properties`. An emulator also needs a working host virtualization setup; building an APK does not prove device behavior.
+The 1.2.0 Windows verification used local SDK/JDK tools in ignored `.tools/`. Other machines use their own tools and `local.properties`. An emulator also needs a working host virtualization setup; building an APK does not prove device behavior.
 
 ## Termux
 
@@ -52,13 +52,13 @@ Use the phone's own SDK/NDK paths in `android/local.properties`. Run from the ro
 
 The wrapper supplies Termux aapt2, ARM64 ABI selection, and the QEMU-backed Hermes compiler flag. These paths stay out of normal PC configuration. Do not copy `local.properties` between phone and PC.
 
-The wrapper and Hermes script were retained. Version 1.1.0 was not rebuilt in Termux during Windows verification.
+The wrapper and Hermes script were retained. Version 1.2.0 was not rebuilt in Termux during Windows verification.
 
 ## Signing and platform limits
 
-The release variant uses the repository's debug signing key for school distribution. It is not production store signing. Version 1.1.0 has version code 2 and application ID `com.campus4change`.
+The release variant uses the repository's debug signing key for school distribution. It is not production store signing. Version 1.2.0 has version code 3 and application ID `com.campus4change`.
 
-An update requires a matching application ID and signing certificate. The old v1.0.0 GitHub APK and the 1.1.0 build have the same signing certificate. Updating the installed v1.0 APK succeeded on one connected Android 16 phone without uninstalling. Uninstalling removes old local data.
+An update requires a matching application ID and signing certificate. The v1.0.0, 1.1.0, and 1.2.0 APKs have the same signing certificate. The earlier 1.1.0 update over v1.0 succeeded on one Android 16 phone. Installation of 1.2.0 is left to the user and has not been verified. Updating is intended to retain app data; uninstalling removes it.
 
 Minimum Android is 7.0. Optional biometrics require Android 9 or newer. The iOS scaffold has no native implementation for these local accounts.
 

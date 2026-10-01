@@ -21,7 +21,8 @@ export type Page =
   | 'Preferences'
   | 'Be a Tutor'
   | 'Create'
-  | 'Study Room';
+  | 'Study Room'
+  | 'About';
 export type Route = {
   page: Page;
   tutorId?: string;
@@ -30,5 +31,6 @@ export type Route = {
   conversationId?: string;
   postId?: string;
   query?: string;
+  slot?: number;
 };
 export type Navigate = (route: Page | Route) => void;

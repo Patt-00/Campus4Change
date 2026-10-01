@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { C } from '../theme/colors';
 import { s } from '../theme/styles';
+import { Icon } from './Icon';
 
 export function AppHeader({
   title,
@@ -26,7 +27,7 @@ export function AppHeader({
           onPress={onMenu ?? onBack}
           style={styles.back}
         >
-          <Text style={styles.icon}>{onMenu ? '☰' : '‹'}</Text>
+          <Icon name={onMenu ? 'menu' : 'left'} />
         </TouchableOpacity>
       )}
       {title === 'Campus4Change' ? (
@@ -45,8 +46,12 @@ export function AppHeader({
           accessibilityLabel={'Notifications, ' + unread + ' unread'}
           style={styles.notification}
         >
-          <Text style={s.blue}>●</Text>
-          {unread > 0 && <Text style={styles.count}>{unread}</Text>}
+          <Icon name="bell" color={C.cyan} />
+          {unread > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.count}>{unread > 99 ? '99+' : unread}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       )}
     </View>
@@ -61,8 +66,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 10,
   },
-  back: { minWidth: 24, minHeight: 40, justifyContent: 'center' },
-  icon: { fontSize: 31, color: C.text, lineHeight: 36 },
+  back: { minWidth: 36, minHeight: 44, justifyContent: 'center' },
   title: {
     flex: 1,
     fontFamily: 'Inter-Bold',
@@ -72,12 +76,24 @@ const styles = StyleSheet.create({
   },
   brand: { flex: 1, fontFamily: 'Inter-Bold', color: C.text, fontSize: 16 },
   notification: {
-    minWidth: 40,
-    minHeight: 40,
+    minWidth: 44,
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 4,
   },
-  count: { fontFamily: 'Inter-Bold', fontSize: 10, color: C.cyan },
+  badge: {
+    position: 'absolute',
+    top: 0,
+    right: -4,
+    minWidth: 18,
+    paddingHorizontal: 4,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: C.cyan,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  count: { fontFamily: 'Inter-Bold', fontSize: 10, color: C.bg },
 });

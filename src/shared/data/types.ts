@@ -24,6 +24,8 @@ export type Tutor = {
   available: boolean;
   availability: string;
   about: string;
+  sample?: boolean;
+  own?: boolean;
 };
 export type Session = {
   id: string;
@@ -48,6 +50,7 @@ export type Group = {
   members: number;
   joined: boolean;
   meetup: string;
+  meetupAt?: string;
   room: string;
   posts: Post[];
 };

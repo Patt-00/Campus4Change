@@ -1,7 +1,8 @@
 import React from 'react';
 import { Text, TouchableOpacity, View, StyleSheet } from 'react-native';
 import { Screen } from '../../../shared/components/Screen';
-import { Avatar, Empty, Link } from '../../../shared/components/UI';
+import { Empty, Link } from '../../../shared/components/UI';
+import { IconBadge } from '../../../shared/components/Icon';
 import type { Notice } from '../../../shared/data/types';
 import { s } from '../../../shared/theme/styles';
 import type { Navigate } from '../../../navigation/types';
@@ -44,9 +45,8 @@ export function NotificationsScreen({
             );
           }}
         >
-          <Avatar
-            name="!"
-            variant={n.sessionId ? 'tutor' : n.groupId ? 'group' : 'teach'}
+          <IconBadge
+            name={n.sessionId ? 'calendar' : n.groupId ? 'users' : 'bell'}
           />
           <View style={s.grow}>
             <Text style={[s.name, !n.read && s.blue]}>{n.title}</Text>
@@ -58,7 +58,7 @@ export function NotificationsScreen({
       {!notices.length && (
         <Empty
           title="You're up to date"
-          body="Booking updates will appear here. This version uses in-app notifications."
+          body="Your booking and group updates will appear here."
         />
       )}
     </Screen>

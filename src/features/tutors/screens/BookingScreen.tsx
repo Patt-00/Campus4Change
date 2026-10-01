@@ -7,32 +7,20 @@ import { dayAt, dateLabel, timeRange } from '../../../shared/data/demo';
 import type { Session, Tutor } from '../../../shared/data/types';
 import { s } from '../../../shared/theme/styles';
 import type { Navigate } from '../../../navigation/types';
-const slots = [
-  {
-    label: '2:00 PM',
-    hour: 14,
-    minute: 0,
-  },
-  {
-    label: '4:30 PM',
-    hour: 16,
-    minute: 30,
-  },
-  {
-    label: '6:00 PM',
-    hour: 18,
-    minute: 0,
-  },
-];
+import { bookingSlots as slots } from '../data/booking';
+import { Icon } from '../../../shared/components/Icon';
+import { C } from '../../../shared/theme/colors';
 export function BookingScreen({
   back,
   tutor,
   session,
+  initialSlot = 0,
   onSave,
 }: {
   back: () => void;
   tutor: Tutor;
   session?: Session;
+  initialSlot?: number;
   onSave: (
     subject: string,
     startsAt: string,
@@ -61,7 +49,7 @@ export function BookingScreen({
               x.minute === new Date(session.startsAt).getMinutes(),
           ),
         )
-      : 0,
+      : Math.max(0, Math.min(slots.length - 1, initialSlot)),
   );
   const [subject, setSubject] = useState(session?.subject ?? tutor.subjects[0]);
   const [note, setNote] = useState(session?.note ?? '');
@@ -165,7 +153,8 @@ export function BookingScreen({
         onPress={save}
       />
       <Text style={[s.muted, s.center, styles.marginTop14]}>
-        Each session lasts one hour. Sample tutor bookings stay on this device.
+        One-hour session. Saved to your schedule on this device; not sent to the
+        tutor.
       </Text>
     </Screen>
   );
@@ -181,17 +170,15 @@ export function BookingConfirmedScreen({
 }) {
   return (
     <Screen title="">
-      <Text
-        style={[s.heading, s.green, s.center, styles.fontSize84lineHeight102]}
-      >
-        ✓
-      </Text>
+      <View style={styles.success}>
+        <Icon name="check" size={72} color={C.green} />
+      </View>
       <Text style={[s.heading, s.center, styles.marginTop24]}>
         Session booked!
       </Text>
       <Text style={[s.muted, s.center, styles.marginTop8]}>
-        Your {session.subject} session with {tutor.name.split(' ')[0]} is
-        confirmed.
+        Your {session.subject} session with {tutor.name.split(' ')[0]} was added
+        to your schedule.
       </Text>
       <View style={[s.card, styles.marginTop36padding20]}>
         <Text style={s.name}>{session.subject}</Text>
@@ -199,7 +186,9 @@ export function BookingConfirmedScreen({
         <Text style={s.muted}>
           {dateLabel(session.startsAt)}, {timeRange(session.startsAt)}
         </Text>
-        <Text style={s.muted}>Local study room</Text>
+        <Text style={s.muted}>
+          Saved on this device. The tutor has not been notified.
+        </Text>
       </View>
       <View style={s.bigGap} />
       <AppButton title="BACK TO HOME" onPress={() => go('Home')} />
@@ -227,11 +216,7 @@ const styles = StyleSheet.create({
   marginTop14: {
     marginTop: 14,
   },
-  fontSize84lineHeight102: {
-    fontSize: 84,
-    lineHeight: 102,
-    marginTop: 45,
-  },
+  success: { alignItems: 'center', marginTop: 40 },
   marginTop24: {
     marginTop: 24,
   },

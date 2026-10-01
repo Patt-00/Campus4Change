@@ -1,6 +1,6 @@
-# Verification for 1.1.0
+# Verification for 1.2.0
 
-Verified on Windows and one connected Android 16 phone on 2026-10-01. The release is an offline school prototype preview. Device testing stopped at the user's request after the checks below.
+Verified on Windows on 2026-10-01. Phone testing is left to the user. No installation, launch, or device interaction was performed for this version.
 
 ## Results
 
@@ -8,41 +8,35 @@ Verified on Windows and one connected Android 16 phone on 2026-10-01. The releas
 | --- | --- |
 | TypeScript: `npx tsc --noEmit` | Passed |
 | ESLint: `npm run lint` | Passed without warnings |
-| Jest: `npm test -- --runInBand` | 16 tests passed in 2 suites |
-| Native release: `gradlew.bat -p android assembleRelease` | Passed |
+| Jest: `npm test -- --runInBand` | 22 tests passed in 2 suites |
+| Native release: `gradlew.bat -p android assembleRelease --max-workers=4` | Passed |
 | Release Metro/Hermes bundling | Passed as part of the native build |
 | APK signature | Verified, APK Signature Scheme v2 |
-| APK package/version | `com.campus4change`, 1.1.0, version code 2 |
+| APK package/version | `com.campus4change`, 1.2.0, version code 3 |
 | Minimum/target Android SDK | 24 / 36 |
 | APK ABIs | ARM64, ARMv7, x86, x86_64 |
-| Local fonts and Hermes libraries | Present for the packaged build |
-| Old v1.0.0 certificate comparison | Same certificate as 1.1.0 |
-| Termux rebuild | Not performed; existing scripts retained |
-| Installation and upgrade | Passed: updated the installed v1.0 APK on Android 16 |
-| Cold launch | Passed: app process stayed running and onboarding rendered |
-| Visible device interactions | Passed: empty-login validation, demo login, tutor search, selected Mika profile, past-time rejection, future Physics booking, confirmation and session details |
-| Native account/storage path | Demo password login and booking flow exercised; persistence after restart not tested on the phone |
-| Android biometric runtime | Not tested on the phone |
+| Local icons, fonts, and Hermes libraries | Present |
+| Previous signing certificate | Matches the 1.1.0 and v1.0.0 certificate |
+| Browser layout preview | Home, custom interests, tutor cards, and profile inspected at widths 320, 390, and 520 |
+| Termux rebuild | Not performed; scripts retained |
+| APK installation, cold launch, and phone interactions | Not performed for 1.2.0 |
+| Native encryption, biometrics, and persistence after restart | Not tested for 1.2.0 |
 | Pixel comparison with Figma | Not verified on a device |
 
-The Windows emulator did not boot. It remained offline. The host's emulator check reported that the Android Emulator hypervisor driver is not installed. Software CPU/rendering attempts also failed to boot. The test emulator was stopped. A physical Android 16 phone was then connected and used for the successful checks above.
+The temporary browser preview rendered the actual screen components with React Native Web and sample state. It checked icons, spacing, blank profile fields, and long custom-interest wrapping. It used neither Android storage nor a phone keyboard. It is not proof of Android runtime behavior. Preview tooling stays in ignored `.tools/` and `artifacts/`; app dependencies are unchanged.
 
-Onboarding, home, booking, and selected session details were inspected on the phone. No app crash was observed during these checks. Messages, groups, study rooms, account creation, profile editing, saved data after restart, and biometrics remain pending physical-device tests. Their tested React/state behavior is covered separately by Jest.
-
-The APK includes the JavaScript bundle as Hermes bytecode, Inter fonts, and `libhermestooling.so` and `libhermesvm.so` for all four ABIs. Packaging these libraries does not prove a successful cold launch.
-
-Jest mocks the native storage interface. Passing tests proves the tested React flows and reducer rules, not Android encryption or biometric behavior.
+The APK contains Hermes bytecode, bundled Inter fonts, and `libhermestooling.so` and `libhermesvm.so` for each ABI. Jest mocks the native storage interface; its results cover the tested React flows and state rules.
 
 ## Artifact identity
 
-Release filename: `Campus4Change-v1.1.0.apk`
+Release filename: `Campus4Change-v1.2.0.apk`
 
-Size: 54,727,872 bytes.
+Size: 54,766,016 bytes.
 
 SHA-256:
 
 ```text
-e2259faa96cfa02ad95d605954cc50a827f3b62dcc069198bef44075e85e3270
+2ec980ac1bb31a1b5b269721e62f631c23d11336574aeefd16be4cfa72a755ba
 ```
 
 Signing certificate SHA-256:
@@ -51,23 +45,37 @@ Signing certificate SHA-256:
 fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c
 ```
 
-The previous GitHub v1.0.0 APK has the same package ID and certificate and version code 1. An update over the phone's installed v1.0 APK succeeded without uninstalling.
+The release attaches `SHA256SUMS` and `SOURCE-BUILD.json` with its exact source commit, version, artifact hash, toolchain, and checks. Machine-specific tools and build outputs remain ignored.
 
-The release attaches checksums, the original source/build record, and a later device-verification record. Its tag points to app source commit `bbe235aff0b45e7a7f429841fb79dcb725134161`. Device verification was recorded afterward in a documentation-only commit; the APK and application code were not changed. Machine-specific tools, build outputs, and phone screenshots remain ignored.
+## Update compatibility
+
+Saved state remains version 1. No saved account data is deleted. Existing interests can be edited. Earlier bookings and conversations retain their sample tutor IDs. Previously joined or edited sample groups stay visible in personal accounts; untouched sample groups are hidden. Old groups without a meetup date display **No meetup scheduled**.
+
+New accounts have blank interests and school details and no sample groups, tutors, bookings, or conversations. The public demo account retains sample content. A personal tutor listing has no fabricated rating or response rate and offers editing instead of self-booking.
+
+The package ID and certificate match older releases, and the version code increases to 3. Installation as an update is intended to retain data; this version has not been installed by the agent.
 
 ## Teacher walkthrough
 
-This is the full intended walkthrough. Only the device checks listed above were completed; the rest remain for manual testing before the teacher demonstration.
+Complete these manual checks on the exact release APK before demonstrating it.
 
-1. Open onboarding, go to login, and demonstrate invalid form input.
-2. Use **USE DEMO ACCOUNT** to load public sample content. Explain that the data is local.
-3. Search for Mika, open her selected profile, and book a future session. Open the saved session details.
-4. Show upcoming, completed, and cancelled views. Reschedule or cancel a booking.
-5. Join a discovered group or create a new group. Publish a study note and reply.
-6. Open a study room, run/pause its timer, write notes, and leave. Reopen to show saved notes.
-7. Open a conversation and save a message. Explain that it is not delivered to another person.
-8. Open notifications and show that an opened notice becomes read.
-9. Edit the profile and learning interests, then sign out.
-10. Sign in again to show saved data. Create another account to show separate personal data.
+1. Install as an update and open the app. Check existing saved work after signing in.
+2. Demonstrate invalid login input, then use **USE DEMO ACCOUNT** for sample content.
+3. Search for Mika, choose a time on her profile, and book a future session. Verify the selected tutor, time, note, and overlap rejection.
+4. Reschedule, cancel, complete, and rate sessions. Check each status view.
+5. Create a group without a date and confirm no schedule is invented. Create another with a valid future date and time; reject a nonexistent date.
+6. Join/leave groups, write notes and replies, and use a study-room timer. Check drafts after Android Back and after reopening.
+7. Save a message and reopen it. Explain that messages are not delivered to another device.
+8. Open notifications and check their read state.
+9. Add a custom interest, reject a duplicate with different letter case, remove an interest, and save. Check the home interest and tutor count.
+10. Create a separate account and confirm that interests and school fields start blank, with an empty tutor directory and groups. Save preferences without entering school details.
+11. Enter your course, year, and school. Create a tutor listing, edit it from search, and remove it.
+12. Sign out and sign in again to check saved data. Check biometrics on a personal account if enrolled on the phone.
 
-Do not present sample contacts as live users. Do not demonstrate email recovery, push notifications, calls, or remote messaging as implemented. Install and launch the exact tagged APK before the teacher demonstration.
+Bookings, messages, and group changes stay on the device. About explains those limits. Do not present sample contacts as live users.
+
+## Historical 1.1.0 device checks
+
+The previous APK was tested on one Android 16 phone: update over v1.0.0, cold launch, empty-login validation, demo sign-in, Mika search/profile selection, past-time rejection, and future Physics booking with confirmation/details. No crash was observed in those checks. Testing then stopped at the user's request.
+
+Those checks apply to 1.1.0, not this APK. The prior release retains its [device verification record](https://github.com/Patt-00/Campus4Change/releases/tag/v1.1.0).

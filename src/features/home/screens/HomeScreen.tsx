@@ -1,60 +1,79 @@
 import React, { useState } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Screen } from '../../../shared/components/Screen';
-import { Avatar, Field, Link } from '../../../shared/components/UI';
+import { Avatar, Empty, Field, Link } from '../../../shared/components/UI';
+import { IconBadge, type IconName } from '../../../shared/components/Icon';
 import { AppButton } from '../../../shared/components/AppButton';
-import { sessionTime, tutors } from '../../../shared/data/demo';
-import type { CampusState } from '../../../shared/data/types';
+import { sessionTime } from '../../../shared/data/demo';
+import type { CampusState, Tutor } from '../../../shared/data/types';
 import { C } from '../../../shared/theme/colors';
 import { s } from '../../../shared/theme/styles';
 import type { Navigate, Page } from '../../../navigation/types';
+
 const quick: {
   title: string;
   body: string;
   page: Page;
-  icon: string;
-  variant: 'tutor' | 'teach' | 'group' | 'session';
+  icon: IconName;
+  color: string;
 }[] = [
   {
     title: 'Find a Tutor',
-    body: 'Get help in subjects',
+    body: 'Explore subjects and skills',
     page: 'Tutor Search',
-    icon: 'T',
-    variant: 'tutor',
+    icon: 'search',
+    color: C.cyan,
   },
   {
     title: 'Be a Tutor',
-    body: 'Help others & earn',
+    body: 'Share what you know',
     page: 'Be a Tutor',
-    icon: '+',
-    variant: 'teach',
+    icon: 'graduation',
+    color: C.green,
   },
   {
     title: 'Study Groups',
-    body: 'Learn with peers',
+    body: 'Keep study notes together',
     page: 'Study Groups',
-    icon: 'G',
-    variant: 'group',
+    icon: 'users',
+    color: C.yellow,
   },
   {
     title: 'Sessions',
-    body: 'Manage bookings',
+    body: 'Manage your schedule',
     page: 'Sessions',
-    icon: 'S',
-    variant: 'session',
+    icon: 'calendar',
+    color: C.cyan,
   },
 ];
 export function HomeScreen({
   go,
   state,
+  directory,
+  tutors,
 }: {
   go: Navigate;
   state: CampusState;
+  directory: Tutor[];
+  tutors: Tutor[];
 }) {
   const [query, setQuery] = useState('');
   const [menu, setMenu] = useState(false);
+  const interest = state.profile.interests[0];
+  const matches = interest
+    ? directory.filter(
+        t =>
+          !t.own &&
+          t.subjects.some(x =>
+            x.toLowerCase().includes(interest.toLowerCase()),
+          ),
+      ).length
+    : 0;
   const next = state.sessions
-    .filter(x => x.status === 'Upcoming')
+    .filter(
+      x =>
+        x.status === 'Upcoming' && new Date(x.startsAt).getTime() > Date.now(),
+    )
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0];
   return (
     <Screen
@@ -65,61 +84,73 @@ export function HomeScreen({
       onNotifications={() => go('Notifications')}
       unread={state.notices.filter(n => !n.read).length}
     >
-      <View style={[s.row, styles.marginBottom24]}>
-        <Avatar name={state.profile.name} />
+      <View style={[s.row, styles.greeting]}>
+        <Avatar name={state.profile.name} size={44} />
         <View style={s.grow}>
           <Text style={s.name}>Hello, {state.profile.name.split(' ')[0]}!</Text>
-          <Text style={[s.muted, styles.fontSize10]}>
-            What would you like to learn or teach today?
-          </Text>
+          <Text style={s.muted}>What would you like to learn today?</Text>
         </View>
       </View>
+      {state.profile.id === 'demo' && (
+        <Text style={[s.muted, styles.demo]}>
+          Demo account · Sample tutors, groups, and conversations
+        </Text>
+      )}
       <Field
+        icon="search"
         placeholder="Search for subjects, skills, or tutors..."
         value={query}
         onChangeText={setQuery}
         returnKeyType="search"
-        onSubmitEditing={() =>
-          go({
-            page: 'Tutor Search',
-            query,
-          })
-        }
+        onSubmitEditing={() => go({ page: 'Tutor Search', query })}
       />
-      {query.trim().length > 0 && (
+      {!!query.trim() && (
         <Link
           label="Search tutors"
-          onPress={() =>
-            go({
-              page: 'Tutor Search',
-              query,
-            })
-          }
+          onPress={() => go({ page: 'Tutor Search', query })}
         />
       )}
       <View style={[s.card, styles.match]}>
-        <Text style={styles.eyebrow}>YOUR NEXT MATCH AWAITS</Text>
-        <View style={[s.row, styles.alignItemsflexendmarginTop12]}>
+        <Text style={styles.eyebrow}>YOUR LEARNING INTERESTS</Text>
+        <Text style={[s.heading, s.blue, styles.top]}>
+          {interest || 'Choose what to learn'}
+        </Text>
+        <Text style={s.muted}>
+          {interest
+            ? `${matches} ${
+                matches === 1 ? 'tutor matches' : 'tutors match'
+              } this interest in your directory.`
+            : 'Add your own subjects, skills, and topics.'}
+        </Text>
+        <AppButton
+          title={interest ? 'VIEW MATCHES' : 'ADD INTERESTS'}
+          onPress={() =>
+            interest
+              ? go({ page: 'Tutor Search', query: interest })
+              : go('Preferences')
+          }
+        />
+        {!!interest && (
+          <Link label="Edit interests" onPress={() => go('Preferences')} />
+        )}
+      </View>
+      {!state.profile.school && (
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Complete your profile"
+          style={[s.card, s.row]}
+          onPress={() => go('Edit Profile')}
+        >
+          <IconBadge name="user" />
           <View style={s.grow}>
-            <Text style={s.text}>Need help in</Text>
-            <Text style={[s.heading, s.blue]}>Calculus I?</Text>
-            <Text style={[s.muted, styles.fontSize10]}>
-              3 sample tutors are available
+            <Text style={s.name}>Complete your profile</Text>
+            <Text style={s.muted}>
+              Add your course, year level, and school.
             </Text>
           </View>
-          <AppButton
-            title="VIEW MATCHES"
-            onPress={() =>
-              go({
-                page: 'Tutor Search',
-                query: 'Calculus',
-              })
-            }
-            style={styles.matchButton}
-          />
-        </View>
-      </View>
-      <Text style={[s.section, styles.marginTop4]}>Quick Actions</Text>
+        </TouchableOpacity>
+      )}
+      <Text style={[s.section, styles.top]}>Quick Actions</Text>
       <View style={styles.grid}>
         {quick.map(q => (
           <TouchableOpacity
@@ -129,49 +160,38 @@ export function HomeScreen({
             style={[s.card, styles.quick]}
             onPress={() => go(q.page)}
           >
-            <Avatar name={q.icon} variant={q.variant} />
-            <View style={s.grow}>
-              <Text style={[s.name, styles.fontSize13]}>{q.title}</Text>
-              <Text style={[s.muted, styles.fontSize10]}>{q.body}</Text>
-            </View>
+            <IconBadge name={q.icon} color={q.color} />
+            <Text style={s.name}>{q.title}</Text>
+            <Text style={s.muted}>{q.body}</Text>
           </TouchableOpacity>
         ))}
       </View>
-      <View style={[s.row, styles.marginTop4justifyContentspacebetween]}>
-        <Text style={s.section}>Upcoming Sessions</Text>
+      <View style={s.row}>
+        <Text style={[s.section, s.grow]}>Upcoming Sessions</Text>
         <Link label="View all" onPress={() => go('Sessions')} />
       </View>
       {next ? (
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel={'Open ' + next.subject + ' session'}
-          onPress={() =>
-            go({
-              page: 'Session Details',
-              sessionId: next.id,
-            })
-          }
+          onPress={() => go({ page: 'Session Details', sessionId: next.id })}
           style={[s.card, s.row]}
         >
-          <View style={styles.course}>
-            <Text style={styles.courseSmall}>MATH</Text>
-            <Text style={styles.courseNumber}>101</Text>
-          </View>
+          <IconBadge name="calendar" />
           <View style={s.grow}>
             <Text style={s.name}>{next.subject}</Text>
             <Text style={s.muted}>{sessionTime(next.startsAt)}</Text>
             <Text style={s.muted}>
               With{' '}
-              {tutors.find(t => t.id === next.tutorId)?.name ??
-                state.profile.name}
+              {tutors.find(t => t.id === next.tutorId)?.name ?? 'Saved tutor'}
             </Text>
           </View>
-          <Text style={[s.link, styles.fontSize9]}>UPCOMING</Text>
         </TouchableOpacity>
       ) : (
-        <Text style={s.muted}>
-          No upcoming sessions. Find a tutor to make your first booking.
-        </Text>
+        <Empty
+          title="Your schedule is clear"
+          body="Upcoming bookings will appear here."
+        />
       )}
       <Modal
         visible={menu}
@@ -182,7 +202,6 @@ export function HomeScreen({
         <View style={styles.overlay}>
           <View style={[s.card, styles.menu]}>
             <Text style={s.heading}>Campus4Change</Text>
-            <Text style={s.muted}>Offline school prototype</Text>
             {(
               [
                 'Tutor Search',
@@ -191,6 +210,7 @@ export function HomeScreen({
                 'Messages',
                 'Notifications',
                 'Profile',
+                'About',
               ] as Page[]
             ).map(page => (
               <Link
@@ -214,54 +234,18 @@ export function HomeScreen({
   );
 }
 const styles = StyleSheet.create({
-  match: {
-    backgroundColor: '#092535',
-    padding: 12,
-    marginTop: 4,
-    minHeight: 124,
-  },
-  eyebrow: {
-    fontFamily: 'Inter-Bold',
-    fontSize: 9,
-    color: C.cyan,
-  },
-  matchButton: {
-    minHeight: 36,
-    marginTop: 0,
-    paddingHorizontal: 8,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
+  greeting: { marginBottom: 20 },
+  demo: { marginBottom: 16 },
+  match: { backgroundColor: '#092535', padding: 18, marginTop: 4 },
+  eyebrow: { fontFamily: 'Inter-Bold', fontSize: 11, color: C.cyan },
+  top: { marginTop: 12 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   quick: {
-    width: '48%',
-    minHeight: 78,
-    flexDirection: 'row',
+    flexBasis: '46%',
+    flexGrow: 1,
+    minHeight: 154,
     gap: 10,
-    alignItems: 'center',
-    padding: 12,
     marginBottom: 0,
-  },
-  course: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#302662',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 3,
-  },
-  courseSmall: {
-    fontFamily: 'Inter-Bold',
-    color: C.text,
-    fontSize: 8,
-  },
-  courseNumber: {
-    fontFamily: 'Inter-Bold',
-    color: C.text,
-    fontSize: 14,
   },
   overlay: {
     flex: 1,
@@ -269,32 +253,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 24,
   },
-  menu: {
-    width: '100%',
-    maxWidth: 480,
-    alignSelf: 'center',
-  },
-  marginBottom24: {
-    marginBottom: 24,
-  },
-  fontSize10: {
-    fontSize: 10,
-  },
-  alignItemsflexendmarginTop12: {
-    alignItems: 'flex-end',
-    marginTop: 12,
-  },
-  marginTop4: {
-    marginTop: 4,
-  },
-  fontSize13: {
-    fontSize: 13,
-  },
-  marginTop4justifyContentspacebetween: {
-    marginTop: 4,
-    justifyContent: 'space-between',
-  },
-  fontSize9: {
-    fontSize: 9,
-  },
+  menu: { width: '100%', maxWidth: 480, alignSelf: 'center' },
 });

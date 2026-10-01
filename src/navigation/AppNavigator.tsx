@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { BackHandler, Text, View } from 'react-native';
 import { HomeScreen } from '../features/home/screens/HomeScreen';
+import { AboutScreen } from '../features/about/screens/AboutScreen';
 import {
   LoginScreen,
   SignUpScreen,
@@ -37,7 +38,12 @@ import {
 import { AppButton } from '../shared/components/AppButton';
 import { Empty, Link } from '../shared/components/UI';
 import { Screen } from '../shared/components/Screen';
-import { initialState, tutors, uid } from '../shared/data/demo';
+import { initialState, uid } from '../shared/data/demo';
+import {
+  directoryTutors,
+  knownTutors,
+  visibleGroups,
+} from '../shared/data/catalog';
 import type { CampusState, Tutor } from '../shared/data/types';
 import { hasConflict, reducer, type Action } from '../shared/state/reducer';
 import { deviceStore, parseAccount, parseState } from '../shared/state/storage';
@@ -61,7 +67,10 @@ export function AppNavigator() {
   const go: Navigate = useCallback(
     next => {
       const target = typeof next === 'string' ? { page: next } : next;
-      if (!state && !['Onboarding', 'Login', 'Sign Up'].includes(target.page)) {
+      if (
+        !state &&
+        !['Onboarding', 'Login', 'Sign Up', 'About'].includes(target.page)
+      ) {
         return;
       }
       if (
@@ -167,28 +176,15 @@ export function AppNavigator() {
   if (route.page === 'Sign Up') {
     return <SignUpScreen go={go} back={back} auth={auth} />;
   }
+  if (route.page === 'About' && !state) {
+    return <AboutScreen back={back} />;
+  }
   if (!state) {
     return <OnboardingScreen go={go} />;
   }
   const ownId = 'local-' + state.profile.id;
-  const list: Tutor[] = state.profile.tutorSubjects.length
-    ? [
-        ...tutors,
-        {
-          id: ownId,
-          name: state.profile.name,
-          course: state.profile.course,
-          year: state.profile.year,
-          subjects: state.profile.tutorSubjects,
-          rating: 0,
-          sessions: 0,
-          response: 100,
-          available: true,
-          availability: 'Local profile',
-          about: state.profile.bio,
-        },
-      ]
-    : tutors;
+  const list = knownTutors(state);
+  const directory = directoryTutors(state);
   const tutor = list.find(t => t.id === route.tutorId);
   const session = state.sessions.find(x => x.id === route.sessionId);
   const sessionTutor = list.find(x => x.id === session?.tutorId);
@@ -218,8 +214,13 @@ export function AppNavigator() {
   }
   let screen: React.ReactNode;
   switch (route.page) {
+    case 'About':
+      screen = <AboutScreen back={back} />;
+      break;
     case 'Home':
-      screen = <HomeScreen go={go} state={state} />;
+      screen = (
+        <HomeScreen go={go} state={state} directory={directory} tutors={list} />
+      );
       break;
     case 'Tutor Search':
       screen = (
@@ -227,7 +228,7 @@ export function AppNavigator() {
           key={route.query ?? ''}
           go={go}
           back={back}
-          list={list}
+          list={directory}
           initialQuery={route.query}
         />
       );
@@ -252,6 +253,7 @@ export function AppNavigator() {
             back={back}
             tutor={tutor}
             session={session}
+            initialSlot={route.slot}
             onSave={(subject, startsAt, note) => {
               if (tutor.id === ownId) {
                 return 'Choose another tutor. You cannot book yourself.';
@@ -335,13 +337,15 @@ export function AppNavigator() {
       }
       break;
     case 'Study Groups':
-      screen = <GroupsScreen go={go} back={back} groups={state.groups} />;
+      screen = (
+        <GroupsScreen go={go} back={back} groups={visibleGroups(state)} />
+      );
       break;
     case 'Create Group':
       screen = (
         <CreateGroupScreen
           back={back}
-          create={(name, subject, meetup) => {
+          create={(name, subject, meetup, meetupAt) => {
             const id = uid('group');
             dispatch({
               type: 'createGroup',
@@ -352,6 +356,7 @@ export function AppNavigator() {
                 members: 1,
                 joined: true,
                 meetup,
+                meetupAt,
                 room: 'LOCAL-' + id.slice(-6).toUpperCase(),
                 posts: [],
               },

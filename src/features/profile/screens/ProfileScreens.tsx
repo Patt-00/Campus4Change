@@ -2,18 +2,15 @@ import React, { useState } from 'react';
 import { Alert, Text, TouchableOpacity, View, StyleSheet } from 'react-native';
 import { AppButton } from '../../../shared/components/AppButton';
 import { Screen } from '../../../shared/components/Screen';
-import {
-  Avatar,
-  Chip,
-  ErrorText,
-  Field,
-  Link,
-} from '../../../shared/components/UI';
+import { Avatar, ErrorText, Field, Link } from '../../../shared/components/UI';
 import { deviceStore } from '../../../shared/state/storage';
 import type { CampusState, Profile } from '../../../shared/data/types';
 import { s } from '../../../shared/theme/styles';
 import { C } from '../../../shared/theme/colors';
 import type { Navigate } from '../../../navigation/types';
+import { InterestEditor } from '../components/InterestEditor';
+import { Icon } from '../../../shared/components/Icon';
+import { version } from '../../../../package.json';
 export function ProfileScreen({
   go,
   state,
@@ -48,12 +45,13 @@ export function ProfileScreen({
   return (
     <Screen title="Profile" go={go} tab="Profile">
       <View style={styles.alignItemscenterpaddingTop8}>
-        <Avatar name={p.name} variant="tutor" />
+        <Avatar name={p.name} variant="tutor" size={72} />
         <Text style={[s.heading, styles.marginTop16]}>{p.name}</Text>
         <Text style={s.muted}>
-          {p.course} • {p.year}
+          {[p.course, p.year].filter(Boolean).join(' • ') ||
+            'Add your course and year level'}
         </Text>
-        <Text style={[s.muted, s.center]}>{p.school}</Text>
+        {!!p.school && <Text style={[s.muted, s.center]}>{p.school}</Text>}
       </View>
       <View style={[s.card, s.row, styles.marginTop28paddingVertical20]}>
         {stats.map(x => (
@@ -77,6 +75,7 @@ export function ProfileScreen({
           label: 'Tutor profile',
           page: 'Be a Tutor',
         },
+        { label: 'About Campus4Change', page: 'About' },
       ].map(x => (
         <TouchableOpacity
           accessibilityRole="button"
@@ -84,11 +83,13 @@ export function ProfileScreen({
           key={x.label}
           style={[s.card, s.row, styles.minHeight54]}
           onPress={() =>
-            go(x.page as 'Edit Profile' | 'Preferences' | 'Be a Tutor')
+            go(
+              x.page as 'Edit Profile' | 'Preferences' | 'Be a Tutor' | 'About',
+            )
           }
         >
           <Text style={[s.text, s.grow]}>{x.label}</Text>
-          <Text style={s.name}>›</Text>
+          <Icon name="right" size={20} color={C.muted} />
         </TouchableOpacity>
       ))}
       <Link
@@ -132,20 +133,12 @@ export function ProfileScreen({
         <Text style={[s.text, s.danger]}>Sign out</Text>
       </TouchableOpacity>
       <Text style={[s.muted, s.center]}>
-        Campus4Change 1.1.0 • offline school prototype
+        Campus4Change {version}
+        {p.id === 'demo' ? ' • Demo account' : ''}
       </Text>
     </Screen>
   );
 }
-const choices = [
-  'Calculus',
-  'Java',
-  'Machine Learning',
-  'Algebra',
-  'Physics',
-  'Statistics',
-  'Programming',
-];
 export function EditProfileScreen({
   back,
   profile,
@@ -163,13 +156,6 @@ export function EditProfileScreen({
   const [school, setSchool] = useState(profile.school);
   const [interests, setInterests] = useState(profile.interests);
   const [error, setError] = useState('');
-  function toggle(x: string) {
-    setInterests(
-      interests.includes(x)
-        ? interests.filter(v => v !== x)
-        : [...interests, x],
-    );
-  }
   return (
     <Screen
       title={preferences ? 'Learning Preferences' : 'Edit Profile'}
@@ -185,53 +171,48 @@ export function EditProfileScreen({
           />
           <Field
             label="Course"
+            placeholder="Your course (optional)"
             icon="C"
             value={course}
             onChangeText={setCourse}
           />
           <Field
             label="Year level"
+            placeholder="Your year level (optional)"
             icon="Y"
             value={year}
             onChangeText={setYear}
           />
-          <Field label="School" value={school} onChangeText={setSchool} />
+          <Field
+            label="School"
+            placeholder="Your school (optional)"
+            value={school}
+            onChangeText={setSchool}
+          />
         </>
       )}
       <Text style={s.section}>Learning interests</Text>
-      <View style={s.wrap}>
-        {choices.map(x => (
-          <Chip
-            key={x}
-            label={x}
-            selected={interests.includes(x)}
-            onPress={() => toggle(x)}
-          />
-        ))}
-      </View>
+      <InterestEditor value={interests} onChange={setInterests} />
       <View style={s.bigGap} />
       <ErrorText value={error} />
       <AppButton
         title="SAVE CHANGES"
         onPress={() => {
-          if (
-            !name.trim() ||
-            !course.trim() ||
-            !year.trim() ||
-            !school.trim()
-          ) {
-            setError(
-              'Complete the name, course, year level, and school fields.',
-            );
+          if (!preferences && name.trim().length < 2) {
+            setError('Enter your full name.');
             return;
           }
-          save({
-            name: name.trim(),
-            course: course.trim(),
-            year: year.trim(),
-            school: school.trim(),
-            interests,
-          });
+          save(
+            preferences
+              ? { interests }
+              : {
+                  name: name.trim(),
+                  course: course.trim(),
+                  year: year.trim(),
+                  school: school.trim(),
+                  interests,
+                },
+          );
           back();
         }}
       />
@@ -253,12 +234,12 @@ export function BeTutorScreen({
   return (
     <Screen title="Be a Tutor" back={back}>
       <Text style={[s.muted, styles.marginBottom24]}>
-        Share what you know with your campus. This profile is listed locally in
-        tutor search.
+        Add the subjects or skills you can help with. Your listing is saved on
+        this device.
       </Text>
       <Field
         label="Subjects (separate with commas)"
-        placeholder="Calculus I, Algebra, Programming"
+        placeholder="Writing, design, biology"
         value={subjects}
         onChangeText={setSubjects}
       />

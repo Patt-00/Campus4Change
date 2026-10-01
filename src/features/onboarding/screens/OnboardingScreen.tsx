@@ -12,6 +12,7 @@ import { StatusBarSafeArea } from '../../../shared/components/StatusBarSafeArea'
 import { s } from '../../../shared/theme/styles';
 import { C } from '../../../shared/theme/colors';
 import type { Navigate } from '../../../navigation/types';
+import { Icon } from '../../../shared/components/Icon';
 
 export function OnboardingScreen({ go }: { go: Navigate }) {
   const { height } = useWindowDimensions();
@@ -29,7 +30,9 @@ export function OnboardingScreen({ go }: { go: Navigate }) {
             source={require('../../../shared/assets/logo-circle.png')}
             style={styles.circle}
           />
-          <Text style={styles.house}>⌂</Text>
+          <View style={styles.house}>
+            <Icon name="home" size={64} color={C.cyan} />
+          </View>
           <View style={styles.mark}>
             <Image
               source={require('../../../shared/assets/logo-mark.png')}
@@ -65,10 +68,7 @@ const styles = StyleSheet.create({
     top: 20,
     left: 50,
     width: 110,
-    textAlign: 'center',
-    fontFamily: 'Inter-Bold',
-    fontSize: 54,
-    color: C.cyan,
+    alignItems: 'center',
   },
   mark: {
     position: 'absolute',
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   footer: {
     fontFamily: 'Inter-Regular',
     color: C.muted,
-    fontSize: 10,
+    fontSize: 12,
     marginTop: 18,
     textAlign: 'center',
   },

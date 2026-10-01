@@ -8,6 +8,7 @@ import type { Session, Tutor } from '../../../shared/data/types';
 import { C } from '../../../shared/theme/colors';
 import { s } from '../../../shared/theme/styles';
 import type { Navigate } from '../../../navigation/types';
+import { IconBadge } from '../../../shared/components/Icon';
 export function SessionsScreen({
   go,
   back,
@@ -40,10 +41,7 @@ export function SessionsScreen({
         ]}
       >
         <View style={s.row}>
-          <View style={styles.backgroundColor302662width52}>
-            <Text style={[s.text, styles.fontSize9]}>STUDY</Text>
-            <Text style={s.name}>101</Text>
-          </View>
+          <IconBadge name="calendar" />
           <View style={s.grow}>
             <Text style={s.name}>{session.subject}</Text>
             <Text style={s.muted}>
@@ -146,10 +144,7 @@ export function SessionDetailsScreen({
       </View>
       <Text style={s.section}>Study room</Text>
       <View style={s.card}>
-        <Text style={s.muted}>
-          Use the local focus timer and study notes. This prototype has no live
-          call.
-        </Text>
+        <Text style={s.muted}>Focus timer and study notes • no live call</Text>
       </View>
       {!!session.note && (
         <>
@@ -230,17 +225,6 @@ export function SessionDetailsScreen({
 const styles = StyleSheet.create({
   upcomingCard: { minHeight: 126 },
   historyCard: { minHeight: 100 },
-  backgroundColor302662width52: {
-    backgroundColor: '#302662',
-    width: 52,
-    height: 52,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fontSize9: {
-    fontSize: 9,
-  },
   textAlignrightmarginTop12: {
     textAlign: 'right',
     marginTop: 12,

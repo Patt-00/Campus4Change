@@ -37,6 +37,7 @@ export function MessagesScreen({
     <Screen title="Messages" go={go} tab="Messages">
       <Field
         placeholder="Search messages"
+        icon="search"
         value={query}
         onChangeText={setQuery}
       />
@@ -76,6 +77,7 @@ export function MessagesScreen({
         />
       )}
       <Link label="Find a tutor" onPress={() => go('Tutor Search')} />
+      <Link label="Study groups" onPress={() => go('Study Groups')} />
     </Screen>
   );
 }
@@ -101,13 +103,14 @@ export function ChatScreen({
   return (
     <Screen title={conversation.name} back={back} scroll={false}>
       <Text style={[s.muted, styles.marginBottom12]}>
-        Local conversation • messages stay on this device
+        Messages stay on this device and are not delivered.
       </Text>
       <ScrollView
         ref={scroll}
         style={s.grow}
         contentContainerStyle={styles.paddingBottom12paddingTop20}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         onContentSizeChange={() =>
           scroll.current?.scrollToEnd({
             animated: true,
@@ -122,14 +125,14 @@ export function ChatScreen({
             <Text style={s.text}>{m.text}</Text>
             <Text style={styles.time}>
               {timeLabel(m.sentAt)}
-              {m.mine ? ' • Saved' : ''}
+              {m.mine ? ' • Not delivered' : ''}
             </Text>
           </View>
         ))}
         {!conversation.messages.length && (
           <Empty
             title="Start a conversation"
-            body="Messages are saved locally. The sample tutor will not receive or reply to them."
+            body="Keep notes for this conversation here."
           />
         )}
       </ScrollView>
@@ -184,12 +187,12 @@ const styles = StyleSheet.create({
   },
   time: {
     fontFamily: 'Inter-Regular',
-    fontSize: 9,
+    fontSize: 11,
     color: C.muted,
     marginTop: 8,
   },
   fontSize9: {
-    fontSize: 9,
+    fontSize: 11,
   },
   marginBottom12: {
     marginBottom: 12,

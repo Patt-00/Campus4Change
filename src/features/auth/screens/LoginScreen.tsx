@@ -1,5 +1,12 @@
-import React, { useState } from 'react';
-import { Alert, Text, View, StyleSheet } from 'react-native';
+import React, { useRef, useState, type ComponentRef } from 'react';
+import {
+  Alert,
+  Keyboard,
+  Text,
+  TextInput,
+  View,
+  StyleSheet,
+} from 'react-native';
 import { AppButton } from '../../../shared/components/AppButton';
 import { Screen } from '../../../shared/components/Screen';
 import { ErrorText, Field, Link } from '../../../shared/components/UI';
@@ -28,12 +35,14 @@ export function LoginScreen({
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const passwordInput = useRef<ComponentRef<typeof TextInput>>(null);
   async function submit(action: () => Promise<void>) {
     if (busy) {
       return;
     }
     setError('');
     setBusy(true);
+    Keyboard.dismiss();
     try {
       await action();
     } catch (e) {
@@ -41,6 +50,13 @@ export function LoginScreen({
     } finally {
       setBusy(false);
     }
+  }
+  function signIn() {
+    if (!identifier.trim() || !password) {
+      setError('Enter your email or Student ID and password.');
+      return;
+    }
+    submit(() => auth.signIn(identifier, password));
   }
   return (
     <Screen title="Welcome back!" back={back}>
@@ -55,9 +71,13 @@ export function LoginScreen({
         onChangeText={setIdentifier}
         autoCapitalize="none"
         autoCorrect={false}
+        returnKeyType="next"
+        onSubmitEditing={() => passwordInput.current?.focus()}
+        submitBehavior="submit"
       />
       <Field
         label="Password"
+        inputRef={passwordInput}
         icon="•"
         placeholder="Enter your password"
         value={password}
@@ -65,6 +85,8 @@ export function LoginScreen({
         secureTextEntry
         autoCapitalize="none"
         autoCorrect={false}
+        returnKeyType="done"
+        onSubmitEditing={signIn}
       />
       <View style={styles.alignItemsflexend}>
         <Link
@@ -72,23 +94,13 @@ export function LoginScreen({
           onPress={() =>
             Alert.alert(
               'Local account recovery',
-              'This prototype has no email recovery service. Use the demo account for the class demonstration. Your own account needs the password used when it was created.',
+              'This device account needs its original password. Email recovery is not available. The demo account remains available without your password.',
             )
           }
         />
       </View>
       <ErrorText value={error} />
-      <AppButton
-        title="SIGN IN"
-        busy={busy}
-        onPress={() => {
-          if (!identifier.trim() || !password) {
-            setError('Enter your email or Student ID and password.');
-            return;
-          }
-          submit(() => auth.signIn(identifier, password));
-        }}
-      />
+      <AppButton title="SIGN IN" busy={busy} onPress={signIn} />
       <Text style={[s.muted, s.center, styles.marginVertical20]}>OR</Text>
       <AppButton
         title="SIGN IN WITH BIOMETRICS"
@@ -101,9 +113,7 @@ export function LoginScreen({
         <Link label="Sign up" onPress={() => go('Sign Up')} />
       </View>
       <View style={s.bigGap} />
-      <Text style={[s.muted, s.center]}>
-        Local school prototype. Accounts stay on this device.
-      </Text>
+      <Link label="About Campus4Change" onPress={() => go('About')} />
       <AppButton
         title="USE DEMO ACCOUNT"
         outline
@@ -130,7 +140,13 @@ export function SignUpScreen({
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const emailInput = useRef<ComponentRef<typeof TextInput>>(null);
+  const idInput = useRef<ComponentRef<typeof TextInput>>(null);
+  const passwordInput = useRef<ComponentRef<typeof TextInput>>(null);
   async function submit() {
+    if (busy) {
+      return;
+    }
     setError('');
     if (
       name.trim().length < 2 ||
@@ -144,6 +160,7 @@ export function SignUpScreen({
       return;
     }
     setBusy(true);
+    Keyboard.dismiss();
     try {
       await auth.signUp(name, email, studentId, password);
     } catch (e) {
@@ -155,7 +172,7 @@ export function SignUpScreen({
   return (
     <Screen title="Create account" back={back}>
       <Text style={[s.muted, styles.marginLeft28marginBottom20]}>
-        Join your campus learning network
+        Create your account on this device
       </Text>
       <Field
         label="Full name"
@@ -164,9 +181,13 @@ export function SignUpScreen({
         value={name}
         onChangeText={setName}
         autoCapitalize="words"
+        returnKeyType="next"
+        submitBehavior="submit"
+        onSubmitEditing={() => emailInput.current?.focus()}
       />
       <Field
         label="School email"
+        inputRef={emailInput}
         icon="@"
         placeholder="name@school.edu"
         value={email}
@@ -174,17 +195,25 @@ export function SignUpScreen({
         keyboardType="email-address"
         autoCapitalize="none"
         autoCorrect={false}
+        returnKeyType="next"
+        submitBehavior="submit"
+        onSubmitEditing={() => idInput.current?.focus()}
       />
       <Field
         label="Student ID"
+        inputRef={idInput}
         icon="#"
         placeholder="Enter your student ID"
         value={studentId}
         onChangeText={setStudentId}
         autoCapitalize="none"
+        returnKeyType="next"
+        submitBehavior="submit"
+        onSubmitEditing={() => passwordInput.current?.focus()}
       />
       <Field
         label="Password"
+        inputRef={passwordInput}
         icon="•"
         placeholder="Create a password"
         value={password}
@@ -192,12 +221,14 @@ export function SignUpScreen({
         secureTextEntry
         autoCapitalize="none"
         autoCorrect={false}
+        returnKeyType="done"
+        onSubmitEditing={submit}
       />
       <ErrorText value={error} />
       <View style={s.gap} />
       <AppButton title="CREATE ACCOUNT" busy={busy} onPress={submit} />
       <Text style={[s.muted, s.center, styles.marginTop16]}>
-        Local prototype. Your account and data stay on this device.
+        Your account and data stay on this device.
       </Text>
       <View style={styles.alignItemscentermarginTop24}>
         <Link

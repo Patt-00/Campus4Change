@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { type ComponentRef, type Ref } from 'react';
 import {
   Image,
   Text,
@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { C } from '../theme/colors';
 import { s } from '../theme/styles';
+import { Icon, type IconName } from './Icon';
 const images = {
   avatar: require('../assets/avatar.png'),
   tutor: require('../assets/tutor.png'),
@@ -20,15 +21,33 @@ const images = {
 export function Avatar({
   name,
   variant = 'avatar',
+  size = 36,
 }: {
   name: string;
   variant?: keyof typeof images;
+  size?: number;
 }) {
   return (
-    <View style={s.avatar}>
-      <Image source={images[variant]} style={s.avatar} />
-      <Text style={[s.avatarText, styles.positionabsolute]}>
-        {name.slice(0, 1).toUpperCase()}
+    <View style={[s.avatar, { width: size, height: size }]}>
+      <Image source={images[variant]} style={{ width: size, height: size }} />
+      <Text
+        style={[
+          s.avatarText,
+          styles.positionabsolute,
+          {
+            fontSize: size * 0.34,
+            color: variant === 'avatar' ? C.text : C.bg,
+          },
+        ]}
+      >
+        {name
+          .trim()
+          .split(/\s+/)
+          .filter(Boolean)
+          .slice(0, 2)
+          .map(x => x[0])
+          .join('')
+          .toUpperCase()}
       </Text>
     </View>
   );
@@ -37,17 +56,22 @@ export function Field({
   label,
   icon,
   multiline,
+  inputRef,
   ...props
 }: TextInputProps & {
   label?: string;
   icon?: string;
+  inputRef?: Ref<ComponentRef<typeof TextInput>>;
 }) {
   return (
     <View style={s.fieldGroup}>
       {label && <Text style={s.label}>{label}</Text>}
       <View style={[s.inputRow, multiline && styles.alignItemsflexstart]}>
-        {icon && <Avatar name={icon} />}
+        {icon && (
+          <Icon name={fieldIcons[icon] ?? 'book'} size={20} color={C.muted} />
+        )}
         <TextInput
+          ref={inputRef}
           accessibilityLabel={label ?? props.placeholder}
           placeholderTextColor={C.muted}
           style={[s.input, multiline && s.multiline]}
@@ -59,6 +83,16 @@ export function Field({
     </View>
   );
 }
+const fieldIcons: Record<string, IconName> = {
+  '@': 'mail',
+  '•': 'lock',
+  N: 'user',
+  C: 'graduation',
+  Y: 'calendar',
+  I: 'id',
+  '#': 'id',
+  search: 'search',
+};
 export function Chip({
   label,
   selected,

@@ -3,13 +3,14 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { C } from '../theme/colors';
 import { s } from '../theme/styles';
 import type { Navigate, Page } from '../../navigation/types';
+import { Icon, type IconName } from './Icon';
 
-const tabs: { page: Page; label: string; icon: string }[] = [
-  { page: 'Home', label: 'Home', icon: 'H' },
-  { page: 'Sessions', label: 'History', icon: '⌂' },
-  { page: 'Create', label: 'Create', icon: '+' },
-  { page: 'Messages', label: 'Messages', icon: 'M' },
-  { page: 'Profile', label: 'Profile', icon: 'P' },
+const tabs: { page: Page; label: string; icon: IconName }[] = [
+  { page: 'Home', label: 'Home', icon: 'home' },
+  { page: 'Sessions', label: 'Sessions', icon: 'calendar' },
+  { page: 'Create', label: 'Create', icon: 'plus' },
+  { page: 'Messages', label: 'Messages', icon: 'chat' },
+  { page: 'Profile', label: 'Profile', icon: 'user' },
 ];
 export function BottomTabs({
   go,
@@ -29,9 +30,11 @@ export function BottomTabs({
           onPress={() => go(t.page)}
           style={[styles.tab, t.page === active && styles.active]}
         >
-          <Text style={[styles.icon, t.page === active && s.blue]}>
-            {t.icon}
-          </Text>
+          <Icon
+            name={t.icon}
+            color={t.page === active ? C.cyan : C.muted}
+            size={22}
+          />
           <Text style={[styles.label, t.page === active && s.blue]}>
             {t.label}
           </Text>
@@ -42,12 +45,12 @@ export function BottomTabs({
 }
 const styles = StyleSheet.create({
   tabs: {
-    height: 64,
+    minHeight: 72,
     backgroundColor: '#0a1821',
     flexDirection: 'row',
     paddingHorizontal: 12,
     paddingVertical: 7,
-    gap: 8,
+    gap: 4,
   },
   tab: {
     flex: 1,
@@ -57,6 +60,5 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   active: { backgroundColor: C.chip },
-  icon: { fontFamily: 'Inter-Bold', fontSize: 18, color: C.muted },
-  label: { fontFamily: 'Inter-Medium', fontSize: 9, color: C.muted },
+  label: { fontFamily: 'Inter-Medium', fontSize: 11, color: C.muted },
 });

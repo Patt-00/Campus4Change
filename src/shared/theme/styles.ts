@@ -7,21 +7,21 @@ export const s = StyleSheet.create({
   body: { paddingHorizontal: 20, paddingBottom: 28 },
   text: {
     fontFamily: 'Inter-Regular',
-    fontSize: 12,
+    fontSize: 14,
     lineHeight: 20,
     color: C.text,
   },
   muted: {
     fontFamily: 'Inter-Regular',
     color: C.muted,
-    fontSize: 11,
+    fontSize: 13,
     lineHeight: 19,
   },
   name: {
     fontFamily: 'Inter-SemiBold',
     color: C.text,
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 16,
+    lineHeight: 23,
   },
   heading: {
     fontFamily: 'Inter-Bold',
@@ -32,8 +32,8 @@ export const s = StyleSheet.create({
   section: {
     fontFamily: 'Inter-SemiBold',
     color: C.text,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 23,
     marginTop: 28,
     marginBottom: 12,
   },
@@ -57,7 +57,7 @@ export const s = StyleSheet.create({
   star: {
     fontFamily: 'Inter-SemiBold',
     color: C.yellow,
-    fontSize: 11,
+    fontSize: 13,
     marginTop: 12,
   },
   gap: { height: 16 },
@@ -66,7 +66,7 @@ export const s = StyleSheet.create({
   label: {
     fontFamily: 'Inter-Medium',
     color: C.text,
-    fontSize: 12,
+    fontSize: 14,
     marginBottom: 8,
   },
   inputRow: {
@@ -84,7 +84,7 @@ export const s = StyleSheet.create({
     flex: 1,
     fontFamily: 'Inter-Regular',
     color: C.text,
-    fontSize: 12,
+    fontSize: 14,
     paddingVertical: 12,
     paddingHorizontal: 4,
     minHeight: 46,
@@ -106,13 +106,13 @@ export const s = StyleSheet.create({
   },
   btnText: {
     fontFamily: 'Inter-Bold',
-    fontSize: 13,
+    fontSize: 14,
     color: C.bg,
     textAlign: 'center',
   },
   disabled: { opacity: 0.5 },
   chip: {
-    minHeight: 30,
+    minHeight: 44,
     borderRadius: 16,
     backgroundColor: C.chip,
     paddingHorizontal: 16,
@@ -120,14 +120,14 @@ export const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  chipText: { fontFamily: 'Inter-SemiBold', color: C.cyan, fontSize: 10 },
+  chipText: { fontFamily: 'Inter-SemiBold', color: C.cyan, fontSize: 12 },
   link: {
     fontFamily: 'Inter-SemiBold',
     color: C.cyan,
-    fontSize: 11,
+    fontSize: 13,
     lineHeight: 18,
   },
-  linkControl: { minHeight: 40, justifyContent: 'center' },
+  linkControl: { minHeight: 44, justifyContent: 'center' },
   avatar: {
     height: 28,
     width: 28,
