@@ -58,7 +58,7 @@ The wrapper and Hermes script were retained. Version 1.1.0 was not rebuilt in Te
 
 The release variant uses the repository's debug signing key for school distribution. It is not production store signing. Version 1.1.0 has version code 2 and application ID `com.campus4change`.
 
-An update requires a matching application ID and signing certificate. The old v1.0.0 GitHub APK and the 1.1.0 build have the same signing certificate. Installing an update over the old APK has not been tested. Uninstalling removes old local data.
+An update requires a matching application ID and signing certificate. The old v1.0.0 GitHub APK and the 1.1.0 build have the same signing certificate. Updating the installed v1.0 APK succeeded on one connected Android 16 phone without uninstalling. Uninstalling removes old local data.
 
 Minimum Android is 7.0. Optional biometrics require Android 9 or newer. The iOS scaffold has no native implementation for these local accounts.
 

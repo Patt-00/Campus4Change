@@ -1,6 +1,6 @@
 # Verification for 1.1.0
 
-Verified on Windows on 2026-10-01. The release is an offline school prototype preview.
+Verified on Windows and one connected Android 16 phone on 2026-10-01. The release is an offline school prototype preview. Device testing stopped at the user's request after the checks below.
 
 ## Results
 
@@ -18,12 +18,16 @@ Verified on Windows on 2026-10-01. The release is an offline school prototype pr
 | Local fonts and Hermes libraries | Present for the packaged build |
 | Old v1.0.0 certificate comparison | Same certificate as 1.1.0 |
 | Termux rebuild | Not performed; existing scripts retained |
-| Installation and upgrade | Not verified |
-| Cold launch and visible interactions | Not verified |
-| Android native storage and biometric runtime | Not verified on a device |
+| Installation and upgrade | Passed: updated the installed v1.0 APK on Android 16 |
+| Cold launch | Passed: app process stayed running and onboarding rendered |
+| Visible device interactions | Passed: empty-login validation, demo login, tutor search, selected Mika profile, past-time rejection, future Physics booking, confirmation and session details |
+| Native account/storage path | Demo password login and booking flow exercised; persistence after restart not tested on the phone |
+| Android biometric runtime | Not tested on the phone |
 | Pixel comparison with Figma | Not verified on a device |
 
-The Windows emulator did not boot. It remained offline. The host's emulator check reported that the Android Emulator hypervisor driver is not installed. Software CPU/rendering attempts also failed to boot. No physical device was connected for testing. The test emulator was stopped after these attempts.
+The Windows emulator did not boot. It remained offline. The host's emulator check reported that the Android Emulator hypervisor driver is not installed. Software CPU/rendering attempts also failed to boot. The test emulator was stopped. A physical Android 16 phone was then connected and used for the successful checks above.
+
+Onboarding, home, booking, and selected session details were inspected on the phone. No app crash was observed during these checks. Messages, groups, study rooms, account creation, profile editing, saved data after restart, and biometrics remain pending physical-device tests. Their tested React/state behavior is covered separately by Jest.
 
 The APK includes the JavaScript bundle as Hermes bytecode, Inter fonts, and `libhermestooling.so` and `libhermesvm.so` for all four ABIs. Packaging these libraries does not prove a successful cold launch.
 
@@ -47,13 +51,13 @@ Signing certificate SHA-256:
 fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c
 ```
 
-The previous GitHub v1.0.0 APK has the same package ID and certificate and version code 1. An actual update installation has not been tested.
+The previous GitHub v1.0.0 APK has the same package ID and certificate and version code 1. An update over the phone's installed v1.0 APK succeeded without uninstalling.
 
-The release attaches a checksum file and source/build record. Its tag points to the source commit containing the app and these guides. Machine-specific SDK files, downloaded tools, build outputs, and inspection artifacts remain ignored.
+The release attaches checksums, the original source/build record, and a later device-verification record. Its tag points to app source commit `bbe235aff0b45e7a7f429841fb79dcb725134161`. Device verification was recorded afterward in a documentation-only commit; the APK and application code were not changed. Machine-specific tools, build outputs, and phone screenshots remain ignored.
 
 ## Teacher walkthrough
 
-This is the intended walkthrough after the APK passes a device smoke test. It is not a record of completed device testing.
+This is the full intended walkthrough. Only the device checks listed above were completed; the rest remain for manual testing before the teacher demonstration.
 
 1. Open onboarding, go to login, and demonstrate invalid form input.
 2. Use **USE DEMO ACCOUNT** to load public sample content. Explain that the data is local.
