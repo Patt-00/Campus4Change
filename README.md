@@ -1,99 +1,57 @@
-Campus4Change is a React Native CLI Android prototype. See [the architecture guide](docs/ARCHITECTURE.md) for its folder structure and screen flow, and [the build guide](docs/BUILDING.md) for PC and Termux instructions.
+# Campus4Change
 
-This project was bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+Campus4Change is a school Android app for tutoring, study groups, and campus learning. It uses React Native CLI, TypeScript, and Hermes.
 
-# Getting Started
+Version 1.1.0 adds working local flows for all 17 screens in the [Figma prototype](https://www.figma.com/proto/i23zbYooPqV1EkTLXfnxMo/Campus4Change-Mobile-App-Prototype?node-id=1-2&starting-point-node-id=1%3A2). Exact pixel matching has not been verified on a device.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## Features
 
-## Step 1: Start Metro
+- Local account creation, password sign-in, profile editing, and sign-out.
+- Optional Android biometric sign-in after password login and a successful biometric prompt.
+- Tutor search, filters, and the correct selected tutor profile.
+- Future one-hour bookings, overlap checks, rescheduling, cancellation, completion, and ratings.
+- Study-group search, creation, membership, posts, replies, and local conversations.
+- A local study room with a focus timer and saved notes.
+- Conversation search, saved messages, in-app notifications, and learning preferences.
+- A tutor profile that is listed in this account's local directory.
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+Accounts and app data stay on this Android device and remain after closing the app. Each account has separate personal data. Reopening the app requires sign-in.
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+There is no server or sharing between devices. Sample tutors do not receive bookings or messages. Live chat, calls, push notifications, email verification, and password recovery are not implemented. Uninstalling or clearing app data removes local accounts and saved work.
+
+## Demo account
+
+Tap **GET STARTED**, then **USE DEMO ACCOUNT**.
+
+The public demo credentials are email `alex@campus.demo` or Student ID `DEMO`, password `Campus123!`. The demo includes sample sessions, conversations, and memberships. New accounts start without personal bookings or messages.
+
+## Run and build
+
+Install Node.js 22.11 or newer, JDK 17, and the SDK versions in [BUILDING.md](docs/BUILDING.md).
 
 ```sh
-# Using npm
+npm ci
 npm start
-
-# OR using Yarn
-yarn start
-```
-
-## Step 2: Build and run your app
-
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
-
-```sh
-# Using npm
+# In another terminal:
 npm run android
-
-# OR using Yarn
-yarn android
 ```
 
-### iOS
+From `android/`, run `gradlew.bat assembleRelease` on Windows or `./gradlew assembleRelease` on Linux/macOS. Termux uses `./scripts/gradlew-termux.sh assembleRelease` from the root.
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+The release APK uses the repository's debug signing key for school prototype distribution. Android is supported. The iOS scaffold has no implementation for the new local account storage.
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+## Guides and checks
+
+- [Architecture and feature ownership](docs/ARCHITECTURE.md)
+- [PC and Termux builds](docs/BUILDING.md)
+- [Figma coverage and limits](docs/FIGMA_COVERAGE.md)
+- [Verification and teacher walkthrough](docs/VERIFICATION.md)
 
 ```sh
-bundle install
+npx tsc --noEmit
+npm run lint
+npm test -- --runInBand
+git diff --check
 ```
 
-Then, and every time you update your native dependencies, run:
-
-```sh
-bundle exec pod install
-```
-
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
-```
-
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
-
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
-
-## Step 3: Modify your app
-
-Now that you have successfully run the app, let's make changes!
-
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+Jest tests mock Android storage. They do not prove native encryption, biometrics, APK installation, or visible device behavior.

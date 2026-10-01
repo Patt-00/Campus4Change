@@ -1,101 +1,82 @@
-# Campus4Change prototype architecture
+# Campus4Change architecture
 
-This is a React Native CLI prototype, not an Expo app. The Android host launches a bundled React Native application. `index.js` registers `App.tsx`, which mounts `src/navigation/AppNavigator.tsx`. The navigator selects screens using local navigation state. The app code is organized by feature, navigation, and shared resources.
+The app uses React Native CLI 0.87.1, React 19.2.3, TypeScript, and Hermes. It has no navigation library, external state framework, or backend.
 
-```mermaid
-flowchart LR
-    Android["Android app shell"] --> RN["React Native + Hermes"]
-    RN --> Entry["index.js: AppRegistry"]
-    Entry --> Root["App.tsx: root component"]
-    Root --> App["AppNavigator.tsx: navigation state and screen selection"]
-    App --> State["Local state: page and logged"]
-    App --> Screens["src/features/*/screens: screen views"]
-    Screens --> Shared["src/shared/components: header, buttons, tabs"]
-    Screens --> Data["src/shared/data: hard-coded demo content"]
-    Screens --> Styles["src/shared/theme: colors and StyleSheet"]
-    State --> Screens
-    Screens --> Actions["Button and tab taps"]
-    Actions -->|"setPage / setLogged"| State
-```
+## Entry and ownership
 
-## Screen flow
+`index.js` registers `App.tsx`. The root mounts a safe-area provider and `AppNavigator`.
 
-```mermaid
-flowchart LR
-    Onboarding["Onboarding"] -->|"Get started"| Login["Login"]
-    Login -->|"Sign in or create account"| Home["Home"]
-    Home -->|"Find tutor / view matches"| Search["Tutor Search"]
-    Search -->|"Select tutor"| Details["Tutor Details"]
-    Details -->|"Book session"| Sessions["Sessions"]
-    Details -->|"Message tutor"| Messages["Messages"]
-    Home --> Tabs["Bottom tabs"]
-    Tabs --> Search
-    Tabs --> Sessions
-    Tabs --> Messages
-    Tabs --> Profile["Profile"]
-```
+`src/navigation/AppNavigator.tsx` owns the current route, back history, and signed-in account state. `types.ts` defines routes and optional item IDs. Android Back uses the same history as screen Back. Main tabs reset the history.
 
-## What this means
-
-- Navigation is a typed `page` value in React state, not a navigation library or Android activity per screen. Tapping a button or tab calls `setPage`; signing in also sets `logged` to `true`.
-- The login fields, tutor search, profiles, sessions, and messages are UI-only examples. No API, database, authentication service, or persistent storage is connected. Demo tutor and session values live in `src/shared/data/demo.ts`.
-- Shared UI is in `src/shared/components/`; colors and styles are in `src/shared/theme/`. The custom safe-area wrapper only adds Android status-bar top padding.
-- `android/` is the native Android build project. The project also contains an iOS scaffold, but the prototype APK is built from Android. Hermes is enabled; the Termux build wrapper limits its APK to `arm64-v8a`, while PC builds use the normal ABI selection.
-- `__tests__/App.test.tsx` checks initial rendering and the visible navigation flow through onboarding, login, home, tutor search, tutor details, sessions, messages, and profile. It does not test real authentication or backend behavior.
-
-## Main files
-
-| File | Role |
-| --- | --- |
-| `index.js` | Registers the root React Native component. |
-| `App.tsx` | Root component that mounts the navigator. |
-| `src/navigation/AppNavigator.tsx` | Local navigation state and screen selection. |
-| `src/features/*/screens/` | Onboarding, login, home, tutor, and placeholder tab views. |
-| `src/shared/components/` | Shared button, header, tabs, and status-bar safe-area wrapper. |
-| `src/shared/data/demo.ts` | Static tutor, session, message, and profile values. |
-| `src/shared/theme/` | Shared colors and styles. |
-| `src/navigation/types.ts` | Valid page names and navigation callback type. |
-| `android/` | Native Android host and Gradle APK build. |
-| `package.json` | React Native CLI dependencies and npm scripts. |
-| `__tests__/App.test.tsx` | Root rendering and navigation regression tests. |
-
-This diagram describes the current prototype, not a proposed production architecture.
-
-## Folder organization and ownership
+Feature screens receive data and callbacks. They request navigation or submit changes through those callbacks. Features do not import other features' screens; the navigator connects them.
 
 ```text
 src/
-├── navigation/
-│   ├── AppNavigator.tsx
-│   └── types.ts
-├── features/
-│   ├── onboarding/screens/OnboardingScreen.tsx
-│   ├── auth/screens/LoginScreen.tsx
-│   ├── home/screens/HomeScreen.tsx
-│   ├── tutors/screens/
-│   │   ├── TutorSearchScreen.tsx
-│   │   └── TutorDetailsScreen.tsx
-│   └── demo/screens/PlaceholderScreen.tsx
-└── shared/
-    ├── components/
-    ├── data/demo.ts
-    └── theme/
+  navigation/       route types and integration
+  features/
+    onboarding/
+    auth/
+    home/
+    tutors/
+    groups/
+    sessions/
+    messages/
+    notifications/
+    profile/
+  shared/
+    assets/        local images and font license
+    components/    common controls and screen layout
+    data/          shared types and sample data
+    state/         reducer and Android storage interface
+    theme/         colors and styles
+android/
+  app/src/main/java/com/campus4change/
+    MainApplication.kt
+    CampusStorageModule.kt
+  app/src/main/assets/fonts/
+docs/
+scripts/
+__tests__/
 ```
 
-The navigator owns screen selection and the demonstration login state. Features
-render their screens and request navigation through callbacks. A feature does
-not import another feature's screen; the navigator connects them. Put components
-or data used only by one feature alongside that feature when they are needed.
-Keep resources used across screens in `shared/`.
+Put feature-only UI or data inside that feature. Keep common controls, types, state rules, theme, and assets in shared. Shared components import navigation types only. The former placeholder feature has been removed.
 
-The `demo` feature deliberately holds the single placeholder screen used by
-Sessions, Messages, and Profile. These tabs are not separate implemented features
-yet. Split them into their own feature folders when their behavior is developed.
+## State and data flow
 
-Navigation types live beside the navigator. Screens and the shared bottom tabs
-import those types only; the shared tabs do not import the navigator or feature
-screens. Theme files and demo data do not depend on screens or navigation.
+`shared/data/types.ts` defines profiles, tutors, sessions, groups, conversations, and notices. A session has an ID, tutor ID, subject, ISO start time, note, status, and optional rating. Sessions last one hour. Booking and session history use this same record.
 
-This structure groups related tutor screens together and keeps the root component
-small without adding a navigation library, state-management framework, or backend.
-The native `android/`, `ios/`, and Termux build scripts retain their existing roles.
+`demo.ts` supplies sample tutors and initial state. Only the public demo account receives sample personal bookings and messages. Other accounts have separate state with unjoined sample groups.
+
+`shared/state/reducer.ts` applies profile edits, bookings, session changes, memberships, posts, replies, messages, read notices, and study-note drafts. It rejects overlapping bookings, invalid ratings, and group posts/messages from non-members.
+
+The navigator saves changed state through `storage.ts`. Save failures appear in the app with a retry action. Sign-out saves the latest state before clearing the active account. Reopening requires sign-in.
+
+## Android local accounts
+
+`CampusStorageModule.kt` implements the Android-only `CampusStorage` native module registered by `MainApplication.kt`.
+
+- Private SharedPreferences hold encrypted account and per-account JSON records.
+- AES-GCM uses an Android Keystore key and a new IV per write.
+- Salted PBKDF2 hashes verify passwords. Real passwords are not saved as plain text.
+- A single background executor orders account and storage operations.
+- Loading and saving requires an active account.
+- Biometric setup requires a signed-in non-demo account and a successful Android biometric prompt. Sign-in uses the enrolled device biometrics. Android 9 or newer is required.
+- Android backup is disabled. Clearing app data or uninstalling removes local accounts and data.
+
+This is local prototype authentication, not school identity verification. There is no shared campus database, online account recovery, or device sync. The iOS scaffold cannot use this Android module.
+
+## UI and builds
+
+Shared controls provide the screen wrapper, header, tabs, buttons, inputs, chips, and avatars. Inter fonts are bundled under Android assets. Figma circle images are bundled as PNGs, with source SVGs retained. The Inter license is in `shared/assets/Inter-OFL.txt`.
+
+A normal full-screen View is retained. Safe-area insets pad status and navigation bar edges. Forms scroll, Android resizes for the keyboard, tablet content width is limited, and portrait orientation is retained.
+
+Release builds bundle JavaScript, fonts, and images and run without Metro. Hermes is enabled. PC builds use the default ABI list. The separate Termux wrapper selects ARM64 and its existing aapt2/Hermes tooling.
+
+## Tests
+
+`App.test.tsx` verifies login validation/failure, selected-tutor booking, persisted messages, groups/posts/replies, profile edits, new-account separation, Android Back handling for study drafts, session completion, save retries, and linked notifications.
+
+`state.test.ts` checks overlap and adjacency, rescheduling, ratings, membership restrictions, fresh account state, combined search filters, and saved-state compatibility.
+
+Jest mocks Android storage. Native encryption, biometric prompts, installation, cold launch, and Android layout require device checks. See [VERIFICATION.md](VERIFICATION.md).

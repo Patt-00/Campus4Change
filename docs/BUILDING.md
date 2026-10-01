@@ -1,27 +1,74 @@
 # Building Campus4Change
 
-The same source tree can be built on a PC with Android Studio or directly in Android Termux. This is a React Native CLI project; Expo is not used.
+The source supports PC Android tooling and a separate Termux build path. This is React Native CLI.
 
-## PC with Android Studio
+## Versions
 
-1. Install Node.js 22.11 or newer, a JDK supported by the installed Gradle/Android Studio version (React Native recommends JDK 17), and Android Studio.
-2. Install Android SDK Platform 37, Build Tools 37.0.0, and NDK 27.1.12297006 when Android Studio prompts for them. The project declares these versions in `android/build.gradle`.
-3. From the repository root, run `npm ci`.
-4. In Android Studio, open the `android/` directory and let Gradle sync. Android Studio creates its own ignored `android/local.properties` containing the PC's SDK path.
-5. Start Metro from the repository root with `npm start`, then run the `app` debug configuration on an emulator or connected device. Alternatively, run `npm run android` from the repository root.
+| Setting | Version |
+| --- | --- |
+| React Native / React | 0.87.1 / 19.2.3 |
+| Node minimum / recommended JDK | 22.11.0 / 17 |
+| Gradle wrapper / resolved Android Gradle Plugin | 9.4.1 / 9.2.1 |
+| Kotlin | 2.2.0 |
+| Compile / target / minimum SDK | 37 / 36 / 24 |
+| Build Tools | 37.0.0 |
+| NDK | 27.1.12297006 |
 
-For a command-line debug APK, run `./gradlew assembleDebug` from `android/` on macOS/Linux, or `gradlew.bat assembleDebug` on Windows. The debug APK is written under `android/app/build/outputs/apk/debug/`.
+Check `android/build.gradle`, the Gradle wrapper, and the npm lockfile for declarations. Hermes is enabled.
 
-The normal PC build uses the React Native Gradle plugin's platform-specific Hermes compiler and does not force an ARM64-only APK.
+## PC
 
-## Android Termux
+1. Install Node.js, JDK 17, and Android Studio.
+2. Install SDK Platform 37, Build Tools 37.0.0, and NDK 27.1.12297006. The current CLI SDK platform package is `platforms;android-37.0`.
+3. Run `npm ci` at the root.
+4. Open `android/` in Android Studio and sync. Set this machine's SDK path in ignored `android/local.properties`.
+5. Start Metro with `npm start`, then use `npm run android` or Android Studio.
 
-Install the existing Termux Android build requirements and set up the local `android/local.properties` with the device's SDK/NDK paths. Then run from the repository root:
+From `android/`:
+
+```sh
+# Windows
+gradlew.bat assembleDebug
+gradlew.bat assembleRelease
+# Linux/macOS
+./gradlew assembleDebug
+./gradlew assembleRelease
+```
+
+Outputs are `app-debug.apk` in `android/app/build/outputs/apk/debug/` and `app-release.apk` in the equivalent `release/` folder.
+
+Release APKs bundle JavaScript, Hermes bytecode, fonts, and images and run without Metro. Normal PC builds include default ARM/x86 ABIs. A known ARM64 device can use `-PreactNativeArchitectures=arm64-v8a`.
+
+The 1.1.0 Windows verification used local SDK/JDK tools in ignored `.tools/`. Other machines use their own tools and `local.properties`. An emulator also needs a working host virtualization setup; building an APK does not prove device behavior.
+
+## Termux
+
+Use the phone's own SDK/NDK paths in `android/local.properties`. Run from the root:
 
 ```sh
 ./scripts/gradlew-termux.sh assembleDebug
+./scripts/gradlew-termux.sh assembleRelease
 ```
 
-The Termux wrapper passes three build-only settings: native Termux `aapt2`, `arm64-v8a`, and a flag that enables the QEMU-backed Hermes compiler for release bundling. For another Gradle task, replace `assembleDebug` (for example, `assembleRelease`). Do not copy the Termux-specific `local.properties` to a PC.
+The wrapper supplies Termux aapt2, ARM64 ABI selection, and the QEMU-backed Hermes compiler flag. These paths stay out of normal PC configuration. Do not copy `local.properties` between phone and PC.
 
-The repository's release variant currently uses the default debug signing key. It is suitable for prototype distribution, not a production store release.
+The wrapper and Hermes script were retained. Version 1.1.0 was not rebuilt in Termux during Windows verification.
+
+## Signing and platform limits
+
+The release variant uses the repository's debug signing key for school distribution. It is not production store signing. Version 1.1.0 has version code 2 and application ID `com.campus4change`.
+
+An update requires a matching application ID and signing certificate. The old v1.0.0 GitHub APK and the 1.1.0 build have the same signing certificate. Installing an update over the old APK has not been tested. Uninstalling removes old local data.
+
+Minimum Android is 7.0. Optional biometrics require Android 9 or newer. The iOS scaffold has no native implementation for these local accounts.
+
+## Checks
+
+```sh
+npx tsc --noEmit
+npm run lint
+npm test -- --runInBand
+git diff --check
+```
+
+Keep the demonstrated APK and source aligned. Record bundle generation, native build, installation, launch, and interactions separately in [VERIFICATION.md](VERIFICATION.md).

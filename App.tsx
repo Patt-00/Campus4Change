@@ -1,6 +1,14 @@
 import React from 'react';
-import {AppNavigator} from './src/navigation/AppNavigator';
+import {
+  SafeAreaProvider,
+  initialWindowMetrics,
+} from 'react-native-safe-area-context';
+import { AppNavigator } from './src/navigation/AppNavigator';
 
 export default function App() {
-  return <AppNavigator />;
+  return (
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+      <AppNavigator />
+    </SafeAreaProvider>
+  );
 }

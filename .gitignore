@@ -66,6 +66,10 @@ yarn-error.log
 # testing
 /coverage
 
+# Local build tools and verification artifacts
+/.tools/
+/artifacts/
+
 # Yarn
 .yarn/*
 !.yarn/patches

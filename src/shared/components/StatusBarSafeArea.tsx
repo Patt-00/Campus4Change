@@ -1,7 +1,8 @@
-import React, {type ReactNode} from 'react';
-import {StatusBar, type StyleProp, View, type ViewStyle} from 'react-native';
+import React, { type ReactNode } from 'react';
+import { StatusBar, type StyleProp, View, type ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// Preserve the prototype's Android status-bar padding behavior.
+// A normal full-screen View preserves tablet layout; insets protect system bars.
 export function StatusBarSafeArea({
   children,
   style,
@@ -9,8 +10,18 @@ export function StatusBarSafeArea({
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
 }) {
+  const insets = useSafeAreaInsets();
   return (
-    <View style={[style, {paddingTop: StatusBar.currentHeight ?? 0}]}>
+    <View
+      style={[
+        style,
+        {
+          paddingTop: Math.max(insets.top, StatusBar.currentHeight ?? 0),
+          paddingBottom: insets.bottom,
+        },
+      ]}
+    >
+      <StatusBar barStyle="light-content" />
       {children}
     </View>
   );
