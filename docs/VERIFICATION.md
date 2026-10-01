@@ -10,6 +10,23 @@ TypeScript, ESLint, all 25 Jest tests, production Android JavaScript bundling wi
 
 No native APK was rebuilt or installed for this structural refactor. The published v1.2.0 APK remains the build from commit `61b3ac547e26dc0ceb91e78a56d57f53400cbb54`; the release checks and artifact identity below apply to that APK.
 
+## Debug build after correcting Windows SDK setup
+
+On 2026-10-01, a terminal build failed because neither `android/local.properties` nor `ANDROID_HOME` provided an SDK location. The installed Android Studio SDK was at `C:/Users/urbin/AppData/Local/Android/Sdk`. Creating the ignored local properties file with that `sdk.dir` resolved the error. The setup command now shown in [BUILDING.md](BUILDING.md#sdk-path-for-windows-powershell) was executed and checked on this PC.
+
+Gradle installed the missing NDK 27.1.12297006, Build Tools 37.0.0, and CMake 3.22.1 using the SDK's previously accepted licenses. SDK Platform `android-37.0` was already installed. The terminal used Oracle JDK 26 and Gradle 9.4.1; the guide still recommends JDK 17 for setup.
+
+`gradlew.bat -p android assembleDebug --max-workers=4` passed in 3 minutes 35 seconds for app source commit `1a11d64353f9c262a0f9bc24efa061051738ce53`. No application code or tracked native build configuration changed during this setup fix.
+
+- Output: `android/app/build/outputs/apk/debug/app-debug.apk`.
+- Package/version: `com.campus4change`, 1.2.0, version code 3.
+- ABIs: ARM64, ARMv7, x86, and x86_64.
+- Signature verification passed and the certificate matched the existing releases.
+- Size: 123,409,920 bytes.
+- SHA-256: `9041a1504d064c49208f28d9efda14e873f805d19944d91e6c7b12711510f258`.
+
+This is a debug APK and requires Metro for JavaScript. It was not installed, launched, or tested on a phone. The published v1.2.0 release APK was not replaced.
+
 ## Release build results
 
 | Check | Result |

@@ -41,7 +41,7 @@ npm start
 npm run android
 ```
 
-From `android/`, run `gradlew.bat assembleRelease` on Windows or `./gradlew assembleRelease` on Linux/macOS. Termux uses `./scripts/gradlew-termux.sh assembleRelease` from the root.
+First set your SDK location in ignored `android/local.properties`, following [BUILDING.md](docs/BUILDING.md#sdk-path-for-windows-powershell). From `android/`, run `.\gradlew.bat assembleRelease` in Windows PowerShell or `./gradlew assembleRelease` on Linux/macOS. Termux uses `./scripts/gradlew-termux.sh assembleRelease` from the root.
 
 The release APK uses the repository's debug signing key for school prototype distribution. Android is supported. The iOS scaffold has no implementation for the new local account storage.
 
