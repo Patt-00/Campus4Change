@@ -90,6 +90,9 @@ android {
         externalNativeBuild {
             cmake {
                 arguments "-DANDROID_PLATFORM=android-24", "-DCMAKE_SYSTEM_VERSION=24"
+                if (providers.gradleProperty("termuxBuild").orNull == "true") {
+                    arguments "-DCMAKE_PROJECT_INCLUDE=${file('../../scripts/termux-prefab.cmake').absolutePath}"
+                }
             }
         }
     }
