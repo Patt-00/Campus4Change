@@ -141,9 +141,8 @@ Minimum Android is 7.0. Optional biometrics require Android 9 or newer. The iOS 
 ## Checks
 
 ```sh
-npx tsc --noEmit
 npm run lint
-npm test -- --runInBand
+npm test -- --runInBand --testTimeout=15000
 git diff --check
 ```
 

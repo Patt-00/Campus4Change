@@ -1,6 +1,6 @@
 # Campus4Change
 
-Campus4Change is a school Android app for tutoring, study groups, and campus learning. It uses React Native CLI, TypeScript, and Hermes.
+Campus4Change is a school Android app for tutoring, study groups, and campus learning. It uses React Native CLI, JavaScript/JSX, and Hermes.
 
 Version 1.2.0 adds custom learning interests, personal school details, clear icons, readable controls, and accurate dashboard and group schedules. The local flows cover all 17 screens in the [Figma prototype](https://www.figma.com/proto/i23zbYooPqV1EkTLXfnxMo/Campus4Change-Mobile-App-Prototype?node-id=1-2&starting-point-node-id=1%3A2). Exact pixel matching has not been verified on a device.
 
@@ -53,9 +53,8 @@ The release APK uses the repository's debug signing key for school prototype dis
 - [Verification and teacher walkthrough](docs/VERIFICATION.md)
 
 ```sh
-npx tsc --noEmit
 npm run lint
-npm test -- --runInBand
+npm test -- --runInBand --testTimeout=15000
 git diff --check
 ```
 
