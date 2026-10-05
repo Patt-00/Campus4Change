@@ -1,0 +1,25 @@
+.phone {
+  position: relative;
+  width: 390px;
+  min-height: min(844px, 100dvh);
+  max-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 36px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+@media (max-width: 430px) {
+  .phone {
+    width: 100%;
+    min-height: 100dvh;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}

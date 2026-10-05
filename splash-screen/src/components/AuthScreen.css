@@ -1,0 +1,20 @@
+.auth { flex: 1 0 auto; padding: 16px 24px calc(24px + env(safe-area-inset-bottom, 0px)); }
+.auth-back { display: block; }
+.auth-logo { width: 140px; height: 140px; object-fit: contain; display: block; margin: 0 auto 12px; }
+.auth h1 { font-size: 26px; text-align: center; }
+.auth-subtitle { color: var(--muted); text-align: center; font-size: 14px; margin-top: 8px; }
+.preview-notice { padding: 10px 12px; margin: 20px 0; border: 1px solid var(--border); border-radius: 10px; color: var(--muted); font-size: 12px; }
+.auth-form { display: flex; flex-direction: column; gap: 12px; }
+.form-field { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--text); }
+.auth input { width: 100%; min-width: 0; min-height: 48px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); color: var(--text); font: inherit; font-size: 16px; }
+.auth input::placeholder { color: var(--muted); font-size: 13px; }
+.auth input:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.password-field { position: relative; margin-top: -4px; }
+.password-field input { padding-right: 68px; }
+.password-toggle { position: absolute; right: 4px; top: 2px; min-height: 44px; padding: 0 10px; border: 0; border-radius: 8px; background: none; color: var(--cyan); font-size: 13px; }
+.password-toggle:focus-visible { outline: 2px solid var(--cyan); }
+.auth-form > .primary-btn { margin-top: 8px; }
+.form-status { font-size: 13px; color: var(--green); }
+.form-status:empty { display: none; }
+.auth-switch { margin-top: 16px; text-align: center; font-size: 13px; color: var(--muted); }
+@media (max-height: 680px) { .auth-logo { width: 100px; height: 100px; } }

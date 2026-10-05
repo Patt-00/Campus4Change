@@ -2,6 +2,12 @@
 
 Campus4Change is a school Android app for tutoring, study groups, and campus learning. It uses React Native CLI, JavaScript/JSX, and Hermes.
 
+## Splash Screen branch
+
+This branch also contains the standalone JavaScript React + Vite school prototype in [splash-screen/](splash-screen/README.md). It is separate from the React Native Android app above and does not replace the Android splash screen or build an APK.
+
+Run it with `cd splash-screen`, `npm ci`, then `npm run dev`. The Laboratory Activity 4.1 report, editable Word document, PDF and screenshots are in [docs/lab4.1/](docs/lab4.1/README.md). The report is a group-review draft: original Figma introduction screenshots must still be added before submission.
+
 Version 1.2.0 adds custom learning interests, personal school details, clear icons, readable controls, and accurate dashboard and group schedules. The local flows cover all 17 screens in the [Figma prototype](https://www.figma.com/proto/i23zbYooPqV1EkTLXfnxMo/Campus4Change-Mobile-App-Prototype?node-id=1-2&starting-point-node-id=1%3A2). Exact pixel matching has not been verified on a device.
 
 ## Features
