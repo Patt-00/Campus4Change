@@ -1,49 +1,25 @@
-# Campus4Change browser prototype
+# Campus4Change — Splash Screen
 
-JavaScript React + Vite implementation of the splash, Novice / Intermediate / Expert introductions, and sample Login / Sign Up screens. This is the browser prototype for the React milestone, not the native Android application.
+A standalone splash and onboarding prototype built with React, JavaScript/JSX, Vite and CSS.
 
-## Run and verify
+## Implemented splash improvements
 
-```sh
-npm ci
-npm run dev -- --host 127.0.0.1
-npm run lint
-npm run build
-```
+- Replaced the placeholder logo with the new Campus4Change book, campus and student logo.
+- Used the logo’s built-in wordmark without duplicating the application name visually.
+- Matched the application’s navy background, cyan accents and white text.
+- Added the messages “Learn together. Grow together.” and “Change your campus.”
+- Added the footer “Find help. Share knowledge. Make an impact.”
+- Added a fade-in entrance and animated loading indicator.
+- Automatically opens the first introduction after three seconds.
+- Scales the logo and layout to fit smaller screens; longer screens can scroll when necessary.
+- Bundled Inter fonts locally and respected reduced-motion preferences.
 
-The splash advances after three seconds. Back, Next, slide indicators, Skip and Get started navigate the introduction and forms. Hash routes support direct links, refresh and browser Back without a server routing configuration.
+## Connected onboarding features
 
-| Route | Screen |
-| --- | --- |
-| `#/splash` | Splash with Campus4Change logo |
-| `#/intro/1` | Novice introduction |
-| `#/intro/2` | Intermediate introduction |
-| `#/intro/3` | Expert introduction |
-| `#/login` | Sample sign-in form |
-| `#/signup` | Sample registration form |
+- Novice, Intermediate and Expert introduction screens with distinct illustrations and accent colors.
+- Back, Next, clickable progress indicators, Skip and Get started navigation.
+- Hash-based navigation supporting direct links, refresh and browser Back.
+- Sample Login and Sign Up destinations with labelled fields, input validation and Show/Hide password controls.
+- Visible keyboard focus, descriptive image alternatives and touch-friendly buttons.
 
-The forms validate required fields and email format, and registration requires an eight-character password. They do not authenticate, create accounts, or store credentials. Use sample details only. Native account storage and biometric sign-in are outside this prototype.
-
-## Component structure
-
-```text
-App (route and splash timer)
-└── PhoneScreenLayout (responsive, scrollable frame)
-    ├── SplashScreen
-    ├── IntroSlideshow
-    │   ├── IntroSlide (content from data/slides.js)
-    │   ├── PageDots
-    │   └── PrimaryButton
-    └── AuthScreen (login/signup variants)
-        └── PrimaryButton
-```
-
-`src/hooks/useRoute.js` manages hash navigation. `src/index.css` defines shared colors, local Inter fonts, focus styles and reduced-motion support. Screen CSS stays beside each component. The logo and slide images are under `src/assets/`; the Inter font license is included there.
-
-The phone frame scrolls when content exceeds a short screen. Buttons have at least 44px interaction targets; labels, keyboard focus, status announcements and image alternatives are provided. Logo imagery includes the wordmark, so the splash does not duplicate it visually.
-
-## Submission notes
-
-Include original high-fidelity prototype screenshots immediately followed by the matching browser screenshots, explain reusable components and routing, and show relevant source code. Verify exact visual fidelity against the finalized group prototype before submission; these improvements are not a claim of an exact Figma match.
-
-AI assistance: OpenAI Codex helped integrate the generated Campus4Change logo, refine responsive layouts, add hash navigation and sample authentication forms, and verify lint/build. An OpenAI image-generation tool produced the logo. Group members should review and explain these changes and accurately document their own contributions. This README is not a substitute for the required report.
+The Login and Sign Up screens are UI previews only: they do not authenticate or save accounts. This browser prototype does not build an Android APK.
