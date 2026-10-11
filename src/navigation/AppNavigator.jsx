@@ -14,10 +14,11 @@ import { BookingConfirmedScreen } from '../features/tutors/screens/BookingConfir
 import { CreateGroupScreen } from '../features/groups/screens/CreateGroupScreen';
 import { GroupDetailsScreen } from '../features/groups/screens/GroupDetailsScreen';
 import { GroupPostScreen } from '../features/groups/screens/GroupPostScreen';
+import { GroupStudyRoomScreen } from '../features/groups/screens/GroupStudyRoomScreen';
 import { GroupsScreen } from '../features/groups/screens/GroupsScreen';
 import { SessionDetailsScreen } from '../features/sessions/screens/SessionDetailsScreen';
+import { SessionWorkspaceScreen } from '../features/sessions/screens/SessionWorkspaceScreen';
 import { SessionsScreen } from '../features/sessions/screens/SessionsScreen';
-import { StudyRoomScreen } from '../features/sessions/screens/StudyRoomScreen';
 import { ChatScreen } from '../features/messages/screens/ChatScreen';
 import { MessagesScreen } from '../features/messages/screens/MessagesScreen';
 import { NotificationsScreen } from '../features/notifications/screens/NotificationsScreen';
@@ -503,39 +504,55 @@ export function AppNavigator() {
     case 'Create':
       screen = <CreateScreen go={go} />;
       break;
-    case 'Study Room':
-      if (session || group?.joined) {
+    case 'Session Workspace':
+      if (session && sessionTutor) {
         screen = (
-          <StudyRoomScreen
-            key={session?.id ?? group?.id}
+          <SessionWorkspaceScreen
+            key={session.id}
             back={back}
-            title={session?.subject ?? group.name}
-            initialNotes={
-              state.roomNotes?.[session?.id ?? group.id] ?? session?.note
-            }
+            session={session}
+            tutor={sessionTutor}
+            message={() => message(sessionTutor)}
+            initialNotes={state.roomNotes?.[session.id] ?? session.note}
             onDraft={text =>
-              dispatch({
-                type: 'roomDraft',
-                id: session?.id ?? group.id,
-                text,
-              })
+              dispatch({ type: 'roomDraft', id: session.id, text })
             }
-            session={!!session}
-            finish={(notes, complete) => {
+            save={notes => {
+              dispatch({ type: 'roomDraft', id: session.id });
               dispatch({
-                type: 'roomDraft',
-                id: session?.id ?? group.id,
+                type: 'session',
+                id: session.id,
+                changes: { note: notes },
               });
-              if (session) {
-                dispatch({
-                  type: 'session',
-                  id: session.id,
-                  changes: {
-                    note: notes,
-                    ...(complete ? { status: 'Completed' } : {}),
-                  },
-                });
-              } else if (group && notes.trim()) {
+              back();
+            }}
+            complete={notes => {
+              dispatch({ type: 'roomDraft', id: session.id });
+              dispatch({
+                type: 'session',
+                id: session.id,
+                changes: { note: notes, status: 'Completed' },
+              });
+              back();
+            }}
+          />
+        );
+      }
+      break;
+    case 'Group Study Room':
+      if (group?.joined) {
+        screen = (
+          <GroupStudyRoomScreen
+            key={group.id}
+            back={back}
+            title={group.name}
+            initialNotes={state.roomNotes?.[group.id] ?? ''}
+            onDraft={text =>
+              dispatch({ type: 'roomDraft', id: group.id, text })
+            }
+            finish={notes => {
+              dispatch({ type: 'roomDraft', id: group.id });
+              if (notes.trim()) {
                 dispatchGroupChange({
                   type: 'post',
                   groupId: group.id,

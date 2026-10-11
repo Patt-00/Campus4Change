@@ -32,7 +32,7 @@ The app adds supporting forms for group creation, study posts/replies, becoming 
 
 Version 1.2.0 keeps the visual theme while replacing letter icons with outline icons, increasing text and touch sizes, and allowing custom interests and optional user-entered school details. The dashboard uses saved interests and current tutor counts. Chosen tutor times carry into booking. Group schedules use their optional saved date/time; no schedule is invented for old groups. Sample content belongs to the demo account, with historical personal work preserved.
 
-The local study room has a 25-minute focus timer and saved notes. Session rooms can mark a session completed. Group room notes are published to the joined group's feed; Firebase groups share those notes with their members. Back navigation preserves drafts.
+Group study rooms have a 25-minute personal focus timer and saved notes. Booked sessions open a workspace with the tutor, scheduled time, and agenda/notes, then can be marked complete; the timer is not part of a booked session. Group room notes are published to the joined group's feed; Firebase groups share those notes with their members. Back navigation preserves drafts.
 
 ## Limits
 

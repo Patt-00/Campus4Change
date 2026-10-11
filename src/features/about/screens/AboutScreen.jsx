@@ -34,9 +34,11 @@ export function AboutScreen({
       </View>
       <Text style={s.section}>Connecting with other students</Text>
       <Text style={s.text}>
-        {firebaseConfigured
-          ? 'The current Firestore schema syncs each account’s private app data across that user’s devices. It does not yet deliver bookings, messages, group posts, or study-room activity to other students. Study rooms provide a focus timer and notes, without calls.'
-          : 'This version has no campus server or sharing between devices. Bookings are entries in your own schedule. Messages and group posts are saved here and are not delivered to other people. Study rooms provide a focus timer and notes, without calls.'}
+        {firebaseConfigured && cloudSession
+          ? 'Signed-in Firebase accounts share study-group details, membership, posts, and replies. Tutor listings, bookings, direct messages, and group chat remain private to each account. Group study rooms have a focus timer; booked-session workspaces organize session details and notes. Live calls are not available.'
+          : firebaseConfigured
+            ? 'This device-only account stays private. Signed-in Firebase accounts can share study-group details, membership, posts, and replies. Bookings, direct messages, and group chat remain private. Group rooms have a focus timer; booked sessions use a notes workspace without live calls.'
+            : 'This version has no campus server or sharing between devices. Bookings, messages, and group posts stay on this device. Group study rooms have a focus timer; booked sessions use a notes workspace. Live calls are not available.'}
       </Text>
       <Text style={s.section}>Demo account</Text>
       <Text style={s.text}>

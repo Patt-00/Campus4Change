@@ -19,6 +19,10 @@ production-ready claim.
 - Firebase signup stages the entered name and Student ID before account
   creation so an early auth-state callback cannot initialize an incomplete
   profile; a regression test covers that event order.
+- Booked sessions now use a booking-focused workspace for schedule, tutor,
+  agenda, and notes; the focus timer is confined to group study rooms.
+- Session timing is displayed as upcoming, in progress, or past due from the
+  stored start time without silently rewriting the user's saved status.
 - Device-only groups remain available. Pending shared writes are saved in
   account state and can be retried.
 - Firestore emulator tests cover account isolation, group discovery, membership

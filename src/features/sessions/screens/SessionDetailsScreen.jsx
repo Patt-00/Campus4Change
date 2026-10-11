@@ -4,6 +4,7 @@ import { AppButton } from '../../../shared/components/AppButton';
 import { Screen } from '../../../shared/components/Screen';
 import { Avatar, Chip, Link } from '../../../shared/components/UI';
 import { dateLabel, timeRange } from '../../../shared/data/demo';
+import { sessionTimingStatus } from '../data/status';
 
 import { C } from '../../../shared/theme/colors';
 import { s } from '../../../shared/theme/styles';
@@ -17,13 +18,20 @@ export function SessionDetailsScreen({
   rate,
   message,
 }) {
+  const timingStatus = sessionTimingStatus(session);
   return (
     <Screen title="Session Details" back={back}>
       <View style={s.row}>
         <Text style={[s.heading, s.grow]}>{session.subject}</Text>
         <Chip
-          label={session.status.toUpperCase()}
-          color={session.status === 'Cancelled' ? C.danger : C.cyan}
+          label={timingStatus.toUpperCase()}
+          color={
+            timingStatus === 'Cancelled' || timingStatus === 'Past due'
+              ? C.danger
+              : timingStatus === 'In progress'
+                ? C.green
+                : C.cyan
+          }
         />
       </View>
       <View style={s.divider} />
@@ -38,9 +46,12 @@ export function SessionDetailsScreen({
           <Link label="Message tutor" onPress={message} />
         </View>
       </View>
-      <Text style={s.section}>Study room</Text>
+      <Text style={s.section}>Session workspace</Text>
       <View style={s.card}>
-        <Text style={s.muted}>Focus timer and study notes • no live call</Text>
+        <Text style={s.muted}>
+          Review the booking, contact your tutor, and keep session notes here.
+          Live calls are not available in this version.
+        </Text>
       </View>
       {!!session.note && (
         <>
@@ -51,10 +62,10 @@ export function SessionDetailsScreen({
       {session.status === 'Upcoming' && (
         <>
           <AppButton
-            title="JOIN SESSION"
+            title="OPEN SESSION WORKSPACE"
             onPress={() =>
               go({
-                page: 'Study Room',
+                page: 'Session Workspace',
                 sessionId: session.id,
               })
             }

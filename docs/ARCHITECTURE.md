@@ -101,11 +101,11 @@ Release builds bundle JavaScript, fonts, and images and run without Metro. Herme
 
 ## Tests
 
-`App.test.jsx` verifies login validation/failure, selected-tutor booking, persisted messages, groups/posts/replies, profile edits, new-account separation, Android Back handling for study drafts, session completion, save retries, and linked notifications.
+`App.test.jsx` verifies login validation/failure, selected-tutor booking, persisted messages, groups/posts/replies, profile edits, new-account separation, Android Back handling for study drafts, a booked-session notes workspace without a focus timer, the separate group focus room, session completion, save retries, and linked notifications.
 
 Account lifecycle tests also verify rejection of another account's saved state, saving before sign-out, clearing route history on sign-out, and retaining the active account when its final save fails.
 
-`state.test.js` checks overlap and adjacency, rescheduling, ratings, membership restrictions, fresh account state, combined search filters, and saved-state compatibility.
+`state.test.js` checks overlap and adjacency, rescheduling, ratings, membership restrictions, fresh account state, combined search filters, saved-state compatibility, and derived session timing states.
 
 `groupFirestore.test.js` checks changed-metadata reads, lazy post loading,
 live reply updates, and listener cleanup for groups that are closed or no

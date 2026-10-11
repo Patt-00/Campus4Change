@@ -3,6 +3,7 @@ import { Text, TouchableOpacity, View, StyleSheet } from 'react-native';
 import { Screen } from '../../../shared/components/Screen';
 import { Chip, Empty, Link } from '../../../shared/components/UI';
 import { sessionTime } from '../../../shared/data/demo';
+import { isPastDueSession, sessionTimingStatus } from '../data/status';
 
 import { s } from '../../../shared/theme/styles';
 
@@ -11,6 +12,7 @@ import { IconBadge } from '../../../shared/components/Icon';
 export function SessionsScreen({ go, back, sessions, list }) {
   const [filter, setFilter] = useState('Upcoming');
   function card(session) {
+    const timingStatus = sessionTimingStatus(session);
     return (
       <TouchableOpacity
         key={session.id}
@@ -24,7 +26,7 @@ export function SessionsScreen({ go, back, sessions, list }) {
         }
         style={[
           s.card,
-          session.status === 'Upcoming'
+          timingStatus === 'Upcoming' || timingStatus === 'In progress'
             ? styles.upcomingCard
             : styles.historyCard,
         ]}
@@ -34,7 +36,7 @@ export function SessionsScreen({ go, back, sessions, list }) {
           <View style={s.grow}>
             <Text style={s.name}>{session.subject}</Text>
             <Text style={s.muted}>
-              {sessionTime(session.startsAt)} • {session.status}
+              {sessionTime(session.startsAt)} • {sessionTimingStatus(session)}
             </Text>
             <Text style={s.muted}>
               {list.find(t => t.id === session.tutorId)?.name}
@@ -52,12 +54,18 @@ export function SessionsScreen({ go, back, sessions, list }) {
     );
   }
   const filtered = sessions
-    .filter(x => x.status === filter)
+    .filter(x => sessionTimingStatus(x) === filter)
     .sort((a, b) =>
       filter === 'Upcoming'
         ? a.startsAt.localeCompare(b.startsAt)
         : b.startsAt.localeCompare(a.startsAt),
     );
+  const inProgress =
+    filter === 'Upcoming'
+      ? sessions.filter(x => sessionTimingStatus(x) === 'In progress')
+      : [];
+  const pastDue =
+    filter === 'Upcoming' ? sessions.filter(isPastDueSession) : [];
   return (
     <Screen title="My Sessions" back={back} go={go} tab="Sessions">
       <View style={s.wrap}>
@@ -72,7 +80,19 @@ export function SessionsScreen({ go, back, sessions, list }) {
       </View>
       <Text style={s.section}>{filter}</Text>
       {filtered.map(card)}
-      {!filtered.length && (
+      {inProgress.length > 0 && (
+        <>
+          <Text style={s.section}>In progress</Text>
+          {inProgress.map(card)}
+        </>
+      )}
+      {pastDue.length > 0 && (
+        <>
+          <Text style={s.section}>Past due • update these bookings</Text>
+          {pastDue.map(card)}
+        </>
+      )}
+      {!filtered.length && !inProgress.length && !pastDue.length && (
         <Empty
           title={'No ' + filter.toLowerCase() + ' sessions'}
           body={

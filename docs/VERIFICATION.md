@@ -12,7 +12,7 @@ TypeScript files.
 Verified for this checkpoint:
 
 - `npm run lint`: passed without warnings.
-- `npm test -- --runInBand --testTimeout=15000`: 33 tests passed in 4 suites.
+- `npm test -- --runInBand --testTimeout=15000`: 34 tests passed in 4 suites.
 - The Firestore rules test passed against the local Firebase Emulator Suite.
   It checks private account state, authenticated group discovery, member-only
   posts/replies, private memberships, safe member counts, and rejects owner
@@ -149,7 +149,7 @@ Complete these manual checks on the exact release APK before demonstrating it.
 2. Open the splash screen and step through the Novice, Intermediate, and Expert introductions. Check Back, Skip, page dots, and Get Started.
 3. Demonstrate invalid login input, then use **USE DEMO ACCOUNT** for sample content.
 4. Search for Mika, choose a time on her profile, and book a future session. Verify the selected tutor, time, note, and overlap rejection.
-5. Reschedule, cancel, complete, and rate sessions. Check each status view.
+5. Open a booked session workspace, confirm the tutor, schedule, and notes, and mark it complete without a focus timer. Reschedule, cancel, complete, and rate sessions; check upcoming, in-progress, and past-due labels.
 6. Create a group without a date and confirm no schedule is invented. Create another with a valid future date and time; reject a nonexistent date.
 7. Join/leave groups, write notes and replies, and use a study-room timer. Firebase accounts share group posts/replies when project settings and Firestore rules are configured; device-only accounts keep local groups. Check drafts after Android Back and after reopening.
 8. Save a message and reopen it. Direct messages and group chat remain local and are not delivered to another device.

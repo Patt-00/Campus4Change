@@ -9,6 +9,7 @@ import {
   visibleGroups,
 } from '../src/shared/data/catalog';
 import { parseMeetup } from '../src/features/groups/data/meetup';
+import { sessionTimingStatus } from '../src/features/sessions/data/status';
 
 const account = {
   id: 'student',
@@ -41,6 +42,26 @@ test('booking conflicts include partial overlaps but allow adjacent sessions', (
     changes: { status: 'Cancelled' },
   });
   expect(hasConflict(state, booking.startsAt)).toBe(false);
+});
+test('scheduled sessions switch to in-progress and past-due labels without rewriting saved status', () => {
+  const session = {
+    id: 'timed',
+    status: 'Upcoming',
+    startsAt: '2026-10-12T10:00:00.000Z',
+  };
+  expect(sessionTimingStatus(session, Date.parse('2026-10-12T09:59:59Z'))).toBe(
+    'Upcoming',
+  );
+  expect(sessionTimingStatus(session, Date.parse('2026-10-12T10:30:00Z'))).toBe(
+    'In progress',
+  );
+  expect(sessionTimingStatus(session, Date.parse('2026-10-12T11:00:00Z'))).toBe(
+    'Past due',
+  );
+  expect(session.status).toBe('Upcoming');
+  expect(
+    sessionTimingStatus({ ...session, status: 'Completed' }, Date.now()),
+  ).toBe('Completed');
 });
 test('rescheduling cannot overlap another booking, and only completed sessions accept a valid rating', () => {
   let state = reducer(initialState(account), {

@@ -4,12 +4,11 @@ import { AppButton } from '../../../shared/components/AppButton';
 import { Screen } from '../../../shared/components/Screen';
 import { Field } from '../../../shared/components/UI';
 import { s } from '../../../shared/theme/styles';
-export function StudyRoomScreen({
+export function GroupStudyRoomScreen({
   title,
   back,
   finish,
   initialNotes = '',
-  session = false,
   onDraft,
 }) {
   const [seconds, setSeconds] = useState(25 * 60);
@@ -30,7 +29,7 @@ export function StudyRoomScreen({
   }, [endsAt]);
   return (
     <Screen
-      title="Study Room"
+      title="Group Study Room"
       back={() => {
         finish(notes, false);
         back();
@@ -38,7 +37,7 @@ export function StudyRoomScreen({
     >
       <Text style={[s.heading, s.center]}>{title}</Text>
       <Text style={[s.muted, s.center, styles.marginTop12]}>
-        Local focus room • no live participants or video
+        Shared notes and a personal focus timer • no live call
       </Text>
       <View style={[s.card, styles.alignItemscentermarginTop32]}>
         <Text style={s.name}>Focus timer</Text>
@@ -95,15 +94,6 @@ export function StudyRoomScreen({
         }}
       />
 
-      {session && (
-        <AppButton
-          title="COMPLETE SESSION"
-          onPress={() => {
-            finish(notes, true);
-            back();
-          }}
-        />
-      )}
     </Screen>
   );
 }

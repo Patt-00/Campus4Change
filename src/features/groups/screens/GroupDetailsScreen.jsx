@@ -20,11 +20,11 @@ export function GroupDetailsScreen({
     <Screen title={group.name} back={back}>
       <Text style={s.muted}>{group.members} members</Text>
       <AppButton
-        title={group.joined ? 'START STUDY ROOM' : 'JOIN GROUP'}
+        title={group.joined ? 'OPEN GROUP STUDY ROOM' : 'JOIN GROUP'}
         onPress={() =>
           group.joined
             ? go({
-                page: 'Study Room',
+                page: 'Group Study Room',
                 groupId: group.id,
               })
             : membership(true)

@@ -12,7 +12,7 @@ Version 1.2.0 adds custom learning interests, personal school details, clear ico
 - Tutor search, filters, and the correct selected tutor profile.
 - Future one-hour bookings, overlap checks, rescheduling, cancellation, completion, and ratings.
 - Study-group discovery and collaboration: Firebase accounts share group details, membership counts, posts, and replies. Device-only accounts keep their groups locally.
-- A local study room with a focus timer and saved notes.
+- Booked-session workspace with tutor/schedule context and session notes; group study rooms keep the personal focus timer. Expired bookings are labeled as past due rather than shown as future sessions.
 - Conversation search, saved messages, in-app notifications, and learning preferences.
 - A tutor profile that is listed in this account's local directory.
 - Add and remove any learning topic; course, year level, and school are optional user-entered fields.

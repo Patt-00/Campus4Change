@@ -251,6 +251,10 @@ test('creates a group, publishes a post, and saves a reply', async () => {
   await press('CREATE GROUP');
   expect(hasText('Exam Review Team')).toBe(true);
   expect(hasText('No meetup scheduled')).toBe(true);
+  await press('OPEN GROUP STUDY ROOM');
+  expect(hasText('Group Study Room')).toBe(true);
+  expect(hasText('Focus timer')).toBe(true);
+  await press('Back');
   await fill('Write a study note...', 'Review Newton laws');
   await press('POST NOTE');
   await press('Post by Alex Rivera');
@@ -372,25 +376,27 @@ test('About explains device-only behavior before sign-in and returns to login', 
   await press('Back');
   expect(hasText('SIGN IN')).toBe(true);
 });
-test('Android back preserves written and empty study drafts, and a session can be completed', async () => {
+test('booked session workspace preserves drafts and completes without a focus timer', async () => {
   const listener = jest.spyOn(BackHandler, 'addEventListener');
   await login();
   await press('View all');
   await press('View Calculus I details');
-  await press('JOIN SESSION');
-  await fill('Write what you learned...', 'Saved study draft');
+  await press('OPEN SESSION WORKSPACE');
+  expect(hasText('Booked Session')).toBe(true);
+  expect(hasText('Focus timer')).toBe(false);
+  await fill('Agenda and notes', 'Saved study draft');
   await ReactTestRenderer.act(async () => {
     const onBack = listener.mock.calls.at(-1)[1];
     expect(onBack({ type: 'hardwareBackPress', timeStamp: Date.now() })).toBe(
       true,
     );
   });
-  await press('JOIN SESSION');
+  await press('OPEN SESSION WORKSPACE');
   const input = renderer.root
     .findAllByType(TextInput)
-    .find(n => n.props.accessibilityLabel === 'Write what you learned...');
+    .find(n => n.props.accessibilityLabel === 'Agenda and notes');
   expect(input.props.value).toBe('Saved study draft');
-  await fill('Write what you learned...', '');
+  await fill('Agenda and notes', '');
   await ReactTestRenderer.act(async () => {
     expect(
       listener.mock.calls.at(-1)[1]({
@@ -399,12 +405,12 @@ test('Android back preserves written and empty study drafts, and a session can b
       }),
     ).toBe(true);
   });
-  await press('JOIN SESSION');
+  await press('OPEN SESSION WORKSPACE');
   const cleared = renderer.root
     .findAllByType(TextInput)
-    .find(n => n.props.accessibilityLabel === 'Write what you learned...');
+    .find(n => n.props.accessibilityLabel === 'Agenda and notes');
   expect(cleared.props.value).toBe('');
-  await press('COMPLETE SESSION');
+  await press('MARK SESSION COMPLETE');
   expect(hasText('COMPLETED')).toBe(true);
 });
 
