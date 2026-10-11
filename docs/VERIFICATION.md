@@ -12,14 +12,14 @@ TypeScript files.
 Verified for this checkpoint:
 
 - `npm run lint`: passed without warnings.
-- `npm test -- --runInBand`: 35 tests passed in 4 suites.
+- `npm test -- --runInBand`: 44 tests passed in 6 suites.
 - The Firestore rules test passed against the local Firebase Emulator Suite.
   It checks private account state, authenticated group discovery, member-only
-  posts/replies, private memberships, safe member counts, and rejects owner
-  departure, membership spoofing, anonymous access, nonmember writes, and
-  unconfigured collections.
-- The app was also exercised against local Auth and Firestore emulators on the
-  Android phone. Email/password sign-up succeeded, the per-user state document
+  posts/replies, bounded cursor queries, private memberships, safe member
+  counts, and rejects owner departure, membership spoofing, anonymous access,
+  nonmember writes, and unconfigured collections.
+- In a prior local Auth/Firestore emulator check on the Xiaomi Pad 7,
+  email/password sign-up succeeded, the per-user state document
   was written under the authenticated UID, and a Firestore-side profile change
   appeared after a cold restart. Android Keystore-backed auth persistence was
   present after restart and removed after sign-out. Test data used
@@ -29,14 +29,16 @@ Verified for this checkpoint:
   JavaScript changes. It used JDK 25, package `com.campus4change`, version code
   3/version 1.2.0, and the existing debug certificate. Its 54 MB APK SHA-256
   was `d28127da1e1d843be3835e776b756c857b6145d292130739ef4cad2e452367de`.
-- On the Xiaomi Pad 7 (`273b5a4a`, model `2410CRP4CG`), the installed debug app
-  loaded the current JavaScript through Metro. A booked-session workspace showed
-  the subject, tutor, schedule, notes, and completion action without a focus
-  timer; the group study room retained its 25-minute timer. This is a device UI
-  check, not a live Firebase two-account test.
+- The Xiaomi Pad 7 (`273b5a4a`, model `2410CRP4CG`) verified the booked-session
+  workspace without a focus timer and the separate group room with its 25-minute
+  timer using a Metro-loaded debug app. The later shared-feed pagination and
+  persistence changes have automated and bundle checks, but have not been
+  reloaded on the tablet. Paging pauses the live window until a refresh. No live
+  Firebase two-account test was run.
 - `npx react-native bundle --platform android --dev false --entry-file index.js
   --bundle-output /tmp/c4c-campus4change.android.bundle --assets-dest
-  /tmp/c4c-campus4change-assets`: passed with blank Firebase project settings.
+  /tmp/c4c-campus4change-assets`: passed with blank Firebase project
+  settings. SHA-256: `18b943b2ccac7d720fe9bfb81473e8026034ca2bfa3c8dd076f38d9ab150238e`.
   No new native APK was built or installed for these JavaScript changes.
 
 Firebase values in `src/shared/backend/firebaseConfig.js` are blank again after

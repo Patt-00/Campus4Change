@@ -3,7 +3,11 @@ import {
   watchSharedGroupPosts,
   watchSharedGroups,
 } from '../src/features/groups/data/firestore';
-import { mergeGroupDirectory } from '../src/features/groups/hooks/useSharedGroups';
+import {
+  mergeGroupDirectory,
+  mergeSharedGroupFeed,
+  mergeSyncedGroupAction,
+} from '../src/features/groups/hooks/useSharedGroups';
 
 jest.mock('../src/shared/backend/firebase', () => ({
   firebaseServicesForUser: jest.fn(),
@@ -19,6 +23,8 @@ function createFirestore() {
       path: [parent.path ?? parent, ...segments].join('/'),
     }),
     getDoc: jest.fn(async () => ({ exists: () => true })),
+    getDocs: jest.fn(async () => ({ docs: [] })),
+    limit: count => ({ type: 'limit', count }),
     onSnapshot: jest.fn((target, next, error) => {
       const subscription = {
         target,
@@ -31,6 +37,7 @@ function createFirestore() {
     }),
     orderBy: (field, direction) => ({ field, direction }),
     query: (ref, ...constraints) => ({ ref, constraints }),
+    startAfter: snapshot => ({ type: 'startAfter', snapshot }),
   };
   return { firestore, subscriptions };
 }
@@ -51,6 +58,19 @@ function groupSnapshot(id, memberCount, updatedAt) {
 
 async function flushAsyncCallbacks() {
   await new Promise(resolve => setImmediate(resolve));
+}
+
+function postSnapshot(id, createdAt) {
+  return {
+    id,
+    ref: { path: 'studyGroups/group-one/posts/' + id },
+    data: () => ({
+      authorUid: 'owner',
+      author: 'Owner',
+      text: 'Post ' + id,
+      createdAt,
+    }),
+  };
 }
 
 beforeEach(() => jest.clearAllMocks());
@@ -80,11 +100,110 @@ test('shared directory entries surface posts loaded into the account cache', () 
     postsLoaded: true,
   };
 
-  const [group] = mergeGroupDirectory([cachedGroup], [sharedGroup]);
+  const [group] = mergeGroupDirectory([cachedGroup], [sharedGroup], [
+    {
+      id: 'post-op',
+      type: 'post',
+      groupId: 'group-one',
+      post,
+    },
+  ]);
 
   expect(group.name).toBe('Current Firestore name');
   expect(group.posts).toEqual([post]);
   expect(group.postsLoaded).toBe(true);
+
+  const [withoutPendingContent] = mergeGroupDirectory(
+    [cachedGroup],
+    [sharedGroup],
+  );
+  expect(withoutPendingContent.posts).toEqual([]);
+  expect(withoutPendingContent.postsLoaded).toBe(false);
+
+  const pendingReply = {
+    id: 'reply-pending',
+    author: 'Student',
+    text: 'Saved while offline',
+    createdAt: '2026-10-11T10:06:00.000Z',
+  };
+  const [withPendingReply] = mergeGroupDirectory(
+    [cachedGroup],
+    [{ ...sharedGroup, posts: [{ ...post, text: 'Live post', replies: [] }] }],
+    [
+      {
+        id: 'reply-op',
+        type: 'reply',
+        groupId: 'group-one',
+        postId: post.id,
+        reply: pendingReply,
+      },
+    ],
+  );
+  expect(withPendingReply.posts[0].text).toBe('Live post');
+  expect(withPendingReply.posts[0].replies).toEqual([pendingReply]);
+});
+
+test('live member feed is retained if it arrives before directory metadata', () => {
+  const post = {
+    id: 'post-one',
+    author: 'Owner',
+    text: 'A live note',
+    createdAt: '2026-10-12T10:00:00.000Z',
+    replies: [],
+  };
+  const fallbackGroup = {
+    id: 'group-one',
+    name: 'Cached group name',
+    shared: true,
+    joined: true,
+    posts: [],
+    postsLoaded: false,
+  };
+
+  const [group] = mergeSharedGroupFeed([], 'group-one', fallbackGroup, {
+    posts: [post],
+    postsLoaded: true,
+    hasMorePosts: false,
+    postsLive: true,
+  });
+
+  expect(group.name).toBe('Cached group name');
+  expect(group.posts).toEqual([post]);
+  expect(group.postsLoaded).toBe(true);
+});
+
+test('a synced reply remains visible while the latest reply window is paused', () => {
+  const group = {
+    id: 'group-one',
+    shared: true,
+    joined: true,
+    posts: [
+      {
+        id: 'post-one',
+        author: 'Student',
+        text: 'Post',
+        createdAt: '2026-10-12T09:00:00.000Z',
+        replies: [],
+        repliesLive: false,
+      },
+    ],
+  };
+  const reply = {
+    id: 'reply-one',
+    author: 'Student',
+    text: 'Saved reply',
+    createdAt: '2026-10-12T10:00:00.000Z',
+  };
+
+  const [updated] = mergeSyncedGroupAction([group], 'student', {
+    type: 'reply',
+    groupId: group.id,
+    postId: 'post-one',
+    reply,
+  });
+
+  expect(updated.posts[0].replies).toEqual([{ ...reply, authorUid: 'student' }]);
+  expect(updated.posts[0].repliesLive).toBe(false);
 });
 
 test('group directory refreshes only changed metadata and leaves post reads lazy', async () => {
@@ -135,12 +254,12 @@ test('group directory refreshes only changed metadata and leaves post reads lazy
   expect(directory.unsubscribe).toHaveBeenCalledTimes(1);
 });
 
-test('active member post listener streams posts and replies and releases removed listeners', async () => {
+test('active member post listener releases reply listeners when posts leave its page', async () => {
   const { firestore, subscriptions } = createFirestore();
   firebaseServicesForUser.mockReturnValue({ db: 'db', firestore });
   const onPosts = jest.fn();
   const onError = jest.fn();
-  const unsubscribe = watchSharedGroupPosts(
+  const subscription = watchSharedGroupPosts(
     'student',
     'group-one',
     onPosts,
@@ -152,17 +271,11 @@ test('active member post listener streams posts and replies and releases removed
   );
   expect(postsListener).toBeDefined();
 
-  const postSnapshot = {
-    id: 'post-one',
-    ref: { path: 'studyGroups/group-one/posts/post-one' },
-    data: () => ({
-      authorUid: 'owner',
-      author: 'Owner',
-      text: 'First note',
-      createdAt: '2026-10-11T10:00:00.000Z',
-    }),
-  };
-  postsListener.next({ docs: [postSnapshot] });
+  const firstPostSnapshot = postSnapshot(
+    'post-one',
+    '2026-10-11T10:00:00.000Z',
+  );
+  postsListener.next({ docs: [firstPostSnapshot] });
   const repliesListener = subscriptions.find(item =>
     item.target.ref.path.endsWith('/replies'),
   );
@@ -195,17 +308,57 @@ test('active member post listener streams posts and replies and releases removed
   postsListener.next({ docs: [] });
   expect(repliesListener.unsubscribe).toHaveBeenCalledTimes(1);
   expect(onPosts.mock.calls.at(-1)[0]).toEqual([]);
-  unsubscribe();
+  subscription.unsubscribe();
   expect(postsListener.unsubscribe).toHaveBeenCalledTimes(1);
+  expect(repliesListener.unsubscribe).toHaveBeenCalledTimes(1);
   expect(onError).not.toHaveBeenCalled();
 });
 
-test('nonmembers do not open post or reply listeners', async () => {
+test('the open post stays available when new live posts move it off the latest page', async () => {
   const { firestore, subscriptions } = createFirestore();
-  firestore.getDoc.mockResolvedValue({ exists: () => false });
+  const pinned = postSnapshot('post-open', '2026-10-12T08:00:00.000Z');
+  firebaseServicesForUser.mockReturnValue({ db: 'db', firestore });
+  firestore.getDoc
+    .mockResolvedValueOnce({ exists: () => true })
+    .mockResolvedValueOnce({
+      id: pinned.id,
+      ref: pinned.ref,
+      data: pinned.data,
+      exists: () => true,
+    });
+  const onPosts = jest.fn();
+  const subscription = watchSharedGroupPosts(
+    'student',
+    'group-one',
+    onPosts,
+    jest.fn(),
+    pinned.id,
+  );
+  await flushAsyncCallbacks();
+
+  const postsListener = subscriptions.find(item =>
+    item.target.ref.path.endsWith('/posts'),
+  );
+  postsListener.next({
+    docs: [postSnapshot('post-newer', '2026-10-12T09:00:00.000Z')],
+  });
+  expect(onPosts.mock.calls.at(-1)[0].map(post => post.id)).toContain('post-open');
+
+  postsListener.next({
+    docs: [postSnapshot('post-newest', '2026-10-12T10:00:00.000Z')],
+  });
+  expect(onPosts.mock.calls.at(-1)[0].map(post => post.id)).toEqual([
+    'post-newest',
+    'post-open',
+  ]);
+  subscription.unsubscribe();
+});
+
+test('active group feeds page older posts and replies from bounded live windows', async () => {
+  const { firestore, subscriptions } = createFirestore();
   firebaseServicesForUser.mockReturnValue({ db: 'db', firestore });
   const onPosts = jest.fn();
-  const unsubscribe = watchSharedGroupPosts(
+  const subscription = watchSharedGroupPosts(
     'student',
     'group-one',
     onPosts,
@@ -213,7 +366,91 @@ test('nonmembers do not open post or reply listeners', async () => {
   );
   await flushAsyncCallbacks();
 
-  expect(onPosts).toHaveBeenCalledWith([]);
+  const postsListener = subscriptions.find(item =>
+    item.target.ref.path.endsWith('/posts'),
+  );
+  const firstPage = Array.from({ length: 20 }, (_, index) =>
+    postSnapshot(
+      'post-' + index,
+      new Date(Date.parse('2026-10-12T10:00:00Z') - index * 60000).toISOString(),
+    ),
+  );
+  postsListener.next({ docs: firstPage });
+
+  expect(postsListener.target.constraints).toContainEqual({
+    type: 'limit',
+    count: 20,
+  });
+  expect(onPosts.mock.calls.at(-1)[0]).toHaveLength(20);
+  expect(onPosts.mock.calls.at(-1)[1].hasMorePosts).toBe(true);
+  expect(onPosts.mock.calls.at(-1)[1].postsLive).toBe(true);
+
+  const replyListener = subscriptions.find(item =>
+    item.target.ref.path.endsWith('/posts/post-0/replies'),
+  );
+  const firstReplyPage = Array.from({ length: 20 }, (_, index) => ({
+    id: 'reply-' + index,
+    data: () => ({
+      authorUid: 'student',
+      author: 'Student',
+      text: 'Reply ' + index,
+      createdAt: new Date(
+        Date.parse('2026-10-12T11:00:00Z') - index * 60000,
+      ).toISOString(),
+    }),
+  }));
+  replyListener.next({ docs: firstReplyPage });
+  expect(onPosts.mock.calls.at(-1)[0][0].hasMoreReplies).toBe(true);
+
+  const olderPost = postSnapshot('post-older', '2026-10-12T09:00:00.000Z');
+  const olderReply = {
+    id: 'reply-older',
+    data: () => ({
+      authorUid: 'owner',
+      author: 'Owner',
+      text: 'Older reply',
+      createdAt: '2026-10-12T09:00:00.000Z',
+    }),
+  };
+  firestore.getDocs
+    .mockResolvedValueOnce({ docs: [olderPost] })
+    .mockResolvedValueOnce({ docs: [olderReply] });
+
+  await subscription.loadMorePosts();
+  expect(onPosts.mock.calls.at(-1)[1].postsLive).toBe(false);
+  expect(firestore.getDocs.mock.calls[0][0].constraints).toContainEqual({
+    type: 'startAfter',
+    snapshot: firstPage.at(-1),
+  });
+  expect(onPosts.mock.calls.at(-1)[0]).toHaveLength(21);
+
+  await subscription.loadMoreReplies('post-0');
+  expect(firestore.getDocs.mock.calls[1][0].constraints).toContainEqual({
+    type: 'startAfter',
+    snapshot: firstReplyPage.at(-1),
+  });
+  const firstPost = onPosts.mock.calls.at(-1)[0].find(p => p.id === 'post-0');
+  expect(firstPost.replies).toHaveLength(21);
+  expect(firstPost.replies[0].id).toBe('reply-older');
+  expect(firstPost.hasMoreReplies).toBe(false);
+  expect(firstPost.repliesLive).toBe(false);
+  subscription.unsubscribe();
+});
+
+test('nonmembers do not open post or reply listeners', async () => {
+  const { firestore, subscriptions } = createFirestore();
+  firestore.getDoc.mockResolvedValue({ exists: () => false });
+  firebaseServicesForUser.mockReturnValue({ db: 'db', firestore });
+  const onPosts = jest.fn();
+  const subscription = watchSharedGroupPosts(
+    'student',
+    'group-one',
+    onPosts,
+    jest.fn(),
+  );
+  await flushAsyncCallbacks();
+
+  expect(onPosts.mock.calls[0][0]).toEqual([]);
   expect(subscriptions).toHaveLength(0);
-  unsubscribe();
+  subscription.unsubscribe();
 });

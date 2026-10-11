@@ -10,6 +10,7 @@ import {
 } from '../src/shared/data/catalog';
 import { parseMeetup } from '../src/features/groups/data/meetup';
 import { sessionTimingStatus } from '../src/features/sessions/data/status';
+import { stateForPersistence } from '../src/shared/state/persistence';
 
 const account = {
   id: 'student',
@@ -222,7 +223,7 @@ test('shared group updates retain device groups and replay queued offline change
   expect(state.groups[0].members).toBe(5);
   expect(state.groups[0].posts[0].replies).toEqual([reply]);
 });
-test('shared directory refreshes preserve loaded member posts and clear them after leaving', () => {
+test('shared directory metadata clears stale feed caches until the live feed loads', () => {
   const cachedPost = {
     id: 'cached-post',
     author: 'Other student',
@@ -259,16 +260,8 @@ test('shared directory refreshes preserve loaded member posts and clear them aft
       },
     ],
   });
-  expect(state.groups[0].posts).toEqual([cachedPost]);
-  expect(state.groups[0].postsLoaded).toBe(true);
-
-  const updatedPost = { ...cachedPost, text: 'Live update.' };
-  state = reducer(state, {
-    type: 'sharedGroupPosts',
-    id: 'remote-group',
-    posts: [updatedPost],
-  });
-  expect(state.groups[0].posts).toEqual([updatedPost]);
+  expect(state.groups[0].posts).toEqual([]);
+  expect(state.groups[0].postsLoaded).toBe(false);
 
   state = reducer(state, {
     type: 'sharedGroups',
@@ -287,6 +280,95 @@ test('shared directory refreshes preserve loaded member posts and clear them aft
   });
   expect(state.groups[0].posts).toEqual([]);
   expect(state.groups[0].postsLoaded).toBe(true);
+});
+test('synced shared posts and replies leave the optimistic cache', () => {
+  const post = {
+    id: 'shared-post',
+    author: account.name,
+    text: 'A shared note',
+    createdAt: booking.startsAt,
+    replies: [],
+  };
+  const reply = {
+    id: 'shared-reply',
+    author: account.name,
+    text: 'A shared reply',
+  };
+  let state = initialState(account);
+  state.groups = [
+    {
+      id: 'remote-group',
+      shared: true,
+      joined: true,
+      posts: [],
+    },
+  ];
+  state = reducer(state, {
+    type: 'queueSharedGroupAction',
+    operation: {
+      id: 'post-operation',
+      type: 'post',
+      groupId: 'remote-group',
+      post,
+    },
+  });
+  state = reducer(state, {
+    type: 'queueSharedGroupAction',
+    operation: {
+      id: 'reply-operation',
+      type: 'reply',
+      groupId: 'remote-group',
+      postId: post.id,
+      reply,
+    },
+  });
+  expect(state.groups[0].posts[0].replies).toEqual([reply]);
+
+  state = reducer(state, {
+    type: 'sharedGroupActionSynced',
+    id: 'post-operation',
+  });
+  state = reducer(state, {
+    type: 'sharedGroupActionSynced',
+    id: 'reply-operation',
+  });
+
+  expect(state.pendingSharedActions).toEqual([]);
+  expect(state.groups[0].posts).toEqual([]);
+});
+test('persisted account state omits shared feed caches but preserves local group content', () => {
+  const localPost = {
+    id: 'device-post',
+    author: account.name,
+    text: 'Local note',
+    createdAt: booking.startsAt,
+    replies: [],
+  };
+  const sharedPost = { ...localPost, id: 'shared-post' };
+  const state = initialState(account);
+  state.groups = [
+    {
+      id: 'shared',
+      shared: true,
+      joined: true,
+      postsLoaded: true,
+      posts: [sharedPost],
+    },
+    {
+      id: 'local',
+      shared: false,
+      joined: true,
+      postsLoaded: true,
+      posts: [localPost],
+    },
+  ];
+
+  const saved = stateForPersistence(state);
+
+  expect(saved.groups[0].posts).toEqual([]);
+  expect(saved.groups[0].postsLoaded).toBe(false);
+  expect(saved.groups[1].posts).toEqual([localPost]);
+  expect(state.groups[0].posts).toEqual([sharedPost]);
 });
 test('new accounts have no demo bookings or messages and start with independent data', () => {
   const a = initialState(account);

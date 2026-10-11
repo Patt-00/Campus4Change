@@ -48,24 +48,150 @@ function mergePosts(sharedPosts = [], cachedPosts = []) {
   );
 }
 
-export function mergeGroupDirectory(localGroups, sharedGroups) {
+function mergePendingContent(sharedPosts, cachedPosts, groupId, pendingActions) {
+  const postsById = new Map(sharedPosts.map(post => [post.id, post]));
+
+  for (const operation of pendingActions) {
+    if (operation.groupId !== groupId) {
+      continue;
+    }
+    if (operation.type === 'post') {
+      const current = postsById.get(operation.post.id);
+      postsById.set(
+        operation.post.id,
+        current ? mergePosts([current], [operation.post])[0] : operation.post,
+      );
+      continue;
+    }
+    if (operation.type === 'reply') {
+      const post =
+        postsById.get(operation.postId) ??
+        cachedPosts.find(candidate => candidate.id === operation.postId);
+      if (!post) {
+        continue;
+      }
+      const replies = new Map(
+        (post.replies ?? []).map(reply => [reply.id, reply]),
+      );
+      replies.set(operation.reply.id, operation.reply);
+      postsById.set(post.id, { ...post, replies: [...replies.values()] });
+    }
+  }
+
+  return [...postsById.values()].sort(
+    (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+  );
+}
+
+export function mergeGroupDirectory(
+  localGroups,
+  sharedGroups,
+  pendingActions = EMPTY_ACTIONS,
+) {
   const sharedIds = new Set(sharedGroups.map(group => group.id));
+  const localById = new Map(localGroups.map(group => [group.id, group]));
   return [
     ...sharedGroups.map(group => {
-      const cached = localGroups.find(local => local.id === group.id);
-      const canUseCachedPosts = group.joined && cached?.joined;
+      const cached = localById.get(group.id);
+      const cachedPosts = group.joined && cached?.joined ? cached.posts ?? [] : [];
+      const posts = group.joined
+        ? mergePendingContent(group.posts ?? [], cachedPosts, group.id, pendingActions)
+        : group.posts ?? [];
       return {
         ...group,
-        posts: canUseCachedPosts
-          ? mergePosts(group.posts, cached.posts)
-          : group.posts ?? [],
-        postsLoaded:
-          Boolean(group.postsLoaded) ||
-          Boolean(canUseCachedPosts && cached.postsLoaded),
+        posts,
+        postsLoaded: Boolean(group.postsLoaded) || posts.length > 0,
       };
     }),
     ...localGroups.filter(group => !sharedIds.has(group.id)),
   ];
+}
+
+function retainLoadedFeeds(previousGroups, nextGroups) {
+  const previousById = new Map(previousGroups.map(group => [group.id, group]));
+  return nextGroups.map(group => {
+    const previous = previousById.get(group.id);
+    if (!group.joined || !previous?.joined || !previous.postsLoaded) {
+      return group;
+    }
+    return {
+      ...group,
+      posts: mergePosts(group.posts, previous.posts),
+      postsLoaded: true,
+      hasMorePosts: previous.hasMorePosts,
+      postsLive: previous.postsLive,
+    };
+  });
+}
+
+export function mergeSharedGroupFeed(groups, groupId, fallbackGroup, feed) {
+  const existing = groups.find(group => group.id === groupId) ?? fallbackGroup;
+  const mergedFeed = existing
+    ? {
+        ...feed,
+        posts: mergePosts(feed.posts, existing.posts),
+        postsLoaded: Boolean(feed.postsLoaded || existing.postsLoaded),
+      }
+    : feed;
+  if (groups.some(group => group.id === groupId)) {
+    return groups.map(group =>
+      group.id === groupId ? { ...group, ...mergedFeed } : group,
+    );
+  }
+  return fallbackGroup?.id === groupId
+    ? [{ ...fallbackGroup, ...mergedFeed }, ...groups]
+    : groups;
+}
+
+export function mergeSyncedGroupAction(groups, uid, operation) {
+  if (operation.type === 'post') {
+    return groups.map(group => {
+      if (group.id !== operation.groupId) {
+        return group;
+      }
+      const existing = group.posts.find(post => post.id === operation.post.id);
+      const post = existing
+        ? { ...operation.post, ...existing }
+        : { ...operation.post, authorUid: uid };
+      return {
+        ...group,
+        posts: mergePosts([post, ...group.posts], []),
+        postsLoaded: true,
+      };
+    });
+  }
+
+  if (operation.type === 'reply') {
+    return groups.map(group =>
+      group.id === operation.groupId
+        ? {
+            ...group,
+            posts: group.posts.map(post => {
+              if (post.id !== operation.postId) {
+                return post;
+              }
+              const repliesById = new Map(
+                (post.replies ?? []).map(reply => [reply.id, reply]),
+              );
+              if (!repliesById.has(operation.reply.id)) {
+                repliesById.set(operation.reply.id, {
+                  ...operation.reply,
+                  authorUid: uid,
+                });
+              }
+              return {
+                ...post,
+                replies: [...repliesById.values()].sort(
+                  (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
+                ),
+              };
+            }),
+          }
+        : group,
+    );
+  }
+
+  return groups;
 }
 
 export function useSharedGroups({
@@ -74,6 +200,7 @@ export function useSharedGroups({
   state,
   dispatch,
   activeGroupId,
+  activePostId,
 }) {
   const [result, setResult] = useState({ uid: null, groups: [], error: '' });
   const [retryKey, setRetryKey] = useState(0);
@@ -83,20 +210,43 @@ export function useSharedGroups({
     uid: null,
     groupId: null,
     error: '',
+    hasMorePosts: false,
+    postsLive: false,
   });
   const [contentRetryKey, setContentRetryKey] = useState(0);
+  const [loadingMorePosts, setLoadingMorePosts] = useState(false);
+  const [loadingReplyIds, setLoadingReplyIds] = useState(new Set());
   const actionsInFlight = useRef(new Set());
+  const contentSubscription = useRef(null);
   const activeUid = useRef(uid);
   activeUid.current = uid;
   const pendingActions = state?.pendingSharedActions ?? EMPTY_ACTIONS;
   const profile = state?.profile;
   const localGroups = state?.groups ?? EMPTY_GROUPS;
   const sharedGroups = result.uid === uid ? result.groups : EMPTY_GROUPS;
+  const sharedMetadataJson = JSON.stringify(
+    sharedGroups.map(group => {
+      const metadata = {
+        ...group,
+        posts: [],
+        postsLoaded: !group.joined,
+      };
+      delete metadata.hasMorePosts;
+      delete metadata.postsLive;
+      return metadata;
+    }),
+  );
+  const sharedMetadata = useMemo(
+    () => JSON.parse(sharedMetadataJson),
+    [sharedMetadataJson],
+  );
   const groupDirectory = useMemo(
-    () => mergeGroupDirectory(localGroups, sharedGroups),
-    [localGroups, sharedGroups],
+    () => mergeGroupDirectory(localGroups, sharedGroups, pendingActions),
+    [localGroups, pendingActions, sharedGroups],
   );
   const activeGroup = groupDirectory.find(group => group.id === activeGroupId);
+  const activeGroupRef = useRef(activeGroup);
+  activeGroupRef.current = activeGroup;
   const pendingCreate = pendingActions.some(
     operation =>
       operation.type === 'createGroup' &&
@@ -122,7 +272,14 @@ export function useSharedGroups({
         uid,
         groups => {
           if (active) {
-            setResult({ uid, groups, error: '' });
+            setResult(current => ({
+              uid,
+              groups: retainLoadedFeeds(
+                current.uid === uid ? current.groups : [],
+                groups,
+              ),
+              error: '',
+            }));
           }
         },
         error => {
@@ -145,10 +302,10 @@ export function useSharedGroups({
   }, [enabled, retryKey, uid]);
 
   useEffect(() => {
-    if (uid && sharedGroups.length) {
-      dispatch({ type: 'sharedGroups', groups: sharedGroups });
+    if (uid && sharedMetadata.length) {
+      dispatch({ type: 'sharedGroups', groups: sharedMetadata });
     }
-  }, [dispatch, sharedGroups, uid]);
+  }, [dispatch, sharedMetadata, uid]);
 
   useEffect(() => {
     if (
@@ -160,25 +317,60 @@ export function useSharedGroups({
       pendingCreate ||
       pendingMembership
     ) {
-      setContentResult({ uid, groupId: activeGroupId, error: '' });
+      contentSubscription.current = null;
+      setContentResult({
+        uid,
+        groupId: activeGroupId,
+        error: '',
+        hasMorePosts: false,
+        postsLive: false,
+      });
       return undefined;
     }
 
     let active = true;
-    setContentResult({ uid, groupId: activeGroupId, error: '' });
-    let unsubscribe = () => {};
+    let subscription = null;
+    setContentResult({
+      uid,
+      groupId: activeGroupId,
+      error: '',
+      hasMorePosts: false,
+      postsLive: true,
+    });
+    setLoadingMorePosts(false);
+    setLoadingReplyIds(new Set());
     try {
-      unsubscribe = watchSharedGroupPosts(
+      subscription = watchSharedGroupPosts(
         uid,
         activeGroupId,
-        posts => {
+        (posts, pagination) => {
           if (active) {
-            dispatch({
-              type: 'sharedGroupPosts',
-              id: activeGroupId,
-              posts,
+            setResult(current => {
+              const groups = current.uid === uid ? current.groups : [];
+              const feed = {
+                posts,
+                postsLoaded: true,
+                hasMorePosts: Boolean(pagination?.hasMorePosts),
+                postsLive: Boolean(pagination?.postsLive),
+              };
+              return {
+                uid,
+                groups: mergeSharedGroupFeed(
+                  groups,
+                  activeGroupId,
+                  activeGroupRef.current,
+                  feed,
+                ),
+                error: current.error,
+              };
             });
-            setContentResult({ uid, groupId: activeGroupId, error: '' });
+            setContentResult({
+              uid,
+              groupId: activeGroupId,
+              error: '',
+              hasMorePosts: Boolean(pagination?.hasMorePosts),
+              postsLive: Boolean(pagination?.postsLive),
+            });
           }
         },
         error => {
@@ -190,7 +382,13 @@ export function useSharedGroups({
             });
           }
         },
+        activePostId,
       );
+      contentSubscription.current = {
+        uid,
+        groupId: activeGroupId,
+        subscription,
+      };
     } catch (error) {
       setContentResult({
         uid,
@@ -200,14 +398,42 @@ export function useSharedGroups({
     }
     return () => {
       active = false;
-      unsubscribe();
+      if (contentSubscription.current?.subscription === subscription) {
+        contentSubscription.current = null;
+      }
+      subscription?.unsubscribe();
+      const currentGroup = activeGroupRef.current;
+      if (
+        currentGroup?.id !== activeGroupId ||
+        !currentGroup.shared ||
+        !currentGroup.joined
+      ) {
+        setResult(current =>
+          current.uid !== uid
+            ? current
+            : {
+                ...current,
+                groups: current.groups.map(group =>
+                  group.id === activeGroupId
+                    ? {
+                        ...group,
+                        posts: [],
+                        postsLoaded: !group.joined,
+                        hasMorePosts: false,
+                        postsLive: false,
+                      }
+                    : group,
+                ),
+              },
+        );
+      }
     };
   }, [
     activeGroup?.joined,
     activeGroup?.shared,
     activeGroupId,
+    activePostId,
     contentRetryKey,
-    dispatch,
     enabled,
     pendingCreate,
     pendingMembership,
@@ -235,6 +461,18 @@ export function useSharedGroups({
         try {
           await syncSharedGroupAction(uid, profile, operation);
           if (activeUid.current === uid) {
+            setResult(current =>
+              current.uid === uid
+                ? {
+                    ...current,
+                    groups: mergeSyncedGroupAction(
+                      current.groups,
+                      uid,
+                      operation,
+                    ),
+                  }
+                : current,
+            );
             dispatch({
               type: 'sharedGroupActionSynced',
               id: operation.id,
@@ -263,6 +501,63 @@ export function useSharedGroups({
     () => setContentRetryKey(value => value + 1),
     [],
   );
+  const loadMorePosts = useCallback(async () => {
+    const current = contentSubscription.current;
+    if (
+      !current ||
+      current.uid !== uid ||
+      current.groupId !== activeGroupId
+    ) {
+      return;
+    }
+    setLoadingMorePosts(true);
+    try {
+      await current.subscription.loadMorePosts();
+    } catch (error) {
+      setContentResult(previousContent =>
+        previousContent.uid === uid &&
+        previousContent.groupId === activeGroupId
+          ? { ...previousContent, error: errorText(error) }
+          : previousContent,
+      );
+    } finally {
+      if (contentSubscription.current?.subscription === current.subscription) {
+        setLoadingMorePosts(false);
+      }
+    }
+  }, [activeGroupId, uid]);
+  const loadMoreReplies = useCallback(
+    async postId => {
+      const current = contentSubscription.current;
+      if (
+        !current ||
+        current.uid !== uid ||
+        current.groupId !== activeGroupId
+      ) {
+        return;
+      }
+      setLoadingReplyIds(ids => new Set(ids).add(postId));
+      try {
+        await current.subscription.loadMoreReplies(postId);
+      } catch (error) {
+        setContentResult(previousContent =>
+          previousContent.uid === uid &&
+          previousContent.groupId === activeGroupId
+            ? { ...previousContent, error: errorText(error) }
+            : previousContent,
+        );
+      } finally {
+        if (contentSubscription.current?.subscription === current.subscription) {
+          setLoadingReplyIds(ids => {
+            const next = new Set(ids);
+            next.delete(postId);
+            return next;
+          });
+        }
+      }
+    },
+    [activeGroupId, uid],
+  );
   const queueGroupCreation = useCallback(
     group => {
       if (uid) {
@@ -283,7 +578,7 @@ export function useSharedGroups({
       const groupId = action.groupId || action.id;
       const target = groupDirectory.find(group => group.id === groupId);
       if (uid && target?.shared) {
-        dispatch({ type: 'sharedGroups', groups: sharedGroups });
+        dispatch({ type: 'sharedGroups', groups: sharedMetadata });
         dispatch({
           type: 'queueSharedGroupAction',
           operation: {
@@ -292,10 +587,11 @@ export function useSharedGroups({
             id: createId('group-action'),
           },
         });
+        return;
       }
       dispatch(action);
     },
-    [dispatch, groupDirectory, sharedGroups, uid],
+    [dispatch, groupDirectory, sharedMetadata, uid],
   );
 
   return {
@@ -309,6 +605,18 @@ export function useSharedGroups({
         ? contentResult.error
         : '',
     retryContent,
+    hasMorePosts:
+      contentResult.uid === uid && contentResult.groupId === activeGroupId
+        ? contentResult.hasMorePosts
+        : false,
+    postsLive:
+      contentResult.uid === uid && contentResult.groupId === activeGroupId
+        ? contentResult.postsLive
+        : false,
+    loadingMorePosts,
+    loadMorePosts,
+    loadingReplyIds,
+    loadMoreReplies,
     queueGroupCreation,
     dispatchGroupChange,
   };

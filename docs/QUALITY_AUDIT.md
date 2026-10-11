@@ -16,6 +16,10 @@ production-ready claim.
 - Shared group feeds are merged with live directory metadata so the active
   member post listener's content reaches the details and post screens. A
   regression test covers this source-to-screen data merge.
+- Shared feeds cap live windows at 20 posts and 20 replies per post; members
+  can load older cursor pages on demand. Feed snapshots are kept out of durable
+  private account-state records. Paging pauses the current live window until
+  the user refreshes to latest, keeping the loaded window bounded.
 - Group directory updates now read changed metadata and membership only. Post
   and reply listeners are started only while a member has that group open, and
   listeners are removed when the group closes or the user leaves.
@@ -40,7 +44,7 @@ production-ready claim.
 | C4C-02 | High | No real-project, two-account shared-group workflow has been verified. | The Xiaomi Pad 7 is available over USB ADB and the booked-session/group-room UI was checked there. Emulator rules and app unit tests pass, but `firebaseConfig.js` is blank, so create/discover/join/post/reply/leave still needs a configured course project and two accounts. |
 | C4C-03 | High | Teacher-specific requirements are not fully established in this checkout. | The Figma map describes prototype screens, not the teacher's final acceptance rubric. Compare the finished requirements/module list when available. |
 | C4C-04 | Medium | Tutor listings, bookings, direct messages, and group chat are not shared between students. | Firebase accounts sync this data inside each user's private state; device-only accounts keep it local. Cross-student tutor, booking, and messaging workflows are not implemented. Confirm whether the final rubric requires those workflows before designing their schemas. |
-| C4C-05 | Medium | Group content is still unbounded within the active group. | Lazy subscriptions prevent reading every group's content, but a member opening a very large group still loads all posts and replies. Add pagination and moderated/rate-limited writes before wider use. |
+| C4C-05 | Medium | Shared group writes have no rate limiting or moderation. | Rules restrict writes to members, validate authorship, and limit text size, but they do not throttle a member who submits many posts or replies. Add server-side throttling/moderation before wider use. |
 | C4C-06 | Medium | The dependency audit reports 21 high paths to one `braces` advisory. | The tree resolves `braces@3.0.3` through `micromatch@4.0.8` in Metro/React Native CLI and Jest tooling. GitHub lists `<=3.0.3` as affected with no patched version; the package maintainer publicly disputes that a fix is needed. The production-mode app bundle contains no `braces`/`micromatch` strings, so the current exposure is in the build/test toolchain. `npm audit fix --force` proposes a breaking React Native downgrade; do not use an unofficial override without a reviewed mitigation. See the [advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) and [maintainer discussion](https://github.com/micromatch/braces/issues/84). |
 | C4C-07 | Medium | Release signing is still debug signing. | The current APK can update the existing prototype install, but distribution requires a protected release keystore and signing procedure. |
 | C4C-08 | Low | The iOS scaffold cannot use the Android storage module. | Current app support is Android-only; do not claim iOS parity until secure storage and biometrics are implemented and verified there. |

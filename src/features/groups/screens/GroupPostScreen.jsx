@@ -6,7 +6,15 @@ import { Chip, Field } from '../../../shared/components/UI';
 
 import { s } from '../../../shared/theme/styles';
 
-export function GroupPostScreen({ back, group, post, reply }) {
+export function GroupPostScreen({
+  back,
+  group,
+  post,
+  reply,
+  loadMoreReplies,
+  refreshReplies,
+  loadingMoreReplies = false,
+}) {
   const [text, setText] = useState('');
   return (
     <Screen title="Group Post" back={back}>
@@ -27,6 +35,23 @@ export function GroupPostScreen({ back, group, post, reply }) {
         </View>
       )}
       <Text style={s.section}>Replies</Text>
+      {group.joined && post.hasMoreReplies && (
+        <AppButton
+          title={
+            loadingMoreReplies ? 'LOADING OLDER REPLIES...' : 'LOAD OLDER REPLIES'
+          }
+          outline
+          disabled={loadingMoreReplies}
+          onPress={() => loadMoreReplies(post.id)}
+        />
+      )}
+      {group.joined && post.repliesLive === false && !loadingMoreReplies && (
+        <AppButton
+          title="REFRESH LATEST REPLIES"
+          outline
+          onPress={refreshReplies}
+        />
+      )}
       {post.replies.map(r => (
         <View style={s.card} key={r.id}>
           <Text style={[s.name, s.blue]}>{r.author}</Text>

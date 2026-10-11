@@ -78,6 +78,7 @@ export function AppNavigator() {
     route.page === 'Group Details' || route.page === 'Group Post'
       ? route.groupId
       : null;
+  const activePostId = route.page === 'Group Post' ? route.postId : null;
   const {
     groups: groupDirectory,
     error: sharedGroupsError,
@@ -86,6 +87,12 @@ export function AppNavigator() {
     retryActions: retryGroupActions,
     contentError: groupContentError,
     retryContent: retryGroupContent,
+    hasMorePosts: hasMoreGroupPosts,
+    postsLive: groupPostsLive,
+    loadingMorePosts,
+    loadMorePosts,
+    loadingReplyIds,
+    loadMoreReplies,
     queueGroupCreation,
     dispatchGroupChange,
   } = useSharedGroups({
@@ -94,6 +101,7 @@ export function AppNavigator() {
     state,
     dispatch,
     activeGroupId,
+    activePostId,
   });
   const go = useCallback(
     next => {
@@ -388,6 +396,11 @@ export function AppNavigator() {
               })
             }
             message={groupMessage}
+            hasMorePosts={hasMoreGroupPosts}
+            postsLive={groupPostsLive}
+            loadingMorePosts={loadingMorePosts}
+            loadMorePosts={loadMorePosts}
+            refreshPosts={retryGroupContent}
             addPost={text =>
               dispatchGroupChange({
                 type: 'post',
@@ -413,12 +426,20 @@ export function AppNavigator() {
             back={back}
             group={group}
             post={post}
+            loadingMoreReplies={loadingReplyIds.has(post.id)}
+            loadMoreReplies={loadMoreReplies}
+            refreshReplies={retryGroupContent}
             reply={text =>
               dispatchGroupChange({
                 type: 'reply',
                 groupId: group.id,
                 postId: post.id,
-                reply: { id: uid('reply'), author: state.profile.name, text },
+                reply: {
+                  id: uid('reply'),
+                  author: state.profile.name,
+                  text,
+                  createdAt: new Date().toISOString(),
+                },
               })
             }
           />

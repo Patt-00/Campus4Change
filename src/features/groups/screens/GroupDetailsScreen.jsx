@@ -14,6 +14,11 @@ export function GroupDetailsScreen({
   membership,
   addPost,
   message,
+  hasMorePosts = false,
+  postsLive = false,
+  loadingMorePosts = false,
+  loadMorePosts,
+  refreshPosts,
 }) {
   const [draft, setDraft] = useState('');
   return (
@@ -71,12 +76,28 @@ export function GroupDetailsScreen({
               <Text style={[s.name, s.blue]}>{p.author}</Text>
               <Text style={[s.text, styles.marginTop12]}>{p.text}</Text>
               <Text style={[s.muted, styles.fontSize9marginTop12]}>
-                {p.replies.length} replies • {dateLabel(p.createdAt)}
+                {p.replies.length}{p.hasMoreReplies ? '+' : ''} replies •{' '}
+                {dateLabel(p.createdAt)}
               </Text>
             </TouchableOpacity>
           ))}
           {group.posts.length === 0 && (
             <Empty title="No posts yet" body="Share the first study note." />
+          )}
+          {group.shared && hasMorePosts && (
+            <AppButton
+              title={loadingMorePosts ? 'LOADING OLDER POSTS...' : 'LOAD OLDER POSTS'}
+              outline
+              disabled={loadingMorePosts}
+              onPress={loadMorePosts}
+            />
+          )}
+          {group.shared && !postsLive && !loadingMorePosts && (
+            <AppButton
+              title="REFRESH LATEST POSTS"
+              outline
+              onPress={refreshPosts}
+            />
           )}
         </>
       )}

@@ -1,6 +1,32 @@
 import { firebaseServicesForUser } from '../../../shared/backend/firebase';
 
 const collectionName = 'studyGroups';
+const POST_PAGE_SIZE = 20;
+const REPLY_PAGE_SIZE = 20;
+
+function timestampMillis(value) {
+  if (value && typeof value.toMillis === 'function') {
+    return value.toMillis();
+  }
+  if (value && typeof value.toDate === 'function') {
+    return value.toDate().getTime();
+  }
+  const parsed = new Date(value).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function mergeSnapshotsDescending(...pages) {
+  const snapshotsById = new Map();
+  pages.forEach(page => {
+    page.forEach(snapshot => snapshotsById.set(snapshot.id, snapshot));
+  });
+  return [...snapshotsById.values()].sort(
+    (a, b) =>
+      timestampMillis(b.data().createdAt) -
+        timestampMillis(a.data().createdAt) ||
+      b.id.localeCompare(a.id),
+  );
+}
 
 function isoTime(value) {
   if (typeof value === 'string') {
@@ -27,7 +53,12 @@ function mapReply(replySnapshot) {
   };
 }
 
-function mapPost(postSnapshot, replies = []) {
+function mapPost(
+  postSnapshot,
+  replies = [],
+  hasMoreReplies = false,
+  repliesLive = true,
+) {
   const post = postSnapshot.data();
   return {
     id: postSnapshot.id,
@@ -36,6 +67,8 @@ function mapPost(postSnapshot, replies = []) {
     text: post.text,
     createdAt: isoTime(post.createdAt),
     replies,
+    hasMoreReplies,
+    repliesLive,
   };
 }
 
@@ -132,24 +165,74 @@ export function watchSharedGroups(uid, onGroups, onError) {
   };
 }
 
-export function watchSharedGroupPosts(uid, groupId, onPosts, onError) {
+export function watchSharedGroupPosts(
+  uid,
+  groupId,
+  onPosts,
+  onError,
+  pinnedPostId,
+) {
   const { db, firestore } = firebaseServicesForUser(uid);
-  const { collection, doc, getDoc, onSnapshot, orderBy, query } = firestore;
+  const {
+    collection,
+    doc,
+    getDoc,
+    getDocs,
+    limit,
+    onSnapshot,
+    orderBy,
+    query,
+    startAfter,
+  } = firestore;
   const groupRef = doc(db, collectionName, groupId);
+  const postsRef = collection(groupRef, 'posts');
   let active = true;
   let unsubscribePosts = () => {};
-  const replySubscriptions = new Map();
-  const repliesByPost = new Map();
-  let postsInOrder = [];
+  const replyStates = new Map();
+  const olderPosts = new Map();
+  const pinnedPosts = new Map();
+  let livePosts = [];
+  let hasMorePosts = false;
+  let postsLive = true;
+  let loadingMorePosts = false;
+
+  function pagedPostSnapshots() {
+    return mergeSnapshotsDescending([...olderPosts.values()], livePosts);
+  }
+
+  function allPostSnapshots() {
+    return mergeSnapshotsDescending(
+      [...olderPosts.values()],
+      livePosts,
+      [...pinnedPosts.values()],
+    );
+  }
+
+  function allReplySnapshots(replyState) {
+    return mergeSnapshotsDescending(
+      [...replyState.older.values()],
+      replyState.live,
+    );
+  }
 
   function publishPosts() {
     if (!active) {
       return;
     }
     onPosts(
-      postsInOrder.map(snapshot =>
-        mapPost(snapshot, repliesByPost.get(snapshot.id) ?? []),
-      ),
+      allPostSnapshots().map(snapshot => {
+        const replyState = replyStates.get(snapshot.id);
+        const replies = replyState
+          ? allReplySnapshots(replyState).reverse().map(mapReply)
+          : [];
+        return mapPost(
+          snapshot,
+          replies,
+          replyState?.hasMore ?? false,
+          replyState?.liveSubscription ?? true,
+        );
+      }),
+      { hasMorePosts, postsLive },
     );
   }
 
@@ -159,62 +242,185 @@ export function watchSharedGroupPosts(uid, groupId, onPosts, onError) {
     }
   }
 
+  function subscribeReplies(postSnapshot) {
+    if (replyStates.has(postSnapshot.id)) {
+      return;
+    }
+    const replyState = {
+      live: [],
+      older: new Map(),
+      hasMore: false,
+      liveSubscription: true,
+      loading: false,
+      unsubscribe: () => {},
+    };
+    replyStates.set(postSnapshot.id, replyState);
+    replyState.unsubscribe = onSnapshot(
+      query(
+        collection(postSnapshot.ref, 'replies'),
+        orderBy('createdAt', 'desc'),
+        limit(REPLY_PAGE_SIZE),
+      ),
+      repliesSnapshot => {
+        if (!active || !replyState.liveSubscription) {
+          return;
+        }
+        replyState.live = repliesSnapshot.docs;
+        replyState.hasMore = repliesSnapshot.docs.length === REPLY_PAGE_SIZE;
+        publishPosts();
+      },
+      handleError,
+    );
+  }
+
+  async function loadMorePosts() {
+    if (!active || !hasMorePosts || loadingMorePosts) {
+      return;
+    }
+    loadingMorePosts = true;
+    try {
+      if (postsLive) {
+        postsLive = false;
+        unsubscribePosts();
+        unsubscribePosts = () => {};
+        publishPosts();
+      }
+      const loaded = pagedPostSnapshots();
+      const cursor = loaded[loaded.length - 1];
+      if (!cursor) {
+        hasMorePosts = false;
+        publishPosts();
+        return;
+      }
+      const olderSnapshot = await getDocs(
+        query(
+          postsRef,
+          orderBy('createdAt', 'desc'),
+          startAfter(cursor),
+          limit(POST_PAGE_SIZE),
+        ),
+      );
+      if (!active) {
+        return;
+      }
+      olderSnapshot.docs.forEach(snapshot => {
+        olderPosts.set(snapshot.id, snapshot);
+        subscribeReplies(snapshot);
+      });
+      hasMorePosts = olderSnapshot.docs.length === POST_PAGE_SIZE;
+      publishPosts();
+    } finally {
+      loadingMorePosts = false;
+    }
+  }
+
+  async function loadMoreReplies(postId) {
+    const replyState = replyStates.get(postId);
+    if (!active || !replyState?.hasMore || replyState.loading) {
+      return;
+    }
+    replyState.loading = true;
+    try {
+      if (replyState.liveSubscription) {
+        replyState.liveSubscription = false;
+        replyState.unsubscribe();
+        replyState.unsubscribe = () => {};
+        publishPosts();
+      }
+      const loaded = allReplySnapshots(replyState);
+      const cursor = loaded[loaded.length - 1];
+      if (!cursor) {
+        replyState.hasMore = false;
+        publishPosts();
+        return;
+      }
+      const olderSnapshot = await getDocs(
+        query(
+          collection(doc(groupRef, 'posts', postId), 'replies'),
+          orderBy('createdAt', 'desc'),
+          startAfter(cursor),
+          limit(REPLY_PAGE_SIZE),
+        ),
+      );
+      if (!active) {
+        return;
+      }
+      olderSnapshot.docs.forEach(snapshot =>
+        replyState.older.set(snapshot.id, snapshot),
+      );
+      replyState.hasMore = olderSnapshot.docs.length === REPLY_PAGE_SIZE;
+      publishPosts();
+    } finally {
+      replyState.loading = false;
+    }
+  }
+
   getDoc(doc(groupRef, 'members', uid))
     .then(membership => {
       if (!active) {
         return;
       }
       if (!membership.exists()) {
-        onPosts([]);
+        onPosts([], { hasMorePosts: false, postsLive: false });
         return;
       }
 
       unsubscribePosts = onSnapshot(
-        query(collection(groupRef, 'posts'), orderBy('createdAt', 'desc')),
+        query(
+          postsRef,
+          orderBy('createdAt', 'desc'),
+          limit(POST_PAGE_SIZE),
+        ),
         postsSnapshot => {
-          postsInOrder = postsSnapshot.docs;
-          const postIds = new Set(postsInOrder.map(snapshot => snapshot.id));
-          for (const [postId, unsubscribe] of replySubscriptions) {
-            if (!postIds.has(postId)) {
-              unsubscribe();
-              replySubscriptions.delete(postId);
-              repliesByPost.delete(postId);
+          if (!active || !postsLive) {
+            return;
+          }
+          livePosts = postsSnapshot.docs;
+          hasMorePosts = postsSnapshot.docs.length === POST_PAGE_SIZE;
+          const currentPostSnapshots = allPostSnapshots();
+          const currentPostIds = new Set(
+            currentPostSnapshots.map(snapshot => snapshot.id),
+          );
+          for (const [postId, replyState] of replyStates) {
+            if (!currentPostIds.has(postId)) {
+              replyState.unsubscribe();
+              replyStates.delete(postId);
             }
           }
-          for (const snapshot of postsInOrder) {
-            if (replySubscriptions.has(snapshot.id)) {
-              continue;
-            }
-            repliesByPost.set(snapshot.id, []);
-            const unsubscribe = onSnapshot(
-              query(
-                collection(snapshot.ref, 'replies'),
-                orderBy('createdAt', 'asc'),
-              ),
-              repliesSnapshot => {
-                repliesByPost.set(
-                  snapshot.id,
-                  repliesSnapshot.docs.map(mapReply),
-                );
-                publishPosts();
-              },
-              handleError,
-            );
-            replySubscriptions.set(snapshot.id, unsubscribe);
+          for (const snapshot of currentPostSnapshots) {
+            subscribeReplies(snapshot);
           }
           publishPosts();
         },
         handleError,
       );
+      if (pinnedPostId) {
+        getDoc(doc(groupRef, 'posts', pinnedPostId))
+          .then(snapshot => {
+            if (!active || !snapshot.exists()) {
+              return;
+            }
+            pinnedPosts.set(snapshot.id, snapshot);
+            subscribeReplies(snapshot);
+            publishPosts();
+          })
+          .catch(handleError);
+      }
     })
     .catch(handleError);
 
-  return () => {
-    active = false;
-    unsubscribePosts();
-    replySubscriptions.forEach(unsubscribe => unsubscribe());
-    replySubscriptions.clear();
-    repliesByPost.clear();
+  return {
+    loadMorePosts,
+    loadMoreReplies,
+    unsubscribe: () => {
+      active = false;
+      unsubscribePosts();
+      replyStates.forEach(replyState => replyState.unsubscribe());
+      replyStates.clear();
+      olderPosts.clear();
+      pinnedPosts.clear();
+      livePosts = [];
+    },
   };
 }
 

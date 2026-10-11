@@ -70,6 +70,11 @@ The account hook saves changed state to encrypted Android storage. With Firebase
 updates read only changed group metadata and membership; post and reply
 listeners run only while a member has that group open. `useSharedGroups` merges
 the active member feed into the directory record before screens consume it.
+Live listeners cap each window at 20 posts and 20 replies per post; screens can
+load older pages by document cursor. Paging pauses the live window and shows a
+refresh action so history browsing does not accumulate an unbounded stream of
+new snapshots. Feed snapshots stay in memory and are excluded from the saved
+private account-state record.
 `features/groups/hooks/useSharedGroups.js` owns the live directory, merges it
 with device-only groups, and retries the account's pending group changes. The
 navigator only connects those group callbacks to screens. `firestore.rules`

@@ -11,6 +11,7 @@ import {
   watchFirebaseUser,
 } from '../backend/firebase';
 import { reducer } from './reducer';
+import { stateForPersistence } from './persistence';
 import { deviceStore, parseAccount, parseState } from './storage';
 
 function isDemoAccount(identifier) {
@@ -53,14 +54,17 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
     if (!active) {
       throw new Error('Sign in before saving your account data.');
     }
-    await deviceStore().saveState(JSON.stringify(value));
+    const saved = stateForPersistence(value);
+    await deviceStore().saveState(JSON.stringify(saved));
     if (active.kind === 'firebase') {
-      await saveCloudState(active.uid, value);
+      await saveCloudState(active.uid, saved);
     }
   }, []);
 
+  const updatedAt = state?.updatedAt;
   useEffect(() => {
-    if (!state || !activeSession.current) {
+    const value = snapshot.current;
+    if (!value || !activeSession.current) {
       return undefined;
     }
     if (activeSession.current.kind === 'firebase' && !cloudHydrated.current) {
@@ -68,7 +72,6 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
     }
 
     let cancelled = false;
-    const value = state;
     const task = saveQueue.current.then(
       () => saveActiveState(value),
       () => saveActiveState(value),
@@ -89,7 +92,7 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
     return () => {
       cancelled = true;
     };
-  }, [saveActiveState, state]);
+  }, [saveActiveState, updatedAt]);
 
   const enterLocalAccount = useCallback(async value => {
     const storage = deviceStore();
@@ -171,9 +174,13 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
           snapshot.current = selected;
           setState(selected);
         }
-        await storage.saveState(JSON.stringify(selected));
-        if (!cloud || selected === latestLocal) {
-          await saveCloudState(user.uid, selected);
+        const saved = stateForPersistence(selected);
+        const cloudHasTransientFeed =
+          cloud &&
+          JSON.stringify(stateForPersistence(cloud)) !== JSON.stringify(cloud);
+        await storage.saveState(JSON.stringify(saved));
+        if (!cloud || selected === latestLocal || cloudHasTransientFeed) {
+          await saveCloudState(user.uid, saved);
         }
         if (activeSession.current?.uid === user.uid) {
           setSaveError('');
@@ -283,8 +290,18 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
         return previous;
       }
       const updated = reducer(previous, action);
-      const next =
-        updated === previous ? previous : { ...updated, updatedAt: Date.now() };
+      if (updated === previous) {
+        return previous;
+      }
+      if (action.type === 'sharedGroups') {
+        snapshot.current = updated;
+        return updated;
+      }
+      const previousUpdatedAt = Number(previous.updatedAt) || 0;
+      const next = {
+        ...updated,
+        updatedAt: Math.max(Date.now(), previousUpdatedAt + 1),
+      };
       snapshot.current = next;
       return next;
     });

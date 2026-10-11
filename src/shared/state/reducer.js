@@ -54,21 +54,12 @@ export function reducer(state, action) {
     case 'sharedGroups':
     {
       const remoteIds = new Set(action.groups.map(group => group.id));
-      const localById = new Map(
-        state.groups.map(group => [group.id, group]),
-      );
       const groups = [
-        ...action.groups.map(group => {
-          const previous = localById.get(group.id);
-          const retainPosts = previous?.joined && group.joined;
-          return {
-            ...group,
-            posts: retainPosts ? previous.posts : group.posts ?? [],
-            postsLoaded: retainPosts
-              ? Boolean(previous.postsLoaded)
-              : Boolean(group.postsLoaded),
-          };
-        }),
+        ...action.groups.map(group => ({
+          ...group,
+          posts: [],
+          postsLoaded: !group.joined,
+        })),
         ...state.groups.filter(group => !remoteIds.has(group.id)),
       ];
       return {
@@ -79,15 +70,6 @@ export function reducer(state, action) {
         ),
       };
     }
-    case 'sharedGroupPosts':
-      return {
-        ...state,
-        groups: state.groups.map(group =>
-          group.id === action.id && group.shared && group.joined
-            ? { ...group, posts: action.posts, postsLoaded: true }
-            : group,
-        ),
-      };
     case 'queueSharedGroupAction': {
       const pending = state.pendingSharedActions ?? [];
       if (pending.some(item => item.id === action.operation.id)) {
@@ -95,16 +77,52 @@ export function reducer(state, action) {
       }
       return {
         ...state,
+        groups: replayPendingGroupActions(state.groups, [action.operation]),
         pendingSharedActions: [...pending, action.operation],
       };
     }
-    case 'sharedGroupActionSynced':
+    case 'sharedGroupActionSynced': {
+      const pending = state.pendingSharedActions ?? [];
+      const operation = pending.find(item => item.id === action.id);
+      let groups = state.groups;
+      if (operation?.type === 'post') {
+        groups = state.groups.map(group =>
+          group.id === operation.groupId
+            ? {
+                ...group,
+                posts: group.posts.filter(
+                  post => post.id !== operation.post.id,
+                ),
+              }
+            : group,
+        );
+      } else if (operation?.type === 'reply') {
+        groups = state.groups.map(group =>
+          group.id === operation.groupId
+            ? {
+                ...group,
+                posts: group.posts.map(post =>
+                  post.id === operation.postId
+                    ? {
+                        ...post,
+                        replies: post.replies.filter(
+                          reply => reply.id !== operation.reply.id,
+                        ),
+                      }
+                    : post,
+                ),
+              }
+            : group,
+        );
+      }
       return {
         ...state,
-        pendingSharedActions: (state.pendingSharedActions ?? []).filter(
+        groups,
+        pendingSharedActions: pending.filter(
           item => item.id !== action.id,
         ),
       };
+    }
     case 'membership':
       return {
         ...state,

@@ -11,8 +11,12 @@ import {
   getDoc,
   getDocs,
   increment,
+  limit,
+  orderBy,
+  query,
   serverTimestamp,
   setDoc,
+  startAfter,
   Timestamp,
   writeBatch,
 } from 'firebase/firestore';
@@ -147,6 +151,35 @@ try {
     (await getDocs(collection(alice, 'studyGroups/calculus/posts'))).size,
     1,
   );
+  const postCollection = collection(bob, 'studyGroups/calculus/posts');
+  const firstPostPage = await assertSucceeds(
+    getDocs(query(postCollection, orderBy('createdAt', 'desc'), limit(1))),
+  );
+  assert.equal(firstPostPage.size, 1);
+  const nextPostPage = await assertSucceeds(
+    getDocs(
+      query(
+        postCollection,
+        orderBy('createdAt', 'desc'),
+        startAfter(firstPostPage.docs[0]),
+        limit(1),
+      ),
+    ),
+  );
+  assert.equal(nextPostPage.size, 0);
+  const replyPage = await assertSucceeds(
+    getDocs(
+      query(
+        collection(bob, 'studyGroups/calculus/posts/review/replies'),
+        orderBy('createdAt', 'desc'),
+        limit(1),
+      ),
+    ),
+  );
+  assert.equal(replyPage.size, 1);
+  await assertFails(
+    getDocs(query(collection(carol, 'studyGroups/calculus/posts'), limit(1))),
+  );
   await assertFails(
     setDoc(doc(bob, 'studyGroups/calculus/members/alice'), {
       uid: 'bob',
@@ -185,7 +218,7 @@ try {
     getDocs(collection(bob, 'studyGroups/calculus/posts')),
   );
 
-  console.log('Firestore rules passed: private state, group discovery, membership, posts, and replies are scoped.');
+  console.log('Firestore rules passed: private state, memberships, member content, and bounded feed queries are scoped.');
 } finally {
   await environment.cleanup();
 }
