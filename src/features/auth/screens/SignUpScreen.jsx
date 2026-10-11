@@ -44,7 +44,9 @@ export function SignUpScreen({ go, back, auth }) {
   return (
     <Screen title="Create account" back={back}>
       <Text style={[s.muted, styles.marginLeft28marginBottom20]}>
-        Create your account on this device
+        {auth.firebaseConfigured
+          ? 'Create your Campus4Change account'
+          : 'Create your account on this device'}
       </Text>
       <Field
         label="Full name"
@@ -104,7 +106,9 @@ export function SignUpScreen({ go, back, auth }) {
       <View style={s.gap} />
       <AppButton title="CREATE ACCOUNT" busy={busy} onPress={submit} />
       <Text style={[s.muted, s.center, styles.marginTop16]}>
-        Your account and data stay on this device.
+        {auth.firebaseConfigured
+          ? 'Your account uses Firebase Authentication. Your app data syncs to your private Firebase account.'
+          : 'Your account and data stay on this device.'}
       </Text>
       <View style={styles.alignItemscentermarginTop24}>
         <Link

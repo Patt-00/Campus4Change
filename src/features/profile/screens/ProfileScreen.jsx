@@ -2,15 +2,20 @@ import React from 'react';
 import { Alert, Text, TouchableOpacity, View, StyleSheet } from 'react-native';
 import { Screen } from '../../../shared/components/Screen';
 import { Avatar, Link } from '../../../shared/components/UI';
-import { deviceStore } from '../../../shared/state/storage';
-
 import { s } from '../../../shared/theme/styles';
 import { C } from '../../../shared/theme/colors';
 
 import { Icon } from '../../../shared/components/Icon';
 import { version } from '../../../../package.json';
 
-export function ProfileScreen({ go, state, signOut }) {
+export function ProfileScreen({
+  go,
+  state,
+  signOut,
+  sessionType,
+  firebaseConfigured,
+  enableBiometrics,
+}) {
   const p = state.profile;
   const rated = state.sessions.filter(x => x.rating);
   const rating = rated.length
@@ -80,23 +85,31 @@ export function ProfileScreen({ go, state, signOut }) {
           <Icon name="right" size={20} color={C.muted} />
         </TouchableOpacity>
       ))}
-      <Link
-        label="Enable biometric sign-in"
-        onPress={async () => {
-          try {
-            await deviceStore().enableBiometrics();
-            Alert.alert(
-              'Biometrics enabled',
-              'Sign in with the biometrics enrolled on this device next time.',
-            );
-          } catch (e) {
-            Alert.alert(
-              'Biometrics',
-              e instanceof Error ? e.message : String(e),
-            );
-          }
-        }}
-      />
+      {sessionType === 'local' && state.profile.id !== 'demo' && (
+        <Link
+          label="Enable biometric sign-in"
+          onPress={async () => {
+            try {
+              await enableBiometrics();
+              Alert.alert(
+                'Biometrics enabled',
+                'Sign in with the biometrics enrolled on this device next time.',
+              );
+            } catch (e) {
+              Alert.alert(
+                'Biometrics',
+                e instanceof Error ? e.message : String(e),
+              );
+            }
+          }}
+        />
+      )}
+
+      {firebaseConfigured && sessionType === 'local' && state.profile.id !== 'demo' && (
+        <Text style={[s.muted, s.center]}>
+          This existing device account does not sync to Firebase.
+        </Text>
+      )}
 
       <TouchableOpacity
         accessibilityRole="button"
@@ -105,7 +118,9 @@ export function ProfileScreen({ go, state, signOut }) {
         onPress={() =>
           Alert.alert(
             'Sign out?',
-            'Your local data will stay saved on this device.',
+            sessionType === 'firebase'
+              ? 'Your encrypted local copy and Firebase data will stay saved.'
+              : 'Your local data will stay saved on this device.',
             [
               {
                 text: 'Stay signed in',

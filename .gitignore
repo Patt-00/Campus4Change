@@ -69,6 +69,10 @@ yarn-error.log
 # Local build tools and verification artifacts
 /.tools/
 /artifacts/
+.firebaserc
+.firebase/
+firebase-debug.log*
+firestore-debug.log*
 
 # Yarn
 .yarn/*

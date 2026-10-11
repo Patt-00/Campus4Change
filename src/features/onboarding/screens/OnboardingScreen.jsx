@@ -51,7 +51,7 @@ export function OnboardingScreen({ go }) {
         <View style={s.grow} />
         <AppButton
           title="GET STARTED"
-          onPress={() => go('Login')}
+          onPress={() => go('Introduction')}
           style={styles.button}
         />
 

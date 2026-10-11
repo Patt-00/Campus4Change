@@ -1,6 +1,6 @@
 # Campus4Change architecture
 
-The app uses React Native CLI 0.87.1, React 19.2.3, JavaScript/JSX, and Hermes. It has no navigation library, external state framework, or backend.
+The app uses React Native CLI 0.87.1, React 19.2.3, JavaScript/JSX, and Hermes. It has no navigation library or external state framework. When Firebase is configured, Firebase Authentication handles cloud accounts and Firestore syncs a private state document per user. The local demo remains available without Firebase configuration.
 
 ## Entry and ownership
 
@@ -8,7 +8,7 @@ The app uses React Native CLI 0.87.1, React 19.2.3, JavaScript/JSX, and Hermes. 
 
 `src/navigation/AppNavigator.jsx` owns the current route, back history, and connections between features. Routes are plain JavaScript objects with a page name and optional item IDs. Android Back uses the same history as screen Back. Main tabs reset the history.
 
-`src/shared/state/useCampusSession.js` owns the signed-in account state, authentication calls, state updates, automatic saving, save errors, retries, and sign-out. It tells the navigator when sign-in or sign-out succeeds so the navigator can reset the route and history. The hook does not import feature screens or navigation code.
+`src/shared/state/useCampusSession.js` owns the signed-in account state, authentication flow, state updates, local/cloud saves, save errors, retries, account restoration, and sign-out. It tells the navigator when sign-in or sign-out succeeds so the navigator can reset the route and history. Firebase SDK calls are isolated in `src/shared/backend/firebase.js`; the hook does not import feature screens or navigation code.
 
 Feature screens receive data and callbacks. They request navigation or submit changes through those callbacks. Features do not import other features' screens; the navigator connects them.
 
@@ -16,7 +16,7 @@ Feature screens receive data and callbacks. They request navigation or submit ch
 src/
   navigation/       route types and integration
   features/
-    onboarding/
+    onboarding/    splash, audience introductions, and first-run navigation
     auth/
     home/
     create/
@@ -32,6 +32,7 @@ src/
     components/    common controls and screen layout
     data/          sample data and catalog selectors
     state/         account hook, reducer, and Android storage interface
+    backend/       Firebase initialization and project configuration
     theme/         colors and styles
 android/
   app/src/main/java/com/campus4change/
@@ -47,6 +48,11 @@ Put feature-only UI or data inside that feature. Keep common controls, types, st
 
 Each screen has its own named JSX file under its feature's `screens/` folder, with only the styles and imports that screen uses. Related screens use common controls or feature-owned components instead of importing each other. Authentication callbacks are passed into the login and sign-up screens. The Create tab has its own screen and requests the tutor, group, and profile flows through navigation callbacks.
 
+The onboarding feature keeps the splash screen and its logo, then shows the
+Novice, Intermediate, and Expert introduction slides before login/signup. The
+slide artwork and copy belong to onboarding; the shared logo and theme remain
+under `shared/`.
+
 ## State and data flow
 
 State records are plain JavaScript objects for profiles, tutors, sessions, groups, conversations, and notices. A session has an ID, tutor ID, subject, ISO start time, note, status, and optional rating. Sessions last one hour. Booking and session history use this same record.
@@ -57,13 +63,18 @@ The profile feature owns the custom-interest editor. The tutor feature owns book
 
 `shared/state/reducer.js` applies profile edits, bookings, session changes, memberships, posts, replies, messages, read notices, and study-note drafts. It rejects overlapping bookings, invalid ratings, and group posts/messages from non-members.
 
-The account hook saves changed state through `storage.js`. Save failures appear in the navigator's banner with a retry action. Sign-out saves the latest state before clearing the active account; a failed save keeps the account open. Loaded state must belong to the account that signed in. Reopening requires sign-in. Saved JSON remains version 1.
+The account hook saves changed state to encrypted Android storage. With Firebase configured, it also saves the complete state under `users/{uid}/private/state` and restores the user's Firebase session at app launch. If a newer encrypted local copy exists than the cloud copy, it is synced up. Save failures appear in the navigator's banner with a retry action. Sign-out saves the latest state before clearing the active account; a failed save keeps the account open. Loaded state must belong to the account that signed in. Saved JSON remains version 1.
+
+`firestore.rules` restricts every record to the authenticated owner and denies
+unmatched collections. This schema is an account backup/sync boundary only:
+users cannot browse or share tutors, bookings, groups, posts, or messages with
+one another yet. It is not the final multi-user collaboration model.
 
 ## Android local accounts
 
-`CampusStorageModule.kt` implements the Android-only `CampusStorage` native module registered by `MainApplication.kt`.
+`CampusStorageModule.kt` implements the Android-only `CampusStorage` native module registered by `MainApplication.kt`. It protects local account records, cached state, and Firebase Auth persistence values.
 
-- Private SharedPreferences hold encrypted account and per-account JSON records.
+- Private SharedPreferences hold encrypted account, per-account JSON, and Firebase Auth persistence records.
 - AES-GCM uses an Android Keystore key and a new IV per write.
 - Salted PBKDF2 hashes verify passwords. Real passwords are not saved as plain text.
 - A single background executor orders account and storage operations.

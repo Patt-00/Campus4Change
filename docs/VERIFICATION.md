@@ -1,5 +1,49 @@
 # Verification for 1.2.0
 
+## Current source work — 2026-10-11
+
+This local checkpoint is on branch `codex/firebase-auth-firestore`. It adds a
+React Native introduction for Novice, Intermediate, and Expert learners, plus
+Firebase Authentication/Firestore integration scaffolding with encrypted
+Android Auth persistence, an encrypted per-user local cache, and owner-only
+Firestore rules. Application and test source contains no TypeScript files.
+
+Verified for this checkpoint:
+
+- `npm run lint`: passed.
+- `npm test -- --runInBand --testTimeout=15000`: 27 tests passed in 2 suites.
+- The Firestore rules test passed against the local Firebase Emulator Suite. It
+  accepts owner access and rejects anonymous, cross-user, mismatched UID, and
+  unconfigured collection access.
+- The app was also exercised against local Auth and Firestore emulators on the
+  Android phone. Email/password sign-up succeeded, the per-user state document
+  was written under the authenticated UID, and a Firestore-side profile change
+  appeared after a cold restart. Android Keystore-backed auth persistence was
+  present after restart and removed after sign-out. Test data used
+  `campus4change.qa@example.com` in the emulator only; the password manager
+  prompt was dismissed without saving that test password.
+- The Android release build completed for `arm64-v8a` with JDK 25. It bundles
+  the JavaScript, has package `com.campus4change`, version code 3/version 1.2.0,
+  and verifies with the same debug certificate as the installed app.
+- The release build was installed as an update on the connected Android phone.
+  A cold launch stayed alive without a fatal app error. The splash, introduction
+  slides, login screen, demo sign-in, and Home were exercised through UI
+  hierarchy evidence. The previously saved `Writing` interest remained after
+  the update.
+
+Firebase values in `src/shared/backend/firebaseConfig.js` are blank again after
+the emulator test, and Firestore rules have not been deployed to a real Firebase
+project. A real Firebase project sign-up, password reset, cross-device sync, and
+shared student workflows remain unverified. This APK was not uploaded as a
+GitHub release. It remains debug-signed and labeled 1.2.0.
+
+The first Firestore schema is private to each account. Cross-student tutor
+discovery, bookings, groups, posts, and conversations still use the app's local
+state model and are not shared between accounts. The dependency audit reports
+21 high-severity transitive findings in React Native/Metro/CLI dependencies and
+zero critical findings; compatible upstream fixes need review before changing
+the React Native toolchain.
+
 The published v1.2.0 APK was verified on Windows on 2026-10-01. The current source was converted to JavaScript/JSX and rebuilt in Termux on 2026-10-02. Neither result establishes phone installation or screen behavior.
 
 ## JavaScript source conversion and Termux build
@@ -97,17 +141,18 @@ The package ID and certificate match older releases, and the version code increa
 Complete these manual checks on the exact release APK before demonstrating it.
 
 1. Install as an update and open the app. Check existing saved work after signing in.
-2. Demonstrate invalid login input, then use **USE DEMO ACCOUNT** for sample content.
-3. Search for Mika, choose a time on her profile, and book a future session. Verify the selected tutor, time, note, and overlap rejection.
-4. Reschedule, cancel, complete, and rate sessions. Check each status view.
-5. Create a group without a date and confirm no schedule is invented. Create another with a valid future date and time; reject a nonexistent date.
-6. Join/leave groups, write notes and replies, and use a study-room timer. Check drafts after Android Back and after reopening.
-7. Save a message and reopen it. Explain that messages are not delivered to another device.
-8. Open notifications and check their read state.
-9. Add a custom interest, reject a duplicate with different letter case, remove an interest, and save. Check the home interest and tutor count.
-10. Create a separate account and confirm that interests and school fields start blank, with an empty tutor directory and groups. Save preferences without entering school details.
-11. Enter your course, year, and school. Create a tutor listing, edit it from search, and remove it.
-12. Sign out and sign in again to check saved data. Check biometrics on a personal account if enrolled on the phone.
+2. Open the splash screen and step through the Novice, Intermediate, and Expert introductions. Check Back, Skip, page dots, and Get Started.
+3. Demonstrate invalid login input, then use **USE DEMO ACCOUNT** for sample content.
+4. Search for Mika, choose a time on her profile, and book a future session. Verify the selected tutor, time, note, and overlap rejection.
+5. Reschedule, cancel, complete, and rate sessions. Check each status view.
+6. Create a group without a date and confirm no schedule is invented. Create another with a valid future date and time; reject a nonexistent date.
+7. Join/leave groups, write notes and replies, and use a study-room timer. Check drafts after Android Back and after reopening.
+8. Save a message and reopen it. Explain that messages are not delivered to another device unless the Firebase shared-data model is implemented.
+9. Open notifications and check their read state.
+10. Add a custom interest, reject a duplicate with different letter case, remove an interest, and save. Check the home interest and tutor count.
+11. Create a separate account and confirm that interests and school fields start blank, with an empty tutor directory and groups. Save preferences without entering school details.
+12. Enter your course, year, and school. Create a tutor listing, edit it from search, and remove it.
+13. Sign out and sign in again to check saved data. Check biometrics on a personal account if enrolled on the phone.
 
 Bookings, messages, and group changes stay on the device. About explains those limits. Do not present sample contacts as live users.
 

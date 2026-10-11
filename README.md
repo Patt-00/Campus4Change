@@ -6,7 +6,8 @@ Version 1.2.0 adds custom learning interests, personal school details, clear ico
 
 ## Features
 
-- Local account creation, password sign-in, profile editing, and sign-out.
+- Splash screen, novice/intermediate/expert introduction, and login/signup screens.
+- Firebase email/password accounts when configured, plus the local demo and legacy device-account sign-in, profile editing, and sign-out.
 - Optional Android biometric sign-in after password login and a successful biometric prompt.
 - Tutor search, filters, and the correct selected tutor profile.
 - Future one-hour bookings, overlap checks, rescheduling, cancellation, completion, and ratings.
@@ -18,13 +19,13 @@ Version 1.2.0 adds custom learning interests, personal school details, clear ico
 - Optional group meetup dates and times, with valid-date and future-time checks.
 - About screen with device storage, demo data, and service limits.
 
-Accounts and app data stay on this Android device and remain after closing the app. Each account has separate personal data. Reopening the app requires sign-in.
+When Firebase is configured, email/password accounts use Firebase Authentication and private app state syncs to that user's Firestore record. Authentication is restored when the app reopens. An encrypted on-device copy remains available for recovery when cloud sync fails. Without Firebase configuration, the local prototype/demo account flow remains available. See [Firebase setup](docs/FIREBASE_SETUP.md).
 
-There is no server or sharing between devices. Sample tutors do not receive bookings or messages. Live chat, calls, push notifications, email verification, and password recovery are not implemented. Uninstalling or clearing app data removes local accounts and saved work.
+The current Firestore document is private to one account. It does not yet share tutor listings, bookings, group membership, posts, or messages with other students. Sample tutors do not receive bookings or messages. Live chat, calls, push notifications, email verification, and Google sign-in are not implemented. Clearing app data removes the encrypted local copy; configured Firebase accounts and cloud state remain in Firebase.
 
 ## Demo account
 
-Tap **GET STARTED**, then **USE DEMO ACCOUNT**.
+Tap **GET STARTED**, finish or skip the three introduction slides, then tap **USE DEMO ACCOUNT**.
 
 The public demo credentials are email `alex@campus.demo` or Student ID `DEMO`, password `Campus123!`. The demo includes sample tutors, groups, sessions, conversations, and memberships. New accounts start with empty interests, school fields, tutor directories, groups, bookings, and messages. Your own tutor listing appears when you create it.
 
@@ -48,6 +49,7 @@ The release APK uses the repository's debug signing key for school prototype dis
 ## Guides and checks
 
 - [Architecture and feature ownership](docs/ARCHITECTURE.md)
+- [Firebase setup and data boundary](docs/FIREBASE_SETUP.md)
 - [PC and Termux builds](docs/BUILDING.md)
 - [Figma coverage and limits](docs/FIGMA_COVERAGE.md)
 - [Verification and teacher walkthrough](docs/VERIFICATION.md)

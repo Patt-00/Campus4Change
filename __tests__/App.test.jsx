@@ -34,6 +34,16 @@ const mockStore = {
   }),
   signOut: jest.fn(async () => true),
 };
+jest.mock('../src/shared/backend/firebase', () => ({
+  firebaseEnabled: false,
+  firebaseSignIn: jest.fn(),
+  firebaseSignUp: jest.fn(),
+  firebaseSignOut: jest.fn(async () => {}),
+  firebasePasswordReset: jest.fn(),
+  loadCloudState: jest.fn(),
+  saveCloudState: jest.fn(),
+  watchFirebaseUser: () => () => {},
+}));
 jest.mock('../src/shared/state/storage', () => ({
   ...jest.requireActual('../src/shared/state/storage'),
   deviceStore: () => mockStore,
@@ -77,9 +87,15 @@ async function fill(label, value) {
     input.props.onChangeText(value);
   });
 }
+async function completeIntroduction() {
+  await press('GET STARTED');
+  await press('NEXT');
+  await press('NEXT');
+  await press('GET STARTED');
+}
 async function login() {
   await render();
-  await press('GET STARTED');
+  await completeIntroduction();
   await press('USE DEMO ACCOUNT');
 }
 async function confirmSignOut() {
@@ -108,14 +124,31 @@ afterEach(async () => {
 test('renders onboarding and rejects an empty sign-in form', async () => {
   await render();
   expect(hasText('GET STARTED')).toBe(true);
-  await press('GET STARTED');
+  await completeIntroduction();
   await press('SIGN IN');
   expect(hasText('Enter your email or Student ID and password.')).toBe(true);
   expect(mockStore.signIn).not.toHaveBeenCalled();
 });
-test('shows an authentication failure without opening the app', async () => {
+test('introduces novice, intermediate, and expert learners before account access', async () => {
   await render();
   await press('GET STARTED');
+  expect(hasText('For the Novice')).toBe(true);
+  await press('NEXT');
+  expect(hasText('For Intermediates')).toBe(true);
+  await press('Go to introduction 3');
+  expect(hasText('For Experts')).toBe(true);
+  await press('GET STARTED');
+  expect(hasText('Welcome back!')).toBe(true);
+});
+test('can skip the introduction and open login', async () => {
+  await render();
+  await press('GET STARTED');
+  await press('Skip introduction');
+  expect(hasText('Welcome back!')).toBe(true);
+});
+test('shows an authentication failure without opening the app', async () => {
+  await render();
+  await completeIntroduction();
   await fill('Email or Student ID', 'wrong@school.edu');
   await fill('Password', 'wrongpass');
   mockStore.signIn.mockRejectedValueOnce(new Error('Incorrect password.'));
@@ -150,7 +183,7 @@ test('sign-out saves the latest profile and resets navigation to login', async (
   expect(hasText('SIGN IN')).toBe(true);
   await press('Back');
   expect(hasText('GET STARTED')).toBe(true);
-  await press('GET STARTED');
+  await completeIntroduction();
   await press('USE DEMO ACCOUNT');
   await press('Profile');
   expect(hasText('Saved Before Sign Out')).toBe(true);
@@ -240,7 +273,7 @@ test('profile changes appear in the profile and survive saved state', async () =
 });
 test('sign-up validates fields and creates a separate local account', async () => {
   await render();
-  await press('GET STARTED');
+  await completeIntroduction();
   await press('Sign up');
   await press('CREATE ACCOUNT');
   expect(mockStore.signUp).not.toHaveBeenCalled();
@@ -263,7 +296,7 @@ test('sign-up validates fields and creates a separate local account', async () =
 test('custom interests can be added, deduplicated, removed, and reopened without requiring school fields', async () => {
   mockCurrent = { ...demo, id: 'fresh-user', name: 'New Student' };
   await render();
-  await press('GET STARTED');
+  await completeIntroduction();
   await fill('Email or Student ID', 'new@school.edu');
   await fill('Password', 'TestPass123');
   await press('SIGN IN');
@@ -284,7 +317,7 @@ test('custom interests can be added, deduplicated, removed, and reopened without
   expect(saved.profile.school).toBe('');
   await ReactTestRenderer.act(async () => renderer.unmount());
   await render();
-  await press('GET STARTED');
+  await completeIntroduction();
   await fill('Email or Student ID', 'new@school.edu');
   await fill('Password', 'TestPass123');
   await press('SIGN IN');
@@ -333,6 +366,7 @@ test('group creation rejects invalid schedules and stores the chosen meetup', as
 test('About explains device-only behavior before sign-in and returns to login', async () => {
   await render();
   await press('GET STARTED');
+  await press('Skip introduction');
   await press('About Campus4Change');
   expect(hasText('Connecting with other students')).toBe(true);
   await press('Back');

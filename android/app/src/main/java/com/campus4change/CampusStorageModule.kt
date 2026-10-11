@@ -57,6 +57,17 @@ class CampusStorageModule(private val context: ReactApplicationContext) : ReactC
         check(prefs.edit().putString(name, encrypted).commit()) { "Could not save data on this device." }
     }
 
+    private fun firebaseAuthKey(key: String): String {
+        require(
+            (key == "__sak" || key.startsWith("firebase:")) && key.length <= 512
+        ) { "Invalid Firebase storage key." }
+        val encoded = Base64.encodeToString(
+            key.toByteArray(Charsets.UTF_8),
+            Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING,
+        )
+        return "firebase_auth_$encoded"
+    }
+
     private fun hash(password: String, salt: ByteArray): ByteArray {
         val spec = PBEKeySpec(password.toCharArray(), salt, 210000, 256)
         return try { SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1").generateSecret(spec).encoded }
@@ -110,11 +121,31 @@ class CampusStorageModule(private val context: ReactApplicationContext) : ReactC
     }
 
     @ReactMethod fun loadState(promise: Promise) = run(promise) { read("state_${activeUser ?: error("Sign in first.")}") }
+    @ReactMethod fun setActiveUser(userId: String, promise: Promise) = run(promise) {
+        require(userId.isNotBlank() && userId.length <= 256) { "Invalid account ID." }
+        activeUser = userId
+        true
+    }
     @ReactMethod fun saveState(value: String, promise: Promise) {
         val user = activeUser ?: return promise.reject("SIGNED_OUT", "Sign in first.")
         run(promise) { JSONObject(value); write("state_$user", value); true }
     }
     @ReactMethod fun signOut(promise: Promise) = run(promise) { activeUser = null; true }
+
+    // Firebase Auth's refresh token is kept in the same AES-GCM protected
+    // private preferences as local app data, rather than plain AsyncStorage.
+    @ReactMethod fun getFirebaseAuthValue(key: String, promise: Promise) = run(promise) {
+        read(firebaseAuthKey(key))
+    }
+    @ReactMethod fun setFirebaseAuthValue(key: String, value: String, promise: Promise) = run(promise) {
+        require(value.length <= 100_000) { "Firebase sign-in data is too large." }
+        write(firebaseAuthKey(key), value)
+        true
+    }
+    @ReactMethod fun removeFirebaseAuthValue(key: String, promise: Promise) = run(promise) {
+        check(prefs.edit().remove(firebaseAuthKey(key)).commit()) { "Could not clear Firebase sign-in data." }
+        true
+    }
     @ReactMethod fun enableBiometrics(promise: Promise) {
         val id = activeUser
         if (id == null || id == "demo") {

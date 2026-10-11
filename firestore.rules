@@ -1,0 +1,29 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Version 1 stores each signed-in user's complete private app state in
+    // their own document. This lets the app sync accounts across devices
+    // without exposing another student's profile or saved work.
+    match /users/{userId}/private/state {
+      function ownsDocument() {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      allow read, delete: if ownsDocument();
+      allow create, update: if ownsDocument()
+        && request.resource.data.keys().hasAll(['state', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['state', 'updatedAt'])
+        && request.resource.data.state is map
+        && request.resource.data.state.version == 1
+        && request.resource.data.state.profile is map
+        && request.resource.data.state.profile.id == userId
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    // No public or cross-user collections are enabled in the first schema.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

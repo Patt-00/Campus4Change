@@ -88,6 +88,7 @@ export function initialState(account) {
   const before = dayAt(-7).toISOString();
   return {
     version: 1,
+    updatedAt: Date.now(),
     profile: {
       ...account,
       course: account.id === 'demo' ? 'BS Computer Science' : '',

@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { BackHandler, Text, View } from 'react-native';
+import { ActivityIndicator, BackHandler, StyleSheet, Text, View } from 'react-native';
 import { HomeScreen } from '../features/home/screens/HomeScreen';
 import { AboutScreen } from '../features/about/screens/AboutScreen';
 import { CreateScreen } from '../features/create/screens/CreateScreen';
 import { LoginScreen } from '../features/auth/screens/LoginScreen';
 import { SignUpScreen } from '../features/auth/screens/SignUpScreen';
 import { OnboardingScreen } from '../features/onboarding/screens/OnboardingScreen';
+import { IntroductionScreen } from '../features/onboarding/screens/IntroductionScreen';
 import { TutorDetailsScreen } from '../features/tutors/screens/TutorDetailsScreen';
 import { TutorSearchScreen } from '../features/tutors/screens/TutorSearchScreen';
 import { BookingScreen } from '../features/tutors/screens/BookingScreen';
@@ -38,10 +39,28 @@ import { useCampusSession } from '../shared/state/useCampusSession';
 import { s } from '../shared/theme/styles';
 
 const tabs = new Set(['Home', 'Sessions', 'Create', 'Messages', 'Profile']);
+const restoreStyles = StyleSheet.create({
+  content: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  message: { marginTop: 16 },
+});
+
 export function AppNavigator() {
   const [route, setRoute] = useState({ page: 'Onboarding' });
   const [history, setHistory] = useState([]);
-  const { state, saveError, auth, dispatch, signOut, retrySave } =
+  const {
+    state,
+    saveError,
+    auth,
+    dispatch,
+    signOut,
+    retrySave,
+    restoring,
+    sessionType,
+  } =
     useCampusSession({
       onSignedIn: () => {
         setHistory([]);
@@ -57,7 +76,7 @@ export function AppNavigator() {
       const target = typeof next === 'string' ? { page: next } : next;
       if (
         !state &&
-        !['Onboarding', 'Login', 'Sign Up', 'About'].includes(target.page)
+        !['Onboarding', 'Introduction', 'Login', 'Sign Up', 'About'].includes(target.page)
       ) {
         return;
       }
@@ -93,8 +112,23 @@ export function AppNavigator() {
     });
     return () => listener.remove();
   }, [back, history.length, route.page]);
+  if (restoring) {
+    return (
+      <Screen title="Campus4Change">
+        <View style={restoreStyles.content}>
+          <ActivityIndicator color="#52d6e8" size="large" />
+          <Text style={[s.muted, s.center, restoreStyles.message]}>
+            Restoring your account...
+          </Text>
+        </View>
+      </Screen>
+    );
+  }
   if (route.page === 'Onboarding') {
     return <OnboardingScreen go={go} />;
+  }
+  if (route.page === 'Introduction') {
+    return <IntroductionScreen go={go} back={back} />;
   }
   if (route.page === 'Login') {
     return <LoginScreen go={go} back={back} auth={auth} />;
@@ -103,7 +137,7 @@ export function AppNavigator() {
     return <SignUpScreen go={go} back={back} auth={auth} />;
   }
   if (route.page === 'About' && !state) {
-    return <AboutScreen back={back} />;
+    return <AboutScreen back={back} firebaseConfigured={auth.firebaseConfigured} />;
   }
   if (!state) {
     return <OnboardingScreen go={go} />;
@@ -141,7 +175,13 @@ export function AppNavigator() {
   let screen;
   switch (route.page) {
     case 'About':
-      screen = <AboutScreen back={back} />;
+      screen = (
+        <AboutScreen
+          back={back}
+          firebaseConfigured={auth.firebaseConfigured}
+          cloudSession={sessionType === 'firebase'}
+        />
+      );
       break;
     case 'Home':
       screen = (
@@ -387,7 +427,16 @@ export function AppNavigator() {
 
       break;
     case 'Profile':
-      screen = <ProfileScreen go={go} state={state} signOut={signOut} />;
+      screen = (
+        <ProfileScreen
+          go={go}
+          state={state}
+          signOut={signOut}
+          sessionType={sessionType}
+          firebaseConfigured={auth.firebaseConfigured}
+          enableBiometrics={auth.enableBiometrics}
+        />
+      );
       break;
     case 'Edit Profile':
     case 'Preferences':
@@ -470,8 +519,13 @@ export function AppNavigator() {
     <View style={s.grow}>
       {saveError && (
         <View style={s.banner}>
-          <Text style={s.error}>Data has not been saved: {saveError}</Text>
-          <Link label="Retry saving" onPress={retrySave} />
+          <Text style={s.error}>
+            {sessionType === 'firebase' ? 'Some changes are not synced' : 'Data has not been saved'}: {saveError}
+          </Text>
+          <Link
+            label={sessionType === 'firebase' ? 'Retry sync' : 'Retry saving'}
+            onPress={retrySave}
+          />
         </View>
       )}
       {screen ?? (

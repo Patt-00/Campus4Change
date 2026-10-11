@@ -10,6 +10,7 @@ export function LoginScreen({ go, back, auth }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [localOnly, setLocalOnly] = useState(false);
   const passwordInput = useRef(null);
   async function submit(action) {
     if (busy) {
@@ -28,20 +29,54 @@ export function LoginScreen({ go, back, auth }) {
   }
   function signIn() {
     if (!identifier.trim() || !password) {
-      setError('Enter your email or Student ID and password.');
+      setError(
+        auth.firebaseConfigured && !localOnly
+          ? 'Enter your school email and password.'
+          : 'Enter your email or Student ID and password.',
+      );
       return;
     }
-    submit(() => auth.signIn(identifier, password));
+    submit(() =>
+      localOnly
+        ? auth.signInLocal(identifier, password)
+        : auth.signIn(identifier, password),
+    );
+  }
+  function forgotPassword() {
+    if (!auth.firebaseConfigured || localOnly) {
+      Alert.alert(
+        'Local account recovery',
+        'This device account needs its original password. Email recovery is not available. The demo account remains available without your password.',
+      );
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier.trim())) {
+      setError('Enter your school email first so Firebase can send a reset link.');
+      return;
+    }
+    submit(async () => {
+      await auth.sendPasswordReset(identifier);
+      Alert.alert('Check your email', 'Firebase sent a password reset link.');
+    });
   }
   return (
     <Screen title="Welcome back!" back={back}>
       <Text style={[s.muted, styles.marginLeft28marginBottom22]}>
         Sign in to continue
       </Text>
+      {!auth.firebaseConfigured && (
+        <Text style={[s.muted, styles.marginBottom12]}>
+          Firebase is not configured yet. Demo and new local accounts stay on this device.
+        </Text>
+      )}
       <Field
-        label="Email or Student ID"
+        label={auth.firebaseConfigured && !localOnly ? 'School email' : 'Email or Student ID'}
         icon="@"
-        placeholder="Enter your email or student ID"
+        placeholder={
+          auth.firebaseConfigured && !localOnly
+            ? 'name@school.edu'
+            : 'Enter your email or student ID'
+        }
         value={identifier}
         onChangeText={setIdentifier}
         autoCapitalize="none"
@@ -65,31 +100,40 @@ export function LoginScreen({ go, back, auth }) {
         onSubmitEditing={signIn}
       />
 
-      <View style={styles.alignItemsflexend}>
-        <Link
-          label="Forgot password?"
-          onPress={() =>
-            Alert.alert(
-              'Local account recovery',
-              'This device account needs its original password. Email recovery is not available. The demo account remains available without your password.',
-            )
-          }
-        />
-      </View>
+      {!localOnly && (
+        <View style={styles.alignItemsflexend}>
+          <Link label="Forgot password?" onPress={forgotPassword} />
+        </View>
+      )}
       <ErrorText value={error} />
       <AppButton title="SIGN IN" busy={busy} onPress={signIn} />
-      <Text style={[s.muted, s.center, styles.marginVertical20]}>OR</Text>
-      <AppButton
-        title="SIGN IN WITH BIOMETRICS"
-        outline
-        disabled={busy}
-        onPress={() => submit(auth.biometrics)}
-      />
+      {(!auth.firebaseConfigured || localOnly) && (
+        <>
+          <Text style={[s.muted, s.center, styles.marginVertical20]}>OR</Text>
+          <AppButton
+            title="SIGN IN WITH BIOMETRICS"
+            outline
+            disabled={busy}
+            onPress={() => submit(auth.biometrics)}
+          />
+        </>
+      )}
 
       <View style={[s.row, styles.alignSelfcentermarginTop20]}>
         <Text style={s.muted}>Don't have an account?</Text>
         <Link label="Sign up" onPress={() => go('Sign Up')} />
       </View>
+      {auth.firebaseConfigured && (
+        <View style={styles.alignSelfcenter}>
+          <Link
+            label={localOnly ? 'Back to Firebase sign-in' : 'Use existing on-device account'}
+            onPress={() => {
+              setError('');
+              setLocalOnly(!localOnly);
+            }}
+          />
+        </View>
+      )}
       <View style={s.bigGap} />
       <Link label="About Campus4Change" onPress={() => go('About')} />
       <AppButton
@@ -108,6 +152,7 @@ const styles = StyleSheet.create({
     marginLeft: 28,
     marginBottom: 22,
   },
+  marginBottom12: { marginBottom: 12 },
   alignItemsflexend: {
     alignItems: 'flex-end',
   },
@@ -118,4 +163,5 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginTop: 20,
   },
+  alignSelfcenter: { alignSelf: 'center' },
 });
