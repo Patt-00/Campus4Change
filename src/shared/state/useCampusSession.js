@@ -277,7 +277,7 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
     sendPasswordReset: firebasePasswordReset,
   };
 
-  function dispatch(action) {
+  const dispatch = useCallback(action => {
     setState(previous => {
       if (!previous) {
         return previous;
@@ -288,7 +288,7 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
       snapshot.current = next;
       return next;
     });
-  }
+  }, []);
 
   async function signOut() {
     try {

@@ -21,5 +21,8 @@ export function parseState(value) {
   ) {
     throw new Error('Saved data is not compatible with this app version.');
   }
+  if (!Array.isArray(state.pendingSharedActions)) {
+    state.pendingSharedActions = [];
+  }
   return state;
 }

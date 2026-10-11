@@ -6,7 +6,7 @@ import { ErrorText, Field } from '../../../shared/components/UI';
 import { parseMeetup } from '../data/meetup';
 import { s } from '../../../shared/theme/styles';
 
-export function CreateGroupScreen({ back, create }) {
+export function CreateGroupScreen({ back, create, sharingEnabled }) {
   const [name, setName] = useState('');
   const [subject, setSubject] = useState('');
   const [meetup, setMeetup] = useState('');
@@ -23,6 +23,7 @@ export function CreateGroupScreen({ back, create }) {
         placeholder="Example: Exam Review Team"
         value={name}
         onChangeText={setName}
+        maxLength={100}
       />
 
       <Field
@@ -30,6 +31,7 @@ export function CreateGroupScreen({ back, create }) {
         placeholder="Any subject or skill"
         value={subject}
         onChangeText={setSubject}
+        maxLength={100}
       />
 
       <Field
@@ -37,6 +39,7 @@ export function CreateGroupScreen({ back, create }) {
         placeholder="What will you study together?"
         value={meetup}
         onChangeText={setMeetup}
+        maxLength={1000}
       />
 
       <Text style={s.section}>Schedule a meetup (optional)</Text>
@@ -89,7 +92,9 @@ export function CreateGroupScreen({ back, create }) {
       />
 
       <Text style={[s.muted, styles.marginTop16]}>
-        Saved on this device. Group changes are not shared with other people.
+        {sharingEnabled
+          ? 'This group, its membership, posts, and replies will sync with Firebase for signed-in students.'
+          : 'This group and its changes are saved on this device only.'}
       </Text>
     </Screen>
   );

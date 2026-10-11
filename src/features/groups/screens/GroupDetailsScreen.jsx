@@ -30,6 +30,11 @@ export function GroupDetailsScreen({
             : membership(true)
         }
       />
+      <Text style={styles.sharingStatus}>
+        {group.shared
+          ? 'Shared group • Posts and replies are visible to members.'
+          : 'Saved on this device • Other students cannot see this group.'}
+      </Text>
 
       <Text style={s.section}>Next meetup</Text>
       <View style={s.card}>
@@ -40,38 +45,54 @@ export function GroupDetailsScreen({
         <Text style={s.muted}>Focus room • {group.room}</Text>
       </View>
       <Text style={s.section}>Recent posts</Text>
-      {group.posts.map(p => (
-        <TouchableOpacity
-          key={p.id}
-          accessibilityRole="button"
-          accessibilityLabel={'Post by ' + p.author}
-          style={[s.card, styles.minHeight106]}
-          onPress={() =>
-            go({
-              page: 'Group Post',
-              groupId: group.id,
-              postId: p.id,
-            })
-          }
-        >
-          <Text style={[s.name, s.blue]}>{p.author}</Text>
-          <Text style={[s.text, styles.marginTop12]}>{p.text}</Text>
-          <Text style={[s.muted, styles.fontSize9marginTop12]}>
-            {p.replies.length} replies • {dateLabel(p.createdAt)}
-          </Text>
-        </TouchableOpacity>
-      ))}
-      {group.posts.length === 0 && (
-        <Empty title="No posts yet" body="Share the first study note." />
+      {group.shared && !group.joined ? (
+        <Empty
+          title="Member posts are private"
+          body="Join this group to read posts and replies."
+        />
+      ) : group.shared && !group.postsLoaded ? (
+        <Text style={s.muted}>Loading group posts...</Text>
+      ) : (
+        <>
+          {group.posts.map(p => (
+            <TouchableOpacity
+              key={p.id}
+              accessibilityRole="button"
+              accessibilityLabel={'Post by ' + p.author}
+              style={[s.card, styles.minHeight106]}
+              onPress={() =>
+                go({
+                  page: 'Group Post',
+                  groupId: group.id,
+                  postId: p.id,
+                })
+              }
+            >
+              <Text style={[s.name, s.blue]}>{p.author}</Text>
+              <Text style={[s.text, styles.marginTop12]}>{p.text}</Text>
+              <Text style={[s.muted, styles.fontSize9marginTop12]}>
+                {p.replies.length} replies • {dateLabel(p.createdAt)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+          {group.posts.length === 0 && (
+            <Empty title="No posts yet" body="Share the first study note." />
+          )}
+        </>
       )}
       {group.joined && (
         <>
           <Text style={s.section}>Share with the group</Text>
-          <Text style={s.muted}>Posts and replies stay on this device.</Text>
+          <Text style={s.muted}>
+            {group.shared
+              ? 'Your posts and replies are shared with group members.'
+              : 'Posts and replies stay on this device.'}
+          </Text>
           <View style={s.gap} />
           <Field
             placeholder="Write a study note..."
             multiline
+            maxLength={3000}
             value={draft}
             onChangeText={setDraft}
           />
@@ -86,7 +107,9 @@ export function GroupDetailsScreen({
           />
 
           <Link label="Open group chat" onPress={message} />
-          <Link label="Leave group" danger onPress={() => membership(false)} />
+          {!group.isOwner && (
+            <Link label="Leave group" danger onPress={() => membership(false)} />
+          )}
         </>
       )}
     </Screen>
@@ -102,5 +125,10 @@ const styles = StyleSheet.create({
   fontSize9marginTop12: {
     fontSize: 12,
     marginTop: 12,
+  },
+  sharingStatus: {
+    color: '#9CAFC2',
+    fontSize: 12,
+    marginTop: 6,
   },
 });

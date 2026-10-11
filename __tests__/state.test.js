@@ -117,6 +117,156 @@ test('membership changes are idempotent and nonmembers cannot post or send group
   });
   expect(state.conversations[0].messages).toHaveLength(0);
 });
+test('shared group updates retain device groups and replay queued offline changes', () => {
+  const deviceGroup = {
+    id: 'device-group',
+    name: 'Device Group',
+    subject: 'Writing',
+    members: 1,
+    joined: true,
+    posts: [],
+  };
+  const pendingGroup = {
+    id: 'pending-group',
+    name: 'Pending Group',
+    subject: 'Math',
+    members: 1,
+    joined: true,
+    posts: [],
+    shared: true,
+  };
+  const remoteGroup = {
+    id: 'remote-group',
+    name: 'Remote Group',
+    subject: 'Physics',
+    members: 4,
+    joined: false,
+    posts: [],
+    shared: true,
+  };
+  const post = {
+    id: 'queued-post',
+    author: account.name,
+    text: 'A note saved while offline.',
+    createdAt: booking.startsAt,
+    replies: [],
+  };
+  const reply = {
+    id: 'queued-reply',
+    author: account.name,
+    text: 'A reply saved while offline.',
+  };
+  let state = initialState(account);
+  state.groups = [deviceGroup, pendingGroup];
+  state = reducer(state, {
+    type: 'queueSharedGroupAction',
+    operation: { id: 'create-op', type: 'createGroup', group: pendingGroup },
+  });
+  state = reducer(state, {
+    type: 'queueSharedGroupAction',
+    operation: {
+      id: 'join-op',
+      type: 'membership',
+      groupId: remoteGroup.id,
+      joined: true,
+    },
+  });
+  state = reducer(state, {
+    type: 'queueSharedGroupAction',
+    operation: {
+      id: 'post-op',
+      type: 'post',
+      groupId: remoteGroup.id,
+      post,
+    },
+  });
+  state = reducer(state, {
+    type: 'queueSharedGroupAction',
+    operation: {
+      id: 'reply-op',
+      type: 'reply',
+      groupId: remoteGroup.id,
+      postId: post.id,
+      reply,
+    },
+  });
+
+  state = reducer(state, { type: 'sharedGroups', groups: [remoteGroup] });
+  expect(state.groups.map(group => group.id)).toEqual([
+    'remote-group',
+    'device-group',
+    'pending-group',
+  ]);
+  expect(state.groups[0].joined).toBe(true);
+  expect(state.groups[0].members).toBe(5);
+  expect(state.groups[0].posts[0].replies).toEqual([reply]);
+});
+test('shared directory refreshes preserve loaded member posts and clear them after leaving', () => {
+  const cachedPost = {
+    id: 'cached-post',
+    author: 'Other student',
+    text: 'A shared note.',
+    createdAt: booking.startsAt,
+    replies: [],
+  };
+  let state = initialState(account);
+  state.groups = [
+    {
+      id: 'remote-group',
+      name: 'Remote Group',
+      subject: 'Physics',
+      members: 2,
+      joined: true,
+      shared: true,
+      postsLoaded: true,
+      posts: [cachedPost],
+    },
+  ];
+
+  state = reducer(state, {
+    type: 'sharedGroups',
+    groups: [
+      {
+        id: 'remote-group',
+        name: 'Remote Group',
+        subject: 'Physics',
+        members: 2,
+        joined: true,
+        shared: true,
+        postsLoaded: false,
+        posts: [],
+      },
+    ],
+  });
+  expect(state.groups[0].posts).toEqual([cachedPost]);
+  expect(state.groups[0].postsLoaded).toBe(true);
+
+  const updatedPost = { ...cachedPost, text: 'Live update.' };
+  state = reducer(state, {
+    type: 'sharedGroupPosts',
+    id: 'remote-group',
+    posts: [updatedPost],
+  });
+  expect(state.groups[0].posts).toEqual([updatedPost]);
+
+  state = reducer(state, {
+    type: 'sharedGroups',
+    groups: [
+      {
+        id: 'remote-group',
+        name: 'Remote Group',
+        subject: 'Physics',
+        members: 1,
+        joined: false,
+        shared: true,
+        postsLoaded: true,
+        posts: [],
+      },
+    ],
+  });
+  expect(state.groups[0].posts).toEqual([]);
+  expect(state.groups[0].postsLoaded).toBe(true);
+});
 test('new accounts have no demo bookings or messages and start with independent data', () => {
   const a = initialState(account);
   const b = initialState({ ...account, id: 'other' });

@@ -9,8 +9,8 @@ The app follows the dark background, cyan actions, rounded cards, Inter typograp
 | Figma node | Screen | Local behavior |
 | --- | --- | --- |
 | 1:2 | Onboarding | Open login. |
-| 1:15 | Login | Validate/check local credentials, explicit demo entry, Android biometrics. |
-| 1:39 | Sign-up | Validate fields and create a device account. |
+| 1:15 | Login | Firebase email/password or local credentials, explicit demo entry, password reset, Android biometrics for local accounts. |
+| 1:39 | Sign-up | Validate fields and create a Firebase or device account, depending on configuration. |
 | 1:69 | Home | Search, quick actions, next session, menu, notifications, tabs. |
 | 1:133 | Tutor Search | Text search, subjects from actual listings, request/rating filters, clear filters. |
 | 1:187 | Tutor Details | Selected tutor, subjects, booking, conversation. |
@@ -32,12 +32,12 @@ The app adds supporting forms for group creation, study posts/replies, becoming 
 
 Version 1.2.0 keeps the visual theme while replacing letter icons with outline icons, increasing text and touch sizes, and allowing custom interests and optional user-entered school details. The dashboard uses saved interests and current tutor counts. Chosen tutor times carry into booking. Group schedules use their optional saved date/time; no schedule is invented for old groups. Sample content belongs to the demo account, with historical personal work preserved.
 
-The local study room has a 25-minute focus timer and saved notes. Session rooms can mark a session completed. Group room notes can be published to the joined group's local feed. Back navigation preserves drafts.
+The local study room has a 25-minute focus timer and saved notes. Session rooms can mark a session completed. Group room notes are published to the joined group's feed; Firebase groups share those notes with their members. Back navigation preserves drafts.
 
 ## Limits
 
-All changes stay on this device and in this account's state. Demo tutors and group members are sample data. New accounts have no remote directory; local tutor listings are not published to other users.
+Most prototype data stays in this account's state. With Firebase configured, signed-in students share the study-group directory, memberships, posts, and replies; demo/device-only groups remain local. Tutor listings and bookings are not published to other users.
 
-Bookings have no remote approval or payment. Messages have no delivery or live replies. Groups have no shared campus service. Rooms have no live participants, voice, or video. Notifications have no OS push delivery. Forgotten-password help explains that online recovery is unavailable.
+Bookings have no remote approval or payment. Direct messages and group chat have no live delivery. Rooms have no live participants, voice, or video. Notifications have no OS push delivery. Firebase password reset is available to configured Firebase accounts; device-only accounts must use their original password.
 
-No school email verification, file-upload service, or backend is connected. This release does not claim a complete online service.
+Firebase Authentication, private account-state sync, and shared study-group data are implemented when configured. The current checkout has blank Firebase client settings and has not deployed its Firestore rules to a real project. No school email verification or file-upload service is connected, so this is not yet a complete online service.

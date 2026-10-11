@@ -89,6 +89,7 @@ export function initialState(account) {
   return {
     version: 1,
     updatedAt: Date.now(),
+    pendingSharedActions: [],
     profile: {
       ...account,
       course: account.id === 'demo' ? 'BS Computer Science' : '',

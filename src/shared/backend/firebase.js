@@ -144,6 +144,13 @@ export function firestoreAvailable() {
   return Boolean(db && auth?.currentUser);
 }
 
+export function firebaseServicesForUser(uid) {
+  if (!db || auth?.currentUser?.uid !== uid) {
+    throw new Error('Sign in to use Firebase data.');
+  }
+  return { db, firestore: firebaseSdk().firestore };
+}
+
 export async function loadCloudState(uid) {
   if (!db || auth?.currentUser?.uid !== uid) {
     throw new Error('Sign in to load your Firebase account data.');

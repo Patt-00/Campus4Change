@@ -1,6 +1,6 @@
 # Campus4Change architecture
 
-The app uses React Native CLI 0.87.1, React 19.2.3, JavaScript/JSX, and Hermes. It has no navigation library or external state framework. When Firebase is configured, Firebase Authentication handles cloud accounts and Firestore syncs a private state document per user. The local demo remains available without Firebase configuration.
+The app uses React Native CLI 0.87.1, React 19.2.3, JavaScript/JSX, and Hermes. It has no navigation library or external state framework. When Firebase is configured, Firebase Authentication handles cloud accounts, Firestore syncs each user's private state, and the groups feature shares its directory, membership, posts, and replies. The local demo remains available without Firebase configuration.
 
 ## Entry and ownership
 
@@ -61,14 +61,21 @@ State records are plain JavaScript objects for profiles, tutors, sessions, group
 
 The profile feature owns the custom-interest editor. The tutor feature owns booking slot definitions shared by its details and booking forms, and pure search/filter rules in `data/search.js`. The group feature owns meetup date validation. A group's optional `meetupAt` ISO timestamp is compatible with version-1 saved state; old groups without it show no scheduled meetup.
 
-`shared/state/reducer.js` applies profile edits, bookings, session changes, memberships, posts, replies, messages, read notices, and study-note drafts. It rejects overlapping bookings, invalid ratings, and group posts/messages from non-members.
+`shared/state/reducer.js` applies profile edits, bookings, session changes, memberships, posts, replies, messages, read notices, and study-note drafts. It rejects overlapping bookings, invalid ratings, and group posts/messages from non-members. A version-1 `pendingSharedActions` queue preserves shared group writes in the encrypted device state so the navigator can retry them after network failures.
 
 The account hook saves changed state to encrypted Android storage. With Firebase configured, it also saves the complete state under `users/{uid}/private/state` and restores the user's Firebase session at app launch. If a newer encrypted local copy exists than the cloud copy, it is synced up. Save failures appear in the navigator's banner with a retry action. Sign-out saves the latest state before clearing the active account; a failed save keeps the account open. Loaded state must belong to the account that signed in. Saved JSON remains version 1.
 
-`firestore.rules` restricts every record to the authenticated owner and denies
-unmatched collections. This schema is an account backup/sync boundary only:
-users cannot browse or share tutors, bookings, groups, posts, or messages with
-one another yet. It is not the final multi-user collaboration model.
+`features/groups/data/firestore.js` maps the group feature model to
+`studyGroups/{groupId}`, private member records, posts, and replies. Directory
+updates read only changed group metadata and membership; post and reply
+listeners run only while a member has that group open.
+`features/groups/hooks/useSharedGroups.js` owns the live directory, merges it
+with device-only groups, and retries the account's pending group changes. The
+navigator only connects those group callbacks to screens. `firestore.rules`
+lets authenticated users discover group metadata, restricts each membership
+record to its owner, and permits post/reply reads and writes only for members.
+The private account document remains scoped to its owner. Tutor listings,
+bookings, group chats, and direct messages are still local to one account.
 
 ## Android local accounts
 
@@ -82,7 +89,7 @@ one another yet. It is not the final multi-user collaboration model.
 - Biometric setup requires a signed-in non-demo account and a successful Android biometric prompt. Sign-in uses the enrolled device biometrics. Android 9 or newer is required.
 - Android backup is disabled. Clearing app data or uninstalling removes local accounts and data.
 
-This is local prototype authentication, not school identity verification. There is no shared campus database, online account recovery, or device sync. The iOS scaffold cannot use this Android module.
+These device-only accounts are not school identity verification. Configured Firebase accounts provide email/password authentication, account recovery, private state sync, and shared study groups, but the app has no institutional sign-in or complete campus data service. The iOS scaffold cannot use this Android module.
 
 ## UI and builds
 
@@ -99,6 +106,10 @@ Release builds bundle JavaScript, fonts, and images and run without Metro. Herme
 Account lifecycle tests also verify rejection of another account's saved state, saving before sign-out, clearing route history on sign-out, and retaining the active account when its final save fails.
 
 `state.test.js` checks overlap and adjacency, rescheduling, ratings, membership restrictions, fresh account state, combined search filters, and saved-state compatibility.
+
+`groupFirestore.test.js` checks changed-metadata reads, lazy post loading,
+live reply updates, and listener cleanup for groups that are closed or no
+longer joined.
 
 Version 1.2.0 tests also cover custom-interest addition/removal/deduplication and reopening, optional school fields, empty personal directories, historical sample data, selected booking slots, group schedule validation, and About navigation before sign-in.
 

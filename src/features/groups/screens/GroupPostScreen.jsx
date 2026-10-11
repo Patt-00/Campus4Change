@@ -42,6 +42,7 @@ export function GroupPostScreen({ back, group, post, reply }) {
             value={text}
             onChangeText={setText}
             multiline
+            maxLength={2000}
           />
 
           <AppButton

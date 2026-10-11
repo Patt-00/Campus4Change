@@ -2,12 +2,14 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Version 1 stores each signed-in user's complete private app state in
-    // their own document. This lets the app sync accounts across devices
-    // without exposing another student's profile or saved work.
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Version 1 keeps each student's private account state under their UID.
     match /users/{userId}/private/state {
       function ownsDocument() {
-        return request.auth != null && request.auth.uid == userId;
+        return signedIn() && request.auth.uid == userId;
       }
 
       allow read, delete: if ownsDocument();
@@ -21,7 +23,142 @@ service cloud.firestore {
         && request.resource.data.updatedAt is timestamp;
     }
 
-    // No public or cross-user collections are enabled in the first schema.
+    // Study group metadata is visible to signed-in students. Membership IDs
+    // are private to their owners; a public count lives on the group document.
+    match /studyGroups/{groupId} {
+      function memberPath(userId) {
+        return /databases/$(database)/documents/studyGroups/$(groupId)/members/$(userId);
+      }
+
+      function groupPath() {
+        return /databases/$(database)/documents/studyGroups/$(groupId);
+      }
+
+      function isMember() {
+        return signedIn() && exists(memberPath(request.auth.uid));
+      }
+
+      function touchesOnlyActivity() {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['updatedAt'])
+          && request.resource.data.updatedAt == request.time;
+      }
+
+      function changesMemberCount() {
+        let currentMember = exists(memberPath(request.auth.uid));
+        let memberAfter = existsAfter(memberPath(request.auth.uid));
+        let oldCount = resource.data.memberCount;
+        let newCount = request.resource.data.memberCount;
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberCount', 'updatedAt'])
+          && request.resource.data.updatedAt == request.time
+          && ((newCount == oldCount + 1 && !currentMember && memberAfter)
+            || (newCount == oldCount - 1 && currentMember && !memberAfter));
+      }
+
+      allow get, list: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll([
+          'ownerUid', 'name', 'subject', 'meetup', 'meetupAt', 'room',
+          'memberCount', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'ownerUid', 'name', 'subject', 'meetup', 'meetupAt', 'room',
+          'memberCount', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 100
+        && request.resource.data.subject is string
+        && request.resource.data.subject.size() <= 100
+        && request.resource.data.meetup is string
+        && request.resource.data.meetup.size() <= 1000
+        && (request.resource.data.meetupAt == null || request.resource.data.meetupAt is string)
+        && request.resource.data.room is string
+        && request.resource.data.room.size() <= 100
+        && request.resource.data.memberCount == 1
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && existsAfter(memberPath(request.auth.uid));
+      allow update: if (isMember() && touchesOnlyActivity())
+        || changesMemberCount();
+      allow delete: if false;
+
+      match /members/{userId} {
+        function parentGroup() {
+          return /databases/$(database)/documents/studyGroups/$(groupId);
+        }
+
+        allow get: if signedIn() && request.auth.uid == userId;
+        allow list: if false;
+        allow create: if signedIn()
+          && request.auth.uid == userId
+          && request.resource.data.keys().hasAll(['uid', 'role', 'joinedAt'])
+          && request.resource.data.keys().hasOnly(['uid', 'role', 'joinedAt'])
+          && request.resource.data.uid == userId
+          && request.resource.data.joinedAt == request.time
+          && ((request.resource.data.role == 'owner'
+              && getAfter(parentGroup()).data.ownerUid == userId
+              && getAfter(parentGroup()).data.memberCount == 1)
+            || (request.resource.data.role == 'member'
+              && exists(parentGroup())
+              && getAfter(parentGroup()).data.memberCount
+                == get(parentGroup()).data.memberCount + 1));
+        allow update: if false;
+        allow delete: if signedIn()
+          && request.auth.uid == userId
+          && resource.data.role == 'member'
+          && getAfter(parentGroup()).data.memberCount
+            == get(parentGroup()).data.memberCount - 1
+          && getAfter(parentGroup()).data.updatedAt == request.time;
+      }
+
+      match /posts/{postId} {
+        function parentGroup() {
+          return /databases/$(database)/documents/studyGroups/$(groupId);
+        }
+
+        function memberPath() {
+          return /databases/$(database)/documents/studyGroups/$(groupId)/members/$(request.auth.uid);
+        }
+
+        allow get, list: if isMember();
+        allow create: if signedIn()
+          && exists(memberPath())
+          && request.resource.data.keys().hasAll(['authorUid', 'author', 'text', 'createdAt'])
+          && request.resource.data.keys().hasOnly(['authorUid', 'author', 'text', 'createdAt'])
+          && request.resource.data.authorUid == request.auth.uid
+          && request.resource.data.author is string
+          && request.resource.data.author.size() <= 100
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 3000
+          && request.resource.data.createdAt == request.time;
+        allow update, delete: if false;
+
+        match /replies/{replyId} {
+          function memberPath() {
+            return /databases/$(database)/documents/studyGroups/$(groupId)/members/$(request.auth.uid);
+          }
+
+          allow get, list: if signedIn() && exists(memberPath());
+          allow create: if signedIn()
+            && exists(memberPath())
+            && exists(/databases/$(database)/documents/studyGroups/$(groupId)/posts/$(postId))
+            && request.resource.data.keys().hasAll(['authorUid', 'author', 'text', 'createdAt'])
+            && request.resource.data.keys().hasOnly(['authorUid', 'author', 'text', 'createdAt'])
+            && request.resource.data.authorUid == request.auth.uid
+            && request.resource.data.author is string
+            && request.resource.data.author.size() <= 100
+            && request.resource.data.text is string
+            && request.resource.data.text.size() > 0
+            && request.resource.data.text.size() <= 2000
+            && request.resource.data.createdAt == request.time;
+          allow update, delete: if false;
+        }
+      }
+    }
+
+    // Every collection not listed above is private by default.
     match /{document=**} {
       allow read, write: if false;
     }

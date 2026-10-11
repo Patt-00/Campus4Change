@@ -1,11 +1,12 @@
 # Firebase setup for Campus4Change
 
-Campus4Change uses the Firebase JavaScript SDK. The first cloud schema uses
-Firebase Authentication for email/password accounts and one private Firestore
-state document per user. Authentication persists across app restarts. The
-Firebase refresh token is stored through the Android native module and encrypted
-with Android Keystore-backed AES-GCM. A second encrypted copy of app state stays
-on the device for recovery when cloud sync fails.
+Campus4Change uses the Firebase JavaScript SDK. Firebase Authentication handles
+email/password accounts. Firestore stores one private account-state document
+per user and a separate shared study-group directory. Authentication persists
+across app restarts. The Firebase refresh token is stored through the Android
+native module and encrypted with Android Keystore-backed AES-GCM. A second
+encrypted copy of app state stays on the device for recovery when cloud sync
+fails.
 
 ## Configure a Firebase project
 
@@ -47,8 +48,10 @@ In another terminal, run:
 npm run test:firestore-rules
 ```
 
-The test checks owner access, rejects unauthenticated and cross-user access,
-rejects mismatched user IDs, and rejects an unconfigured public collection.
+The test checks private account ownership, authenticated group discovery,
+private membership records, safe membership-count updates, and member-only post
+and reply reads and writes. It also rejects unauthenticated access, membership
+spoofing, nonmember posting, and unconfigured collections.
 The rules-test package requires Node.js 24.12 or newer; the React Native app
 build itself retains the repository's Node.js 22.11 minimum.
 
@@ -59,17 +62,20 @@ emulators are running, then run `adb reverse tcp:9099 tcp:9099` and
 
 ## Current data boundary
 
-The `firestore.rules` file allows a signed-in user to read and update only
-`users/{uid}/private/state`, where `uid` must match the Firebase Authentication
-user. The rules require the app-state ID to match that user and currently permit
-only schema version 1. Unmatched documents are denied.
+The `firestore.rules` file allows a signed-in user to read and update only their
+own `users/{uid}/private/state` document. It also allows signed-in students to
+discover group metadata, while keeping each membership record private to its
+owner. Only current group members can read or write posts and replies. Joining
+or leaving a group updates the public member count in the same validated batch.
+Unmatched documents are denied.
 
-The app writes its whole account state into that one document. Firestore limits
-documents to 1 MiB; the app uses a lower client-side size cap. This first schema
-syncs a user's own data across that user's devices. It does not yet make tutor
-listings, bookings, group membership, posts, or messages visible to other
-students. Google sign-in, email verification, and social data sharing still
-need their own design and Firebase configuration.
+The app writes its account state into the private document. Firestore limits
+documents to 1 MiB; the app uses a lower client-side size cap. Shared groups,
+memberships, posts, and replies use the separate `studyGroups` collection.
+Device-only/demo groups remain local. Tutor listings, bookings, group chat, and
+direct messages are not shared with other students yet. Google sign-in, email
+verification, and wider social data sharing still need their own design and
+Firebase configuration.
 
 Without Firebase values in `firebaseConfig.js`, local demo/prototype accounts
 continue to work. New account creation uses local storage in this unconfigured

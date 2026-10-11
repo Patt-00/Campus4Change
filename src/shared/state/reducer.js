@@ -51,6 +51,60 @@ export function reducer(state, action) {
     }
     case 'createGroup':
       return { ...state, groups: [action.group, ...state.groups] };
+    case 'sharedGroups':
+    {
+      const remoteIds = new Set(action.groups.map(group => group.id));
+      const localById = new Map(
+        state.groups.map(group => [group.id, group]),
+      );
+      const groups = [
+        ...action.groups.map(group => {
+          const previous = localById.get(group.id);
+          const retainPosts = previous?.joined && group.joined;
+          return {
+            ...group,
+            posts: retainPosts ? previous.posts : group.posts ?? [],
+            postsLoaded: retainPosts
+              ? Boolean(previous.postsLoaded)
+              : Boolean(group.postsLoaded),
+          };
+        }),
+        ...state.groups.filter(group => !remoteIds.has(group.id)),
+      ];
+      return {
+        ...state,
+        groups: replayPendingGroupActions(
+          groups,
+          state.pendingSharedActions ?? [],
+        ),
+      };
+    }
+    case 'sharedGroupPosts':
+      return {
+        ...state,
+        groups: state.groups.map(group =>
+          group.id === action.id && group.shared && group.joined
+            ? { ...group, posts: action.posts, postsLoaded: true }
+            : group,
+        ),
+      };
+    case 'queueSharedGroupAction': {
+      const pending = state.pendingSharedActions ?? [];
+      if (pending.some(item => item.id === action.operation.id)) {
+        return state;
+      }
+      return {
+        ...state,
+        pendingSharedActions: [...pending, action.operation],
+      };
+    }
+    case 'sharedGroupActionSynced':
+      return {
+        ...state,
+        pendingSharedActions: (state.pendingSharedActions ?? []).filter(
+          item => item.id !== action.id,
+        ),
+      };
     case 'membership':
       return {
         ...state,
@@ -134,6 +188,58 @@ export function reducer(state, action) {
         ),
       };
   }
+}
+
+function replayPendingGroupActions(groups, pendingActions) {
+  let next = groups;
+  for (const action of pendingActions) {
+    if (action.type === 'createGroup' && action.group) {
+      if (!next.some(group => group.id === action.group.id)) {
+        next = [action.group, ...next];
+      }
+    } else if (action.type === 'membership') {
+      next = next.map(group => {
+        if (group.id !== action.groupId || group.joined === action.joined) {
+          return group;
+        }
+        return {
+          ...group,
+          joined: action.joined,
+          members: Math.max(0, group.members + (action.joined ? 1 : -1)),
+        };
+      });
+    } else if (action.type === 'post') {
+      next = next.map(group => {
+        if (
+          group.id !== action.groupId ||
+          !group.joined ||
+          group.posts.some(post => post.id === action.post.id)
+        ) {
+          return group;
+        }
+        return { ...group, posts: [action.post, ...group.posts] };
+      });
+    } else if (action.type === 'reply') {
+      next = next.map(group => {
+        if (group.id !== action.groupId || !group.joined) {
+          return group;
+        }
+        return {
+          ...group,
+          posts: group.posts.map(post => {
+            if (
+              post.id !== action.postId ||
+              post.replies.some(reply => reply.id === action.reply.id)
+            ) {
+              return post;
+            }
+            return { ...post, replies: [...post.replies, action.reply] };
+          }),
+        };
+      });
+    }
+  }
+  return next;
 }
 
 export function hasConflict(state, startsAt, exceptId) {

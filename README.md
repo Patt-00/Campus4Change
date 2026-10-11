@@ -11,7 +11,7 @@ Version 1.2.0 adds custom learning interests, personal school details, clear ico
 - Optional Android biometric sign-in after password login and a successful biometric prompt.
 - Tutor search, filters, and the correct selected tutor profile.
 - Future one-hour bookings, overlap checks, rescheduling, cancellation, completion, and ratings.
-- Study-group search, creation, membership, posts, replies, and local conversations.
+- Study-group discovery and collaboration: Firebase accounts share group details, membership counts, posts, and replies. Device-only accounts keep their groups locally.
 - A local study room with a focus timer and saved notes.
 - Conversation search, saved messages, in-app notifications, and learning preferences.
 - A tutor profile that is listed in this account's local directory.
@@ -19,9 +19,9 @@ Version 1.2.0 adds custom learning interests, personal school details, clear ico
 - Optional group meetup dates and times, with valid-date and future-time checks.
 - About screen with device storage, demo data, and service limits.
 
-When Firebase is configured, email/password accounts use Firebase Authentication and private app state syncs to that user's Firestore record. Authentication is restored when the app reopens. An encrypted on-device copy remains available for recovery when cloud sync fails. Without Firebase configuration, the local prototype/demo account flow remains available. See [Firebase setup](docs/FIREBASE_SETUP.md).
+When Firebase is configured, email/password accounts use Firebase Authentication and private app state syncs to that user's Firestore record. Signed-in students can discover shared groups; membership records are private, and only members can read or add group posts and replies. Pending group changes are saved locally and can be retried if the connection fails. Authentication is restored when the app reopens. An encrypted on-device copy remains available for recovery when cloud sync fails. Without Firebase configuration, the local prototype/demo account flow remains available. See [Firebase setup](docs/FIREBASE_SETUP.md).
 
-The current Firestore document is private to one account. It does not yet share tutor listings, bookings, group membership, posts, or messages with other students. Sample tutors do not receive bookings or messages. Live chat, calls, push notifications, email verification, and Google sign-in are not implemented. Clearing app data removes the encrypted local copy; configured Firebase accounts and cloud state remain in Firebase.
+The account-state document stays private to its owner. Shared groups use separate Firestore documents. Tutor listings, bookings, group chat, and direct messages are not shared between students yet. Sample tutors do not receive bookings or messages. Live chat, calls, push notifications, email verification, and Google sign-in are not implemented. Clearing app data removes the encrypted local copy; configured Firebase accounts and cloud state remain in Firebase.
 
 ## Demo account
 
@@ -50,6 +50,7 @@ The release APK uses the repository's debug signing key for school prototype dis
 
 - [Architecture and feature ownership](docs/ARCHITECTURE.md)
 - [Firebase setup and data boundary](docs/FIREBASE_SETUP.md)
+- [Ongoing quality audit and open issues](docs/QUALITY_AUDIT.md)
 - [PC and Termux builds](docs/BUILDING.md)
 - [Figma coverage and limits](docs/FIGMA_COVERAGE.md)
 - [Verification and teacher walkthrough](docs/VERIFICATION.md)

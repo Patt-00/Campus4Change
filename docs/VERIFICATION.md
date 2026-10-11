@@ -2,19 +2,22 @@
 
 ## Current source work — 2026-10-11
 
-This local checkpoint is on branch `codex/firebase-auth-firestore`. It adds a
-React Native introduction for Novice, Intermediate, and Expert learners, plus
-Firebase Authentication/Firestore integration scaffolding with encrypted
-Android Auth persistence, an encrypted per-user local cache, and owner-only
-Firestore rules. Application and test source contains no TypeScript files.
+This local checkpoint is on branch `codex/firebase-auth-firestore`. It includes
+the Novice, Intermediate, and Expert introduction, Firebase email/password
+accounts, encrypted Android Auth persistence and account cache, private
+per-user state sync, and shared study groups with private memberships and
+member-only posts and replies. Application and test source contains no
+TypeScript files.
 
 Verified for this checkpoint:
 
-- `npm run lint`: passed.
-- `npm test -- --runInBand --testTimeout=15000`: 27 tests passed in 2 suites.
-- The Firestore rules test passed against the local Firebase Emulator Suite. It
-  accepts owner access and rejects anonymous, cross-user, mismatched UID, and
-  unconfigured collection access.
+- `npm run lint`: passed without warnings.
+- `npm test -- --runInBand --testTimeout=15000`: 32 tests passed in 3 suites.
+- The Firestore rules test passed against the local Firebase Emulator Suite.
+  It checks private account state, authenticated group discovery, member-only
+  posts/replies, private memberships, safe member counts, and rejects owner
+  departure, membership spoofing, anonymous access, nonmember writes, and
+  unconfigured collections.
 - The app was also exercised against local Auth and Firestore emulators on the
   Android phone. Email/password sign-up succeeded, the per-user state document
   was written under the authenticated UID, and a Firestore-side profile change
@@ -22,14 +25,15 @@ Verified for this checkpoint:
   present after restart and removed after sign-out. Test data used
   `campus4change.qa@example.com` in the emulator only; the password manager
   prompt was dismissed without saving that test password.
-- The Android release build completed for `arm64-v8a` with JDK 25. It bundles
-  the JavaScript, has package `com.campus4change`, version code 3/version 1.2.0,
-  and verifies with the same debug certificate as the installed app.
-- The release build was installed as an update on the connected Android phone.
-  A cold launch stayed alive without a fatal app error. The splash, introduction
-  slides, login screen, demo sign-in, and Home were exercised through UI
-  hierarchy evidence. The previously saved `Writing` interest remained after
-  the update.
+- `android/gradlew assembleRelease --max-workers=4 --console=plain`: passed
+  with JDK 25 and bundled the production JavaScript. Package:
+  `com.campus4change`, version code 3/version 1.2.0. The 54 MB APK verifies
+  with the existing debug certificate; SHA-256:
+  `8a11406feba3005efd7e5b4ee3f70245484d1292c015b5ea2ba497055b4c06fe`.
+- The release APK installed as an update on the previously connected Android
+  device. Current `adb devices -l` output only lists model `24129RT7CC`, not the
+  requested Xiaomi Pad 7, so the shared-group flow was not visually verified on
+  the Pad 7.
 
 Firebase values in `src/shared/backend/firebaseConfig.js` are blank again after
 the emulator test, and Firestore rules have not been deployed to a real Firebase
@@ -37,12 +41,13 @@ project. A real Firebase project sign-up, password reset, cross-device sync, and
 shared student workflows remain unverified. This APK was not uploaded as a
 GitHub release. It remains debug-signed and labeled 1.2.0.
 
-The first Firestore schema is private to each account. Cross-student tutor
-discovery, bookings, groups, posts, and conversations still use the app's local
-state model and are not shared between accounts. The dependency audit reports
-21 high-severity transitive findings in React Native/Metro/CLI dependencies and
-zero critical findings; compatible upstream fixes need review before changing
-the React Native toolchain.
+Shared group metadata, membership counts, posts, and replies now use the
+`studyGroups` Firestore collection for authenticated Firebase users. Local/demo
+groups remain on-device. Tutor listings, bookings, group chats, and direct
+messages are still private/local and are not shared between accounts. The
+dependency audit reports 21 high-severity transitive findings in
+React Native/Metro/CLI dependencies and zero critical findings; compatible
+upstream fixes need review before changing the React Native toolchain.
 
 The published v1.2.0 APK was verified on Windows on 2026-10-01. The current source was converted to JavaScript/JSX and rebuilt in Termux on 2026-10-02. Neither result establishes phone installation or screen behavior.
 
@@ -146,15 +151,15 @@ Complete these manual checks on the exact release APK before demonstrating it.
 4. Search for Mika, choose a time on her profile, and book a future session. Verify the selected tutor, time, note, and overlap rejection.
 5. Reschedule, cancel, complete, and rate sessions. Check each status view.
 6. Create a group without a date and confirm no schedule is invented. Create another with a valid future date and time; reject a nonexistent date.
-7. Join/leave groups, write notes and replies, and use a study-room timer. Check drafts after Android Back and after reopening.
-8. Save a message and reopen it. Explain that messages are not delivered to another device unless the Firebase shared-data model is implemented.
+7. Join/leave groups, write notes and replies, and use a study-room timer. Firebase accounts share group posts/replies when project settings and Firestore rules are configured; device-only accounts keep local groups. Check drafts after Android Back and after reopening.
+8. Save a message and reopen it. Direct messages and group chat remain local and are not delivered to another device.
 9. Open notifications and check their read state.
 10. Add a custom interest, reject a duplicate with different letter case, remove an interest, and save. Check the home interest and tutor count.
 11. Create a separate account and confirm that interests and school fields start blank, with an empty tutor directory and groups. Save preferences without entering school details.
 12. Enter your course, year, and school. Create a tutor listing, edit it from search, and remove it.
 13. Sign out and sign in again to check saved data. Check biometrics on a personal account if enrolled on the phone.
 
-Bookings, messages, and group changes stay on the device. About explains those limits. Do not present sample contacts as live users.
+Tutor listings, bookings, direct messages, and group chat stay in the account's private state. Signed-in Firebase users share group details, membership, posts, and replies; device-only accounts keep groups locally. About explains the remaining limits. Do not present sample contacts as live users.
 
 ## Historical 1.1.0 device checks
 

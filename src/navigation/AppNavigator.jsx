@@ -28,6 +28,7 @@ import { AppButton } from '../shared/components/AppButton';
 import { Empty, Link } from '../shared/components/UI';
 import { Screen } from '../shared/components/Screen';
 import { uid } from '../shared/data/demo';
+import { useSharedGroups } from '../features/groups/hooks/useSharedGroups';
 import {
   directoryTutors,
   knownTutors,
@@ -71,6 +72,28 @@ export function AppNavigator() {
         setRoute({ page: 'Login' });
       },
     });
+  const syncUid = sessionType === 'firebase' ? state?.profile?.id : null;
+  const activeGroupId =
+    route.page === 'Group Details' || route.page === 'Group Post'
+      ? route.groupId
+      : null;
+  const {
+    groups: groupDirectory,
+    error: sharedGroupsError,
+    retry: retrySharedGroups,
+    actionError: groupActionError,
+    retryActions: retryGroupActions,
+    contentError: groupContentError,
+    retryContent: retryGroupContent,
+    queueGroupCreation,
+    dispatchGroupChange,
+  } = useSharedGroups({
+    uid: syncUid,
+    enabled: Boolean(syncUid),
+    state,
+    dispatch,
+    activeGroupId,
+  });
   const go = useCallback(
     next => {
       const target = typeof next === 'string' ? { page: next } : next;
@@ -148,7 +171,7 @@ export function AppNavigator() {
   const tutor = list.find(t => t.id === route.tutorId);
   const session = state.sessions.find(x => x.id === route.sessionId);
   const sessionTutor = list.find(x => x.id === session?.tutorId);
-  const group = state.groups.find(x => x.id === route.groupId);
+  const group = groupDirectory.find(x => x.id === route.groupId);
   const post = group?.posts.find(x => x.id === route.postId);
   const conversation = state.conversations.find(
     x => x.id === route.conversationId,
@@ -307,7 +330,11 @@ export function AppNavigator() {
       break;
     case 'Study Groups':
       screen = (
-        <GroupsScreen go={go} back={back} groups={visibleGroups(state)} />
+        <GroupsScreen
+          go={go}
+          back={back}
+          groups={visibleGroups({ ...state, groups: groupDirectory })}
+        />
       );
 
       break;
@@ -315,22 +342,30 @@ export function AppNavigator() {
       screen = (
         <CreateGroupScreen
           back={back}
+          sharingEnabled={Boolean(syncUid)}
           create={(name, subject, meetup, meetupAt) => {
             const id = uid('group');
+            const sharedGroup = Boolean(syncUid);
+            const nextGroup = {
+              id,
+              name,
+              subject,
+              members: 1,
+              joined: true,
+              meetup,
+              meetupAt,
+              room: 'C4C-' + id.slice(-6).toUpperCase(),
+              posts: [],
+              postsLoaded: true,
+              shared: sharedGroup,
+              ownerUid: sharedGroup ? syncUid : undefined,
+              isOwner: sharedGroup,
+            };
             dispatch({
               type: 'createGroup',
-              group: {
-                id,
-                name,
-                subject,
-                members: 1,
-                joined: true,
-                meetup,
-                meetupAt,
-                room: 'LOCAL-' + id.slice(-6).toUpperCase(),
-                posts: [],
-              },
+              group: nextGroup,
             });
+            queueGroupCreation(nextGroup);
             go({ page: 'Group Details', groupId: id });
           }}
         />
@@ -345,11 +380,15 @@ export function AppNavigator() {
             back={back}
             group={group}
             membership={joined =>
-              dispatch({ type: 'membership', id: group.id, joined })
+              dispatchGroupChange({
+                type: 'membership',
+                id: group.id,
+                joined,
+              })
             }
             message={groupMessage}
             addPost={text =>
-              dispatch({
+              dispatchGroupChange({
                 type: 'post',
                 groupId: group.id,
                 post: {
@@ -374,7 +413,7 @@ export function AppNavigator() {
             group={group}
             post={post}
             reply={text =>
-              dispatch({
+              dispatchGroupChange({
                 type: 'reply',
                 groupId: group.id,
                 postId: post.id,
@@ -397,7 +436,7 @@ export function AppNavigator() {
             conversation={conversation}
             canSend={
               !conversation.groupId ||
-              state.groups.some(g => g.id === conversation.groupId && g.joined)
+              groupDirectory.some(g => g.id === conversation.groupId && g.joined)
             }
             send={text =>
               dispatch({
@@ -497,7 +536,7 @@ export function AppNavigator() {
                   },
                 });
               } else if (group && notes.trim()) {
-                dispatch({
+                dispatchGroupChange({
                   type: 'post',
                   groupId: group.id,
                   post: {
@@ -517,6 +556,27 @@ export function AppNavigator() {
   }
   return (
     <View style={s.grow}>
+      {sharedGroupsError && (
+        <View style={s.banner}>
+          <Text style={s.error}>Study groups could not be refreshed: {sharedGroupsError}</Text>
+          <Link label="Retry groups" onPress={retrySharedGroups} />
+        </View>
+      )}
+      {groupActionError && (
+        <View style={s.banner}>
+          <Text style={s.error}>A group change has not synced: {groupActionError}</Text>
+          <Link
+            label="Retry group changes"
+            onPress={retryGroupActions}
+          />
+        </View>
+      )}
+      {groupContentError && (
+        <View style={s.banner}>
+          <Text style={s.error}>Group posts could not be loaded: {groupContentError}</Text>
+          <Link label="Retry posts" onPress={retryGroupContent} />
+        </View>
+      )}
       {saveError && (
         <View style={s.banner}>
           <Text style={s.error}>

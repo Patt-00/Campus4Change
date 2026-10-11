@@ -33,7 +33,8 @@ export function GroupsScreen({ go, back, groups }) {
           <Text style={s.name}>{g.name}</Text>
           <Text style={s.muted}>
             {g.members} {g.members === 1 ? 'member' : 'members'} •{' '}
-            {g.joined ? 'Joined' : 'Not joined'}
+            {g.joined ? 'Joined' : 'Not joined'} •{' '}
+            {g.shared ? 'Shared group' : 'On this device'}
           </Text>
           <Text style={[s.link, styles.marginTop8]}>Open group</Text>
         </View>
