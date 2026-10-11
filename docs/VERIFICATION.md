@@ -30,10 +30,10 @@ Verified for this checkpoint:
   `com.campus4change`, version code 3/version 1.2.0. The 54 MB APK verifies
   with the existing debug certificate; SHA-256:
   `d28127da1e1d843be3835e776b756c857b6145d292130739ef4cad2e452367de`.
-- The current APK has not been installed on the requested Xiaomi Pad 7. Current
-  `adb devices -l` output only lists two transports for model `24129RT7CC`, so
-  the current signup fix and shared-group flow remain unverified through Pad 7
-  UI interaction.
+- The current APK has not been installed on the requested Xiaomi Pad 7. Linux
+  sees the tablet over USB as MTP (`2717:ff40`), but `adb devices -l` is empty,
+  so the current signup fix and shared-group flow remain unverified through
+  Pad 7 UI interaction.
 
 Firebase values in `src/shared/backend/firebaseConfig.js` are blank again after
 the emulator test, and Firestore rules have not been deployed to a real Firebase
