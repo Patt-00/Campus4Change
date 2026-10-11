@@ -13,6 +13,9 @@ production-ready claim.
 - Shared Firebase study groups support signed-in discovery, membership, posts,
   and replies. Membership documents are private to their owners; posts/replies
   are readable only by members.
+- Shared group feeds are merged with live directory metadata so the active
+  member post listener's content reaches the details and post screens. A
+  regression test covers this source-to-screen data merge.
 - Group directory updates now read changed metadata and membership only. Post
   and reply listeners are started only while a member has that group open, and
   listeners are removed when the group closes or the user leaves.
@@ -34,18 +37,18 @@ production-ready claim.
 | ID | Priority | Issue | Evidence and next action |
 | --- | --- | --- | --- |
 | C4C-01 | High | No real Firebase project is connected. | `firebaseConfig.js` is blank and rules are not deployed. Select the course project, configure its Web app settings, and explicitly authorize deployment before live tests. |
-| C4C-02 | High | Updated shared-group screens have not been verified on the Xiaomi Pad 7. | Linux sees the Pad 7 over USB as MTP (`2717:ff40`), but `adb devices -l` is empty. Switch USB to File Transfer and accept the debugging authorization prompt if shown; then test two Firebase accounts through create, discover, join, post, reply, and leave. |
+| C4C-02 | High | No real-project, two-account shared-group workflow has been verified. | The Xiaomi Pad 7 is available over USB ADB and the booked-session/group-room UI was checked there. Emulator rules and app unit tests pass, but `firebaseConfig.js` is blank, so create/discover/join/post/reply/leave still needs a configured course project and two accounts. |
 | C4C-03 | High | Teacher-specific requirements are not fully established in this checkout. | The Figma map describes prototype screens, not the teacher's final acceptance rubric. Compare the finished requirements/module list when available. |
-| C4C-04 | Medium | Tutor listings, bookings, direct messages, and group chat remain private/local. | Only groups, membership, posts, and replies are shared between Firebase users. Confirm whether cross-user tutor/booking/chat workflows are required before designing those schemas. |
+| C4C-04 | Medium | Tutor listings, bookings, direct messages, and group chat are not shared between students. | Firebase accounts sync this data inside each user's private state; device-only accounts keep it local. Cross-student tutor, booking, and messaging workflows are not implemented. Confirm whether the final rubric requires those workflows before designing their schemas. |
 | C4C-05 | Medium | Group content is still unbounded within the active group. | Lazy subscriptions prevent reading every group's content, but a member opening a very large group still loads all posts and replies. Add pagination and moderated/rate-limited writes before wider use. |
-| C4C-06 | Medium | The dependency audit reports 21 high findings. | The current graph includes `braces` at an affected version; GitHub's advisory lists no patched release. `npm audit fix --force` proposes a breaking React Native downgrade, so do not apply it without a compatible upstream fix or reviewed exception. See the [GitHub advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm). |
+| C4C-06 | Medium | The dependency audit reports 21 high paths to one `braces` advisory. | The tree resolves `braces@3.0.3` through `micromatch@4.0.8` in Metro/React Native CLI and Jest tooling. GitHub lists `<=3.0.3` as affected with no patched version; the package maintainer publicly disputes that a fix is needed. The production-mode app bundle contains no `braces`/`micromatch` strings, so the current exposure is in the build/test toolchain. `npm audit fix --force` proposes a breaking React Native downgrade; do not use an unofficial override without a reviewed mitigation. See the [advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) and [maintainer discussion](https://github.com/micromatch/braces/issues/84). |
 | C4C-07 | Medium | Release signing is still debug signing. | The current APK can update the existing prototype install, but distribution requires a protected release keystore and signing procedure. |
 | C4C-08 | Low | The iOS scaffold cannot use the Android storage module. | Current app support is Android-only; do not claim iOS parity until secure storage and biometrics are implemented and verified there. |
 
 ## Verification record
 
-Verification is recorded in [VERIFICATION.md](VERIFICATION.md). Source tests,
-Firestore emulator rules, an Android release build, and package installation
-have been checked separately; installation does not prove visible runtime
-behavior. The Firebase emulator is not a substitute for deployment to the
-course project or two-account testing against that project.
+Verification is recorded in [VERIFICATION.md](VERIFICATION.md). The Pad 7
+debug UI check and production-mode Android JavaScript bundle are verified; no
+new native APK was built or installed for the latest JavaScript changes. The
+Firebase emulator is not a substitute for deployment to the course project or
+two-account testing against that project.

@@ -3,6 +3,7 @@ import {
   watchSharedGroupPosts,
   watchSharedGroups,
 } from '../src/features/groups/data/firestore';
+import { mergeGroupDirectory } from '../src/features/groups/hooks/useSharedGroups';
 
 jest.mock('../src/shared/backend/firebase', () => ({
   firebaseServicesForUser: jest.fn(),
@@ -53,6 +54,38 @@ async function flushAsyncCallbacks() {
 }
 
 beforeEach(() => jest.clearAllMocks());
+
+test('shared directory entries surface posts loaded into the account cache', () => {
+  const post = {
+    id: 'post-one',
+    author: 'Owner',
+    text: 'A shared note',
+    createdAt: '2026-10-11T10:00:00.000Z',
+    replies: [{ id: 'reply-one', createdAt: '2026-10-11T10:05:00.000Z' }],
+  };
+  const sharedGroup = {
+    id: 'group-one',
+    name: 'Current Firestore name',
+    shared: true,
+    joined: true,
+    posts: [],
+    postsLoaded: false,
+  };
+  const cachedGroup = {
+    id: 'group-one',
+    name: 'Old cached name',
+    shared: true,
+    joined: true,
+    posts: [post],
+    postsLoaded: true,
+  };
+
+  const [group] = mergeGroupDirectory([cachedGroup], [sharedGroup]);
+
+  expect(group.name).toBe('Current Firestore name');
+  expect(group.posts).toEqual([post]);
+  expect(group.postsLoaded).toBe(true);
+});
 
 test('group directory refreshes only changed metadata and leaves post reads lazy', async () => {
   const { firestore, subscriptions } = createFirestore();

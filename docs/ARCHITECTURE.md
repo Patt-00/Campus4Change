@@ -68,7 +68,8 @@ The account hook saves changed state to encrypted Android storage. With Firebase
 `features/groups/data/firestore.js` maps the group feature model to
 `studyGroups/{groupId}`, private member records, posts, and replies. Directory
 updates read only changed group metadata and membership; post and reply
-listeners run only while a member has that group open.
+listeners run only while a member has that group open. `useSharedGroups` merges
+the active member feed into the directory record before screens consume it.
 `features/groups/hooks/useSharedGroups.js` owns the live directory, merges it
 with device-only groups, and retries the account's pending group changes. The
 navigator only connects those group callbacks to screens. `firestore.rules`

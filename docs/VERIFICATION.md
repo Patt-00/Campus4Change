@@ -1,6 +1,6 @@
 # Verification for 1.2.0
 
-## Current source work — 2026-10-11
+## Current source work — 2026-10-12
 
 This local checkpoint is on branch `codex/firebase-auth-firestore`. It includes
 the Novice, Intermediate, and Expert introduction, Firebase email/password
@@ -12,7 +12,7 @@ TypeScript files.
 Verified for this checkpoint:
 
 - `npm run lint`: passed without warnings.
-- `npm test -- --runInBand --testTimeout=15000`: 34 tests passed in 4 suites.
+- `npm test -- --runInBand`: 35 tests passed in 4 suites.
 - The Firestore rules test passed against the local Firebase Emulator Suite.
   It checks private account state, authenticated group discovery, member-only
   posts/replies, private memberships, safe member counts, and rejects owner
@@ -25,15 +25,19 @@ Verified for this checkpoint:
   present after restart and removed after sign-out. Test data used
   `campus4change.qa@example.com` in the emulator only; the password manager
   prompt was dismissed without saving that test password.
-- `android/gradlew assembleRelease --max-workers=4 --console=plain`: passed
-  with JDK 25 and bundled the production JavaScript. Package:
-  `com.campus4change`, version code 3/version 1.2.0. The 54 MB APK verifies
-  with the existing debug certificate; SHA-256:
-  `d28127da1e1d843be3835e776b756c857b6145d292130739ef4cad2e452367de`.
-- The current APK has not been installed on the requested Xiaomi Pad 7. Linux
-  sees the tablet over USB as MTP (`2717:ff40`), but `adb devices -l` is empty,
-  so the current signup fix and shared-group flow remain unverified through
-  Pad 7 UI interaction.
+- A native release build passed on 2026-10-11, before the current 2026-10-12
+  JavaScript changes. It used JDK 25, package `com.campus4change`, version code
+  3/version 1.2.0, and the existing debug certificate. Its 54 MB APK SHA-256
+  was `d28127da1e1d843be3835e776b756c857b6145d292130739ef4cad2e452367de`.
+- On the Xiaomi Pad 7 (`273b5a4a`, model `2410CRP4CG`), the installed debug app
+  loaded the current JavaScript through Metro. A booked-session workspace showed
+  the subject, tutor, schedule, notes, and completion action without a focus
+  timer; the group study room retained its 25-minute timer. This is a device UI
+  check, not a live Firebase two-account test.
+- `npx react-native bundle --platform android --dev false --entry-file index.js
+  --bundle-output /tmp/c4c-campus4change.android.bundle --assets-dest
+  /tmp/c4c-campus4change-assets`: passed with blank Firebase project settings.
+  No new native APK was built or installed for these JavaScript changes.
 
 Firebase values in `src/shared/backend/firebaseConfig.js` are blank again after
 the emulator test, and Firestore rules have not been deployed to a real Firebase
@@ -43,11 +47,15 @@ GitHub release. It remains debug-signed and labeled 1.2.0.
 
 Shared group metadata, membership counts, posts, and replies now use the
 `studyGroups` Firestore collection for authenticated Firebase users. Local/demo
-groups remain on-device. Tutor listings, bookings, group chats, and direct
-messages are still private/local and are not shared between accounts. The
-dependency audit reports 21 high-severity transitive findings in
-React Native/Metro/CLI dependencies and zero critical findings; compatible
-upstream fixes need review before changing the React Native toolchain.
+groups remain on-device. Tutor listings, bookings, direct messages, and group
+chat are not shared between students; a Firebase user's private account state,
+including that user's bookings, syncs only to that account. The dependency
+audit reports 21 high-severity paths to the same `braces@3.0.3` advisory and
+zero critical findings. The production-mode JavaScript bundle contains no
+`braces` or `micromatch` strings; `npm ls` places the affected package in the
+React Native/Metro/CLI/Jest toolchain. GitHub lists no patched release, while
+the package maintainer has disputed that the package needs a fix. Do not force
+a React Native downgrade or apply an unofficial override to silence the audit.
 
 The published v1.2.0 APK was verified on Windows on 2026-10-01. The current source was converted to JavaScript/JSX and rebuilt in Termux on 2026-10-02. Neither result establishes phone installation or screen behavior.
 

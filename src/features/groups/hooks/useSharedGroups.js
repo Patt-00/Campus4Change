@@ -13,10 +13,57 @@ function errorText(error) {
   return error instanceof Error ? error.message : String(error);
 }
 
-function mergeGroupDirectory(localGroups, sharedGroups) {
+function mergePosts(sharedPosts = [], cachedPosts = []) {
+  const postsById = new Map();
+
+  for (const post of sharedPosts) {
+    postsById.set(post.id, post);
+  }
+  for (const cachedPost of cachedPosts) {
+    const sharedPost = postsById.get(cachedPost.id);
+    if (!sharedPost) {
+      postsById.set(cachedPost.id, cachedPost);
+      continue;
+    }
+
+    const repliesById = new Map(
+      (cachedPost.replies ?? []).map(reply => [reply.id, reply]),
+    );
+    for (const reply of sharedPost.replies ?? []) {
+      repliesById.set(reply.id, reply);
+    }
+    postsById.set(cachedPost.id, {
+      ...cachedPost,
+      ...sharedPost,
+      replies: [...repliesById.values()].sort(
+        (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
+      ),
+      hasMoreReplies:
+        sharedPost.hasMoreReplies ?? cachedPost.hasMoreReplies ?? false,
+    });
+  }
+
+  return [...postsById.values()].sort(
+    (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+  );
+}
+
+export function mergeGroupDirectory(localGroups, sharedGroups) {
   const sharedIds = new Set(sharedGroups.map(group => group.id));
   return [
-    ...sharedGroups,
+    ...sharedGroups.map(group => {
+      const cached = localGroups.find(local => local.id === group.id);
+      const canUseCachedPosts = group.joined && cached?.joined;
+      return {
+        ...group,
+        posts: canUseCachedPosts
+          ? mergePosts(group.posts, cached.posts)
+          : group.posts ?? [],
+        postsLoaded:
+          Boolean(group.postsLoaded) ||
+          Boolean(canUseCachedPosts && cached.postsLoaded),
+      };
+    }),
     ...localGroups.filter(group => !sharedIds.has(group.id)),
   ];
 }
