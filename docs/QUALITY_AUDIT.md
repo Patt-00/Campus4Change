@@ -16,6 +16,9 @@ production-ready claim.
 - Group directory updates now read changed metadata and membership only. Post
   and reply listeners are started only while a member has that group open, and
   listeners are removed when the group closes or the user leaves.
+- Firebase signup stages the entered name and Student ID before account
+  creation so an early auth-state callback cannot initialize an incomplete
+  profile; a regression test covers that event order.
 - Device-only groups remain available. Pending shared writes are saved in
   account state and can be retried.
 - Firestore emulator tests cover account isolation, group discovery, membership

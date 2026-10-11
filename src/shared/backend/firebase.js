@@ -37,6 +37,7 @@ function secureAuthStorage() {
 let auth = null;
 let db = null;
 const pendingStudentIds = new Map();
+const pendingSignUpsByEmail = new Map();
 
 if (firebaseEnabled) {
   const { app: appSdk, auth: authSdk, firestore: firestoreSdk } = firebaseSdk();
@@ -99,17 +100,23 @@ export async function firebaseSignIn(email, password) {
 
 export async function firebaseSignUp(name, email, studentId, password) {
   ensureFirebaseEnabled();
+  const normalizedEmail = email.trim().toLowerCase();
+  const pendingAccount = {
+    name: name.trim(),
+    studentId: studentId.trim(),
+  };
+  pendingSignUpsByEmail.set(normalizedEmail, pendingAccount);
   try {
     const { createUserWithEmailAndPassword, updateProfile, deleteUser } =
       firebaseSdk().auth;
     const result = await createUserWithEmailAndPassword(
       auth,
-      email.trim().toLowerCase(),
+      normalizedEmail,
       password,
     );
-    pendingStudentIds.set(result.user.uid, studentId.trim());
+    pendingStudentIds.set(result.user.uid, pendingAccount.studentId);
     try {
-      await updateProfile(result.user, { displayName: name.trim() });
+      await updateProfile(result.user, { displayName: pendingAccount.name });
     } catch (error) {
       pendingStudentIds.delete(result.user.uid);
       await deleteUser(result.user).catch(() => {});
@@ -117,10 +124,13 @@ export async function firebaseSignUp(name, email, studentId, password) {
     }
     return {
       ...accountFromFirebaseUser(result.user),
-      studentId: studentId.trim(),
+      name: result.user.displayName || pendingAccount.name,
+      studentId: pendingAccount.studentId,
     };
   } catch (error) {
     throw readableAuthError(error);
+  } finally {
+    pendingSignUpsByEmail.delete(normalizedEmail);
   }
 }
 
@@ -193,11 +203,19 @@ export function ensureFirebaseEnabled() {
 }
 
 function accountFromFirebaseUser(user) {
+  const pendingAccount = pendingSignUpsByEmail.get(
+    user.email?.trim().toLowerCase(),
+  );
   return {
     id: user.uid,
-    name: user.displayName || user.email?.split('@')[0] || 'Student',
+    name:
+      user.displayName ||
+      pendingAccount?.name ||
+      user.email?.split('@')[0] ||
+      'Student',
     email: user.email || '',
-    studentId: pendingStudentIds.get(user.uid) || '',
+    studentId:
+      pendingStudentIds.get(user.uid) || pendingAccount?.studentId || '',
   };
 }
 

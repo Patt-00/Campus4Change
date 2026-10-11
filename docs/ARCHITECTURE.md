@@ -111,6 +111,10 @@ Account lifecycle tests also verify rejection of another account's saved state, 
 live reply updates, and listener cleanup for groups that are closed or no
 longer joined.
 
+`firebaseSignUp.test.js` exercises an auth-state callback that arrives before
+Firebase's account-creation promise resolves and verifies that the new profile
+still receives its submitted name and Student ID.
+
 Version 1.2.0 tests also cover custom-interest addition/removal/deduplication and reopening, optional school fields, empty personal directories, historical sample data, selected booking slots, group schedule validation, and About navigation before sign-in.
 
 Jest mocks Android storage. Native encryption, biometric prompts, installation, cold launch, and Android layout require device checks. See [VERIFICATION.md](VERIFICATION.md).

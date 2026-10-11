@@ -12,7 +12,7 @@ TypeScript files.
 Verified for this checkpoint:
 
 - `npm run lint`: passed without warnings.
-- `npm test -- --runInBand --testTimeout=15000`: 32 tests passed in 3 suites.
+- `npm test -- --runInBand --testTimeout=15000`: 33 tests passed in 4 suites.
 - The Firestore rules test passed against the local Firebase Emulator Suite.
   It checks private account state, authenticated group discovery, member-only
   posts/replies, private memberships, safe member counts, and rejects owner
@@ -29,11 +29,11 @@ Verified for this checkpoint:
   with JDK 25 and bundled the production JavaScript. Package:
   `com.campus4change`, version code 3/version 1.2.0. The 54 MB APK verifies
   with the existing debug certificate; SHA-256:
-  `8a11406feba3005efd7e5b4ee3f70245484d1292c015b5ea2ba497055b4c06fe`.
-- The release APK installed as an update on the previously connected Android
-  device. Current `adb devices -l` output only lists model `24129RT7CC`, not the
-  requested Xiaomi Pad 7, so the shared-group flow was not visually verified on
-  the Pad 7.
+  `d28127da1e1d843be3835e776b756c857b6145d292130739ef4cad2e452367de`.
+- The current APK has not been installed on the requested Xiaomi Pad 7. Current
+  `adb devices -l` output only lists two transports for model `24129RT7CC`, so
+  the current signup fix and shared-group flow remain unverified through Pad 7
+  UI interaction.
 
 Firebase values in `src/shared/backend/firebaseConfig.js` are blank again after
 the emulator test, and Firestore rules have not been deployed to a real Firebase
