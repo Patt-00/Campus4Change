@@ -13,8 +13,8 @@ export function BeTutorScreen({ back, profile, save }) {
   return (
     <Screen title="Be a Tutor" back={back}>
       <Text style={[s.muted, styles.marginBottom24]}>
-        Add the subjects or skills you can help with. Your listing is saved on
-        this device.
+        Add the subjects or skills you can help with. You’ll see your listing
+        in your own tutor directory; it isn’t shared with other students yet.
       </Text>
       <Field
         label="Subjects (separate with commas)"
@@ -35,14 +35,15 @@ export function BeTutorScreen({ back, profile, save }) {
       <AppButton
         title="SAVE TUTOR PROFILE"
         onPress={() => {
-          const list = [
-            ...new Set(
-              subjects
-                .split(',')
-                .map(x => x.trim())
-                .filter(Boolean),
-            ),
-          ];
+          const uniqueSubjects = new Map();
+          subjects.split(',').forEach(value => {
+            const subject = value.trim().replace(/\s+/g, ' ');
+            const key = subject.toLowerCase();
+            if (subject && !uniqueSubjects.has(key)) {
+              uniqueSubjects.set(key, subject);
+            }
+          });
+          const list = [...uniqueSubjects.values()];
 
           if (!list.length || bio.trim().length < 10) {
             setError(

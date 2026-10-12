@@ -20,7 +20,17 @@ export function TutorSearchScreen({ go, back, list, initialQuery = '' }) {
   const [showSubjects, setShowSubjects] = useState(false);
   const [available, setAvailable] = useState(false);
   const [top, setTop] = useState(false);
-  const subjects = [...new Set(list.flatMap(t => t.subjects))].sort();
+  const subjectsByKey = new Map();
+  list.flatMap(tutor => tutor.subjects).forEach(value => {
+    const normalizedSubject = value.trim().replace(/\s+/g, ' ');
+    const key = normalizedSubject.toLowerCase();
+    if (normalizedSubject && !subjectsByKey.has(key)) {
+      subjectsByKey.set(key, normalizedSubject);
+    }
+  });
+  const subjects = [...subjectsByKey.values()].sort((a, b) =>
+    a.localeCompare(b),
+  );
   const results = filterTutors(list, query, subject, available, top);
   const filtered = !!query.trim() || !!subject || available || top;
   return (
