@@ -125,7 +125,6 @@ service cloud.firestore {
         }
 
         allow get: if signedIn() && request.auth.uid == userId;
-        allow list: if false;
         allow create: if signedIn()
           && request.auth.uid == userId
           && request.resource.data.keys().hasAll(['uid', 'role', 'joinedAt'])
@@ -244,6 +243,11 @@ service cloud.firestore {
           allow update, delete: if false;
         }
       }
+    }
+
+    // Collection-group queries can list only a user's own membership records.
+    match /{path=**}/members/{userId} {
+      allow list: if signedIn() && resource.data.uid == request.auth.uid;
     }
 
     // Every collection not listed above is private by default.

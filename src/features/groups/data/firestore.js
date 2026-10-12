@@ -72,11 +72,13 @@ function mapPost(
   };
 }
 
-async function readGroup(db, firestore, uid, groupSnapshot) {
-  const { doc, getDoc } = firestore;
+function groupIdFromMembership(snapshot) {
+  return snapshot.ref?.parent?.parent?.id ?? null;
+}
+
+function mapGroup(uid, groupSnapshot, memberGroupIds) {
   const groupId = groupSnapshot.id;
-  const groupRef = doc(db, collectionName, groupId);
-  const membership = await getDoc(doc(groupRef, 'members', uid));
+  const joined = memberGroupIds.has(groupId);
   const data = groupSnapshot.data();
   return {
     id: groupId,
@@ -86,82 +88,119 @@ async function readGroup(db, firestore, uid, groupSnapshot) {
     name: data.name,
     subject: data.subject,
     members: data.memberCount,
-    joined: membership.exists(),
+    joined,
     meetup: data.meetup || '',
     meetupAt: data.meetupAt || undefined,
     updatedAt: isoTime(data.updatedAt),
     room: data.room,
     posts: [],
-    postsLoaded: !membership.exists(),
+    postsLoaded: !joined,
   };
 }
 
-async function readDirectory(db, firestore, uid, snapshots) {
-  return Promise.all(
-    snapshots.map(snapshot => readGroup(db, firestore, uid, snapshot)),
-  );
+function readDirectory(uid, snapshots, memberGroupIds) {
+  return snapshots.map(snapshot => mapGroup(uid, snapshot, memberGroupIds));
 }
 
 export async function loadSharedGroups(uid) {
   const { db, firestore } = firebaseServicesForUser(uid);
-  const { collection, getDocs, orderBy, query } = firestore;
-  const snapshot = await getDocs(
-    query(collection(db, collectionName), orderBy('updatedAt', 'desc')),
+  const { collection, collectionGroup, getDocs, orderBy, query, where } =
+    firestore;
+  const [groupsSnapshot, membershipsSnapshot] = await Promise.all([
+    getDocs(query(collection(db, collectionName), orderBy('updatedAt', 'desc'))),
+    getDocs(
+      query(collectionGroup(db, 'members'), where('uid', '==', uid)),
+    ),
+  ]);
+  const memberGroupIds = new Set(
+    membershipsSnapshot.docs.map(groupIdFromMembership).filter(Boolean),
   );
-  return readDirectory(db, firestore, uid, snapshot.docs);
+  return readDirectory(uid, groupsSnapshot.docs, memberGroupIds);
 }
 
 export function watchSharedGroups(uid, onGroups, onError) {
   const { db, firestore } = firebaseServicesForUser(uid);
-  const { collection, onSnapshot, orderBy, query } = firestore;
+  const {
+    collection,
+    collectionGroup,
+    onSnapshot,
+    orderBy,
+    query,
+    where,
+  } = firestore;
   let active = true;
   const groupsById = new Map();
-  let pendingSnapshot = Promise.resolve();
-  const unsubscribe = onSnapshot(
+  let memberGroupIds = new Set();
+  let groupOrder = [];
+  let groupsLoaded = false;
+  let membershipsLoaded = false;
+
+  function publishGroups() {
+    if (!active || !groupsLoaded || !membershipsLoaded) {
+      return;
+    }
+    onGroups(
+      groupOrder
+        .map(groupId => {
+          const group = groupsById.get(groupId);
+          if (!group) {
+            return null;
+          }
+          const joined = memberGroupIds.has(groupId);
+          return { ...group, joined, postsLoaded: !joined };
+        })
+        .filter(Boolean),
+    );
+  }
+
+  function handleError(error) {
+    if (active) {
+      onError(error);
+    }
+  }
+
+  const unsubscribeGroups = onSnapshot(
     query(collection(db, collectionName), orderBy('updatedAt', 'desc')),
     snapshot => {
-      pendingSnapshot = pendingSnapshot
-        .then(async () => {
-          if (!active) {
-            return;
-          }
-          const changes = snapshot.docChanges();
-          for (const change of changes) {
-            if (change.type === 'removed') {
-              groupsById.delete(change.doc.id);
-            }
-          }
-          const changedGroups = changes.filter(
-            change => change.type !== 'removed',
+      if (!active) {
+        return;
+      }
+      for (const change of snapshot.docChanges()) {
+        if (change.type === 'removed') {
+          groupsById.delete(change.doc.id);
+        } else {
+          groupsById.set(
+            change.doc.id,
+            mapGroup(uid, change.doc, memberGroupIds),
           );
-          const values = await Promise.all(
-            changedGroups.map(change =>
-              readGroup(db, firestore, uid, change.doc),
-            ),
-          );
-          if (!active) {
-            return;
-          }
-          changedGroups.forEach((change, index) => {
-            groupsById.set(change.doc.id, values[index]);
-          });
-          onGroups(
-            snapshot.docs
-              .map(groupSnapshot => groupsById.get(groupSnapshot.id))
-              .filter(Boolean),
-          );
-        })
-        .catch(error => {
-          if (active) {
-            onError(error);
-          }
-        });
+        }
+      }
+      groupOrder = snapshot.docs.map(groupSnapshot => groupSnapshot.id);
+      groupsLoaded = true;
+      publishGroups();
     },
-    onError,
+    handleError,
   );
+  // One owner-scoped membership stream replaces per-group membership reads.
+  const unsubscribeMemberships = onSnapshot(
+    query(collectionGroup(db, 'members'), where('uid', '==', uid)),
+    snapshot => {
+      if (!active) {
+        return;
+      }
+      memberGroupIds = new Set(
+        snapshot.docs.map(groupIdFromMembership).filter(Boolean),
+      );
+      membershipsLoaded = true;
+      publishGroups();
+    },
+    handleError,
+  );
+
   return () => {
     active = false;
-    unsubscribe();
+    unsubscribeGroups();
+    unsubscribeMemberships();
   };
 }
 

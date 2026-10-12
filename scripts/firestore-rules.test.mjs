@@ -7,6 +7,7 @@ import {
 } from '@firebase/rules-unit-testing';
 import {
   collection,
+  collectionGroup,
   doc,
   getDoc,
   getDocs,
@@ -18,6 +19,7 @@ import {
   setDoc,
   startAfter,
   Timestamp,
+  where,
   writeBatch,
 } from 'firebase/firestore';
 
@@ -127,6 +129,36 @@ try {
   });
   await assertSucceeds(joinGroup.commit());
   assert.equal((await getDoc(doc(alice, 'studyGroups/calculus'))).data().memberCount, 2);
+  const aliceMemberships = await assertSucceeds(
+    getDocs(
+      query(
+        collectionGroup(alice, 'members'),
+        where('uid', '==', 'alice'),
+      ),
+    ),
+  );
+  assert.equal(aliceMemberships.size, 1);
+  assert.equal(aliceMemberships.docs[0].ref.path, 'studyGroups/calculus/members/alice');
+  const bobMemberships = await assertSucceeds(
+    getDocs(
+      query(collectionGroup(bob, 'members'), where('uid', '==', 'bob')),
+    ),
+  );
+  assert.equal(bobMemberships.size, 1);
+  await assertFails(getDocs(collectionGroup(alice, 'members')));
+  await assertFails(
+    getDocs(
+      query(collectionGroup(alice, 'members'), where('uid', '==', 'bob')),
+    ),
+  );
+  await assertFails(
+    getDocs(
+      query(
+        collectionGroup(unverified, 'members'),
+        where('uid', '==', 'unverified'),
+      ),
+    ),
+  );
   await assertSucceeds(
     getDocs(
       query(

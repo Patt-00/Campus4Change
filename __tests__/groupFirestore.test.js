@@ -1,5 +1,6 @@
 import { firebaseServicesForUser } from '../src/shared/backend/firebase';
 import {
+  loadSharedGroups,
   syncSharedGroupAction,
   watchSharedGroupPosts,
   watchSharedGroups,
@@ -20,6 +21,7 @@ function createFirestore() {
     collection: jest.fn((parent, ...segments) => ({
       path: [parent.path ?? parent, ...segments].join('/'),
     })),
+    collectionGroup: jest.fn(name => ({ path: 'collectionGroup/' + name })),
     doc: (parent, ...segments) => ({
       path: [parent.path ?? parent, ...segments].join('/'),
     }),
@@ -36,6 +38,7 @@ function createFirestore() {
       subscriptions.push(subscription);
       return subscription.unsubscribe;
     }),
+    where: (field, operator, value) => ({ field, operator, value }),
     orderBy: (field, direction) => ({ field, direction }),
     query: (ref, ...constraints) => ({ ref, constraints }),
     startAfter: snapshot => ({ type: 'startAfter', snapshot }),
@@ -54,6 +57,14 @@ function groupSnapshot(id, memberCount, updatedAt) {
       updatedAt,
       room: 'C4C-ROOM',
     }),
+  };
+}
+
+function membershipSnapshot(groupId, uid = 'student') {
+  return {
+    id: uid,
+    ref: { parent: { parent: { id: groupId } } },
+    data: () => ({ uid, role: 'member' }),
   };
 }
 
@@ -144,6 +155,30 @@ test('shared directory entries surface posts loaded into the account cache', () 
   expect(withPendingReply.posts[0].replies).toEqual([pendingReply]);
 });
 
+test('shared directory loading queries memberships only for the signed-in user', async () => {
+  const { firestore } = createFirestore();
+  firebaseServicesForUser.mockReturnValue({ db: 'db', firestore });
+  firestore.getDocs
+    .mockResolvedValueOnce({
+      docs: [
+        groupSnapshot('one', 2, '2026-10-11T10:00:00.000Z'),
+        groupSnapshot('two', 3, '2026-10-11T09:00:00.000Z'),
+      ],
+    })
+    .mockResolvedValueOnce({ docs: [membershipSnapshot('two')] });
+
+  const groups = await loadSharedGroups('student');
+
+  expect(groups.map(group => group.joined)).toEqual([false, true]);
+  expect(firestore.getDocs).toHaveBeenCalledTimes(2);
+  expect(firestore.getDoc).not.toHaveBeenCalled();
+  expect(firestore.getDocs.mock.calls[1][0].constraints).toContainEqual({
+    field: 'uid',
+    operator: '==',
+    value: 'student',
+  });
+});
+
 test('live member feed is retained if it arrives before directory metadata', () => {
   const post = {
     id: 'post-one',
@@ -207,13 +242,20 @@ test('a synced reply remains visible while the latest reply window is paused', (
   expect(updated.posts[0].repliesLive).toBe(false);
 });
 
-test('group directory refreshes only changed metadata and leaves post reads lazy', async () => {
+test('group directory merges live metadata and user-scoped membership updates without per-group reads', async () => {
   const { firestore, subscriptions } = createFirestore();
   firebaseServicesForUser.mockReturnValue({ db: 'db', firestore });
   const onGroups = jest.fn();
   const onError = jest.fn();
   const unsubscribe = watchSharedGroups('student', onGroups, onError);
-  const directory = subscriptions[0];
+  const directory = subscriptions.find(
+    subscription => subscription.target.ref.path === 'db/studyGroups',
+  );
+  const memberships = subscriptions.find(subscription =>
+    subscription.target.constraints.some(
+      constraint => constraint.field === 'uid',
+    ),
+  );
   const firstGroup = groupSnapshot('one', 2, '2026-10-11T10:00:00.000Z');
   const secondGroup = groupSnapshot('two', 3, '2026-10-11T09:00:00.000Z');
 
@@ -225,13 +267,26 @@ test('group directory refreshes only changed metadata and leaves post reads lazy
     ],
   });
   await flushAsyncCallbacks();
+  expect(onGroups).not.toHaveBeenCalled();
+
+  memberships.next({ docs: [membershipSnapshot('two')] });
+  await flushAsyncCallbacks();
   expect(onGroups).toHaveBeenCalledTimes(1);
   expect(onGroups.mock.calls[0][0].map(group => group.id)).toEqual([
     'one',
     'two',
   ]);
-  expect(firestore.getDoc).toHaveBeenCalledTimes(2);
-  expect(firestore.onSnapshot).toHaveBeenCalledTimes(1);
+  expect(firestore.getDoc).not.toHaveBeenCalled();
+  expect(firestore.onSnapshot).toHaveBeenCalledTimes(2);
+  expect(memberships.target.constraints).toContainEqual({
+    field: 'uid',
+    operator: '==',
+    value: 'student',
+  });
+  expect(onGroups.mock.calls[0][0].map(group => group.joined)).toEqual([
+    false,
+    true,
+  ]);
   expect(onGroups.mock.calls[0][0][0].posts).toEqual([]);
 
   const updatedSecond = groupSnapshot(
@@ -245,14 +300,24 @@ test('group directory refreshes only changed metadata and leaves post reads lazy
   });
   await flushAsyncCallbacks();
 
-  expect(firestore.getDoc).toHaveBeenCalledTimes(3);
+  expect(firestore.getDoc).not.toHaveBeenCalled();
   expect(onGroups.mock.calls[1][0].map(group => [group.id, group.members])).toEqual([
     ['two', 4],
     ['one', 2],
   ]);
+  expect(onGroups.mock.calls[1][0][0].joined).toBe(true);
+
+  memberships.next({ docs: [] });
+  await flushAsyncCallbacks();
+  expect(onGroups.mock.calls[2][0].map(group => group.joined)).toEqual([
+    false,
+    false,
+  ]);
+  expect(firestore.getDoc).not.toHaveBeenCalled();
   expect(firestore.collection).toHaveBeenCalledTimes(1);
   unsubscribe();
   expect(directory.unsubscribe).toHaveBeenCalledTimes(1);
+  expect(memberships.unsubscribe).toHaveBeenCalledTimes(1);
 });
 
 test('shared posts and replies update the private cooldown record atomically', async () => {
