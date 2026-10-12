@@ -1,5 +1,6 @@
 import { firebaseServicesForUser } from '../src/shared/backend/firebase';
 import {
+  syncSharedGroupAction,
   watchSharedGroupPosts,
   watchSharedGroups,
 } from '../src/features/groups/data/firestore';
@@ -252,6 +253,64 @@ test('group directory refreshes only changed metadata and leaves post reads lazy
   expect(firestore.collection).toHaveBeenCalledTimes(1);
   unsubscribe();
   expect(directory.unsubscribe).toHaveBeenCalledTimes(1);
+});
+
+test('shared posts and replies update the private cooldown record atomically', async () => {
+  const { firestore } = createFirestore();
+  firebaseServicesForUser.mockReturnValue({ db: 'db', firestore });
+  firestore.getDoc.mockResolvedValue({ exists: () => false });
+  firestore.serverTimestamp = jest.fn(() => 'server-time');
+  const postBatch = {
+    commit: jest.fn(async () => {}),
+    set: jest.fn(),
+    update: jest.fn(),
+  };
+  const replyBatch = {
+    commit: jest.fn(async () => {}),
+    set: jest.fn(),
+    update: jest.fn(),
+  };
+  firestore.writeBatch = jest
+    .fn()
+    .mockReturnValueOnce(postBatch)
+    .mockReturnValueOnce(replyBatch);
+
+  await syncSharedGroupAction('student', { name: 'Student' }, {
+    type: 'post',
+    groupId: 'group-one',
+    post: { id: 'post-one', text: 'A note' },
+  });
+  await syncSharedGroupAction('student', { name: 'Student' }, {
+    type: 'reply',
+    groupId: 'group-one',
+    postId: 'post-one',
+    reply: { id: 'reply-one', text: 'A reply' },
+  });
+
+  const postLimitWrite = postBatch.set.mock.calls.find(([ref]) =>
+    ref.path.endsWith('/writeLimits/student'),
+  );
+  const replyLimitWrite = replyBatch.set.mock.calls.find(([ref]) =>
+    ref.path.endsWith('/writeLimits/student'),
+  );
+  expect(postLimitWrite[1]).toEqual({
+    uid: 'student',
+    lastWriteAt: 'server-time',
+    kind: 'post',
+    writeId: 'post-one',
+    postId: null,
+  });
+  expect(postLimitWrite[2]).toEqual({ merge: true });
+  expect(replyLimitWrite[1]).toEqual({
+    uid: 'student',
+    lastWriteAt: 'server-time',
+    kind: 'reply',
+    writeId: 'reply-one',
+    postId: 'post-one',
+  });
+  expect(replyLimitWrite[2]).toEqual({ merge: true });
+  expect(postBatch.commit).toHaveBeenCalledTimes(1);
+  expect(replyBatch.commit).toHaveBeenCalledTimes(1);
 });
 
 test('active member post listener releases reply listeners when posts leave its page', async () => {

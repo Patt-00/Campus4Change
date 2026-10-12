@@ -80,6 +80,9 @@ with device-only groups, and retries the account's pending group changes. The
 navigator only connects those group callbacks to screens. `firestore.rules`
 lets authenticated users discover group metadata, restricts each membership
 record to its owner, and permits post/reply reads and writes only for members.
+Each post/reply must update a private per-member write-limit record in the same
+batch; rules enforce a five-second cooldown that leaving and rejoining cannot
+reset.
 The private account document remains scoped to its owner. Tutor listings,
 bookings, group chats, and direct messages are still local to one account.
 

@@ -82,7 +82,13 @@ try {
   await assertSucceeds(getDoc(doc(bob, 'studyGroups/calculus')));
   await assertFails(getDoc(doc(bob, 'studyGroups/calculus/members/alice')));
   await assertFails(
-    getDocs(collection(bob, 'studyGroups/calculus/posts')),
+    getDocs(
+      query(
+        collection(bob, 'studyGroups/calculus/posts'),
+        orderBy('createdAt', 'desc'),
+        limit(20),
+      ),
+    ),
   );
   const ownerExit = writeBatch(alice);
   ownerExit.delete(ownerMember);
@@ -106,7 +112,13 @@ try {
   await assertSucceeds(joinGroup.commit());
   assert.equal((await getDoc(doc(alice, 'studyGroups/calculus'))).data().memberCount, 2);
   await assertSucceeds(
-    getDocs(collection(bob, 'studyGroups/calculus/posts')),
+    getDocs(
+      query(
+        collection(bob, 'studyGroups/calculus/posts'),
+        orderBy('createdAt', 'desc'),
+        limit(20),
+      ),
+    ),
   );
 
   const forbiddenPost = writeBatch(carol);
@@ -128,10 +140,97 @@ try {
     text: 'Share a study note.',
     createdAt: serverTimestamp(),
   });
+  sharedPost.set(doc(bob, 'studyGroups/calculus/writeLimits/bob'), {
+    uid: 'bob',
+    lastWriteAt: serverTimestamp(),
+    kind: 'post',
+    writeId: 'review',
+    postId: null,
+  });
   sharedPost.update(doc(bob, 'studyGroups/calculus'), {
     updatedAt: serverTimestamp(),
   });
   await assertSucceeds(sharedPost.commit());
+  await assertFails(getDoc(doc(alice, 'studyGroups/calculus/writeLimits/bob')));
+
+  const rateLimitedPost = writeBatch(bob);
+  rateLimitedPost.set(doc(bob, 'studyGroups/calculus/posts/too-soon'), {
+    authorUid: 'bob',
+    author: 'Bob',
+    text: 'This post is too soon.',
+    createdAt: serverTimestamp(),
+  });
+  rateLimitedPost.set(
+    doc(bob, 'studyGroups/calculus/writeLimits/bob'),
+    {
+      uid: 'bob',
+      lastWriteAt: serverTimestamp(),
+      kind: 'post',
+      writeId: 'too-soon',
+      postId: null,
+    },
+    { merge: true },
+  );
+  rateLimitedPost.update(doc(bob, 'studyGroups/calculus'), {
+    updatedAt: serverTimestamp(),
+  });
+  await assertFails(rateLimitedPost.commit());
+
+  await assertFails(
+    writeBatch(bob)
+      .delete(doc(bob, 'studyGroups/calculus/writeLimits/bob'))
+      .commit(),
+  );
+  const leaveDuringCooldown = writeBatch(bob);
+  leaveDuringCooldown.delete(doc(bob, 'studyGroups/calculus/members/bob'));
+  leaveDuringCooldown.update(doc(bob, 'studyGroups/calculus'), {
+    memberCount: increment(-1),
+    updatedAt: serverTimestamp(),
+  });
+  await assertSucceeds(leaveDuringCooldown.commit());
+  const rejoinDuringCooldown = writeBatch(bob);
+  rejoinDuringCooldown.set(doc(bob, 'studyGroups/calculus/members/bob'), {
+    uid: 'bob',
+    role: 'member',
+    joinedAt: serverTimestamp(),
+  });
+  rejoinDuringCooldown.update(doc(bob, 'studyGroups/calculus'), {
+    memberCount: increment(1),
+    updatedAt: serverTimestamp(),
+  });
+  await assertSucceeds(rejoinDuringCooldown.commit());
+  const postAfterRejoin = writeBatch(bob);
+  postAfterRejoin.set(doc(bob, 'studyGroups/calculus/posts/still-too-soon'), {
+    authorUid: 'bob',
+    author: 'Bob',
+    text: 'Rejoining does not reset the cooldown.',
+    createdAt: serverTimestamp(),
+  });
+  postAfterRejoin.set(
+    doc(bob, 'studyGroups/calculus/writeLimits/bob'),
+    {
+      uid: 'bob',
+      lastWriteAt: serverTimestamp(),
+      kind: 'post',
+      writeId: 'still-too-soon',
+      postId: null,
+    },
+    { merge: true },
+  );
+  postAfterRejoin.update(doc(bob, 'studyGroups/calculus'), {
+    updatedAt: serverTimestamp(),
+  });
+  await assertFails(postAfterRejoin.commit());
+
+  await environment.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), 'studyGroups/calculus/writeLimits/bob'), {
+      uid: 'bob',
+      lastWriteAt: Timestamp.fromMillis(Date.now() - 6000),
+      kind: 'post',
+      writeId: 'review',
+      postId: null,
+    });
+  });
 
   const sharedReply = writeBatch(bob);
   sharedReply.set(
@@ -143,12 +242,31 @@ try {
       createdAt: serverTimestamp(),
     },
   );
+  sharedReply.set(
+    doc(bob, 'studyGroups/calculus/writeLimits/bob'),
+    {
+      uid: 'bob',
+      lastWriteAt: serverTimestamp(),
+      kind: 'reply',
+      writeId: 'answer',
+      postId: 'review',
+    },
+    { merge: true },
+  );
   sharedReply.update(doc(bob, 'studyGroups/calculus'), {
     updatedAt: serverTimestamp(),
   });
   await assertSucceeds(sharedReply.commit());
   assert.equal(
-    (await getDocs(collection(alice, 'studyGroups/calculus/posts'))).size,
+    (
+      await getDocs(
+        query(
+          collection(alice, 'studyGroups/calculus/posts'),
+          orderBy('createdAt', 'desc'),
+          limit(20),
+        ),
+      )
+    ).size,
     1,
   );
   const postCollection = collection(bob, 'studyGroups/calculus/posts');
@@ -188,11 +306,21 @@ try {
     }),
   );
   await assertFails(
-    getDocs(collection(carol, 'studyGroups/calculus/posts')),
+    getDocs(
+      query(
+        collection(carol, 'studyGroups/calculus/posts'),
+        orderBy('createdAt', 'desc'),
+        limit(20),
+      ),
+    ),
   );
   await assertFails(
     getDocs(
-      collection(carol, 'studyGroups/calculus/posts/review/replies'),
+      query(
+        collection(carol, 'studyGroups/calculus/posts/review/replies'),
+        orderBy('createdAt', 'desc'),
+        limit(20),
+      ),
     ),
   );
   await assertFails(
@@ -215,10 +343,16 @@ try {
   await assertSucceeds(leaveGroup.commit());
   assert.equal((await getDoc(groupAlice)).data().memberCount, 1);
   await assertFails(
-    getDocs(collection(bob, 'studyGroups/calculus/posts')),
+    getDocs(
+      query(
+        collection(bob, 'studyGroups/calculus/posts'),
+        orderBy('createdAt', 'desc'),
+        limit(20),
+      ),
+    ),
   );
 
-  console.log('Firestore rules passed: private state, memberships, member content, and bounded feed queries are scoped.');
+  console.log('Firestore rules passed: private state, bounded member feeds, contribution cooldowns, and membership are scoped.');
 } finally {
   await environment.cleanup();
 }

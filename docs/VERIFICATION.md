@@ -12,12 +12,13 @@ TypeScript files.
 Verified for this checkpoint:
 
 - `npm run lint`: passed without warnings.
-- `npm test -- --runInBand`: 44 tests passed in 6 suites.
+- `npm test -- --runInBand`: 45 tests passed in 6 suites.
 - The Firestore rules test passed against the local Firebase Emulator Suite.
   It checks private account state, authenticated group discovery, member-only
-  posts/replies, bounded cursor queries, private memberships, safe member
-  counts, and rejects owner departure, membership spoofing, anonymous access,
-  nonmember writes, and unconfigured collections.
+  posts/replies, bounded cursor queries, per-member contribution cooldowns,
+  private memberships, safe member counts, and rejects owner departure,
+  membership spoofing, anonymous access, nonmember writes, and unconfigured
+  collections.
 - In a prior local Auth/Firestore emulator check on the Xiaomi Pad 7,
   email/password sign-up succeeded, the per-user state document
   was written under the authenticated UID, and a Firestore-side profile change
@@ -38,7 +39,7 @@ Verified for this checkpoint:
 - `npx react-native bundle --platform android --dev false --entry-file index.js
   --bundle-output /tmp/c4c-campus4change.android.bundle --assets-dest
   /tmp/c4c-campus4change-assets`: passed with blank Firebase project
-  settings. SHA-256: `18b943b2ccac7d720fe9bfb81473e8026034ca2bfa3c8dd076f38d9ab150238e`.
+  settings. SHA-256: `ba9c6b9bf695ec7499a08dcb9599732b1ea2017acb63e087c169637814348a9d`.
   No new native APK was built or installed for these JavaScript changes.
 
 Firebase values in `src/shared/backend/firebaseConfig.js` are blank again after

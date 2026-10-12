@@ -13,6 +13,16 @@ function errorText(error) {
   return error instanceof Error ? error.message : String(error);
 }
 
+function groupActionErrorText(error, operation) {
+  if (
+    error?.code === 'permission-denied' &&
+    (operation.type === 'post' || operation.type === 'reply')
+  ) {
+    return 'Could not send this post or reply. Check group membership and wait five seconds between sends, then retry.';
+  }
+  return errorText(error);
+}
+
 function mergePosts(sharedPosts = [], cachedPosts = []) {
   const postsById = new Map();
 
@@ -461,18 +471,20 @@ export function useSharedGroups({
         try {
           await syncSharedGroupAction(uid, profile, operation);
           if (activeUid.current === uid) {
-            setResult(current =>
-              current.uid === uid
-                ? {
-                    ...current,
-                    groups: mergeSyncedGroupAction(
-                      current.groups,
-                      uid,
-                      operation,
-                    ),
-                  }
-                : current,
-            );
+            if (operation.type === 'post' || operation.type === 'reply') {
+              setResult(current =>
+                current.uid === uid
+                  ? {
+                      ...current,
+                      groups: mergeSyncedGroupAction(
+                        current.groups,
+                        uid,
+                        operation,
+                      ),
+                    }
+                  : current,
+              );
+            }
             dispatch({
               type: 'sharedGroupActionSynced',
               id: operation.id,
@@ -481,7 +493,7 @@ export function useSharedGroups({
           }
         } catch (error) {
           if (activeUid.current === uid) {
-            setActionError(errorText(error));
+            setActionError(groupActionErrorText(error, operation));
           }
           return;
         } finally {

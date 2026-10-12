@@ -67,6 +67,8 @@ own `users/{uid}/private/state` document. It also allows signed-in students to
 discover group metadata, while keeping each membership record private to its
 owner. Only current group members can read or write posts and replies. Joining
 or leaving a group updates the public member count in the same validated batch.
+Each group member can add a post or reply once every five seconds; a private,
+non-deletable rate-limit document is updated atomically with each contribution.
 Unmatched documents are denied.
 
 The app writes its account state into the private document. Firestore limits

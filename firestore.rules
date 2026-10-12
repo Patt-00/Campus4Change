@@ -30,6 +30,36 @@ service cloud.firestore {
         return /databases/$(database)/documents/studyGroups/$(groupId)/members/$(userId);
       }
 
+      function writeLimitPath(userId) {
+        return /databases/$(database)/documents/studyGroups/$(groupId)/writeLimits/$(userId);
+      }
+
+      function postPath(postId) {
+        return /databases/$(database)/documents/studyGroups/$(groupId)/posts/$(postId);
+      }
+
+      function replyPath(postId, replyId) {
+        return /databases/$(database)/documents/studyGroups/$(groupId)/posts/$(postId)/replies/$(replyId);
+      }
+
+      function hasPostWritePermit(postId) {
+        let permit = getAfter(writeLimitPath(request.auth.uid)).data;
+        return permit.uid == request.auth.uid
+          && permit.lastWriteAt == request.time
+          && permit.kind == 'post'
+          && permit.writeId == postId
+          && permit.postId == null;
+      }
+
+      function hasReplyWritePermit(postId, replyId) {
+        let permit = getAfter(writeLimitPath(request.auth.uid)).data;
+        return permit.uid == request.auth.uid
+          && permit.lastWriteAt == request.time
+          && permit.kind == 'reply'
+          && permit.writeId == replyId
+          && permit.postId == postId;
+      }
+
       function groupPath() {
         return /databases/$(database)/documents/studyGroups/$(groupId);
       }
@@ -112,6 +142,49 @@ service cloud.firestore {
           && getAfter(parentGroup()).data.updatedAt == request.time;
       }
 
+      // One group contribution per member every five seconds. The private
+      // limiter is updated atomically with exactly one matching post or reply.
+      match /writeLimits/{userId} {
+        function matchingWrite() {
+          let data = request.resource.data;
+          return data.keys().hasAll([
+              'uid', 'lastWriteAt', 'kind', 'writeId', 'postId'
+            ])
+            && data.keys().hasOnly([
+              'uid', 'lastWriteAt', 'kind', 'writeId', 'postId'
+            ])
+            && data.uid == userId
+            && data.lastWriteAt == request.time
+            && data.writeId is string
+            && data.writeId.size() > 0
+            && data.writeId.size() <= 128
+            && ((data.kind == 'post'
+                && data.postId == null
+                && existsAfter(postPath(data.writeId))
+                && getAfter(postPath(data.writeId)).data.authorUid == userId
+                && getAfter(postPath(data.writeId)).data.createdAt == request.time)
+              || (data.kind == 'reply'
+                && data.postId is string
+                && data.postId.size() > 0
+                && data.postId.size() <= 128
+                && existsAfter(replyPath(data.postId, data.writeId))
+                && getAfter(replyPath(data.postId, data.writeId)).data.authorUid == userId
+                && getAfter(replyPath(data.postId, data.writeId)).data.createdAt == request.time));
+        }
+
+        allow get: if signedIn() && request.auth.uid == userId;
+        allow list: if false;
+        allow create: if signedIn()
+          && request.auth.uid == userId
+          && matchingWrite();
+        allow update: if signedIn()
+          && request.auth.uid == userId
+          && matchingWrite()
+          && resource.data.lastWriteAt is timestamp
+          && request.time >= resource.data.lastWriteAt + duration.value(5, 's');
+        allow delete: if false;
+      }
+
       match /posts/{postId} {
         function parentGroup() {
           return /databases/$(database)/documents/studyGroups/$(groupId);
@@ -121,7 +194,10 @@ service cloud.firestore {
           return /databases/$(database)/documents/studyGroups/$(groupId)/members/$(request.auth.uid);
         }
 
-        allow get, list: if isMember();
+        allow get: if isMember();
+        allow list: if isMember()
+          && request.query.limit is int
+          && request.query.limit <= 20;
         allow create: if signedIn()
           && exists(memberPath())
           && request.resource.data.keys().hasAll(['authorUid', 'author', 'text', 'createdAt'])
@@ -132,7 +208,8 @@ service cloud.firestore {
           && request.resource.data.text is string
           && request.resource.data.text.size() > 0
           && request.resource.data.text.size() <= 3000
-          && request.resource.data.createdAt == request.time;
+          && request.resource.data.createdAt == request.time
+          && hasPostWritePermit(postId);
         allow update, delete: if false;
 
         match /replies/{replyId} {
@@ -140,7 +217,11 @@ service cloud.firestore {
             return /databases/$(database)/documents/studyGroups/$(groupId)/members/$(request.auth.uid);
           }
 
-          allow get, list: if signedIn() && exists(memberPath());
+          allow get: if signedIn() && exists(memberPath());
+          allow list: if signedIn()
+            && exists(memberPath())
+            && request.query.limit is int
+            && request.query.limit <= 20;
           allow create: if signedIn()
             && exists(memberPath())
             && exists(/databases/$(database)/documents/studyGroups/$(groupId)/posts/$(postId))
@@ -152,7 +233,8 @@ service cloud.firestore {
             && request.resource.data.text is string
             && request.resource.data.text.size() > 0
             && request.resource.data.text.size() <= 2000
-            && request.resource.data.createdAt == request.time;
+            && request.resource.data.createdAt == request.time
+            && hasReplyWritePermit(postId, replyId);
           allow update, delete: if false;
         }
       }

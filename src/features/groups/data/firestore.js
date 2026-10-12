@@ -471,6 +471,7 @@ export async function syncSharedGroupAction(uid, profile, action) {
   }
   const groupRefForAction = doc(db, collectionName, groupId);
   const memberRef = doc(groupRefForAction, 'members', uid);
+  const writeLimitRef = doc(groupRefForAction, 'writeLimits', uid);
 
   if (action.type === 'membership') {
     const membership = await getDoc(memberRef);
@@ -515,6 +516,17 @@ export async function syncSharedGroupAction(uid, profile, action) {
       text: post.text.trim(),
       createdAt: serverTimestamp(),
     });
+    batch.set(
+      writeLimitRef,
+      {
+        uid,
+        lastWriteAt: serverTimestamp(),
+        kind: 'post',
+        writeId: post.id,
+        postId: null,
+      },
+      { merge: true },
+    );
     batch.update(groupRefForAction, { updatedAt: serverTimestamp() });
     await batch.commit();
     return;
@@ -543,6 +555,17 @@ export async function syncSharedGroupAction(uid, profile, action) {
       text: reply.text.trim(),
       createdAt: serverTimestamp(),
     });
+    batch.set(
+      writeLimitRef,
+      {
+        uid,
+        lastWriteAt: serverTimestamp(),
+        kind: 'reply',
+        writeId: reply.id,
+        postId: action.postId,
+      },
+      { merge: true },
+    );
     batch.update(groupRefForAction, { updatedAt: serverTimestamp() });
     await batch.commit();
   }
