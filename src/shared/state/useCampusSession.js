@@ -88,6 +88,7 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
   }, [saveLocalState]);
 
   const updatedAt = state?.updatedAt;
+  const accountId = state?.profile?.id;
   useEffect(() => {
     const value = snapshot.current;
     const expectedSession = activeSession.current;
@@ -119,7 +120,7 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
     return () => {
       cancelled = true;
     };
-  }, [saveActiveState, updatedAt]);
+  }, [saveActiveState, updatedAt, accountId]);
 
   const enterLocalAccount = useCallback(async value => {
     const storage = deviceStore();

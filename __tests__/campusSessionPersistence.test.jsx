@@ -161,6 +161,11 @@ test('a queued state snapshot is not written under a newer active account', asyn
   await act(async () => {
     renderer = ReactTestRenderer.create(<Harness />);
   });
+  const dateNow = jest
+    .spyOn(Date, 'now')
+    .mockReturnValueOnce(1000)
+    .mockReturnValueOnce(1000)
+    .mockReturnValueOnce(1001);
   await act(async () => {
     await currentSession.auth.signInLocal('student-a', 'pass');
     await flushSaveQueue();
@@ -191,5 +196,6 @@ test('a queued state snapshot is not written under a newer active account', asyn
 
   expect(writes).not.toContainEqual({ accountId: 'student-b', stateId: 'student-a' });
   expect(writes.some(write => write.stateId === 'student-b')).toBe(true);
+  dateNow.mockRestore();
   await act(async () => renderer.unmount());
 });
