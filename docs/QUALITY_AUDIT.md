@@ -29,6 +29,9 @@ production-ready claim.
 - Firebase signup sends an email verification link. Firestore rules require a
   verified-email claim for shared study-group data while keeping each user's
   private account state owner-only before verification.
+- Sign-out distinguishes encrypted local persistence from Firebase sync. It
+  keeps the account open if the local save fails, but permits sign-out after a
+  successful local save when cloud sync fails and explains how to retry later.
 - Booked sessions now use a booking-focused workspace for schedule, tutor,
   agenda, and notes; the focus timer is confined to group study rooms.
 - Session timing is displayed as upcoming, in progress, or past due from the

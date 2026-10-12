@@ -5,6 +5,9 @@ import { useCampusSession } from '../src/shared/state/useCampusSession';
 let mockUserListener;
 let mockCheckEmailVerification;
 let mockResendVerificationEmail;
+let mockFirebaseSignOut;
+let mockLoadCloudState;
+let mockSaveCloudState;
 let currentSession;
 const mockStore = {
   biometricSignIn: jest.fn(),
@@ -25,10 +28,10 @@ jest.mock('../src/shared/backend/firebase', () => ({
   firebaseResendVerificationEmail: (...args) =>
     mockResendVerificationEmail(...args),
   firebaseSignIn: jest.fn(),
-  firebaseSignOut: jest.fn(async () => {}),
+  firebaseSignOut: (...args) => mockFirebaseSignOut(...args),
   firebaseSignUp: jest.fn(),
-  loadCloudState: jest.fn(async () => null),
-  saveCloudState: jest.fn(async () => {}),
+  loadCloudState: (...args) => mockLoadCloudState(...args),
+  saveCloudState: (...args) => mockSaveCloudState(...args),
   watchFirebaseUser: listener => {
     mockUserListener = listener;
     return jest.fn();
@@ -61,6 +64,9 @@ beforeEach(() => {
     emailVerified: false,
   }));
   mockResendVerificationEmail = jest.fn(async () => {});
+  mockFirebaseSignOut = jest.fn(async () => {});
+  mockLoadCloudState = jest.fn(async () => null);
+  mockSaveCloudState = jest.fn(async () => {});
   jest.clearAllMocks();
 });
 
@@ -105,5 +111,39 @@ test('the session keeps shared access closed until refreshed email verification 
   expect(currentSession.emailVerified).toBe(true);
   expect(currentSession.emailVerificationMessage).toBe('');
   expect(mockCheckEmailVerification).toHaveBeenCalledTimes(1);
+  await act(async () => renderer.unmount());
+});
+
+test('Firebase sign-out succeeds when cloud sync fails after local state is saved', async () => {
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(<Harness />);
+  });
+  await act(async () => {
+    mockUserListener({
+      uid: 'firebase-student',
+      id: 'firebase-student',
+      name: 'Student',
+      email: 'student@school.test',
+      studentId: 'STU-1',
+      emailVerified: true,
+    });
+    await flushTasks();
+    await flushTasks();
+  });
+
+  mockStore.saveState.mockClear();
+  mockSaveCloudState.mockRejectedValue(new Error('Firebase is unavailable.'));
+  let result;
+  await act(async () => {
+    result = await currentSession.signOut();
+  });
+
+  expect(mockStore.saveState).toHaveBeenCalled();
+  expect(mockFirebaseSignOut).toHaveBeenCalledTimes(1);
+  expect(mockStore.signOut).toHaveBeenCalledTimes(1);
+  expect(result).toEqual({ signedOut: true, cloudSaved: false });
+  expect(currentSession.sessionType).toBeNull();
+  expect(currentSession.state).toBeNull();
   await act(async () => renderer.unmount());
 });

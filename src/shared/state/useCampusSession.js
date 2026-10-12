@@ -53,17 +53,22 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
   snapshot.current = state;
   callbacks.current = { onSignedIn, onSignedOut };
 
+  const saveLocalState = useCallback(async value => {
+    const saved = stateForPersistence(value);
+    await deviceStore().saveState(JSON.stringify(saved));
+    return saved;
+  }, []);
+
   const saveActiveState = useCallback(async value => {
     const active = activeSession.current;
     if (!active) {
       throw new Error('Sign in before saving your account data.');
     }
-    const saved = stateForPersistence(value);
-    await deviceStore().saveState(JSON.stringify(saved));
+    const saved = await saveLocalState(value);
     if (active.kind === 'firebase') {
       await saveCloudState(active.uid, saved);
     }
-  }, []);
+  }, [saveLocalState]);
 
   const updatedAt = state?.updatedAt;
   useEffect(() => {
@@ -355,12 +360,20 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
   }, []);
 
   async function signOut() {
+    const active = activeSession.current;
+    let cloudSaved = true;
     try {
-      if (snapshot.current && activeSession.current) {
+      if (snapshot.current && active) {
         await saveQueue.current.catch(() => {});
-        await saveActiveState(snapshot.current);
+        const saved = await saveLocalState(snapshot.current);
+        if (active.kind === 'firebase') {
+          try {
+            await saveCloudState(active.uid, saved);
+          } catch {
+            cloudSaved = false;
+          }
+        }
       }
-      const active = activeSession.current;
       if (active?.kind === 'firebase') {
         firebaseSignOutInProgress.current = true;
         try {
@@ -386,8 +399,10 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
       setSaveError('');
       setRestoring(false);
       callbacks.current.onSignedOut();
+      return { signedOut: true, cloudSaved };
     } catch (error) {
       setSaveError(errorText(error));
+      return { signedOut: false, cloudSaved: false };
     } finally {
       firebaseSignOutInProgress.current = false;
     }

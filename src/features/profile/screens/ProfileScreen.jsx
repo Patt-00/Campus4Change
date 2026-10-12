@@ -119,7 +119,7 @@ export function ProfileScreen({
           Alert.alert(
             'Sign out?',
             sessionType === 'firebase'
-              ? 'Your encrypted local copy and Firebase data will stay saved.'
+              ? 'Your encrypted local copy will stay on this device. If Firebase is unavailable, unsynced changes can be retried the next time you sign in.'
               : 'Your local data will stay saved on this device.',
             [
               {
@@ -128,7 +128,15 @@ export function ProfileScreen({
               },
               {
                 text: 'Sign out',
-                onPress: signOut,
+                onPress: async () => {
+                  const result = await signOut();
+                  if (result?.signedOut && result.cloudSaved === false) {
+                    Alert.alert(
+                      'Signed out',
+                      'Your latest changes are saved on this device but could not sync to Firebase. Sign in again when Firebase is available to retry the sync.',
+                    );
+                  }
+                },
               },
             ],
           )
