@@ -15,10 +15,10 @@ Verified for this checkpoint:
 
 - `npm run lint`: passed without warnings.
 - `npm test -- --runInBand --coverage --coverageReporters=json --coverageReporters=json-summary`:
-  105 tests passed in 19 suites. Tests cover stale group callbacks and pending
+  111 tests passed in 20 suites. Tests cover stale group callbacks and pending
   shared writes across account changes, queued state persistence after a switch
-  even when both accounts share the same `updatedAt`, and text contrast for
-  theme colors and button labels.
+  even when both accounts share the same `updatedAt`, unknown and past-due
+  session statuses, the Home overdue warning, and theme color contrast.
 - The groups screen uses a virtualized `SectionList`; its regression test feeds
   80 loaded groups and confirms that the initial render mounts no more than 10
   group cards. Search tests cover case-insensitive subject filtering, joined
@@ -26,8 +26,8 @@ Verified for this checkpoint:
   exercise home routes, tutor listing and search, booking validation, session
   reschedule gating, private group-room drafts versus explicit publishing,
   timer controls and cleanup, and shared-group retry paths.
-- The Jest coverage run for this checkpoint reports 82.55% line coverage,
-  72.96% branch coverage, and 82.85% function coverage. It covers all lines in
+- The Jest coverage run for this checkpoint reports 83.09% line coverage,
+  73.96% branch coverage, and 83.19% function coverage. It covers all lines in
   the home screen at 96.66%, session details at 100%, the group-room screen at
   100%, the local storage guard at 100%, tutor search at 96.77%, and booking
   screen at 94.44%. Coverage is
@@ -71,8 +71,8 @@ Verified for this checkpoint:
   marker or `braces`/`micromatch` strings.
 - `./gradlew assembleDebug` passed locally with `JAVA_HOME` and `PATH` set to
   `/usr/lib/jvm/java-25-openjdk`, and built the debug APK. The latest [GitHub
-  Actions run 38313170989](https://github.com/Patt-00/Campus4Change/actions/runs/38313170989)
-  passed on commit `d5fd90e`: lint, all 105 unit tests, Auth/Firestore emulator
+  Actions run 38319205350](https://github.com/Patt-00/Campus4Change/actions/runs/38319205350)
+  passed on commit `2f87209`: lint, all 111 unit tests, Auth/Firestore emulator
   tests, production bundling, Android debug build, and release-signing guard.
   The Redmi Turbo 4 reported model `24129RT7CC`, product `rodin`, and Android 16.
   `adb install -r` updated the existing debug app without clearing its data.
@@ -80,11 +80,13 @@ Verified for this checkpoint:
   introduction slide, local demo sign-in, Profile, sign-out, and sign-in again;
   Home returned with the saved demo state. The Sessions tab and Session Details
   had no focus timer; the group study room showed its separate 25-minute timer,
-  counted down to 24:57, and reset to 25:00. The captured app-process log had
-  no fatal exception or React Native JS error. It did include a nonfatal
-  `ReactHostImpl.onWindowFocusChange` soft exception before the React context
-  was ready; the app continued normally. No personal account or production
-  Firebase workflow was used.
+  counted down to 24:57, and reset to 25:00. Profile showed three demo sessions;
+  all three now appear in Sessions, including two past-due bookings. Home shows
+  a visible overdue warning with a direct review action. The captured
+  app-process log had no fatal exception or React Native JS error; it did show
+  a nonfatal `ReactHostImpl.onWindowFocusChange` soft exception before the
+  React context was ready. The app continued normally. No personal account or
+  production Firebase workflow was used.
 - After release-signing hardening, `assembleDebug` still passes and
   `./gradlew --no-daemon --dry-run assembleRelease` fails early without the
   dedicated signing variables. The existing historical release APK hash
@@ -122,9 +124,9 @@ Verified for this checkpoint:
   wrapper and 1.25 GB Gradle dependency cache and took 4m20s. The next warm run,
   38306080539, took 3m06s total, with `assembleDebug` taking 1m11s. Another warm
   run, 38306902190, completed in 3m38s; its `assembleDebug` step took 1m31s.
-  Run 38309287744 completed in 3m20s, and run 38313170989 in 3m54s. These are
-  observed runs rather than a controlled benchmark; hosted-runner variation may
-  affect the reduction.
+  Run 38309287744 completed in 3m20s, run 38313170989 in 3m54s, and run
+  38319205350 in 4m18s. These are observed runs rather than a controlled
+  benchmark; hosted-runner variation may affect the reduction.
 
 Firebase values are populated in `src/shared/backend/firebaseConfig.js`. At the
 last live Console check, production Firestore rules denied all client access;

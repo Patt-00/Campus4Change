@@ -69,6 +69,11 @@ production-ready claim.
 - Rescheduling a saved session whose time is not one of the current preset slots
   now requires an explicit replacement choice instead of silently selecting
   the first slot.
+- Sessions with legacy or missing statuses remain visible under Needs review.
+  Past-due bookings are shown in Sessions; the filter callback explicitly
+  passes each session so JavaScript cannot substitute the array index for its
+  optional clock argument. Home also surfaces past-due bookings with a direct
+  route to their list.
 - Booking confirmation and reminders describe a private schedule entry and
   state that the tutor has not been notified.
 - Focused tests now cover home navigation and search, tutor listing create and
@@ -97,8 +102,8 @@ production-ready claim.
   tests, production bundling, the Android debug build, and the release-signing
   guard. Gradle dependency and wrapper caching is enabled through the
   [`setup-java` cache option](https://github.com/actions/setup-java/blob/main/README.md).
-  The latest [remote run](https://github.com/Patt-00/Campus4Change/actions/runs/38313170989)
-  passed on commit `d5fd90e` without production Firebase credentials.
+  The latest [remote run](https://github.com/Patt-00/Campus4Change/actions/runs/38319205350)
+  passed on commit `2f87209` without production Firebase credentials.
 
 ## Open issues
 
@@ -120,7 +125,9 @@ earlier checkpoints. The current debug APK installed and ran on the Redmi Turbo
 4 (ADB model `24129RT7CC`, Android 16). The local demo account completed
 sign-in, Profile, sign-out, and re-sign-in with its state preserved. Sessions
 and Session Details remained schedule-focused, while the group room retained
-its separate 25-minute timer. This did not exercise a personal account or
+its separate 25-minute timer. Profile counted three demo sessions, all now
+visible in Sessions; Home warns about two past-due bookings and routes to that
+list. This did not exercise a personal account or
 production Firebase. The Firebase emulator is not a substitute for deploying
 the reviewed rules or two-account testing against the course project. A
 nonfatal React Native focus soft exception was logged before the React context
