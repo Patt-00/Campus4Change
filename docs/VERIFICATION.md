@@ -71,8 +71,8 @@ Verified for this checkpoint:
   marker or `braces`/`micromatch` strings.
 - `./gradlew assembleDebug` passed locally with `JAVA_HOME` and `PATH` set to
   `/usr/lib/jvm/java-25-openjdk`, and built the debug APK. The latest [GitHub
-  Actions run 38319205350](https://github.com/Patt-00/Campus4Change/actions/runs/38319205350)
-  passed on commit `2f87209`: lint, all 111 unit tests, Auth/Firestore emulator
+  Actions run 38319799312](https://github.com/Patt-00/Campus4Change/actions/runs/38319799312)
+  passed on commit `d99cfa4`: lint, all 111 unit tests, Auth/Firestore emulator
   tests, production bundling, Android debug build, and release-signing guard.
   The Redmi Turbo 4 reported model `24129RT7CC`, product `rodin`, and Android 16.
   `adb install -r` updated the existing debug app without clearing its data.
@@ -124,9 +124,10 @@ Verified for this checkpoint:
   wrapper and 1.25 GB Gradle dependency cache and took 4m20s. The next warm run,
   38306080539, took 3m06s total, with `assembleDebug` taking 1m11s. Another warm
   run, 38306902190, completed in 3m38s; its `assembleDebug` step took 1m31s.
-  Run 38309287744 completed in 3m20s, run 38313170989 in 3m54s, and run
-  38319205350 in 4m18s. These are observed runs rather than a controlled
-  benchmark; hosted-runner variation may affect the reduction.
+  Run 38309287744 completed in 3m20s, run 38313170989 in 3m54s, run
+  38319205350 in 4m18s, and run 38319799312 in 4m05s. These are observed runs
+  rather than a controlled benchmark; hosted-runner variation may affect the
+  reduction.
 
 Firebase values are populated in `src/shared/backend/firebaseConfig.js`. At the
 last live Console check, production Firestore rules denied all client access;
