@@ -167,3 +167,91 @@ test('tutor subject filters collapse spelling variants', async () => {
   expect(labels.filter(label => label === 'Calculus')).toHaveLength(1);
   await act(async () => renderer.unmount());
 });
+
+test('tutor directory searches, applies availability and rating, and clears filters', async () => {
+  const list = [
+    {
+      id: 'alex',
+      name: 'Alex Student',
+      subjects: ['Physics'],
+      rating: 4.2,
+      available: true,
+    },
+    {
+      id: 'bianca',
+      name: 'Bianca Student',
+      subjects: ['Calculus'],
+      rating: 4.8,
+      available: false,
+    },
+    {
+      id: 'caleb',
+      name: 'Caleb Student',
+      subjects: ['Biology'],
+      rating: 5,
+      available: true,
+    },
+  ];
+  let renderer;
+  await act(async () => {
+    renderer = renderScreen(
+      <TutorSearchScreen go={jest.fn()} back={jest.fn()} list={list} />,
+    );
+  });
+  const cardLabels = () =>
+    renderer.root
+      .findAllByType(TouchableOpacity)
+      .map(control => control.props.accessibilityLabel)
+      .filter(label => label?.endsWith(', view profile'));
+
+  await act(async () =>
+    input(renderer, 'Search subject or tutor').props.onChangeText('CALCULUS'),
+  );
+  expect(cardLabels()).toEqual(['Bianca Student, view profile']);
+  await act(async () => button(renderer, 'Clear filters').props.onPress());
+
+  await act(async () => button(renderer, 'Top rated').props.onPress());
+  expect(cardLabels()).toEqual([
+    'Caleb Student, view profile',
+    'Bianca Student, view profile',
+    'Alex Student, view profile',
+  ]);
+  await act(async () => button(renderer, 'Taking requests').props.onPress());
+  expect(cardLabels()).toEqual([
+    'Caleb Student, view profile',
+    'Alex Student, view profile',
+  ]);
+
+  await act(async () => button(renderer, 'Subjects').props.onPress());
+  await act(async () => button(renderer, 'Physics').props.onPress());
+  expect(cardLabels()).toEqual(['Alex Student, view profile']);
+  await act(async () => button(renderer, 'Clear filters').props.onPress());
+  expect(cardLabels()).toEqual([
+    'Alex Student, view profile',
+    'Bianca Student, view profile',
+    'Caleb Student, view profile',
+  ]);
+  await act(async () => renderer.unmount());
+});
+
+test('empty tutor directory links to tutor-profile creation and About', async () => {
+  const go = jest.fn();
+  let renderer;
+  await act(async () => {
+    renderer = renderScreen(
+      <TutorSearchScreen go={go} back={jest.fn()} list={[]} />,
+    );
+  });
+
+  const text = renderer.root
+    .findAllByType(Text)
+    .map(node => node.props.children);
+  expect(text).toContain('Your directory is empty');
+  await act(async () => button(renderer, 'Create tutor profile').props.onPress());
+  expect(go).toHaveBeenLastCalledWith('Be a Tutor');
+  await act(async () =>
+    button(renderer, 'About the tutor directory').props.onPress(),
+  );
+  expect(go).toHaveBeenLastCalledWith('About');
+  await act(async () => renderer.unmount());
+});
