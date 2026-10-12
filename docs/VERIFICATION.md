@@ -78,8 +78,10 @@ Verified for this checkpoint:
   `adb install -r` updated the existing debug app without clearing its data.
   With Metro port 8081 reversed to the device, I checked startup, the Expert
   introduction slide, local demo sign-in, Profile, sign-out, and sign-in again;
-  Home returned with the saved demo state. The captured app-process log had no
-  fatal exception or React Native JS error. It did include a nonfatal
+  Home returned with the saved demo state. The Sessions tab and Session Details
+  had no focus timer; the group study room showed its separate 25-minute timer,
+  counted down to 24:57, and reset to 25:00. The captured app-process log had
+  no fatal exception or React Native JS error. It did include a nonfatal
   `ReactHostImpl.onWindowFocusChange` soft exception before the React context
   was ready; the app continued normally. No personal account or production
   Firebase workflow was used.

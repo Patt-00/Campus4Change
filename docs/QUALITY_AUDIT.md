@@ -118,8 +118,10 @@ Verification is recorded in [VERIFICATION.md](VERIFICATION.md). The Pad 7
 debug UI check and production-mode Android JavaScript bundle are verified from
 earlier checkpoints. The current debug APK installed and ran on the Redmi Turbo
 4 (ADB model `24129RT7CC`, Android 16). The local demo account completed
-sign-in, Profile, sign-out, and re-sign-in with its state preserved. This did
-not exercise a personal account or production Firebase; the Firebase emulator
-is not a substitute for deploying the reviewed rules or two-account testing
-against the course project. A nonfatal React Native focus soft exception was
-logged before the React context was ready; no app crash or JS error followed.
+sign-in, Profile, sign-out, and re-sign-in with its state preserved. Sessions
+and Session Details remained schedule-focused, while the group room retained
+its separate 25-minute timer. This did not exercise a personal account or
+production Firebase. The Firebase emulator is not a substitute for deploying
+the reviewed rules or two-account testing against the course project. A
+nonfatal React Native focus soft exception was logged before the React context
+was ready; no app crash or JS error followed.
