@@ -302,3 +302,159 @@ test('failed older post and reply pages expose errors and clear loading state', 
   await act(async () => renderer.unmount());
   expect(postSubscription.unsubscribe).toHaveBeenCalledTimes(1);
 });
+
+test('stale directory callbacks cannot restore groups from a previous account', async () => {
+  const subscriptions = [];
+  watchSharedGroups.mockImplementation((uid, onGroups, onError) => {
+    const subscription = {
+      loadMoreGroups: jest.fn(),
+      unsubscribe: jest.fn(),
+    };
+    subscriptions.push({ uid, subscription, onGroups, onError });
+    return subscription;
+  });
+  const session = {
+    uid: 'student-a',
+    enabled: true,
+    state: {
+      profile: { id: 'student-a', name: 'Student A' },
+      groups: [],
+      pendingSharedActions: [],
+    },
+    dispatch: jest.fn(),
+    activeGroupId: null,
+    activePostId: null,
+  };
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(<Harness session={session} />);
+  });
+
+  const groupA = {
+    id: 'private-to-a',
+    name: 'Student A group',
+    subject: 'Physics',
+    shared: true,
+    joined: false,
+    members: 1,
+    posts: [],
+    postsLoaded: true,
+  };
+  await act(async () => {
+    subscriptions[0].onGroups([groupA], {
+      hasMoreGroups: false,
+      groupsLive: true,
+    });
+  });
+  expect(currentResult.groups.map(group => group.id)).toContain('private-to-a');
+
+  const sessionB = {
+    ...session,
+    uid: 'student-b',
+    state: {
+      profile: { id: 'student-b', name: 'Student B' },
+      groups: [],
+      pendingSharedActions: [],
+    },
+  };
+  await act(async () => {
+    renderer.update(<Harness session={sessionB} />);
+  });
+  expect(subscriptions[0].subscription.unsubscribe).toHaveBeenCalledTimes(1);
+  expect(currentResult.groups.map(group => group.id)).not.toContain('private-to-a');
+
+  await act(async () => {
+    subscriptions[0].onGroups([groupA], {
+      hasMoreGroups: false,
+      groupsLive: true,
+    });
+  });
+  expect(currentResult.groups.map(group => group.id)).not.toContain('private-to-a');
+
+  const groupB = { ...groupA, id: 'private-to-b', name: 'Student B group' };
+  await act(async () => {
+    subscriptions[1].onGroups([groupB], {
+      hasMoreGroups: false,
+      groupsLive: true,
+    });
+  });
+  expect(currentResult.groups.map(group => group.id)).toEqual(['private-to-b']);
+  await act(async () => renderer.unmount());
+  expect(subscriptions[1].subscription.unsubscribe).toHaveBeenCalledTimes(1);
+});
+
+test('a pending write from a previous account cannot dispatch into the new account', async () => {
+  let completeWrite;
+  const writePromise = new Promise(resolve => {
+    completeWrite = resolve;
+  });
+  syncSharedGroupAction.mockReturnValueOnce(writePromise);
+  watchSharedGroups.mockImplementation(() => ({ unsubscribe: jest.fn() }));
+  const operation = {
+    id: 'student-a-post',
+    type: 'post',
+    groupId: 'group-a',
+    post: {
+      id: 'post-a',
+      author: 'Student A',
+      text: 'Private queued post',
+      createdAt: '2026-10-12T10:00:00.000Z',
+      replies: [],
+    },
+  };
+  const dispatchA = jest.fn();
+  const sessionA = {
+    uid: 'student-a',
+    enabled: true,
+    state: {
+      profile: { id: 'student-a', name: 'Student A' },
+      groups: [],
+      pendingSharedActions: [operation],
+    },
+    dispatch: dispatchA,
+    activeGroupId: null,
+    activePostId: null,
+  };
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(<Harness session={sessionA} />);
+    await Promise.resolve();
+  });
+  expect(syncSharedGroupAction).toHaveBeenCalledWith(
+    'student-a',
+    sessionA.state.profile,
+    operation,
+  );
+
+  const dispatchB = jest.fn();
+  const sessionB = {
+    uid: 'student-b',
+    enabled: true,
+    state: {
+      profile: { id: 'student-b', name: 'Student B' },
+      groups: [],
+      pendingSharedActions: [],
+    },
+    dispatch: dispatchB,
+    activeGroupId: null,
+    activePostId: null,
+  };
+  await act(async () => {
+    renderer.update(<Harness session={sessionB} />);
+  });
+  await act(async () => {
+    completeWrite();
+    await writePromise;
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
+
+  expect(dispatchA).not.toHaveBeenCalledWith({
+    type: 'sharedGroupActionSynced',
+    id: 'student-a-post',
+  });
+  expect(dispatchB).not.toHaveBeenCalledWith({
+    type: 'sharedGroupActionSynced',
+    id: 'student-a-post',
+  });
+  await act(async () => renderer.unmount());
+});
