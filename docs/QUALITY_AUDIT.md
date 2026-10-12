@@ -75,6 +75,8 @@ production-ready claim.
   removal, private tutor filtering, group-room timer lifecycle and notes,
   shared-group retry errors, storage compatibility, and session cancellation,
   rating, and reschedule timing.
+- Leaving a group room with Back now keeps note drafts private. Publishing to a
+  group happens only from the explicit Save Notes and Leave action.
 - Device-only groups remain available. Pending shared writes are saved in
   account state and can be retried.
 - Firestore emulator tests cover account isolation, group discovery, membership
@@ -90,8 +92,8 @@ production-ready claim.
   tests, production bundling, the Android debug build, and the release-signing
   guard. Gradle dependency and wrapper caching is enabled through the
   [`setup-java` cache option](https://github.com/actions/setup-java/blob/main/README.md).
-  The latest [remote run](https://github.com/Patt-00/Campus4Change/actions/runs/38306080539)
-  passed on commit `39d0504` without production Firebase credentials.
+  The latest [remote run](https://github.com/Patt-00/Campus4Change/actions/runs/38306902190)
+  passed on commit `ddd0100` without production Firebase credentials.
 
 ## Open issues
 

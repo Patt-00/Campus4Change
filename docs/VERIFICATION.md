@@ -14,16 +14,16 @@ source contains no TypeScript files.
 Verified for this checkpoint:
 
 - `npm run lint`: passed without warnings.
-- `npm test -- --runInBand`: 93 tests passed in 18 suites.
+- `npm test -- --runInBand`: 94 tests passed in 18 suites.
 - The groups screen uses a virtualized `SectionList`; its regression test feeds
   80 loaded groups and confirms that the initial render mounts no more than 10
   group cards. Search tests cover case-insensitive subject filtering, joined
   group empty copy, and the prompt to search older pages. Other focused tests
   exercise home routes, tutor listing and search, booking validation, session
-  reschedule gating, group-room timer controls and cleanup, and shared-group
-  retry paths.
-- The Jest coverage run for this checkpoint reports 82.38% line coverage,
-  72.60% branch coverage, and 82.78% function coverage. It covers all lines in
+  reschedule gating, private group-room drafts versus explicit publishing,
+  timer controls and cleanup, and shared-group retry paths.
+- The Jest coverage run for this checkpoint reports 82.53% line coverage,
+  72.66% branch coverage, and 82.99% function coverage. It covers all lines in
   the home screen at 96.66%, session details at 100%, the group-room screen at
   100%, the local storage guard at 100%, tutor search at 96.77%, and booking
   screen at 94.44%. Coverage is
@@ -68,8 +68,8 @@ Verified for this checkpoint:
 - `JAVA_HOME=/usr/lib/jvm/java-25 ./gradlew --no-daemon assembleDebug` passed
   for Android. The React Native CLI launch helper stalled after starting
   Metro, so the APK was built directly with Gradle. The latest [GitHub Actions
-  run 38306080539](https://github.com/Patt-00/Campus4Change/actions/runs/38306080539)
-  passed on commit `39d0504`: lint, all 93 unit tests, Auth/Firestore emulator
+  run 38306902190](https://github.com/Patt-00/Campus4Change/actions/runs/38306902190)
+  passed on commit `ddd0100`: lint, all 94 unit tests, Auth/Firestore emulator
   tests, production bundling, Android debug build, and release-signing guard.
   `adb devices -l` detects the POCO X4 GT (model `22041216G`, Android 14)
   through paired Wireless debugging. Two install attempts returned
@@ -110,9 +110,10 @@ Verified for this checkpoint:
   with `assembleDebug` taking 3m53s. The first cache-enabled run, 38304580091,
   took 5m32s while populating Gradle caches. Warm run 38305216881 restored the
   wrapper and 1.25 GB Gradle dependency cache and took 4m20s. The next warm run,
-  38306080539, took 3m06s total, with `assembleDebug` taking 1m11s. These are
-  observed runs rather than a controlled benchmark; hosted-runner variance may
-  affect the reduction.
+  38306080539, took 3m06s total, with `assembleDebug` taking 1m11s. Another warm
+  run, 38306902190, completed in 3m38s; its `assembleDebug` step took 1m31s.
+  These are observed runs rather than a controlled benchmark; hosted-runner
+  variation may affect the reduction.
 
 Firebase values are populated in `src/shared/backend/firebaseConfig.js`. At the
 last live Console check, production Firestore rules denied all client access;
