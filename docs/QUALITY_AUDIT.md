@@ -48,8 +48,9 @@ production-ready claim.
   confirming no application or test source imports it; the reported audit total
   dropped by one high-severity package path.
 - Added a GitHub Actions workflow for lint, unit tests, Auth/Firestore emulator
-  tests, production bundling, and the Android debug build. Its first remote run
-  passed on commit `5855ca0` without production Firebase credentials.
+  tests, production bundling, the Android debug build, and the release-signing
+  guard. The latest [remote run](https://github.com/Patt-00/Campus4Change/actions/runs/38222998093)
+  passed on commit `10fa5ad` in 5m59s without production Firebase credentials.
 
 ## Open issues
 
@@ -67,8 +68,9 @@ production-ready claim.
 ## Verification record
 
 Verification is recorded in [VERIFICATION.md](VERIFICATION.md). The Pad 7
-debug UI check and production-mode Android JavaScript bundle are verified. A
-Poco X4 GT debug install attempt for the current Firebase configuration was
-blocked by `INSTALL_FAILED_USER_RESTRICTED`; device approval is still needed.
+debug UI check and production-mode Android JavaScript bundle are verified. The
+POCO X4 GT is currently visible through USB debugging, but Campus4Change is not
+installed. A previous debug install was blocked by
+`INSTALL_FAILED_USER_RESTRICTED`; device-side install approval is still needed.
 The Firebase emulator is not a substitute for deploying the reviewed rules or
 two-account testing against the course project.
