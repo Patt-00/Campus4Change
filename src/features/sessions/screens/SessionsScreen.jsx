@@ -94,7 +94,7 @@ export function SessionsScreen({ go, back, sessions, list }) {
       )}
       {pastDue.length > 0 && (
         <>
-          <Text style={s.section}>Past due • update these bookings</Text>
+          <Text style={s.section}>Past due • review these bookings</Text>
           {pastDue.map(card)}
         </>
       )}
