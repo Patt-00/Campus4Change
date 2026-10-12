@@ -14,3 +14,7 @@ export function sessionTimingStatus(session, now = Date.now()) {
 export function isPastDueSession(session, now = Date.now()) {
   return sessionTimingStatus(session, now) === 'Past due';
 }
+
+export function canRescheduleSession(session, now = Date.now()) {
+  return sessionTimingStatus(session, now) === 'Upcoming';
+}

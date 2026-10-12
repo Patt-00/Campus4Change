@@ -25,6 +25,7 @@ import { NotificationsScreen } from '../features/notifications/screens/Notificat
 import { BeTutorScreen } from '../features/profile/screens/BeTutorScreen';
 import { EditProfileScreen } from '../features/profile/screens/EditProfileScreen';
 import { ProfileScreen } from '../features/profile/screens/ProfileScreen';
+import { canRescheduleSession } from '../features/sessions/data/status';
 import { AppButton } from '../shared/components/AppButton';
 import { Empty, Link } from '../shared/components/UI';
 import { Screen } from '../shared/components/Screen';
@@ -265,7 +266,7 @@ export function AppNavigator() {
               if (tutor.id === ownId) {
                 return 'Choose another tutor. You cannot book yourself.';
               }
-              if (session && session.status !== 'Upcoming') {
+              if (session && !canRescheduleSession(session)) {
                 return 'Only upcoming sessions can be rescheduled.';
               }
               if (hasConflict(state, startsAt, session?.id)) {

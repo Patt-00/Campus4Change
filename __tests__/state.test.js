@@ -9,7 +9,10 @@ import {
   visibleGroups,
 } from '../src/shared/data/catalog';
 import { parseMeetup } from '../src/features/groups/data/meetup';
-import { sessionTimingStatus } from '../src/features/sessions/data/status';
+import {
+  canRescheduleSession,
+  sessionTimingStatus,
+} from '../src/features/sessions/data/status';
 import { stateForPersistence } from '../src/shared/state/persistence';
 
 const account = {
@@ -63,6 +66,28 @@ test('scheduled sessions switch to in-progress and past-due labels without rewri
   expect(
     sessionTimingStatus({ ...session, status: 'Completed' }, Date.now()),
   ).toBe('Completed');
+});
+test('only sessions whose scheduled time is still upcoming can be rescheduled', () => {
+  const session = {
+    id: 'timed',
+    status: 'Upcoming',
+    startsAt: '2026-10-12T10:00:00.000Z',
+  };
+  expect(
+    canRescheduleSession(session, Date.parse('2026-10-12T09:00:00.000Z')),
+  ).toBe(true);
+  expect(
+    canRescheduleSession(session, Date.parse('2026-10-12T10:30:00.000Z')),
+  ).toBe(false);
+  expect(
+    canRescheduleSession(session, Date.parse('2026-10-12T11:00:00.000Z')),
+  ).toBe(false);
+  expect(
+    canRescheduleSession(
+      { ...session, status: 'Completed' },
+      Date.parse('2026-10-12T09:00:00.000Z'),
+    ),
+  ).toBe(false);
 });
 test('rescheduling cannot overlap another booking, and only completed sessions accept a valid rating', () => {
   let state = reducer(initialState(account), {

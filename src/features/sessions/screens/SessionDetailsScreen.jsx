@@ -4,7 +4,7 @@ import { AppButton } from '../../../shared/components/AppButton';
 import { Screen } from '../../../shared/components/Screen';
 import { Avatar, Chip, Link } from '../../../shared/components/UI';
 import { dateLabel, timeRange } from '../../../shared/data/demo';
-import { sessionTimingStatus } from '../data/status';
+import { canRescheduleSession, sessionTimingStatus } from '../data/status';
 
 import { C } from '../../../shared/theme/colors';
 import { s } from '../../../shared/theme/styles';
@@ -71,17 +71,19 @@ export function SessionDetailsScreen({
             }
           />
 
-          <AppButton
-            title="RESCHEDULE"
-            outline
-            onPress={() =>
-              go({
-                page: 'Book Session',
-                tutorId: tutor.id,
-                sessionId: session.id,
-              })
-            }
-          />
+          {canRescheduleSession(session) && (
+            <AppButton
+              title="RESCHEDULE"
+              outline
+              onPress={() =>
+                go({
+                  page: 'Book Session',
+                  tutorId: tutor.id,
+                  sessionId: session.id,
+                })
+              }
+            />
+          )}
 
           <View style={styles.alignItemscenter}>
             <Link
