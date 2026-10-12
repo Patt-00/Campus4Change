@@ -66,6 +66,9 @@ production-ready claim.
 - Rescheduling now uses the computed timing status. A session that has started
   or passed its scheduled time no longer exposes the reschedule action, and the
   save handler rejects the same stale route.
+- Rescheduling a saved session whose time is not one of the current preset slots
+  now requires an explicit replacement choice instead of silently selecting
+  the first slot.
 - Booking confirmation and reminders describe a private schedule entry and
   state that the tutor has not been notified.
 - Focused tests now cover home navigation and search, tutor listing create and
@@ -87,15 +90,15 @@ production-ready claim.
   tests, production bundling, the Android debug build, and the release-signing
   guard. Gradle dependency and wrapper caching is enabled through the
   [`setup-java` cache option](https://github.com/actions/setup-java/blob/main/README.md).
-  The latest [remote run](https://github.com/Patt-00/Campus4Change/actions/runs/38305216881)
-  passed on commit `ea0fec4` without production Firebase credentials.
+  The latest [remote run](https://github.com/Patt-00/Campus4Change/actions/runs/38306080539)
+  passed on commit `39d0504` without production Firebase credentials.
 
 ## Open issues
 
 | ID | Priority | Issue | Evidence and next action |
 | --- | --- | --- | --- |
-| C4C-01 | High | The Firebase project is configured, but the app's Firestore rules are not deployed. | Project `campus4change` is on Spark, has a registered Web app and Email/Password sign-in, and its Standard Firestore database is in `asia-southeast1`. The app client config is populated. Firestore still has its initial production-mode deny-all rules; review and explicitly authorize deployment before live data tests. |
-| C4C-02 | High | No real-project, two-account shared-group workflow has been verified. | The Firebase project and database are ready, but app access remains denied until the checked-in rules are deployed. Emulator rules and email-verification workflow tests pass; deploy the rules, verify two test email addresses, then test create/discover/join/post/reply/leave against the project. |
+| C4C-01 | High | The checked-in Firestore rules have not been deployed. | The last live Console check found project `campus4change` on Spark, its Standard database in `asia-southeast1`, and initial production-mode deny-all rules. In this session, `firebase projects:list` failed because Firebase CLI is unauthenticated, and gcloud has no active credentials, so the live rule state cannot be rechecked. Sign in, recheck, and explicitly authorize deployment before live data tests. |
+| C4C-02 | High | No real-project, two-account shared-group workflow has been verified. | At the last live check, app access was denied by the initial production-mode rules. The current Firebase CLI is unauthenticated, so recheck that state after signing in. Then deploy the reviewed rules with authorization, verify two test email addresses, and test create/discover/join/post/reply/leave against the project. |
 | C4C-03 | High | The final-project acceptance rubric is not accessible in the current course. | Canvas course 80483 exposes the prototype assignment, the Lab 4.1 React environment/prototype milestone, and a separate Lab 5.1 mobile-responsive React/Firebase Auth exercise. The course Assignments page is disabled; the home page links to module `841097`, but opening it returns Access Denied. No accessible item defines final React Native acceptance. Keep Google sign-in, Hosting, cross-student bookings, chat, and moderation as unconfirmed final-app scope until the rubric is available. |
 | C4C-04 | Medium | Tutor listings, bookings, direct messages, and group chat are not shared between students. | Firebase accounts sync this data inside each user's private state; device-only accounts keep it local. Cross-student tutor, booking, and messaging workflows are not implemented. Confirm whether the final rubric requires those workflows before designing their schemas. |
 | C4C-05 | Medium | Shared groups have no content reporting or moderation path. | Rules restrict writes to members, validate authorship and text size, and enforce a five-second cooldown. Students still cannot flag or remove abusive content, and there is no instructor moderation workflow. Add one before wider use. |

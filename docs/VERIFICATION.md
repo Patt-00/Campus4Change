@@ -14,7 +14,7 @@ source contains no TypeScript files.
 Verified for this checkpoint:
 
 - `npm run lint`: passed without warnings.
-- `npm test -- --runInBand`: 92 tests passed in 18 suites.
+- `npm test -- --runInBand`: 93 tests passed in 18 suites.
 - The groups screen uses a virtualized `SectionList`; its regression test feeds
   80 loaded groups and confirms that the initial render mounts no more than 10
   group cards. Search tests cover case-insensitive subject filtering, joined
@@ -22,10 +22,11 @@ Verified for this checkpoint:
   exercise home routes, tutor listing and search, booking validation, session
   reschedule gating, group-room timer controls and cleanup, and shared-group
   retry paths.
-- The Jest coverage run for this checkpoint reports 82.28% line coverage,
-  72.22% branch coverage, and 82.51% function coverage. It covers all lines in
+- The Jest coverage run for this checkpoint reports 82.38% line coverage,
+  72.60% branch coverage, and 82.78% function coverage. It covers all lines in
   the home screen at 96.66%, session details at 100%, the group-room screen at
-  100%, the local storage guard at 100%, and tutor search at 96.77%. Coverage is
+  100%, the local storage guard at 100%, tutor search at 96.77%, and booking
+  screen at 94.44%. Coverage is
   diagnostic; the phone UI and long-session memory behavior still need device
   verification.
 - The Firestore rules test passed against the local Firebase Emulator Suite.
@@ -35,8 +36,9 @@ Verified for this checkpoint:
   requirements. Group directory queries are limited to 20 documents; unbounded
   and over-limit queries fail. Unverified accounts can still access only their
   own private state; shared group discovery and writes are denied. The real
-  project still has its initial production-mode rules that deny all client
-  access; the checked-in rules have not been deployed.
+  last live Console check found initial production-mode rules that deny all
+  client access. Firebase CLI is unauthenticated in this session, so that live
+  state was not rechecked; the checked-in rules have not been deployed.
 - A deterministic directory test used two group documents and one membership.
   The previous implementation made two per-group membership `getDoc` calls
   during initial load and another after one metadata update (three total); the
@@ -66,8 +68,8 @@ Verified for this checkpoint:
 - `JAVA_HOME=/usr/lib/jvm/java-25 ./gradlew --no-daemon assembleDebug` passed
   for Android. The React Native CLI launch helper stalled after starting
   Metro, so the APK was built directly with Gradle. The latest [GitHub Actions
-  run 38305216881](https://github.com/Patt-00/Campus4Change/actions/runs/38305216881)
-  passed on commit `ea0fec4`: lint, all 92 unit tests, Auth/Firestore emulator
+  run 38306080539](https://github.com/Patt-00/Campus4Change/actions/runs/38306080539)
+  passed on commit `39d0504`: lint, all 93 unit tests, Auth/Firestore emulator
   tests, production bundling, Android debug build, and release-signing guard.
   `adb devices -l` detects the POCO X4 GT (model `22041216G`, Android 14)
   through paired Wireless debugging. Two install attempts returned
@@ -104,18 +106,21 @@ Verified for this checkpoint:
 - A prior production-mode Android JavaScript bundle passed with blank Firebase
   project settings. Its SHA-256 was
   `ba9c6b9bf695ec7499a08dcb9599732b1ea2017acb63e087c169637814348a9d`.
-- GitHub Actions cache timing sample: before Gradle caching, run 38303817719
-  completed in 6m00s and `assembleDebug` took 3m53s. The first Gradle-cache run
-  (38304580091) completed in 5m28s while populating the cache. The next run
-  (38305216881) restored the Gradle wrapper and dependency caches and completed
-  in 4m20s; `assembleDebug` took 2m00s. This is one warm-run comparison, so
-  runner variation may affect the measured reduction.
+- GitHub Actions cache timing sample: uncached run 38303817719 took 6m03s total,
+  with `assembleDebug` taking 3m53s. The first cache-enabled run, 38304580091,
+  took 5m32s while populating Gradle caches. Warm run 38305216881 restored the
+  wrapper and 1.25 GB Gradle dependency cache and took 4m20s. The next warm run,
+  38306080539, took 3m06s total, with `assembleDebug` taking 1m11s. These are
+  observed runs rather than a controlled benchmark; hosted-runner variance may
+  affect the reduction.
 
-Firebase values are populated in `src/shared/backend/firebaseConfig.js`, but the
-real Firestore database still denies client access until the checked-in rules
-are explicitly deployed. No live Firebase signup, password reset,
-cross-device sync, or shared student workflow has been tested. This APK was not
-uploaded as a GitHub release. It remains debug-signed and labeled 1.2.0.
+Firebase values are populated in `src/shared/backend/firebaseConfig.js`. At the
+last live Console check, production Firestore rules denied all client access;
+the current session has no authenticated Firebase CLI or gcloud credentials,
+so live rules were not rechecked. The checked-in rules have not been deployed.
+No live Firebase signup, password reset, cross-device sync, or shared student
+workflow has been tested. This APK was not uploaded as a GitHub release. It
+remains debug-signed and labeled 1.2.0.
 
 Shared group metadata, membership counts, posts, and replies now use the
 `studyGroups` Firestore collection for authenticated Firebase users. Local/demo
