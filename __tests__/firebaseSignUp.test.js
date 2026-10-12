@@ -1,6 +1,10 @@
 let mockAuthObserver;
 let mockAuth;
 let mockApp;
+let mockDb;
+let mockDoc;
+let mockSetDoc;
+let mockServerTimestamp;
 let mockCreateUser;
 let mockSignIn;
 let mockSignOut;
@@ -56,13 +60,20 @@ jest.mock('firebase/auth', () => ({
 }));
 
 jest.mock('firebase/firestore', () => ({
-  getFirestore: jest.fn(() => ({})),
+  getFirestore: jest.fn(() => mockDb),
+  doc: (...args) => mockDoc(...args),
+  setDoc: (...args) => mockSetDoc(...args),
+  serverTimestamp: (...args) => mockServerTimestamp(...args),
 }));
 
 beforeEach(() => {
   mockAuthObserver = null;
   mockApp = {};
+  mockDb = {};
   mockAuth = { currentUser: null };
+  mockDoc = jest.fn((db, ...path) => ({ db, path: path.join('/') }));
+  mockSetDoc = jest.fn(async () => {});
+  mockServerTimestamp = jest.fn(() => 'server-timestamp');
   mockSignIn = jest.fn();
   mockSignOut = jest.fn(async auth => {
     auth.currentUser = null;
@@ -271,4 +282,63 @@ test('verification controls resend a link and refresh the verified token claim',
   expect(mockReload).toHaveBeenCalledWith(user);
   expect(mockGetIdToken).toHaveBeenCalledWith(user, true);
   expect(account.emailVerified).toBe(true);
+});
+
+test('cloud state saves target the authenticated user document', async () => {
+  const firebase = require('../src/shared/backend/firebase');
+  mockAuth.currentUser = { uid: 'cloud-user', emailVerified: false };
+  const state = {
+    version: 1,
+    updatedAt: 123,
+    profile: { id: 'cloud-user' },
+    sessions: [],
+    groups: [],
+    conversations: [],
+    notices: [],
+  };
+
+  await firebase.saveCloudState('cloud-user', state);
+
+  const stateRef = {
+    db: mockDb,
+    path: 'users/cloud-user/private/state',
+  };
+  expect(mockDoc).toHaveBeenCalledWith(
+    mockDb,
+    'users',
+    'cloud-user',
+    'private',
+    'state',
+  );
+  expect(mockSetDoc).toHaveBeenCalledWith(stateRef, {
+    state,
+    updatedAt: 'server-timestamp',
+  });
+});
+
+test('cloud state rejects profile data owned by a different Firebase user', async () => {
+  const firebase = require('../src/shared/backend/firebase');
+  mockAuth.currentUser = { uid: 'cloud-user', emailVerified: true };
+
+  await expect(
+    firebase.saveCloudState('cloud-user', {
+      version: 1,
+      profile: { id: 'another-user' },
+    }),
+  ).rejects.toThrow('The account data is not valid for this Firebase user.');
+  expect(mockSetDoc).not.toHaveBeenCalled();
+});
+
+test('cloud state rejects oversized documents before calling Firestore', async () => {
+  const firebase = require('../src/shared/backend/firebase');
+  mockAuth.currentUser = { uid: 'cloud-user', emailVerified: true };
+
+  await expect(
+    firebase.saveCloudState('cloud-user', {
+      version: 1,
+      profile: { id: 'cloud-user' },
+      note: 'x'.repeat(250_001),
+    }),
+  ).rejects.toThrow('too much saved data for the current cloud record');
+  expect(mockSetDoc).not.toHaveBeenCalled();
 });
