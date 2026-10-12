@@ -30,6 +30,9 @@ production-ready claim.
 - The groups screen renders those loaded pages with a virtualized `SectionList`.
   A regression test supplies 80 loaded groups and confirms no more than 10
   group cards are mounted initially.
+- Group search reports when no joined groups match, distinguishes an empty
+  discovery list from an empty directory, and prompts users to load older pages
+  when more search results may exist.
 - Shared feeds cap live windows at 20 posts and 20 replies per post; members
   can load older cursor pages on demand. Feed snapshots are kept out of durable
   private account-state records. Paging pauses the current live window until
@@ -70,8 +73,8 @@ production-ready claim.
   dropped by one high-severity package path.
 - Added a GitHub Actions workflow for lint, unit tests, Auth/Firestore emulator
   tests, production bundling, the Android debug build, and the release-signing
-  guard. The latest [remote run](https://github.com/Patt-00/Campus4Change/actions/runs/38300386092)
-  passed on commit `93504c2` without production Firebase credentials.
+  guard. The latest [remote run](https://github.com/Patt-00/Campus4Change/actions/runs/38301352766)
+  passed on commit `dcbb8b3` without production Firebase credentials.
 
 ## Open issues
 
@@ -79,7 +82,7 @@ production-ready claim.
 | --- | --- | --- | --- |
 | C4C-01 | High | The Firebase project is configured, but the app's Firestore rules are not deployed. | Project `campus4change` is on Spark, has a registered Web app and Email/Password sign-in, and its Standard Firestore database is in `asia-southeast1`. The app client config is populated. Firestore still has its initial production-mode deny-all rules; review and explicitly authorize deployment before live data tests. |
 | C4C-02 | High | No real-project, two-account shared-group workflow has been verified. | The Firebase project and database are ready, but app access remains denied until the checked-in rules are deployed. Emulator rules and email-verification workflow tests pass; deploy the rules, verify two test email addresses, then test create/discover/join/post/reply/leave against the project. |
-| C4C-03 | High | The final-project acceptance rubric is not present in the current course modules. | Canvas course 80483 currently exposes the prototype assignment and Lab 4.1 frontend milestone: select 3-4 high-fidelity screens (including the splash, audience-specific introduction, and auth screens where applicable), preserve clickable navigation, and build reusable React components; static content is acceptable for that milestone. Lab 5.1 is a separate mobile-responsive React/Firebase Auth exercise covering email/password, Google sign-in, persistent sessions, clear errors, mobile-first layout, Firebase Hosting, and real-phone testing. These assignment-level criteria do not establish the final React Native app rubric. Keep Google sign-in, Hosting, cross-student bookings, chat, and moderation as unconfirmed final-app scope until that rubric is available. |
+| C4C-03 | High | The final-project acceptance rubric is not accessible in the current course. | Canvas course 80483 exposes the prototype assignment, the Lab 4.1 React environment/prototype milestone, and a separate Lab 5.1 mobile-responsive React/Firebase Auth exercise. The course Assignments page is disabled; the home page links to module `841097`, but opening it returns Access Denied. No accessible item defines final React Native acceptance. Keep Google sign-in, Hosting, cross-student bookings, chat, and moderation as unconfirmed final-app scope until the rubric is available. |
 | C4C-04 | Medium | Tutor listings, bookings, direct messages, and group chat are not shared between students. | Firebase accounts sync this data inside each user's private state; device-only accounts keep it local. Cross-student tutor, booking, and messaging workflows are not implemented. Confirm whether the final rubric requires those workflows before designing their schemas. |
 | C4C-05 | Medium | Shared groups have no content reporting or moderation path. | Rules restrict writes to members, validate authorship and text size, and enforce a five-second cooldown. Students still cannot flag or remove abusive content, and there is no instructor moderation workflow. Add one before wider use. |
 | C4C-06 | Medium | The current audit reports 47 high, 5 moderate, and 0 critical findings. | `npm audit --omit=dev` still reports 20 high paths, all rooted in `braces@3.0.3` through `micromatch@4.0.8` in React Native/Metro tooling. The advisory affects `braces <=3.0.3` and has no patched version; the maintainer disputes the report. The production-mode app bundle contains no `braces`/`micromatch` strings, so the exposure is in development/build tooling rather than shipped JavaScript. The five moderate findings are test-tooling paths rooted in `sprintf-js@1.0.3`. `npm audit fix --force` proposes a breaking React Native downgrade to 0.72.17; do not apply an unofficial override without a reviewed mitigation. See the [advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) and [maintainer discussion](https://github.com/micromatch/braces/issues/84). |

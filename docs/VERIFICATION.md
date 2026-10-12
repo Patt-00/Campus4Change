@@ -14,11 +14,12 @@ source contains no TypeScript files.
 Verified for this checkpoint:
 
 - `npm run lint`: passed without warnings.
-- `npm test -- --runInBand`: 66 tests passed in 12 suites.
+- `npm test -- --runInBand`: 67 tests passed in 12 suites.
 - The groups screen uses a virtualized `SectionList`; its regression test feeds
   80 loaded groups and confirms that the initial render mounts no more than 10
-  group cards. This test covers the rendered window, not phone scrolling or
-  memory use over a long session.
+  group cards. Search tests cover case-insensitive subject filtering, joined
+  group empty copy, and the prompt to search older pages. These tests cover
+  rendered behavior, not phone scrolling or memory use over a long session.
 - The Firestore rules test passed against the local Firebase Emulator Suite.
   It checks private account state, authenticated group discovery, member-only
   posts/replies, bounded cursor queries, per-member contribution cooldowns,
@@ -57,13 +58,13 @@ Verified for this checkpoint:
 - `JAVA_HOME=/usr/lib/jvm/java-25 ./gradlew --no-daemon assembleDebug` passed
   for Android. The React Native CLI launch helper stalled after starting
   Metro, so the APK was built directly with Gradle. The latest [GitHub Actions
-  run 38300386092](https://github.com/Patt-00/Campus4Change/actions/runs/38300386092)
-  passed on commit `93504c2`: lint, all 66 unit tests, Auth/Firestore emulator
+  run 38301352766](https://github.com/Patt-00/Campus4Change/actions/runs/38301352766)
+  passed on commit `dcbb8b3`: lint, all 67 unit tests, Auth/Firestore emulator
   tests, production bundling, Android debug build, and release-signing guard.
   `adb devices -l` detects the POCO X4 GT (model `22041216G`, Android 14)
-  through paired Wireless debugging. The install attempt for this checkpoint
-  returned `INSTALL_FAILED_USER_RESTRICTED: Install canceled by user`; the app
-  remains uninstalled, so no runtime check on this device has been completed.
+  through paired Wireless debugging. Two install attempts returned
+  `INSTALL_FAILED_USER_RESTRICTED: Install canceled by user`; the app remains
+  uninstalled, so no runtime check on this device has been completed.
 - After release-signing hardening, `assembleDebug` still passes and
   `./gradlew --no-daemon --dry-run assembleRelease` fails early without the
   dedicated signing variables. The existing historical release APK hash
