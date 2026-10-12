@@ -54,6 +54,8 @@ jobs:
         run: npm test -- --runInBand
 
       - name: Firestore rules and Auth emulator tests
+        env:
+          C4C_ALLOW_FIRESTORE_EMULATOR_RESET: '1'
         run: >-
           npx --yes firebase-tools@15.33.0 emulators:exec
           --only auth,firestore

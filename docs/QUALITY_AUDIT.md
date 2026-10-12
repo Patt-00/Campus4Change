@@ -102,6 +102,9 @@ production-ready claim.
   still delivered the debug bundle to the Redmi Turbo 4, and the app relaunched
   successfully. This reduces LAN exposure of the development server; it does
   not remediate the unpatched upstream `braces` advisory.
+- The Firestore rules test now requires an explicit opt-in before clearing the
+  selected emulator project's default database. CI supplies that flag for its
+  fresh emulator; normal local invocations refuse to erase existing test data.
 - Added a GitHub Actions workflow for lint, unit tests, Auth/Firestore emulator
   tests, production bundling, the Android debug build, and the release-signing
   guard. Gradle dependency and wrapper caching is enabled through the

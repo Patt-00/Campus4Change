@@ -43,6 +43,10 @@ Verified for this checkpoint:
   last live Console check found initial production-mode rules that deny all
   client access. Firebase CLI is unauthenticated in this session, so that live
   state was not rechecked; the checked-in rules have not been deployed.
+- On 2026-10-13, the rules test refused to start without
+  `C4C_ALLOW_FIRESTORE_EMULATOR_RESET=1`. With the explicit opt-in, it passed
+  against an isolated emulator on port 8181; the app's existing emulator on
+  port 8080 was left untouched.
 - A deterministic directory test used two group documents and one membership.
   The previous implementation made two per-group membership `getDoc` calls
   during initial load and another after one metadata update (three total); the

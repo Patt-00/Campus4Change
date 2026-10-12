@@ -23,6 +23,13 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 
+if (process.env.C4C_ALLOW_FIRESTORE_EMULATOR_RESET !== '1') {
+  console.error(
+    'Refusing to clear the selected Firestore emulator project. Set C4C_ALLOW_FIRESTORE_EMULATOR_RESET=1 to confirm.',
+  );
+  process.exit(1);
+}
+
 const emulatorAddress =
   process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080';
 const [host, portText] = emulatorAddress.split(':');

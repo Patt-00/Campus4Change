@@ -61,7 +61,19 @@ npx firebase-tools emulators:start --only auth,firestore --project demo-campus4c
 In another terminal, run:
 
 ```sh
+C4C_ALLOW_FIRESTORE_EMULATOR_RESET=1 npm run test:firestore-rules
+npm run test:firebase-auth
+```
+
+The Firestore rules test clears every document in the selected emulator
+project's default database before running. It refuses to run without the
+explicit reset flag above; do not enable it against an emulator database whose
+data you need to keep. PowerShell equivalent:
+
+```powershell
+$env:C4C_ALLOW_FIRESTORE_EMULATOR_RESET = '1'
 npm run test:firestore-rules
+Remove-Item Env:C4C_ALLOW_FIRESTORE_EMULATOR_RESET
 npm run test:firebase-auth
 ```
 
