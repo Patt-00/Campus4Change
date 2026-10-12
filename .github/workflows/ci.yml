@@ -37,6 +37,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '25'
+          cache: gradle
 
       - name: Install the Android NDK used by the project
         run: |
