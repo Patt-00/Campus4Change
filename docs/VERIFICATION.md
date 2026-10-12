@@ -15,8 +15,10 @@ Verified for this checkpoint:
 
 - `npm run lint`: passed without warnings.
 - `npm test -- --runInBand --coverage --coverageReporters=json --coverageReporters=json-summary`:
-  96 tests passed in 18 suites. Two new regression tests cover stale group
-  directory callbacks and pending shared writes after switching accounts.
+  105 tests passed in 19 suites. Tests cover stale group callbacks and pending
+  shared writes across account changes, queued state persistence after a switch
+  even when both accounts share the same `updatedAt`, and text contrast for
+  theme colors and button labels.
 - The groups screen uses a virtualized `SectionList`; its regression test feeds
   80 loaded groups and confirms that the initial render mounts no more than 10
   group cards. Search tests cover case-insensitive subject filtering, joined
@@ -24,8 +26,8 @@ Verified for this checkpoint:
   exercise home routes, tutor listing and search, booking validation, session
   reschedule gating, private group-room drafts versus explicit publishing,
   timer controls and cleanup, and shared-group retry paths.
-- The Jest coverage run for this checkpoint reports 82.53% line coverage,
-  72.66% branch coverage, and 82.99% function coverage. It covers all lines in
+- The Jest coverage run for this checkpoint reports 82.55% line coverage,
+  72.96% branch coverage, and 82.85% function coverage. It covers all lines in
   the home screen at 96.66%, session details at 100%, the group-room screen at
   100%, the local storage guard at 100%, tutor search at 96.77%, and booking
   screen at 94.44%. Coverage is
@@ -68,9 +70,9 @@ Verified for this checkpoint:
   size: 2,099,258 bytes. The bundle contains no service-account private-key
   marker or `braces`/`micromatch` strings.
 - `./gradlew assembleDebug` passed locally with `JAVA_HOME` and `PATH` set to
-  `/usr/lib/jvm/java-25-openjdk`, and built the debug APK. The latest [GitHub Actions run
-  38309287744](https://github.com/Patt-00/Campus4Change/actions/runs/38309287744)
-  passed on commit `f5b8819`: lint, all 96 unit tests, Auth/Firestore emulator
+  `/usr/lib/jvm/java-25-openjdk`, and built the debug APK. The latest [GitHub
+  Actions run 38313170989](https://github.com/Patt-00/Campus4Change/actions/runs/38313170989)
+  passed on commit `d5fd90e`: lint, all 105 unit tests, Auth/Firestore emulator
   tests, production bundling, Android debug build, and release-signing guard.
   The requested Redmi Turbo 4 was not connected in ADB. The Pixel 8a AVD has a
   missing Android 37.1 image; Android 16 AVD launches repeatedly ended in an
@@ -114,9 +116,9 @@ Verified for this checkpoint:
   wrapper and 1.25 GB Gradle dependency cache and took 4m20s. The next warm run,
   38306080539, took 3m06s total, with `assembleDebug` taking 1m11s. Another warm
   run, 38306902190, completed in 3m38s; its `assembleDebug` step took 1m31s.
-  Run 38309287744 completed in 3m20s. These are observed runs rather than a
-  controlled benchmark; hosted-runner
-  variation may affect the reduction.
+  Run 38309287744 completed in 3m20s, and run 38313170989 in 3m54s. These are
+  observed runs rather than a controlled benchmark; hosted-runner variation may
+  affect the reduction.
 
 Firebase values are populated in `src/shared/backend/firebaseConfig.js`. At the
 last live Console check, production Firestore rules denied all client access;

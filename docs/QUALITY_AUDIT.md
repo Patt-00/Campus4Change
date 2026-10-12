@@ -74,8 +74,12 @@ production-ready claim.
 - Focused tests now cover home navigation and search, tutor listing create and
   removal, private tutor filtering, group-room timer lifecycle and notes,
   shared-group retry errors, storage compatibility, and session cancellation,
-  rating, and reschedule timing. Shared-group tests also guard against stale
-  directory callbacks and pending writes crossing an account switch.
+  rating, and reschedule timing. Shared-group tests guard against stale
+  directory callbacks and pending writes crossing an account switch. Local
+  state persistence is bound to the account captured when each save is queued;
+  the test recreates a same-timestamp account switch and confirms no old state
+  is written under the new account. Theme tests enforce 4.5:1 contrast for
+  small foreground text on the dark surfaces and cyan button fill.
 - Leaving a group room with Back now keeps note drafts private. Publishing to a
   group happens only from the explicit Save Notes and Leave action.
 - Device-only groups remain available. Pending shared writes are saved in
@@ -93,8 +97,8 @@ production-ready claim.
   tests, production bundling, the Android debug build, and the release-signing
   guard. Gradle dependency and wrapper caching is enabled through the
   [`setup-java` cache option](https://github.com/actions/setup-java/blob/main/README.md).
-  The latest [remote run](https://github.com/Patt-00/Campus4Change/actions/runs/38309287744)
-  passed on commit `f5b8819` without production Firebase credentials.
+  The latest [remote run](https://github.com/Patt-00/Campus4Change/actions/runs/38313170989)
+  passed on commit `d5fd90e` without production Firebase credentials.
 
 ## Open issues
 
