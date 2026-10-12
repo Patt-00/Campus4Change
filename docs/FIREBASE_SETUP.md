@@ -8,6 +8,16 @@ native module and encrypted with Android Keystore-backed AES-GCM. A second
 encrypted copy of app state stays on the device for recovery when cloud sync
 fails.
 
+## Current project state
+
+This checkout is configured for Firebase project `campus4change` on the Spark
+plan. Its Web app is registered as **Campus4Change React Native**, Email/Password
+sign-in is enabled, and the Standard Firestore database is in
+`asia-southeast1` (Singapore). The database was initialized in production mode,
+so its current rules deny all client reads and writes. The checked-in
+`firestore.rules` file has passed the emulator suite but has not been deployed
+to this project; live app data access stays unavailable until that deployment.
+
 ## Configure a Firebase project
 
 1. Open the Firebase Console and create or select your course project.
@@ -16,9 +26,11 @@ fails.
 4. In **Project settings > Your apps**, register a Web app for the JavaScript
    SDK and copy its Firebase configuration into
    `src/shared/backend/firebaseConfig.js`.
-5. Select the same project in the Firebase CLI and deploy the checked-in rules:
+5. Sign in to the Firebase CLI, select the same project, and deploy the
+   checked-in rules only after reviewing and authorizing that live change:
 
    ```sh
+   npx firebase-tools login
    npx firebase-tools use --add
    npx firebase-tools deploy --only firestore:rules
    ```
@@ -79,9 +91,7 @@ direct messages are not shared with other students yet. Google sign-in, email
 verification, and wider social data sharing still need their own design and
 Firebase configuration.
 
-Without Firebase values in `firebaseConfig.js`, local demo/prototype accounts
-continue to work. New account creation uses local storage in this unconfigured
-mode, so that is not the Firebase submission path. After Firebase is
-configured, choose **Use existing on-device account** on the login screen to
-keep using a previously created local account. It remains device-only; a data
-migration to Firebase is not implemented.
+When Firebase values are absent from `firebaseConfig.js`, local demo/prototype
+accounts continue to work. With the current project configuration, new
+accounts use Firebase Authentication. Previously created on-device accounts
+remain device-only; a data migration to Firebase is not implemented.

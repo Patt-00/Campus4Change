@@ -6,8 +6,10 @@ This local checkpoint is on branch `codex/firebase-auth-firestore`. It includes
 the Novice, Intermediate, and Expert introduction, Firebase email/password
 accounts, encrypted Android Auth persistence and account cache, private
 per-user state sync, and shared study groups with private memberships and
-member-only posts and replies. Application and test source contains no
-TypeScript files.
+member-only posts and replies. It is configured for Firebase project
+`campus4change` on the Spark plan. Email/Password sign-in is enabled, and the
+Standard Firestore database is in `asia-southeast1`. Application and test
+source contains no TypeScript files.
 
 Verified for this checkpoint:
 
@@ -18,7 +20,19 @@ Verified for this checkpoint:
   posts/replies, bounded cursor queries, per-member contribution cooldowns,
   private memberships, safe member counts, and rejects owner departure,
   membership spoofing, anonymous access, nonmember writes, and unconfigured
-  collections.
+  collections. The real project still has its initial production-mode rules
+  that deny all client access; the checked-in rules have not been deployed.
+- A production-mode Android JavaScript bundle passed after adding the Firebase
+  client configuration. SHA-256:
+  `ada009c768a0132569e84165ebcca482e2d5b30c87956b2537f1dd87413666fe`;
+  size: 2,093,257 bytes. The bundle contains the project ID and no service
+  account private-key or `braces`/`micromatch` strings.
+- `JAVA_HOME=/usr/lib/jvm/java-25 ./gradlew --no-daemon assembleDebug` passed
+  for Android. The React Native CLI launch helper stalled after starting
+  Metro, so the APK was built directly with Gradle. An explicit ADB install to
+  the Poco X4 GT (`Z9GMOVDMHQV8X84D`, Android 14) was rejected with
+  `INSTALL_FAILED_USER_RESTRICTED: Install canceled by user`; no runtime check
+  on that device has been completed.
 - In a prior local Auth/Firestore emulator check on the Xiaomi Pad 7,
   email/password sign-up succeeded, the per-user state document
   was written under the authenticated UID, and a Firestore-side profile change
@@ -36,17 +50,15 @@ Verified for this checkpoint:
   persistence changes have automated and bundle checks, but have not been
   reloaded on the tablet. Paging pauses the live window until a refresh. No live
   Firebase two-account test was run.
-- `npx react-native bundle --platform android --dev false --entry-file index.js
-  --bundle-output /tmp/c4c-campus4change.android.bundle --assets-dest
-  /tmp/c4c-campus4change-assets`: passed with blank Firebase project
-  settings. SHA-256: `ba9c6b9bf695ec7499a08dcb9599732b1ea2017acb63e087c169637814348a9d`.
-  No new native APK was built or installed for these JavaScript changes.
+- A prior production-mode Android JavaScript bundle passed with blank Firebase
+  project settings. Its SHA-256 was
+  `ba9c6b9bf695ec7499a08dcb9599732b1ea2017acb63e087c169637814348a9d`.
 
-Firebase values in `src/shared/backend/firebaseConfig.js` are blank again after
-the emulator test, and Firestore rules have not been deployed to a real Firebase
-project. A real Firebase project sign-up, password reset, cross-device sync, and
-shared student workflows remain unverified. This APK was not uploaded as a
-GitHub release. It remains debug-signed and labeled 1.2.0.
+Firebase values are populated in `src/shared/backend/firebaseConfig.js`, but the
+real Firestore database still denies client access until the checked-in rules
+are explicitly deployed. No live Firebase signup, password reset,
+cross-device sync, or shared student workflow has been tested. This APK was not
+uploaded as a GitHub release. It remains debug-signed and labeled 1.2.0.
 
 Shared group metadata, membership counts, posts, and replies now use the
 `studyGroups` Firestore collection for authenticated Firebase users. Local/demo

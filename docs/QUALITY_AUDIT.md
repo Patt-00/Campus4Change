@@ -43,8 +43,8 @@ production-ready claim.
 
 | ID | Priority | Issue | Evidence and next action |
 | --- | --- | --- | --- |
-| C4C-01 | High | No real Firebase project is connected. | `firebaseConfig.js` is blank and rules are not deployed. Select the course project, configure its Web app settings, and explicitly authorize deployment before live tests. |
-| C4C-02 | High | No real-project, two-account shared-group workflow has been verified. | The Xiaomi Pad 7 is available over USB ADB and the booked-session/group-room UI was checked there. Emulator rules and app unit tests pass, but `firebaseConfig.js` is blank, so create/discover/join/post/reply/leave still needs a configured course project and two accounts. |
+| C4C-01 | High | The Firebase project is configured, but the app's Firestore rules are not deployed. | Project `campus4change` is on Spark, has a registered Web app and Email/Password sign-in, and its Standard Firestore database is in `asia-southeast1`. The app client config is populated. Firestore still has its initial production-mode deny-all rules; review and explicitly authorize deployment before live data tests. |
+| C4C-02 | High | No real-project, two-account shared-group workflow has been verified. | The Firebase project and database are ready, but app access remains denied until the checked-in rules are deployed. Emulator rules and app unit tests pass; create two test accounts and verify create/discover/join/post/reply/leave after rules deployment. |
 | C4C-03 | High | Teacher-specific requirements are not fully established in this checkout. | The Figma map describes prototype screens, not the teacher's final acceptance rubric. Compare the finished requirements/module list when available. |
 | C4C-04 | Medium | Tutor listings, bookings, direct messages, and group chat are not shared between students. | Firebase accounts sync this data inside each user's private state; device-only accounts keep it local. Cross-student tutor, booking, and messaging workflows are not implemented. Confirm whether the final rubric requires those workflows before designing their schemas. |
 | C4C-05 | Medium | Shared groups have no content reporting or moderation path. | Rules restrict writes to members, validate authorship and text size, and enforce a five-second cooldown. Students still cannot flag or remove abusive content, and there is no instructor moderation workflow. Add one before wider use. |
@@ -55,7 +55,8 @@ production-ready claim.
 ## Verification record
 
 Verification is recorded in [VERIFICATION.md](VERIFICATION.md). The Pad 7
-debug UI check and production-mode Android JavaScript bundle are verified; no
-new native APK was built or installed for the latest JavaScript changes. The
-Firebase emulator is not a substitute for deployment to the course project or
-two-account testing against that project.
+debug UI check and production-mode Android JavaScript bundle are verified. A
+Poco X4 GT debug install attempt for the current Firebase configuration was
+blocked by `INSTALL_FAILED_USER_RESTRICTED`; device approval is still needed.
+The Firebase emulator is not a substitute for deploying the reviewed rules or
+two-account testing against the course project.
