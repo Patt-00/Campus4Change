@@ -74,8 +74,9 @@ Verified for this checkpoint:
   tests, production bundling, Android debug build, and release-signing guard.
   The requested Redmi Turbo 4 was not connected in ADB. The Pixel 8a AVD has a
   missing Android 37.1 image; Android 16 AVD launches repeatedly ended in an
-  emulator SIGSEGV. The final software-CPU attempt stayed offline and was
-  stopped. The APK was not installed, so no emulator UI check was completed.
+  emulator SIGSEGV. An Xvfb-windowed attempt appeared in ADB briefly before
+  QEMU crashed; no stable emulator session remained. The APK was not installed,
+  so no emulator UI check was completed.
 - After release-signing hardening, `assembleDebug` still passes and
   `./gradlew --no-daemon --dry-run assembleRelease` fails early without the
   dedicated signing variables. The existing historical release APK hash
