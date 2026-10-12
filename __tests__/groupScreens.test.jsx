@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GroupsScreen } from '../src/features/groups/screens/GroupsScreen';
 import { GroupDetailsScreen } from '../src/features/groups/screens/GroupDetailsScreen';
 import { GroupPostScreen } from '../src/features/groups/screens/GroupPostScreen';
 
@@ -16,6 +17,52 @@ function renderScreen(screen) {
     </SafeAreaProvider>,
   );
 }
+
+test('study group directory exposes older pages and refresh after paging', async () => {
+  const loadMoreGroups = jest.fn();
+  const refreshGroups = jest.fn();
+  const props = {
+    back: jest.fn(),
+    go: jest.fn(),
+    groups: [
+      {
+        id: 'shared-one',
+        name: 'Calculus Circle',
+        subject: 'Calculus',
+        members: 5,
+        joined: false,
+        shared: true,
+      },
+    ],
+    hasMoreGroups: true,
+    groupsLive: true,
+    loadMoreGroups,
+    refreshGroups,
+  };
+  let renderer;
+  await act(async () => {
+    renderer = renderScreen(<GroupsScreen {...props} />);
+  });
+
+  const loadButton = renderer.root.findByProps({
+    accessibilityLabel: 'LOAD OLDER GROUPS',
+  });
+  await act(async () => loadButton.props.onPress());
+  expect(loadMoreGroups).toHaveBeenCalledTimes(1);
+  await act(async () => renderer.unmount());
+
+  await act(async () => {
+    renderer = renderScreen(
+      <GroupsScreen {...props} groupsLive={false} hasMoreGroups={false} />,
+    );
+  });
+  const refreshButton = renderer.root.findByProps({
+    accessibilityLabel: 'REFRESH LATEST GROUPS',
+  });
+  await act(async () => refreshButton.props.onPress());
+  expect(refreshGroups).toHaveBeenCalledTimes(1);
+  await act(async () => renderer.unmount());
+});
 
 test('member group feed exposes the older-post page action', async () => {
   const loadMorePosts = jest.fn();

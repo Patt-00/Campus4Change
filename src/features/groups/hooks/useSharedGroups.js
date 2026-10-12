@@ -212,7 +212,13 @@ export function useSharedGroups({
   activeGroupId,
   activePostId,
 }) {
-  const [result, setResult] = useState({ uid: null, groups: [], error: '' });
+  const [result, setResult] = useState({
+    uid: null,
+    groups: [],
+    error: '',
+    hasMoreGroups: false,
+    groupsLive: false,
+  });
   const [retryKey, setRetryKey] = useState(0);
   const [actionError, setActionError] = useState('');
   const [actionRetryKey, setActionRetryKey] = useState(0);
@@ -224,9 +230,11 @@ export function useSharedGroups({
     postsLive: false,
   });
   const [contentRetryKey, setContentRetryKey] = useState(0);
+  const [loadingMoreGroups, setLoadingMoreGroups] = useState(false);
   const [loadingMorePosts, setLoadingMorePosts] = useState(false);
   const [loadingReplyIds, setLoadingReplyIds] = useState(new Set());
   const actionsInFlight = useRef(new Set());
+  const directorySubscription = useRef(null);
   const contentSubscription = useRef(null);
   const activeUid = useRef(uid);
   activeUid.current = uid;
@@ -270,17 +278,33 @@ export function useSharedGroups({
 
   useEffect(() => {
     if (!enabled || !uid) {
-      setResult({ uid: null, groups: [], error: '' });
+      directorySubscription.current = null;
+      setLoadingMoreGroups(false);
+      setResult({
+        uid: null,
+        groups: [],
+        error: '',
+        hasMoreGroups: false,
+        groupsLive: false,
+      });
       return undefined;
     }
 
     let active = true;
-    setResult({ uid, groups: [], error: '' });
-    let unsubscribe = () => {};
+    setLoadingMoreGroups(false);
+    setResult(current => ({
+      uid,
+      groups: current.uid === uid ? current.groups : [],
+      error: '',
+      hasMoreGroups:
+        current.uid === uid ? current.hasMoreGroups : false,
+      groupsLive: current.uid === uid ? current.groupsLive : true,
+    }));
+    let subscription = null;
     try {
-      unsubscribe = watchSharedGroups(
+      subscription = watchSharedGroups(
         uid,
-        groups => {
+        (groups, directory) => {
           if (active) {
             setResult(current => ({
               uid,
@@ -289,6 +313,8 @@ export function useSharedGroups({
                 groups,
               ),
               error: '',
+              hasMoreGroups: Boolean(directory?.hasMoreGroups),
+              groupsLive: Boolean(directory?.groupsLive),
             }));
           }
         },
@@ -298,16 +324,30 @@ export function useSharedGroups({
               uid,
               groups: current.uid === uid ? current.groups : [],
               error: errorText(error),
+              hasMoreGroups:
+                current.uid === uid ? current.hasMoreGroups : false,
+              groupsLive:
+                current.uid === uid ? current.groupsLive : false,
             }));
           }
         },
       );
+      directorySubscription.current = { uid, subscription };
     } catch (error) {
-      setResult({ uid, groups: [], error: errorText(error) });
+      setResult({
+        uid,
+        groups: [],
+        error: errorText(error),
+        hasMoreGroups: false,
+        groupsLive: false,
+      });
     }
     return () => {
       active = false;
-      unsubscribe();
+      if (directorySubscription.current?.subscription === subscription) {
+        directorySubscription.current = null;
+      }
+      subscription?.unsubscribe();
     };
   }, [enabled, retryKey, uid]);
 
@@ -513,6 +553,28 @@ export function useSharedGroups({
     () => setContentRetryKey(value => value + 1),
     [],
   );
+  const loadMoreGroups = useCallback(async () => {
+    const current = directorySubscription.current;
+    if (!current || current.uid !== uid) {
+      return;
+    }
+    setLoadingMoreGroups(true);
+    try {
+      await current.subscription.loadMoreGroups();
+    } catch (error) {
+      setResult(previous =>
+        previous.uid === uid
+          ? { ...previous, error: errorText(error) }
+          : previous,
+      );
+    } finally {
+      if (
+        directorySubscription.current?.subscription === current.subscription
+      ) {
+        setLoadingMoreGroups(false);
+      }
+    }
+  }, [uid]);
   const loadMorePosts = useCallback(async () => {
     const current = contentSubscription.current;
     if (
@@ -610,6 +672,11 @@ export function useSharedGroups({
     groups: groupDirectory,
     error: result.uid === uid ? result.error : '',
     retry,
+    hasMoreGroups:
+      result.uid === uid ? result.hasMoreGroups : false,
+    groupsLive: result.uid === uid ? result.groupsLive : false,
+    loadingMoreGroups,
+    loadMoreGroups,
     actionError,
     retryActions,
     contentError:

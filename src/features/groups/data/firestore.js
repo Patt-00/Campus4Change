@@ -1,6 +1,7 @@
 import { firebaseServicesForUser } from '../../../shared/backend/firebase';
 
 const collectionName = 'studyGroups';
+const GROUP_PAGE_SIZE = 20;
 const POST_PAGE_SIZE = 20;
 const REPLY_PAGE_SIZE = 20;
 
@@ -98,59 +99,55 @@ function mapGroup(uid, groupSnapshot, memberGroupIds) {
   };
 }
 
-function readDirectory(uid, snapshots, memberGroupIds) {
-  return snapshots.map(snapshot => mapGroup(uid, snapshot, memberGroupIds));
-}
-
-export async function loadSharedGroups(uid) {
-  const { db, firestore } = firebaseServicesForUser(uid);
-  const { collection, collectionGroup, getDocs, orderBy, query, where } =
-    firestore;
-  const [groupsSnapshot, membershipsSnapshot] = await Promise.all([
-    getDocs(query(collection(db, collectionName), orderBy('updatedAt', 'desc'))),
-    getDocs(
-      query(collectionGroup(db, 'members'), where('uid', '==', uid)),
-    ),
-  ]);
-  const memberGroupIds = new Set(
-    membershipsSnapshot.docs.map(groupIdFromMembership).filter(Boolean),
-  );
-  return readDirectory(uid, groupsSnapshot.docs, memberGroupIds);
-}
-
 export function watchSharedGroups(uid, onGroups, onError) {
   const { db, firestore } = firebaseServicesForUser(uid);
   const {
     collection,
     collectionGroup,
+    getDocs,
+    limit,
     onSnapshot,
     orderBy,
     query,
+    startAfter,
     where,
   } = firestore;
   let active = true;
   const groupsById = new Map();
   let memberGroupIds = new Set();
   let groupOrder = [];
+  const olderPages = [];
   let groupsLoaded = false;
   let membershipsLoaded = false;
+  let groupsLive = true;
+  let hasMoreGroups = false;
+  let loadingMoreGroups = false;
+  let cursor = null;
+  let unsubscribeGroups = () => {};
 
   function publishGroups() {
     if (!active || !groupsLoaded || !membershipsLoaded) {
       return;
     }
-    onGroups(
-      groupOrder
-        .map(groupId => {
-          const group = groupsById.get(groupId);
-          if (!group) {
-            return null;
-          }
-          const joined = memberGroupIds.has(groupId);
-          return { ...group, joined, postsLoaded: !joined };
-        })
-        .filter(Boolean),
+    const groupIds = [...groupOrder];
+    olderPages.forEach(page =>
+      page.docs.forEach(snapshot => groupIds.push(snapshot.id)),
     );
+    const seen = new Set();
+    const groups = [];
+    groupIds.forEach(groupId => {
+      if (seen.has(groupId)) {
+        return;
+      }
+      seen.add(groupId);
+      const group = groupsById.get(groupId);
+      if (!group) {
+        return;
+      }
+      const joined = memberGroupIds.has(groupId);
+      groups.push({ ...group, joined, postsLoaded: !joined });
+    });
+    onGroups(groups, { hasMoreGroups, groupsLive });
   }
 
   function handleError(error) {
@@ -159,10 +156,14 @@ export function watchSharedGroups(uid, onGroups, onError) {
     }
   }
 
-  const unsubscribeGroups = onSnapshot(
-    query(collection(db, collectionName), orderBy('updatedAt', 'desc')),
+  unsubscribeGroups = onSnapshot(
+    query(
+      collection(db, collectionName),
+      orderBy('updatedAt', 'desc'),
+      limit(GROUP_PAGE_SIZE),
+    ),
     snapshot => {
-      if (!active) {
+      if (!active || !groupsLive) {
         return;
       }
       for (const change of snapshot.docChanges()) {
@@ -176,6 +177,8 @@ export function watchSharedGroups(uid, onGroups, onError) {
         }
       }
       groupOrder = snapshot.docs.map(groupSnapshot => groupSnapshot.id);
+      cursor = snapshot.docs.at(-1) ?? null;
+      hasMoreGroups = snapshot.docs.length === GROUP_PAGE_SIZE;
       groupsLoaded = true;
       publishGroups();
     },
@@ -197,10 +200,59 @@ export function watchSharedGroups(uid, onGroups, onError) {
     handleError,
   );
 
-  return () => {
-    active = false;
-    unsubscribeGroups();
-    unsubscribeMemberships();
+  return {
+    loadMoreGroups: async () => {
+      if (!active || !hasMoreGroups || loadingMoreGroups) {
+        return;
+      }
+      loadingMoreGroups = true;
+      try {
+        if (groupsLive) {
+          groupsLive = false;
+          unsubscribeGroups();
+          unsubscribeGroups = () => {};
+          publishGroups();
+        }
+        const pageCursor = olderPages.at(-1)?.cursor ?? cursor;
+        if (!pageCursor) {
+          hasMoreGroups = false;
+          publishGroups();
+          return;
+        }
+        const page = await getDocs(
+          query(
+            collection(db, collectionName),
+            orderBy('updatedAt', 'desc'),
+            startAfter(pageCursor),
+            limit(GROUP_PAGE_SIZE),
+          ),
+        );
+        if (!active) {
+          return;
+        }
+        page.docs.forEach(snapshot => {
+          if (!groupsById.has(snapshot.id)) {
+            groupsById.set(
+              snapshot.id,
+              mapGroup(uid, snapshot, memberGroupIds),
+            );
+          }
+        });
+        olderPages.push({
+          docs: page.docs,
+          cursor: page.docs.at(-1) ?? pageCursor,
+        });
+        hasMoreGroups = page.docs.length === GROUP_PAGE_SIZE;
+        publishGroups();
+      } finally {
+        loadingMoreGroups = false;
+      }
+    },
+    unsubscribe: () => {
+      active = false;
+      unsubscribeGroups();
+      unsubscribeMemberships();
+    },
   };
 }
 

@@ -7,7 +7,16 @@ import { Field } from '../../../shared/components/UI';
 import { IconBadge } from '../../../shared/components/Icon';
 import { s } from '../../../shared/theme/styles';
 
-export function GroupsScreen({ go, back, groups }) {
+export function GroupsScreen({
+  go,
+  back,
+  groups,
+  hasMoreGroups = false,
+  groupsLive = true,
+  loadingMoreGroups = false,
+  loadMoreGroups,
+  refreshGroups,
+}) {
   const [query, setQuery] = useState('');
   const filtered = groups.filter(g =>
     (g.name + ' ' + g.subject)
@@ -60,10 +69,27 @@ export function GroupsScreen({ go, back, groups }) {
       {cards(filtered.filter(g => !g.joined))}
       {!filtered.some(g => !g.joined) && (
         <Text style={s.muted}>
-          {groups.length
-            ? 'No more groups match this search.'
-            : 'Create your first group to organize study notes.'}
+          {query.trim() && hasMoreGroups
+            ? 'No loaded groups match. Load older groups to search further.'
+            : groups.length
+              ? 'No more groups match this search.'
+              : 'Create your first group to organize study notes.'}
         </Text>
+      )}
+      {hasMoreGroups && (
+        <AppButton
+          title={loadingMoreGroups ? 'LOADING OLDER GROUPS...' : 'LOAD OLDER GROUPS'}
+          outline
+          disabled={loadingMoreGroups}
+          onPress={loadMoreGroups}
+        />
+      )}
+      {!groupsLive && groups.some(group => group.shared) && (
+        <AppButton
+          title="REFRESH LATEST GROUPS"
+          outline
+          onPress={refreshGroups}
+        />
       )}
     </Screen>
   );

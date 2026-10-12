@@ -1,6 +1,5 @@
 import { firebaseServicesForUser } from '../src/shared/backend/firebase';
 import {
-  loadSharedGroups,
   syncSharedGroupAction,
   watchSharedGroupPosts,
   watchSharedGroups,
@@ -155,30 +154,6 @@ test('shared directory entries surface posts loaded into the account cache', () 
   expect(withPendingReply.posts[0].replies).toEqual([pendingReply]);
 });
 
-test('shared directory loading queries memberships only for the signed-in user', async () => {
-  const { firestore } = createFirestore();
-  firebaseServicesForUser.mockReturnValue({ db: 'db', firestore });
-  firestore.getDocs
-    .mockResolvedValueOnce({
-      docs: [
-        groupSnapshot('one', 2, '2026-10-11T10:00:00.000Z'),
-        groupSnapshot('two', 3, '2026-10-11T09:00:00.000Z'),
-      ],
-    })
-    .mockResolvedValueOnce({ docs: [membershipSnapshot('two')] });
-
-  const groups = await loadSharedGroups('student');
-
-  expect(groups.map(group => group.joined)).toEqual([false, true]);
-  expect(firestore.getDocs).toHaveBeenCalledTimes(2);
-  expect(firestore.getDoc).not.toHaveBeenCalled();
-  expect(firestore.getDocs.mock.calls[1][0].constraints).toContainEqual({
-    field: 'uid',
-    operator: '==',
-    value: 'student',
-  });
-});
-
 test('live member feed is retained if it arrives before directory metadata', () => {
   const post = {
     id: 'post-one',
@@ -247,12 +222,12 @@ test('group directory merges live metadata and user-scoped membership updates wi
   firebaseServicesForUser.mockReturnValue({ db: 'db', firestore });
   const onGroups = jest.fn();
   const onError = jest.fn();
-  const unsubscribe = watchSharedGroups('student', onGroups, onError);
+  const subscription = watchSharedGroups('student', onGroups, onError);
   const directory = subscriptions.find(
-    subscription => subscription.target.ref.path === 'db/studyGroups',
+    entry => entry.target.ref.path === 'db/studyGroups',
   );
-  const memberships = subscriptions.find(subscription =>
-    subscription.target.constraints.some(
+  const memberships = subscriptions.find(entry =>
+    entry.target.constraints.some(
       constraint => constraint.field === 'uid',
     ),
   );
@@ -278,6 +253,10 @@ test('group directory merges live metadata and user-scoped membership updates wi
   ]);
   expect(firestore.getDoc).not.toHaveBeenCalled();
   expect(firestore.onSnapshot).toHaveBeenCalledTimes(2);
+  expect(directory.target.constraints).toContainEqual({
+    type: 'limit',
+    count: 20,
+  });
   expect(memberships.target.constraints).toContainEqual({
     field: 'uid',
     operator: '==',
@@ -315,7 +294,96 @@ test('group directory merges live metadata and user-scoped membership updates wi
   ]);
   expect(firestore.getDoc).not.toHaveBeenCalled();
   expect(firestore.collection).toHaveBeenCalledTimes(1);
-  unsubscribe();
+  subscription.unsubscribe();
+  expect(directory.unsubscribe).toHaveBeenCalledTimes(1);
+  expect(memberships.unsubscribe).toHaveBeenCalledTimes(1);
+});
+
+test('shared group directory pages all groups and pauses live metadata while browsing older pages', async () => {
+  const { firestore, subscriptions } = createFirestore();
+  firebaseServicesForUser.mockReturnValue({ db: 'db', firestore });
+  const firstPage = Array.from({ length: 20 }, (_, index) =>
+    groupSnapshot(
+      'latest-' + index,
+      1,
+      new Date(Date.parse('2026-10-12T10:00:00Z') - index * 60000).toISOString(),
+    ),
+  );
+  const olderPageOne = Array.from({ length: 20 }, (_, index) =>
+    groupSnapshot(
+      'older-one-' + index,
+      1,
+      new Date(Date.parse('2026-10-12T08:00:00Z') - index * 60000).toISOString(),
+    ),
+  );
+  const olderPageTwo = [
+    groupSnapshot('older-two-0', 1, '2026-10-12T07:00:00.000Z'),
+    groupSnapshot('older-two-1', 1, '2026-10-12T06:00:00.000Z'),
+  ];
+  firestore.getDocs
+    .mockResolvedValueOnce({ docs: olderPageOne })
+    .mockResolvedValueOnce({ docs: olderPageTwo });
+  const onGroups = jest.fn();
+  const subscription = watchSharedGroups(
+    'student',
+    onGroups,
+    jest.fn(),
+  );
+  const directory = subscriptions.find(
+    item => item.target.ref.path === 'db/studyGroups',
+  );
+  const memberships = subscriptions.find(item =>
+    item.target.constraints.some(
+      constraint => constraint.field === 'uid',
+    ),
+  );
+  directory.next({
+    docs: firstPage,
+    docChanges: () =>
+      firstPage.map(doc => ({ type: 'added', doc })),
+  });
+  memberships.next({ docs: [membershipSnapshot('older-one-0')] });
+  await flushAsyncCallbacks();
+  expect(onGroups.mock.calls.at(-1)[0]).toHaveLength(20);
+  expect(onGroups.mock.calls.at(-1)[1]).toEqual({
+    hasMoreGroups: true,
+    groupsLive: true,
+  });
+
+  await subscription.loadMoreGroups();
+  expect(firestore.getDocs.mock.calls[0][0].constraints).toContainEqual({
+    type: 'startAfter',
+    snapshot: firstPage.at(-1),
+  });
+  expect(firestore.getDocs.mock.calls[0][0].constraints).toContainEqual({
+    type: 'limit',
+    count: 20,
+  });
+  expect(onGroups.mock.calls.at(-1)[0]).toHaveLength(40);
+  expect(onGroups.mock.calls.at(-1)[1]).toEqual({
+    hasMoreGroups: true,
+    groupsLive: false,
+  });
+  expect(onGroups.mock.calls.at(-1)[0].find(group => group.id === 'older-one-0').joined)
+    .toBe(true);
+
+  await subscription.loadMoreGroups();
+  expect(firestore.getDocs.mock.calls[1][0].constraints).toContainEqual({
+    type: 'startAfter',
+    snapshot: olderPageOne.at(-1),
+  });
+  expect(onGroups.mock.calls.at(-1)[0]).toHaveLength(42);
+  expect(onGroups.mock.calls.at(-1)[1]).toEqual({
+    hasMoreGroups: false,
+    groupsLive: false,
+  });
+
+  memberships.next({ docs: [membershipSnapshot('older-two-1')] });
+  expect(onGroups.mock.calls.at(-1)[0].find(group => group.id === 'older-two-1').joined)
+    .toBe(true);
+  await subscription.loadMoreGroups();
+  expect(firestore.getDocs).toHaveBeenCalledTimes(2);
+  subscription.unsubscribe();
   expect(directory.unsubscribe).toHaveBeenCalledTimes(1);
   expect(memberships.unsubscribe).toHaveBeenCalledTimes(1);
 });

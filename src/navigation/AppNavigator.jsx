@@ -86,6 +86,10 @@ export function AppNavigator() {
     groups: groupDirectory,
     error: sharedGroupsError,
     retry: retrySharedGroups,
+    hasMoreGroups: hasMoreSharedGroups,
+    groupsLive: sharedGroupsLive,
+    loadingMoreGroups,
+    loadMoreGroups,
     actionError: groupActionError,
     retryActions: retryGroupActions,
     contentError: groupContentError,
@@ -346,6 +350,11 @@ export function AppNavigator() {
           go={go}
           back={back}
           groups={visibleGroups({ ...state, groups: groupDirectory })}
+          hasMoreGroups={hasMoreSharedGroups}
+          groupsLive={sharedGroupsLive}
+          loadingMoreGroups={loadingMoreGroups}
+          loadMoreGroups={loadMoreGroups}
+          refreshGroups={retrySharedGroups}
         />
       );
 

@@ -86,6 +86,30 @@ try {
   });
   await assertSucceeds(createGroup.commit());
   await assertSucceeds(getDoc(doc(bob, 'studyGroups/calculus')));
+  const directoryPage = await assertSucceeds(
+    getDocs(
+      query(
+        collection(alice, 'studyGroups'),
+        orderBy('updatedAt', 'desc'),
+        limit(20),
+      ),
+    ),
+  );
+  assert.equal(directoryPage.size, 1);
+  await assertFails(
+    getDocs(
+      query(collection(alice, 'studyGroups'), orderBy('updatedAt', 'desc')),
+    ),
+  );
+  await assertFails(
+    getDocs(
+      query(
+        collection(alice, 'studyGroups'),
+        orderBy('updatedAt', 'desc'),
+        limit(21),
+      ),
+    ),
+  );
   const unverifiedState = doc(unverified, 'users/unverified/private/state');
   await assertSucceeds(setDoc(unverifiedState, stateFor('unverified')));
   await assertSucceeds(getDoc(unverifiedState));

@@ -90,7 +90,10 @@ service cloud.firestore {
             || (newCount == oldCount - 1 && currentMember && !memberAfter));
       }
 
-      allow get, list: if signedIn();
+      allow get: if signedIn();
+      allow list: if signedIn()
+        && request.query.limit is int
+        && request.query.limit <= 20;
       allow create: if signedIn()
         && request.resource.data.keys().hasAll([
           'ownerUid', 'name', 'subject', 'meetup', 'meetupAt', 'room',
