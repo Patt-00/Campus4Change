@@ -38,6 +38,9 @@ production-ready claim.
 - Firestore rules require each post/reply to update a private member write-limit
   record in the same batch and enforce a five-second per-member group cooldown.
   Emulator tests cover allowed writes, too-early writes, and private limiter data.
+- Removed the unused `@react-native/new-app-screen` starter dependency after
+  confirming no application or test source imports it; the reported audit total
+  dropped by one high-severity package path.
 
 ## Open issues
 
@@ -48,7 +51,7 @@ production-ready claim.
 | C4C-03 | High | Teacher-specific requirements are not fully established in this checkout. | The Figma map describes prototype screens, not the teacher's final acceptance rubric. Compare the finished requirements/module list when available. |
 | C4C-04 | Medium | Tutor listings, bookings, direct messages, and group chat are not shared between students. | Firebase accounts sync this data inside each user's private state; device-only accounts keep it local. Cross-student tutor, booking, and messaging workflows are not implemented. Confirm whether the final rubric requires those workflows before designing their schemas. |
 | C4C-05 | Medium | Shared groups have no content reporting or moderation path. | Rules restrict writes to members, validate authorship and text size, and enforce a five-second cooldown. Students still cannot flag or remove abusive content, and there is no instructor moderation workflow. Add one before wider use. |
-| C4C-06 | Medium | The dependency audit reports 21 high paths to one `braces` advisory. | The tree resolves `braces@3.0.3` through `micromatch@4.0.8` in Metro/React Native CLI and Jest tooling. GitHub lists `<=3.0.3` as affected with no patched version; the package maintainer publicly disputes that a fix is needed. The production-mode app bundle contains no `braces`/`micromatch` strings, so the current exposure is in the build/test toolchain. `npm audit fix --force` proposes a breaking React Native downgrade; do not use an unofficial override without a reviewed mitigation. See the [advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) and [maintainer discussion](https://github.com/micromatch/braces/issues/84). |
+| C4C-06 | Medium | The current audit reports 47 high, 5 moderate, and 0 critical findings. | `npm audit --omit=dev` still reports 20 high paths, all rooted in `braces@3.0.3` through `micromatch@4.0.8` in React Native/Metro tooling. The advisory affects `braces <=3.0.3` and has no patched version; the maintainer disputes the report. The production-mode app bundle contains no `braces`/`micromatch` strings, so the exposure is in development/build tooling rather than shipped JavaScript. The five moderate findings are test-tooling paths rooted in `sprintf-js@1.0.3`. `npm audit fix --force` proposes a breaking React Native downgrade to 0.72.17; do not apply an unofficial override without a reviewed mitigation. See the [advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) and [maintainer discussion](https://github.com/micromatch/braces/issues/84). |
 | C4C-07 | Medium | Release signing is still debug signing. | The current APK can update the existing prototype install, but distribution requires a protected release keystore and signing procedure. |
 | C4C-08 | Low | The iOS scaffold cannot use the Android storage module. | Current app support is Android-only; do not claim iOS parity until secure storage and biometrics are implemented and verified there. |
 

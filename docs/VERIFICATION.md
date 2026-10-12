@@ -24,8 +24,8 @@ Verified for this checkpoint:
   that deny all client access; the checked-in rules have not been deployed.
 - A production-mode Android JavaScript bundle passed after adding the Firebase
   client configuration. SHA-256:
-  `ada009c768a0132569e84165ebcca482e2d5b30c87956b2537f1dd87413666fe`;
-  size: 2,093,257 bytes. The bundle contains the project ID and no service
+  `ce3c29ed76807fa547a5b2164e5d89163126896fcad3bbdeab2e7b85c3195cb2`;
+  size: 2,093,217 bytes. The bundle contains the project ID and no service
   account private-key or `braces`/`micromatch` strings.
 - `JAVA_HOME=/usr/lib/jvm/java-25 ./gradlew --no-daemon assembleDebug` passed
   for Android. The React Native CLI launch helper stalled after starting
@@ -33,6 +33,12 @@ Verified for this checkpoint:
   the Poco X4 GT (`Z9GMOVDMHQV8X84D`, Android 14) was rejected with
   `INSTALL_FAILED_USER_RESTRICTED: Install canceled by user`; no runtime check
   on that device has been completed.
+- Removed unused `@react-native/new-app-screen` from the application
+  dependencies after confirming it is not imported; lint, all 45 unit tests,
+  and Firestore rules tests still pass. `npm audit` now reports 47 high and
+  5 moderate findings (0 critical); `npm audit --omit=dev` reports 20 high
+  paths, all through the unpatched `braces` advisory in Metro/React Native
+  tooling. The five moderate paths are test tooling through `sprintf-js`.
 - In a prior local Auth/Firestore emulator check on the Xiaomi Pad 7,
   email/password sign-up succeeded, the per-user state document
   was written under the authenticated UID, and a Firestore-side profile change

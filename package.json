@@ -11,7 +11,6 @@
     "test:firestore-rules": "node scripts/firestore-rules.test.mjs"
   },
   "dependencies": {
-    "@react-native/new-app-screen": "0.87.1",
     "firebase": "^13.0.0",
     "react": "19.2.3",
     "react-native": "0.87.1",
