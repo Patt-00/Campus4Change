@@ -33,6 +33,9 @@ production-ready claim.
 - Group search reports when no joined groups match, distinguishes an empty
   discovery list from an empty directory, and prompts users to load older pages
   when more search results may exist.
+- Tutor subjects are trimmed and deduplicated without regard to case, including
+  the subject filter list for previously saved profiles. Tutor profile copy
+  clarifies that personal listings are not shared with other students.
 - Shared feeds cap live windows at 20 posts and 20 replies per post; members
   can load older cursor pages on demand. Feed snapshots are kept out of durable
   private account-state records. Paging pauses the current live window until
@@ -60,6 +63,15 @@ production-ready claim.
   agenda, and notes; the focus timer is confined to group study rooms.
 - Session timing is displayed as upcoming, in progress, or past due from the
   stored start time without silently rewriting the user's saved status.
+- Rescheduling now uses the computed timing status. A session that has started
+  or passed its scheduled time no longer exposes the reschedule action, and the
+  save handler rejects the same stale route.
+- Booking confirmation and reminders describe a private schedule entry and
+  state that the tutor has not been notified.
+- Focused tests now cover home navigation and search, tutor listing create and
+  removal, private tutor filtering, group-room timer lifecycle and notes,
+  shared-group retry errors, storage compatibility, and session cancellation,
+  rating, and reschedule timing.
 - Device-only groups remain available. Pending shared writes are saved in
   account state and can be retried.
 - Firestore emulator tests cover account isolation, group discovery, membership
@@ -73,8 +85,10 @@ production-ready claim.
   dropped by one high-severity package path.
 - Added a GitHub Actions workflow for lint, unit tests, Auth/Firestore emulator
   tests, production bundling, the Android debug build, and the release-signing
-  guard. The latest [remote run](https://github.com/Patt-00/Campus4Change/actions/runs/38301352766)
-  passed on commit `dcbb8b3` without production Firebase credentials.
+  guard. Gradle dependency and wrapper caching is enabled through the
+  [`setup-java` cache option](https://github.com/actions/setup-java/blob/main/README.md).
+  The latest [remote run](https://github.com/Patt-00/Campus4Change/actions/runs/38305216881)
+  passed on commit `ea0fec4` without production Firebase credentials.
 
 ## Open issues
 
