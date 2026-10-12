@@ -6,6 +6,7 @@ import { Field } from '../../../shared/components/UI';
 import { s } from '../../../shared/theme/styles';
 export function GroupStudyRoomScreen({
   title,
+  shared = false,
   back,
   finish,
   initialNotes = '',
@@ -37,7 +38,10 @@ export function GroupStudyRoomScreen({
     >
       <Text style={[s.heading, s.center]}>{title}</Text>
       <Text style={[s.muted, s.center, styles.marginTop12]}>
-        Shared notes and a personal focus timer • no live call
+        {shared
+          ? 'Back keeps a private draft. Save Notes and Leave posts notes to the group.'
+          : 'Back keeps a private draft. Save Notes and Leave adds notes to this on-device group.'}{' '}
+        The focus timer is personal; there is no live call.
       </Text>
       <View style={[s.card, styles.alignItemscentermarginTop32]}>
         <Text style={s.name}>Focus timer</Text>
@@ -89,7 +93,7 @@ export function GroupStudyRoomScreen({
         title="SAVE NOTES AND LEAVE"
         outline
         onPress={() => {
-          finish(notes, false);
+          finish(notes, true);
           back();
         }}
       />

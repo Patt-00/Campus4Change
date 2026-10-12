@@ -580,11 +580,20 @@ export function AppNavigator() {
             key={group.id}
             back={back}
             title={group.name}
+            shared={group.shared}
             initialNotes={state.roomNotes?.[group.id] ?? ''}
             onDraft={text =>
               dispatch({ type: 'roomDraft', id: group.id, text })
             }
-            finish={notes => {
+            finish={(notes, publish) => {
+              if (!publish) {
+                dispatch({
+                  type: 'roomDraft',
+                  id: group.id,
+                  text: notes || undefined,
+                });
+                return;
+              }
               dispatch({ type: 'roomDraft', id: group.id });
               if (notes.trim()) {
                 dispatchGroupChange({

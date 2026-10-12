@@ -118,7 +118,7 @@ test('group room Save Notes and Leave finishes with the current notes', async ()
   await act(async () =>
     button(renderer, 'SAVE NOTES AND LEAVE').props.onPress(),
   );
-  expect(finish).toHaveBeenCalledWith('Review chapter six', false);
+  expect(finish).toHaveBeenCalledWith('Review chapter six', true);
   expect(back).toHaveBeenCalledTimes(1);
   await act(async () => renderer.unmount());
 });

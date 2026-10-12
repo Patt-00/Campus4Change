@@ -267,6 +267,34 @@ test('creates a group, publishes a post, and saves a reply', async () => {
   );
   expect(group.posts[0].replies[0].text).toBe('Start with the first law');
 });
+test('group-room Back preserves a private draft until Save Notes and Leave', async () => {
+  await login();
+  await press('Study Groups');
+  await press('+ CREATE GROUP');
+  await fill('Group name', 'Draft Review Team');
+  await fill('Subject', 'Physics');
+  await press('CREATE GROUP');
+  await press('OPEN GROUP STUDY ROOM');
+  await fill('Write what you learned...', 'Draft not shared yet');
+  await press('Back');
+
+  let saved = JSON.parse(mockSaved.demo);
+  let group = saved.groups.find(item => item.name === 'Draft Review Team');
+  expect(group.posts).toHaveLength(0);
+  expect(saved.roomNotes[group.id]).toBe('Draft not shared yet');
+
+  await press('OPEN GROUP STUDY ROOM');
+  const noteInput = renderer.root
+    .findAllByType(TextInput)
+    .find(input => input.props.accessibilityLabel === 'Write what you learned...');
+  expect(noteInput.props.value).toBe('Draft not shared yet');
+  await press('SAVE NOTES AND LEAVE');
+
+  saved = JSON.parse(mockSaved.demo);
+  group = saved.groups.find(item => item.name === 'Draft Review Team');
+  expect(group.posts.map(post => post.text)).toContain('Draft not shared yet');
+  expect(saved.roomNotes[group.id]).toBeUndefined();
+});
 test('profile changes appear in the profile and survive saved state', async () => {
   await login();
   await press('Profile');
