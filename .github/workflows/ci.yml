@@ -1,0 +1,71 @@
+name: Campus4Change CI
+
+on:
+  push:
+    branches:
+      - main
+      - 'codex/firebase-auth-firestore'
+  pull_request:
+    branches:
+      - main
+      - 'codex/firebase-auth-firestore'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: c4c-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.x
+          cache: npm
+
+      - name: Set up Java for Firebase emulators
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Install the Android NDK used by the project
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;27.1.12297006"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test -- --runInBand
+
+      - name: Firestore rules and Auth emulator tests
+        run: >-
+          npx --yes firebase-tools@15.33.0 emulators:exec
+          --only auth,firestore
+          --project demo-campus4change-rules
+          "npm run test:firestore-rules && npm run test:firebase-auth"
+
+      - name: Production Android JavaScript bundle
+        run: >-
+          npx react-native bundle --platform android --dev false
+          --entry-file index.js
+          --bundle-output "$RUNNER_TEMP/campus4change.android.bundle"
+          --assets-dest "$RUNNER_TEMP/campus4change-assets"
+
+      - name: Android debug build
+        working-directory: android
+        run: ./gradlew --no-daemon assembleDebug
