@@ -16,11 +16,11 @@ export function BookingConfirmedScreen({ go, session, tutor }) {
         <Icon name="check" size={72} color={C.green} />
       </View>
       <Text style={[s.heading, s.center, styles.marginTop24]}>
-        Session booked!
+        Added to your schedule
       </Text>
       <Text style={[s.muted, s.center, styles.marginTop8]}>
-        Your {session.subject} session with {tutor.name.split(' ')[0]} was added
-        to your schedule.
+        Your {session.subject} session with {tutor.name.split(' ')[0]} is saved
+        in your private schedule.
       </Text>
       <View style={[s.card, styles.marginTop36padding20]}>
         <Text style={s.name}>{session.subject}</Text>
@@ -29,7 +29,7 @@ export function BookingConfirmedScreen({ go, session, tutor }) {
           {dateLabel(session.startsAt)}, {timeRange(session.startsAt)}
         </Text>
         <Text style={s.muted}>
-          Saved on this device. The tutor has not been notified.
+          The tutor has not been notified.
         </Text>
       </View>
       <View style={s.bigGap} />

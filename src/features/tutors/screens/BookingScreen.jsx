@@ -143,8 +143,8 @@ export function BookingScreen({
       />
 
       <Text style={[s.muted, s.center, styles.marginTop14]}>
-        One-hour session. Saved to your schedule on this device; not sent to the
-        tutor.
+        One-hour session. Saved to your private schedule; the tutor is not
+        notified.
       </Text>
     </Screen>
   );

@@ -218,7 +218,8 @@ test('search selects the actual tutor, books a future session, and opens details
     'Practice derivatives',
   );
   await press('CONFIRM BOOKING');
-  expect(hasText('Session booked!')).toBe(true);
+  expect(hasText('Added to your schedule')).toBe(true);
+  expect(hasText('The tutor has not been notified.')).toBe(true);
   await press('VIEW SESSION DETAILS');
   expect(hasText('Practice derivatives')).toBe(true);
   expect(hasText('Mika Santos')).toBe(true);
@@ -338,7 +339,7 @@ test('a chosen tutor time is retained by the booking form', async () => {
   await press('6:00 PM');
   await press('Date 1');
   await press('CONFIRM BOOKING');
-  expect(hasText('Session booked!')).toBe(true);
+  expect(hasText('Added to your schedule')).toBe(true);
   const booked = JSON.parse(mockSaved.demo).sessions[0];
   expect(booked.tutorId).toBe('mika');
   expect(new Date(booked.startsAt).getHours()).toBe(18);

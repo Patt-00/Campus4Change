@@ -12,8 +12,10 @@ export function reducer(state, action) {
         notices: [
           {
             id: 'booking-' + action.session.id,
-            title: 'Session booked',
-            body: action.session.subject + ' was added to your schedule.',
+            title: 'Session added to schedule',
+            body:
+              action.session.subject +
+              ' was added to your private schedule. The tutor has not been notified.',
             sessionId: action.session.id,
             read: false,
           },

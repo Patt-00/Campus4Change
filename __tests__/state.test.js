@@ -37,6 +37,11 @@ test('booking conflicts include partial overlaps but allow adjacent sessions', (
   expect(hasConflict(state, '2027-01-01T14:30:00+08:00')).toBe(true);
   expect(hasConflict(state, '2027-01-01T13:30:00+08:00')).toBe(true);
   expect(hasConflict(state, '2027-01-01T15:00:00+08:00')).toBe(false);
+  expect(state.notices[0]).toMatchObject({
+    title: 'Session added to schedule',
+    body:
+      'Physics was added to your private schedule. The tutor has not been notified.',
+  });
   state = reducer(state, { type: 'book', session: { ...booking, id: 'two' } });
   expect(state.sessions).toHaveLength(1);
   expect(state.notices).toHaveLength(1);
