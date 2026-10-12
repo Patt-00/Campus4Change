@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
+import { TouchableOpacity } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GroupsScreen } from '../src/features/groups/screens/GroupsScreen';
 import { GroupDetailsScreen } from '../src/features/groups/screens/GroupDetailsScreen';
@@ -17,6 +18,30 @@ function renderScreen(screen) {
     </SafeAreaProvider>,
   );
 }
+
+test('group directory only mounts the first window for a large loaded list', async () => {
+  const groups = Array.from({ length: 80 }, (_, index) => ({
+    id: 'group-' + index,
+    name: 'Study Group ' + index,
+    subject: 'Physics',
+    members: 1,
+    joined: false,
+    shared: true,
+  }));
+  let renderer;
+  await act(async () => {
+    renderer = renderScreen(
+      <GroupsScreen go={jest.fn()} back={jest.fn()} groups={groups} />,
+    );
+  });
+
+  const mountedGroupCards = renderer.root
+    .findAllByType(TouchableOpacity)
+    .filter(control => control.props.accessibilityLabel?.startsWith('Open '));
+  expect(mountedGroupCards.length).toBeLessThanOrEqual(10);
+  expect(mountedGroupCards.length).toBeLessThan(groups.length);
+  await act(async () => renderer.unmount());
+});
 
 test('study group directory exposes older pages and refresh after paging', async () => {
   const loadMoreGroups = jest.fn();

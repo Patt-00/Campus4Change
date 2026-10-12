@@ -14,7 +14,11 @@ source contains no TypeScript files.
 Verified for this checkpoint:
 
 - `npm run lint`: passed without warnings.
-- `npm test -- --runInBand`: 65 tests passed in 12 suites.
+- `npm test -- --runInBand`: 66 tests passed in 12 suites.
+- The groups screen uses a virtualized `SectionList`; its regression test feeds
+  80 loaded groups and confirms that the initial render mounts no more than 10
+  group cards. This is a local source update after the remote run noted below;
+  it has not been pushed or rebuilt into an APK.
 - The Firestore rules test passed against the local Firebase Emulator Suite.
   It checks private account state, authenticated group discovery, member-only
   posts/replies, bounded cursor queries, per-member contribution cooldowns,

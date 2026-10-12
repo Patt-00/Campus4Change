@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import { Text, TouchableOpacity, View, StyleSheet } from 'react-native';
+import {
+  SectionList,
+  Text,
+  TouchableOpacity,
+  View,
+  StyleSheet,
+} from 'react-native';
 import { AppButton } from '../../../shared/components/AppButton';
 import { Screen } from '../../../shared/components/Screen';
 import { Field } from '../../../shared/components/UI';
@@ -23,35 +29,36 @@ export function GroupsScreen({
       .toLowerCase()
       .includes(query.toLowerCase().trim()),
   );
-  function cards(list) {
-    return list.map(g => (
-      <TouchableOpacity
-        key={g.id}
-        accessibilityRole="button"
-        accessibilityLabel={'Open ' + g.name}
-        style={[s.card, s.row, styles.minHeight104]}
-        onPress={() =>
-          go({
-            page: 'Group Details',
-            groupId: g.id,
-          })
-        }
-      >
-        <IconBadge name="users" />
-        <View style={s.grow}>
-          <Text style={s.name}>{g.name}</Text>
-          <Text style={s.muted}>
-            {g.members} {g.members === 1 ? 'member' : 'members'} •{' '}
-            {g.joined ? 'Joined' : 'Not joined'} •{' '}
-            {g.shared ? 'Shared group' : 'On this device'}
-          </Text>
-          <Text style={[s.link, styles.marginTop8]}>Open group</Text>
-        </View>
-      </TouchableOpacity>
-    ));
-  }
-  return (
-    <Screen title="Study Groups" back={back} go={go} tab="Home">
+  const joinedGroups = filtered.filter(group => group.joined);
+  const discoverGroups = filtered.filter(group => !group.joined);
+  const sections = [
+    {
+      key: 'joined',
+      title: 'Your groups',
+      data: joinedGroups.length
+        ? joinedGroups
+        : [{ id: 'empty-joined', emptyMessage: 'Join a group or create your own.' }],
+    },
+    {
+      key: 'discover',
+      title: 'Discover',
+      data: discoverGroups.length
+        ? discoverGroups
+        : [
+            {
+              id: 'empty-discover',
+              emptyMessage:
+                query.trim() && hasMoreGroups
+                  ? 'No discoverable matches on this page. Load older groups to search further.'
+                  : groups.length
+                    ? 'No discoverable groups match this search.'
+                    : 'Create your first group to organize study notes.',
+            },
+          ],
+    },
+  ];
+  const listHeader = (
+    <>
       <AppButton title="+ CREATE GROUP" onPress={() => go('Create Group')} />
       <View style={s.gap} />
       <Field
@@ -59,23 +66,10 @@ export function GroupsScreen({
         value={query}
         onChangeText={setQuery}
       />
-
-      <Text style={[s.section, styles.marginTop8]}>Your groups</Text>
-      {cards(filtered.filter(g => g.joined))}
-      {!filtered.some(g => g.joined) && (
-        <Text style={s.muted}>Join a group or create your own.</Text>
-      )}
-      <Text style={s.section}>Discover</Text>
-      {cards(filtered.filter(g => !g.joined))}
-      {!filtered.some(g => !g.joined) && (
-        <Text style={s.muted}>
-          {query.trim() && hasMoreGroups
-            ? 'No loaded groups match. Load older groups to search further.'
-            : groups.length
-              ? 'No more groups match this search.'
-              : 'Create your first group to organize study notes.'}
-        </Text>
-      )}
+    </>
+  );
+  const listFooter = (
+    <View>
       {hasMoreGroups && (
         <AppButton
           title={loadingMoreGroups ? 'LOADING OLDER GROUPS...' : 'LOAD OLDER GROUPS'}
@@ -91,6 +85,69 @@ export function GroupsScreen({
           onPress={refreshGroups}
         />
       )}
+      <View style={s.bigGap} />
+    </View>
+  );
+
+  function renderGroup(group) {
+    return (
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel={'Open ' + group.name}
+        style={[s.card, s.row, styles.minHeight104]}
+        onPress={() =>
+          go({
+            page: 'Group Details',
+            groupId: group.id,
+          })
+        }
+      >
+        <IconBadge name="users" />
+        <View style={s.grow}>
+          <Text style={s.name}>{group.name}</Text>
+          <Text style={s.muted}>
+            {group.members} {group.members === 1 ? 'member' : 'members'} •{' '}
+            {group.joined ? 'Joined' : 'Not joined'} •{' '}
+            {group.shared ? 'Shared group' : 'On this device'}
+          </Text>
+          <Text style={[s.link, styles.marginTop8]}>Open group</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  }
+
+  return (
+    <Screen title="Study Groups" back={back} go={go} tab="Home" scroll={false}>
+      <SectionList
+        style={s.grow}
+        sections={sections}
+        keyExtractor={item => item.id}
+        renderSectionHeader={({ section }) => (
+          <Text
+            style={[
+              s.section,
+              section.key === 'joined' && styles.marginTop8,
+            ]}
+          >
+            {section.title}
+          </Text>
+        )}
+        renderItem={({ item }) =>
+          item.emptyMessage ? (
+            <Text style={s.muted}>{item.emptyMessage}</Text>
+          ) : (
+            renderGroup(item)
+          )
+        }
+        ListHeaderComponent={listHeader}
+        ListFooterComponent={listFooter}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        stickySectionHeadersEnabled={false}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+      />
     </Screen>
   );
 }
