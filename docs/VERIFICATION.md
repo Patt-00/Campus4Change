@@ -41,6 +41,9 @@ Verified for this checkpoint:
   the Poco X4 GT (`Z9GMOVDMHQV8X84D`, Android 14) was rejected with
   `INSTALL_FAILED_USER_RESTRICTED: Install canceled by user`; no runtime check
   on that device has been completed.
+- The public GitHub Actions workflow passed remotely on commit `5855ca0` in
+  5m55s. It verified clean dependency installation, lint, all 55 unit tests,
+  Auth/Firestore emulator tests, production bundling, and `assembleDebug`.
 - Removed unused `@react-native/new-app-screen` from the application
   dependencies after confirming it is not imported; lint, all 55 unit tests,
   and Firestore rules tests still pass. `npm audit` now reports 47 high and

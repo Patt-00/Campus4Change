@@ -47,6 +47,9 @@ production-ready claim.
 - Removed the unused `@react-native/new-app-screen` starter dependency after
   confirming no application or test source imports it; the reported audit total
   dropped by one high-severity package path.
+- Added a GitHub Actions workflow for lint, unit tests, Auth/Firestore emulator
+  tests, production bundling, and the Android debug build. Its first remote run
+  passed on commit `5855ca0` without production Firebase credentials.
 
 ## Open issues
 
