@@ -35,9 +35,9 @@ export function AboutScreen({
       <Text style={s.section}>Connecting with other students</Text>
       <Text style={s.text}>
         {firebaseConfigured && cloudSession
-          ? 'Signed-in Firebase accounts share study-group details, membership, posts, and replies. Tutor listings, bookings, direct messages, and group chat remain private to each account. Group study rooms have a focus timer; booked-session workspaces organize session details and notes. Live calls are not available.'
+          ? 'Verified Firebase accounts share study-group details, membership, posts, and replies. Tutor listings, bookings, direct messages, and group chat remain private to each account. Group study rooms have a focus timer; booked-session workspaces organize session details and notes. Live calls are not available.'
           : firebaseConfigured
-            ? 'This device-only account stays private. Signed-in Firebase accounts can share study-group details, membership, posts, and replies. Bookings, direct messages, and group chat remain private. Group rooms have a focus timer; booked sessions use a notes workspace without live calls.'
+            ? 'This device-only account stays private. Verified Firebase accounts can share study-group details, membership, posts, and replies. Bookings, direct messages, and group chat remain private. Group rooms have a focus timer; booked sessions use a notes workspace without live calls.'
             : 'This version has no campus server or sharing between devices. Bookings, messages, and group posts stay on this device. Group study rooms have a focus timer; booked sessions use a notes workspace. Live calls are not available.'}
       </Text>
       <Text style={s.section}>Demo account</Text>
@@ -49,7 +49,7 @@ export function AboutScreen({
       <Text style={s.section}>Sign-in</Text>
       <Text style={s.text}>
         {firebaseConfigured
-          ? 'Firebase handles email/password sign-in and password reset. Your Firebase refresh token is encrypted by Android Keystore. School identity checks and email verification are not configured.'
+          ? 'Firebase handles email/password sign-in, password reset, and verification emails. Verified email is required for shared study groups, but the app does not check a school-domain allowlist. Your Firebase refresh token is encrypted by Android Keystore.'
           : 'Passwords protect local accounts. Android biometrics can be enabled after signing in. School identity checks, email verification, and password recovery require an online service and are not available here.'}
       </Text>
     </Screen>

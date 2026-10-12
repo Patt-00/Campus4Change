@@ -14,7 +14,7 @@ source contains no TypeScript files.
 Verified for this checkpoint:
 
 - `npm run lint`: passed without warnings.
-- `npm test -- --runInBand`: 53 tests passed in 9 suites.
+- `npm test -- --runInBand`: 54 tests passed in 10 suites.
 - The Firestore rules test passed against the local Firebase Emulator Suite.
   It checks private account state, authenticated group discovery, member-only
   posts/replies, bounded cursor queries, per-member contribution cooldowns,
@@ -32,8 +32,8 @@ Verified for this checkpoint:
   succeeds. If the local save itself fails, the account remains open.
 - A production-mode Android JavaScript bundle passed after adding the Firebase
   client configuration. SHA-256:
-  `2d05fa28571214571f02ec93b0f44b73529976eaf7faf71601b7d94dd8f115a0`;
-  size: 2,096,911 bytes. The bundle contains the project ID and no service
+  `254695b31df16cb56e7dbbb6a9f2333cce0877cf6fc206495cdc01c06b3a611b`;
+  size: 2,096,971 bytes. The bundle contains the project ID and no service
   account private-key or `braces`/`micromatch` strings.
 - `JAVA_HOME=/usr/lib/jvm/java-25 ./gradlew --no-daemon assembleDebug` passed
   for Android. The React Native CLI launch helper stalled after starting
@@ -42,7 +42,7 @@ Verified for this checkpoint:
   `INSTALL_FAILED_USER_RESTRICTED: Install canceled by user`; no runtime check
   on that device has been completed.
 - Removed unused `@react-native/new-app-screen` from the application
-  dependencies after confirming it is not imported; lint, all 53 unit tests,
+  dependencies after confirming it is not imported; lint, all 54 unit tests,
   and Firestore rules tests still pass. `npm audit` now reports 47 high and
   5 moderate findings (0 critical); `npm audit --omit=dev` reports 20 high
   paths, all through the unpatched `braces` advisory in Metro/React Native
