@@ -160,6 +160,14 @@ export async function firebasePasswordReset(email) {
       email.trim().toLowerCase(),
     );
   } catch (error) {
+    // Keep user status indistinguishable if Firebase returns a status error.
+    if (
+      ['auth/invalid-credential', 'auth/user-disabled', 'auth/user-not-found'].includes(
+        error?.code,
+      )
+    ) {
+      return;
+    }
     throw readableAuthError(error);
   }
 }

@@ -56,7 +56,10 @@ export function LoginScreen({ go, back, auth }) {
     }
     submit(async () => {
       await auth.sendPasswordReset(identifier);
-      Alert.alert('Check your email', 'Firebase sent a password reset link.');
+      Alert.alert(
+        'Check your email',
+        'If an account exists for this email, a reset link has been sent.',
+      );
     });
   }
   return (

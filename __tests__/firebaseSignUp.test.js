@@ -4,6 +4,7 @@ let mockApp;
 let mockCreateUser;
 let mockSignIn;
 let mockSignOut;
+let mockSendPasswordResetEmail;
 let mockSendEmailVerification;
 let mockReload;
 let mockGetIdToken;
@@ -46,6 +47,7 @@ jest.mock('firebase/auth', () => ({
   createUserWithEmailAndPassword: (...args) => mockCreateUser(...args),
   signInWithEmailAndPassword: (...args) => mockSignIn(...args),
   signOut: (...args) => mockSignOut(...args),
+  sendPasswordResetEmail: (...args) => mockSendPasswordResetEmail(...args),
   sendEmailVerification: (...args) => mockSendEmailVerification(...args),
   reload: (...args) => mockReload(...args),
   getIdToken: (...args) => mockGetIdToken(...args),
@@ -65,6 +67,7 @@ beforeEach(() => {
   mockSignOut = jest.fn(async auth => {
     auth.currentUser = null;
   });
+  mockSendPasswordResetEmail = jest.fn(async () => {});
   mockSendEmailVerification = jest.fn(async () => {});
   mockReload = jest.fn(async () => {});
   mockGetIdToken = jest.fn(async () => 'fresh-token');
@@ -170,6 +173,38 @@ test('sign-in reloads the user and refreshes the token before reporting verifica
     id: 'verified-user',
     emailVerified: true,
   });
+});
+
+test.each([
+  'auth/invalid-credential',
+  'auth/user-disabled',
+  'auth/user-not-found',
+])(
+  'password reset hides account status for %s',
+  async code => {
+    mockSendPasswordResetEmail.mockRejectedValueOnce({ code });
+    const firebase = require('../src/shared/backend/firebase');
+
+    await expect(
+      firebase.firebasePasswordReset('  Jamie@School.edu '),
+    ).resolves.toBeUndefined();
+
+    expect(mockSendPasswordResetEmail).toHaveBeenCalledWith(
+      mockAuth,
+      'jamie@school.edu',
+    );
+  },
+);
+
+test('password reset still reports network failures', async () => {
+  mockSendPasswordResetEmail.mockRejectedValueOnce({
+    code: 'auth/network-request-failed',
+  });
+  const firebase = require('../src/shared/backend/firebase');
+
+  await expect(
+    firebase.firebasePasswordReset('student@school.edu'),
+  ).rejects.toThrow('Could not connect. Check your internet and try again.');
 });
 
 test('successful Firebase sign-out clears the transient Student ID cache', async () => {
