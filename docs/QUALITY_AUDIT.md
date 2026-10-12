@@ -20,6 +20,9 @@ production-ready claim.
   can load older cursor pages on demand. Feed snapshots are kept out of durable
   private account-state records. Paging pauses the current live window until
   the user refreshes to latest, keeping the loaded window bounded.
+- Older post pages fetch one bounded reply preview per post without adding
+  live listeners. Regression coverage pages through 40 older posts and confirms
+  the active reply-listener count remains at the latest window's 20.
 - Group directory updates now read changed metadata and membership only. Post
   and reply listeners are started only while a member has that group open, and
   listeners are removed when the group closes or the user leaves.
@@ -32,6 +35,7 @@ production-ready claim.
 - Sign-out distinguishes encrypted local persistence from Firebase sync. It
   keeps the account open if the local save fails, but permits sign-out after a
   successful local save when cloud sync fails and explains how to retry later.
+  A successful Firebase sign-out also clears the transient Student ID cache.
 - Booked sessions now use a booking-focused workspace for schedule, tutor,
   agenda, and notes; the focus timer is confined to group study rooms.
 - Session timing is displayed as upcoming, in progress, or past due from the
@@ -49,8 +53,8 @@ production-ready claim.
   dropped by one high-severity package path.
 - Added a GitHub Actions workflow for lint, unit tests, Auth/Firestore emulator
   tests, production bundling, the Android debug build, and the release-signing
-  guard. The latest [remote run](https://github.com/Patt-00/Campus4Change/actions/runs/38222998093)
-  passed on commit `10fa5ad` in 5m59s without production Firebase credentials.
+  guard. The latest [remote run](https://github.com/Patt-00/Campus4Change/actions/runs/38226837725)
+  passed on commit `c77a6b2` without production Firebase credentials.
 
 ## Open issues
 
@@ -69,8 +73,8 @@ production-ready claim.
 
 Verification is recorded in [VERIFICATION.md](VERIFICATION.md). The Pad 7
 debug UI check and production-mode Android JavaScript bundle are verified. The
-POCO X4 GT is currently visible through USB debugging, but Campus4Change is not
-installed. A previous debug install was blocked by
+POCO X4 GT is currently visible through paired Wireless debugging, but
+Campus4Change is not installed. A previous debug install was blocked by
 `INSTALL_FAILED_USER_RESTRICTED`; device-side install approval is still needed.
 The Firebase emulator is not a substitute for deploying the reviewed rules or
 two-account testing against the course project.
