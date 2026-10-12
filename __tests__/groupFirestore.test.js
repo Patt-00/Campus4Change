@@ -410,6 +410,34 @@ test('the open post stays available when new live posts move it off the latest p
     'post-newest',
     'post-open',
   ]);
+
+  const pinnedReplyListener = subscriptions.find(item =>
+    item.target.ref.path.endsWith('/posts/post-open/replies'),
+  );
+  expect(pinnedReplyListener).toBeDefined();
+  pinnedReplyListener.next({
+    docs: [
+      {
+        id: 'reply-open',
+        data: () => ({
+          authorUid: 'student',
+          author: 'Student',
+          text: 'An older post can still load its replies.',
+          createdAt: '2026-10-12T08:05:00.000Z',
+        }),
+      },
+    ],
+  });
+  expect(onPosts.mock.calls.at(-1)[0].find(post => post.id === 'post-open').replies)
+    .toEqual([
+      {
+        id: 'reply-open',
+        authorUid: 'student',
+        author: 'Student',
+        text: 'An older post can still load its replies.',
+        createdAt: '2026-10-12T08:05:00.000Z',
+      },
+    ]);
   subscription.unsubscribe();
 });
 
@@ -473,6 +501,7 @@ test('active group feeds page older posts and replies from bounded live windows'
   };
   firestore.getDocs
     .mockResolvedValueOnce({ docs: [olderPost] })
+    .mockResolvedValueOnce({ docs: [olderReply] })
     .mockResolvedValueOnce({ docs: [olderReply] });
 
   await subscription.loadMorePosts();
@@ -481,10 +510,13 @@ test('active group feeds page older posts and replies from bounded live windows'
     type: 'startAfter',
     snapshot: firstPage.at(-1),
   });
+  expect(firestore.getDocs.mock.calls[1][0].ref.path).toBe(
+    'studyGroups/group-one/posts/post-older/replies',
+  );
   expect(onPosts.mock.calls.at(-1)[0]).toHaveLength(21);
 
   await subscription.loadMoreReplies('post-0');
-  expect(firestore.getDocs.mock.calls[1][0].constraints).toContainEqual({
+  expect(firestore.getDocs.mock.calls[2][0].constraints).toContainEqual({
     type: 'startAfter',
     snapshot: firstReplyPage.at(-1),
   });
@@ -494,6 +526,78 @@ test('active group feeds page older posts and replies from bounded live windows'
   expect(firstPost.hasMoreReplies).toBe(false);
   expect(firstPost.repliesLive).toBe(false);
   subscription.unsubscribe();
+});
+
+test('older post pages load reply previews without additional listeners', async () => {
+  const { firestore, subscriptions } = createFirestore();
+  firebaseServicesForUser.mockReturnValue({ db: 'db', firestore });
+  const olderPageOne = Array.from({ length: 20 }, (_, index) =>
+    postSnapshot(
+      'older-one-' + index,
+      new Date(Date.parse('2026-10-12T08:00:00Z') - index * 60000).toISOString(),
+    ),
+  );
+  const olderPageTwo = Array.from({ length: 20 }, (_, index) =>
+    postSnapshot(
+      'older-two-' + index,
+      new Date(Date.parse('2026-10-12T07:00:00Z') - index * 60000).toISOString(),
+    ),
+  );
+  const olderPages = [olderPageOne, olderPageTwo];
+  firestore.getDocs.mockImplementation(async target =>
+    target.ref.path.endsWith('/posts')
+      ? { docs: olderPages.shift() }
+      : { docs: [] },
+  );
+  const onPosts = jest.fn();
+  const subscription = watchSharedGroupPosts(
+    'student',
+    'group-one',
+    onPosts,
+    jest.fn(),
+  );
+  await flushAsyncCallbacks();
+
+  const postsListener = subscriptions.find(item =>
+    item.target.ref.path.endsWith('/posts'),
+  );
+  postsListener.next({
+    docs: Array.from({ length: 20 }, (_, index) =>
+      postSnapshot(
+        'latest-' + index,
+        new Date(Date.parse('2026-10-12T10:00:00Z') - index * 60000).toISOString(),
+      ),
+    ),
+  });
+
+  const replyListeners = () =>
+    subscriptions.filter(item => item.target.ref.path.endsWith('/replies'));
+  const olderReplyQueries = () =>
+    firestore.getDocs.mock.calls.filter(([target]) =>
+      target.ref.path.endsWith('/replies'),
+    );
+  expect(replyListeners()).toHaveLength(20);
+
+  await subscription.loadMorePosts();
+  expect(replyListeners()).toHaveLength(20);
+  expect(olderReplyQueries()).toHaveLength(20);
+  expect(olderReplyQueries()[0][0].constraints).toContainEqual({
+    type: 'limit',
+    count: 20,
+  });
+  expect(
+    onPosts.mock.calls.at(-1)[0].find(post => post.id === 'older-one-0')
+      .repliesLive,
+  ).toBe(false);
+
+  await subscription.loadMorePosts();
+  expect(replyListeners()).toHaveLength(20);
+  expect(olderReplyQueries()).toHaveLength(40);
+
+  const olderPost = onPosts.mock.calls.at(-1)[0].find(post => post.id === 'older-two-0');
+  expect(olderPost.repliesLive).toBe(false);
+  subscription.unsubscribe();
+  expect(replyListeners().every(item => item.unsubscribe.mock.calls.length === 1)).toBe(true);
 });
 
 test('nonmembers do not open post or reply listeners', async () => {

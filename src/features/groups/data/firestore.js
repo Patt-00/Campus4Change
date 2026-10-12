@@ -273,6 +273,24 @@ export function watchSharedGroupPosts(
     );
   }
 
+  async function loadReplyPageOnce(postSnapshot) {
+    const repliesSnapshot = await getDocs(
+      query(
+        collection(postSnapshot.ref, 'replies'),
+        orderBy('createdAt', 'desc'),
+        limit(REPLY_PAGE_SIZE),
+      ),
+    );
+    return {
+      live: repliesSnapshot.docs,
+      older: new Map(),
+      hasMore: repliesSnapshot.docs.length === REPLY_PAGE_SIZE,
+      liveSubscription: false,
+      loading: false,
+      unsubscribe: () => {},
+    };
+  }
+
   async function loadMorePosts() {
     if (!active || !hasMorePosts || loadingMorePosts) {
       return;
@@ -303,9 +321,16 @@ export function watchSharedGroupPosts(
       if (!active) {
         return;
       }
-      olderSnapshot.docs.forEach(snapshot => {
+      // Older pages need reply previews without additional live listeners.
+      const replyPages = await Promise.all(
+        olderSnapshot.docs.map(loadReplyPageOnce),
+      );
+      if (!active) {
+        return;
+      }
+      olderSnapshot.docs.forEach((snapshot, index) => {
         olderPosts.set(snapshot.id, snapshot);
-        subscribeReplies(snapshot);
+        replyStates.set(snapshot.id, replyPages[index]);
       });
       hasMorePosts = olderSnapshot.docs.length === POST_PAGE_SIZE;
       publishPosts();
