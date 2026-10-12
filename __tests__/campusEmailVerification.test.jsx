@@ -147,3 +147,36 @@ test('Firebase sign-out succeeds when cloud sync fails after local state is save
   expect(currentSession.state).toBeNull();
   await act(async () => renderer.unmount());
 });
+
+test('Firebase sign-out keeps the session active when encrypted local save fails', async () => {
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(<Harness />);
+  });
+  await act(async () => {
+    mockUserListener({
+      uid: 'firebase-student',
+      id: 'firebase-student',
+      name: 'Student',
+      email: 'student@school.test',
+      studentId: 'STU-1',
+      emailVerified: true,
+    });
+    await flushTasks();
+    await flushTasks();
+  });
+
+  mockStore.saveState.mockClear();
+  mockStore.saveState.mockRejectedValueOnce(new Error('Encrypted storage is full.'));
+  let result;
+  await act(async () => {
+    result = await currentSession.signOut();
+  });
+
+  expect(result).toMatchObject({ signedOut: false, cloudSaved: false });
+  expect(mockFirebaseSignOut).not.toHaveBeenCalled();
+  expect(currentSession.sessionType).toBe('firebase');
+  expect(currentSession.state).not.toBeNull();
+  expect(currentSession.saveError).toBe('Encrypted storage is full.');
+  await act(async () => renderer.unmount());
+});
