@@ -41,9 +41,13 @@ const stateFor = uid => ({
 
 try {
   await environment.clearFirestore();
-  const alice = environment.authenticatedContext('alice').firestore();
-  const bob = environment.authenticatedContext('bob').firestore();
-  const carol = environment.authenticatedContext('carol').firestore();
+  const verifiedClaims = { email_verified: true };
+  const alice = environment.authenticatedContext('alice', verifiedClaims).firestore();
+  const bob = environment.authenticatedContext('bob', verifiedClaims).firestore();
+  const carol = environment.authenticatedContext('carol', verifiedClaims).firestore();
+  const unverified = environment
+    .authenticatedContext('unverified', { email_verified: false })
+    .firestore();
   const anonymous = environment.unauthenticatedContext().firestore();
   const aliceState = doc(alice, 'users/alice/private/state');
 
@@ -80,6 +84,18 @@ try {
   });
   await assertSucceeds(createGroup.commit());
   await assertSucceeds(getDoc(doc(bob, 'studyGroups/calculus')));
+  const unverifiedState = doc(unverified, 'users/unverified/private/state');
+  await assertSucceeds(setDoc(unverifiedState, stateFor('unverified')));
+  await assertSucceeds(getDoc(unverifiedState));
+  await assertFails(getDoc(doc(unverified, 'studyGroups/calculus')));
+  await assertFails(getDocs(collection(unverified, 'studyGroups')));
+  await assertFails(
+    setDoc(doc(unverified, 'studyGroups/unverified-group'), {
+      ownerUid: 'unverified',
+      name: 'Unverified group',
+      subject: 'Study',
+    }),
+  );
   await assertFails(getDoc(doc(bob, 'studyGroups/calculus/members/alice')));
   await assertFails(
     getDocs(
@@ -352,7 +368,7 @@ try {
     ),
   );
 
-  console.log('Firestore rules passed: private state, bounded member feeds, contribution cooldowns, and membership are scoped.');
+  console.log('Firestore rules passed: private state, verified shared access, bounded member feeds, contribution cooldowns, and membership are scoped.');
 } finally {
   await environment.cleanup();
 }

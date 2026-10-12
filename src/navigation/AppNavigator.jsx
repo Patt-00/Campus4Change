@@ -62,6 +62,8 @@ export function AppNavigator() {
     retrySave,
     restoring,
     sessionType,
+    emailVerified,
+    emailVerificationMessage,
   } =
     useCampusSession({
       onSignedIn: () => {
@@ -73,7 +75,8 @@ export function AppNavigator() {
         setRoute({ page: 'Login' });
       },
     });
-  const syncUid = sessionType === 'firebase' ? state?.profile?.id : null;
+  const syncUid =
+    sessionType === 'firebase' && emailVerified ? state?.profile?.id : null;
   const activeGroupId =
     route.page === 'Group Details' || route.page === 'Group Post'
       ? route.groupId
@@ -594,6 +597,26 @@ export function AppNavigator() {
   }
   return (
     <View style={s.grow}>
+      {sessionType === 'firebase' && !emailVerified && (
+          <View style={s.banner}>
+            <Text style={emailVerified ? s.muted : s.error}>
+              {emailVerificationMessage ||
+                `Verify ${state?.profile?.email || 'your school email'} to access shared study groups.`}
+            </Text>
+            {!emailVerified && (
+              <>
+                <Link
+                  label="Resend verification email"
+                  onPress={auth.resendEmailVerification}
+                />
+                <Link
+                  label="I've verified — check again"
+                  onPress={auth.refreshEmailVerification}
+                />
+              </>
+            )}
+          </View>
+        )}
       {sharedGroupsError && (
         <View style={s.banner}>
           <Text style={s.error}>Study groups could not be refreshed: {sharedGroupsError}</Text>

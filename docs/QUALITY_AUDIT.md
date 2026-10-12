@@ -26,6 +26,9 @@ production-ready claim.
 - Firebase signup stages the entered name and Student ID before account
   creation so an early auth-state callback cannot initialize an incomplete
   profile; a regression test covers that event order.
+- Firebase signup sends an email verification link. Firestore rules require a
+  verified-email claim for shared study-group data while keeping each user's
+  private account state owner-only before verification.
 - Booked sessions now use a booking-focused workspace for schedule, tutor,
   agenda, and notes; the focus timer is confined to group study rooms.
 - Session timing is displayed as upcoming, in progress, or past due from the
@@ -47,7 +50,7 @@ production-ready claim.
 | ID | Priority | Issue | Evidence and next action |
 | --- | --- | --- | --- |
 | C4C-01 | High | The Firebase project is configured, but the app's Firestore rules are not deployed. | Project `campus4change` is on Spark, has a registered Web app and Email/Password sign-in, and its Standard Firestore database is in `asia-southeast1`. The app client config is populated. Firestore still has its initial production-mode deny-all rules; review and explicitly authorize deployment before live data tests. |
-| C4C-02 | High | No real-project, two-account shared-group workflow has been verified. | The Firebase project and database are ready, but app access remains denied until the checked-in rules are deployed. Emulator rules and app unit tests pass; create two test accounts and verify create/discover/join/post/reply/leave after rules deployment. |
+| C4C-02 | High | No real-project, two-account shared-group workflow has been verified. | The Firebase project and database are ready, but app access remains denied until the checked-in rules are deployed. Emulator rules and email-verification workflow tests pass; deploy the rules, verify two test email addresses, then test create/discover/join/post/reply/leave against the project. |
 | C4C-03 | High | Teacher-specific requirements are not fully established in this checkout. | The Figma map describes prototype screens, not the teacher's final acceptance rubric. Compare the finished requirements/module list when available. |
 | C4C-04 | Medium | Tutor listings, bookings, direct messages, and group chat are not shared between students. | Firebase accounts sync this data inside each user's private state; device-only accounts keep it local. Cross-student tutor, booking, and messaging workflows are not implemented. Confirm whether the final rubric requires those workflows before designing their schemas. |
 | C4C-05 | Medium | Shared groups have no content reporting or moderation path. | Rules restrict writes to members, validate authorship and text size, and enforce a five-second cooldown. Students still cannot flag or remove abusive content, and there is no instructor moderation workflow. Add one before wider use. |

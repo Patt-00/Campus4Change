@@ -14,18 +14,23 @@ source contains no TypeScript files.
 Verified for this checkpoint:
 
 - `npm run lint`: passed without warnings.
-- `npm test -- --runInBand`: 45 tests passed in 6 suites.
+- `npm test -- --runInBand`: 50 tests passed in 7 suites.
 - The Firestore rules test passed against the local Firebase Emulator Suite.
   It checks private account state, authenticated group discovery, member-only
   posts/replies, bounded cursor queries, per-member contribution cooldowns,
-  private memberships, safe member counts, and rejects owner departure,
-  membership spoofing, anonymous access, nonmember writes, and unconfigured
-  collections. The real project still has its initial production-mode rules
-  that deny all client access; the checked-in rules have not been deployed.
+  private memberships, safe member counts, and verified-email requirements.
+  Unverified accounts can still access only their own private state; shared
+  group discovery and writes are denied. The real project still has its initial
+  production-mode rules that deny all client access; the checked-in rules have
+  not been deployed.
+- `npm run test:firebase-auth` passed against the Auth and Firestore emulators.
+  It creates a disposable `example.test` user, obtains and applies the local
+  verification code, refreshes the ID token, verifies the `email_verified`
+  claim, and checks Firestore access before and after verification.
 - A production-mode Android JavaScript bundle passed after adding the Firebase
   client configuration. SHA-256:
-  `ce3c29ed76807fa547a5b2164e5d89163126896fcad3bbdeab2e7b85c3195cb2`;
-  size: 2,093,217 bytes. The bundle contains the project ID and no service
+  `5f305843b085cc0225dbbcb00d87698f9acc62ee4d976628c1a93b4d7cdf04be`;
+  size: 2,096,218 bytes. The bundle contains the project ID and no service
   account private-key or `braces`/`micromatch` strings.
 - `JAVA_HOME=/usr/lib/jvm/java-25 ./gradlew --no-daemon assembleDebug` passed
   for Android. The React Native CLI launch helper stalled after starting
@@ -34,7 +39,7 @@ Verified for this checkpoint:
   `INSTALL_FAILED_USER_RESTRICTED: Install canceled by user`; no runtime check
   on that device has been completed.
 - Removed unused `@react-native/new-app-screen` from the application
-  dependencies after confirming it is not imported; lint, all 45 unit tests,
+  dependencies after confirming it is not imported; lint, all 50 unit tests,
   and Firestore rules tests still pass. `npm audit` now reports 47 high and
   5 moderate findings (0 critical); `npm audit --omit=dev` reports 20 high
   paths, all through the unpatched `braces` advisory in Metro/React Native
@@ -70,13 +75,15 @@ Shared group metadata, membership counts, posts, and replies now use the
 `studyGroups` Firestore collection for authenticated Firebase users. Local/demo
 groups remain on-device. Tutor listings, bookings, direct messages, and group
 chat are not shared between students; a Firebase user's private account state,
-including that user's bookings, syncs only to that account. The dependency
-audit reports 21 high-severity paths to the same `braces@3.0.3` advisory and
-zero critical findings. The production-mode JavaScript bundle contains no
-`braces` or `micromatch` strings; `npm ls` places the affected package in the
-React Native/Metro/CLI/Jest toolchain. GitHub lists no patched release, while
-the package maintainer has disputed that the package needs a fix. Do not force
-a React Native downgrade or apply an unofficial override to silence the audit.
+including that user's bookings, syncs only to that account. The current
+dependency audit reports 47 high and 5 moderate findings (0 critical);
+`npm audit --omit=dev` reports 20 high paths rooted in the `braces@3.0.3`
+advisory. The production-mode JavaScript bundle
+contains no `braces` or `micromatch` strings; `npm ls` places the affected
+package in the React Native/Metro/CLI/Jest toolchain. GitHub lists no patched
+release, while the package maintainer has disputed that the package needs a
+fix. Do not force a React Native downgrade or apply an unofficial override to
+silence the audit.
 
 The published v1.2.0 APK was verified on Windows on 2026-10-01. The current source was converted to JavaScript/JSX and rebuilt in Termux on 2026-10-02. Neither result establishes phone installation or screen behavior.
 

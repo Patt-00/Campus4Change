@@ -8,6 +8,7 @@
     "lint": "eslint .",
     "start": "react-native start",
     "test": "jest",
+    "test:firebase-auth": "node scripts/firebase-auth-verification.test.mjs",
     "test:firestore-rules": "node scripts/firestore-rules.test.mjs"
   },
   "dependencies": {

@@ -3,13 +3,18 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() {
-      return request.auth != null;
+      return request.auth != null
+        && request.auth.token.email_verified == true;
+    }
+
+    function ownsUserData(userId) {
+      return request.auth != null && request.auth.uid == userId;
     }
 
     // Version 1 keeps each student's private account state under their UID.
     match /users/{userId}/private/state {
       function ownsDocument() {
-        return signedIn() && request.auth.uid == userId;
+        return ownsUserData(userId);
       }
 
       allow read, delete: if ownsDocument();
@@ -78,7 +83,8 @@ service cloud.firestore {
         let memberAfter = existsAfter(memberPath(request.auth.uid));
         let oldCount = resource.data.memberCount;
         let newCount = request.resource.data.memberCount;
-        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberCount', 'updatedAt'])
+        return signedIn()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberCount', 'updatedAt'])
           && request.resource.data.updatedAt == request.time
           && ((newCount == oldCount + 1 && !currentMember && memberAfter)
             || (newCount == oldCount - 1 && currentMember && !memberAfter));

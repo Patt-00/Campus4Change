@@ -1,6 +1,6 @@
 # Campus4Change architecture
 
-The app uses React Native CLI 0.87.1, React 19.2.3, JavaScript/JSX, and Hermes. It has no navigation library or external state framework. When Firebase is configured, Firebase Authentication handles cloud accounts, Firestore syncs each user's private state, and the groups feature shares its directory, membership, posts, and replies. The local demo remains available without Firebase configuration.
+The app uses React Native CLI 0.87.1, React 19.2.3, JavaScript/JSX, and Hermes. It has no navigation library or external state framework. When Firebase is configured, Firebase Authentication handles cloud accounts, Firestore syncs each user's private state, and the groups feature shares its directory, membership, posts, and replies. Firebase sign-up verifies email ownership before allowing shared group access; unverified users can access only their own private state. The local demo remains available without Firebase configuration.
 
 ## Entry and ownership
 

@@ -107,7 +107,7 @@ export function SignUpScreen({ go, back, auth }) {
       <AppButton title="CREATE ACCOUNT" busy={busy} onPress={submit} />
       <Text style={[s.muted, s.center, styles.marginTop16]}>
         {auth.firebaseConfigured
-          ? 'Your account uses Firebase Authentication. Your app data syncs to your private Firebase account.'
+          ? 'Firebase will send a verification link. Confirm your email before using shared study groups. Your private account data stays in your Firebase account.'
           : 'Your account and data stay on this device.'}
       </Text>
       <View style={styles.alignItemscentermarginTop24}>

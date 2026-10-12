@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { initialState } from '../data/demo';
 import {
   firebaseEnabled,
+  firebaseCheckEmailVerification,
   firebasePasswordReset,
+  firebaseResendVerificationEmail,
   firebaseSignIn,
   firebaseSignOut,
   firebaseSignUp,
@@ -39,6 +41,8 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
   const [saveError, setSaveError] = useState('');
   const [restoring, setRestoring] = useState(firebaseEnabled);
   const [sessionType, setSessionType] = useState(null);
+  const [emailVerified, setEmailVerified] = useState(true);
+  const [emailVerificationMessage, setEmailVerificationMessage] = useState('');
   const snapshot = useRef(state);
   const activeSession = useRef(null);
   const cloudHydrated = useRef(false);
@@ -103,6 +107,8 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
       activeSession.current = { kind: 'local', id: account.id };
       cloudHydrated.current = true;
       setSessionType('local');
+      setEmailVerified(true);
+      setEmailVerificationMessage('');
       setSaveError('');
       snapshot.current = next;
       setState(next);
@@ -115,6 +121,7 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
   }, []);
 
   const enterFirebaseAccount = useCallback(user => {
+    setEmailVerified(Boolean(user.emailVerified));
     if (cloudEntries.current.has(user.uid)) {
       return cloudEntries.current.get(user.uid);
     }
@@ -219,6 +226,7 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
     return watchFirebaseUser(
       user => {
         if (user) {
+          setEmailVerified(Boolean(user.emailVerified));
           enterFirebaseAccount(user).catch(async error => {
             setRestoring(false);
             setSaveError(errorText(error));
@@ -236,6 +244,8 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
           activeSession.current = null;
           cloudHydrated.current = false;
           setSessionType(null);
+          setEmailVerified(true);
+          setEmailVerificationMessage('');
           setState(null);
           setSaveError('');
           if (!firebaseSignOutInProgress.current) {
@@ -255,6 +265,12 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
     signIn: async (identifier, password) => {
       if (firebaseEnabled && !isDemoAccount(identifier)) {
         const account = await firebaseSignIn(identifier, password);
+        setEmailVerified(Boolean(account.emailVerified));
+        setEmailVerificationMessage(
+          account.emailVerified
+            ? ''
+            : 'Verify your school email to access shared study groups.',
+        );
         await enterFirebaseAccount({
           ...account,
           uid: account.id,
@@ -268,6 +284,13 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
     signUp: async (name, email, studentId, password) => {
       if (firebaseEnabled) {
         const account = await firebaseSignUp(name, email, studentId, password);
+        setEmailVerified(Boolean(account.emailVerified));
+        setEmailVerificationMessage(
+          account.verificationEmailSent
+            ? `Verification email sent to ${account.email}. Check your inbox and spam folder.`
+            : account.verificationEmailError ||
+                'Your account was created, but the verification email could not be sent. Try resending it from this screen.',
+        );
         await enterFirebaseAccount({
           ...account,
           uid: account.id,
@@ -282,6 +305,30 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
       enterLocalAccount(await deviceStore().biometricSignIn()),
     enableBiometrics: () => deviceStore().enableBiometrics(),
     sendPasswordReset: firebasePasswordReset,
+    resendEmailVerification: async () => {
+      try {
+        await firebaseResendVerificationEmail();
+        const email = snapshot.current?.profile?.email;
+        setEmailVerificationMessage(
+          `Verification email sent${email ? ` to ${email}` : ''}. Check your inbox and spam folder.`,
+        );
+      } catch (error) {
+        setEmailVerificationMessage(errorText(error));
+      }
+    },
+    refreshEmailVerification: async () => {
+      try {
+        const account = await firebaseCheckEmailVerification();
+        setEmailVerified(Boolean(account.emailVerified));
+        setEmailVerificationMessage(
+          account.emailVerified
+            ? ''
+            : 'The email is not verified yet. Open the link from your email, then check again.',
+        );
+      } catch (error) {
+        setEmailVerificationMessage(errorText(error));
+      }
+    },
   };
 
   const dispatch = useCallback(action => {
@@ -333,6 +380,8 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
       activeSession.current = null;
       cloudHydrated.current = false;
       setSessionType(null);
+      setEmailVerified(true);
+      setEmailVerificationMessage('');
       setState(null);
       setSaveError('');
       setRestoring(false);
@@ -365,5 +414,7 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
     retrySave,
     restoring,
     sessionType,
+    emailVerified,
+    emailVerificationMessage,
   };
 }

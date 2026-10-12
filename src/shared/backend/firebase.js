@@ -87,11 +87,15 @@ export function watchFirebaseUser(onUser, onError) {
 export async function firebaseSignIn(email, password) {
   ensureFirebaseEnabled();
   try {
-    const result = await firebaseSdk().auth.signInWithEmailAndPassword(
+    const { getIdToken, reload, signInWithEmailAndPassword } =
+      firebaseSdk().auth;
+    const result = await signInWithEmailAndPassword(
       auth,
       email.trim().toLowerCase(),
       password,
     );
+    await reload(result.user);
+    await getIdToken(result.user, true);
     return accountFromFirebaseUser(result.user);
   } catch (error) {
     throw readableAuthError(error);
@@ -107,8 +111,12 @@ export async function firebaseSignUp(name, email, studentId, password) {
   };
   pendingSignUpsByEmail.set(normalizedEmail, pendingAccount);
   try {
-    const { createUserWithEmailAndPassword, updateProfile, deleteUser } =
-      firebaseSdk().auth;
+    const {
+      createUserWithEmailAndPassword,
+      deleteUser,
+      sendEmailVerification,
+      updateProfile,
+    } = firebaseSdk().auth;
     const result = await createUserWithEmailAndPassword(
       auth,
       normalizedEmail,
@@ -122,10 +130,20 @@ export async function firebaseSignUp(name, email, studentId, password) {
       await deleteUser(result.user).catch(() => {});
       throw error;
     }
+    let verificationEmailSent = true;
+    let verificationEmailError = '';
+    try {
+      await sendEmailVerification(result.user);
+    } catch (error) {
+      verificationEmailSent = false;
+      verificationEmailError = readableAuthError(error).message;
+    }
     return {
       ...accountFromFirebaseUser(result.user),
       name: result.user.displayName || pendingAccount.name,
       studentId: pendingAccount.studentId,
+      verificationEmailSent,
+      verificationEmailError,
     };
   } catch (error) {
     throw readableAuthError(error);
@@ -146,6 +164,33 @@ export async function firebasePasswordReset(email) {
   }
 }
 
+export async function firebaseResendVerificationEmail() {
+  ensureFirebaseEnabled();
+  if (!auth?.currentUser) {
+    throw new Error('Sign in to resend your verification email.');
+  }
+  try {
+    await firebaseSdk().auth.sendEmailVerification(auth.currentUser);
+  } catch (error) {
+    throw readableAuthError(error);
+  }
+}
+
+export async function firebaseCheckEmailVerification() {
+  ensureFirebaseEnabled();
+  if (!auth?.currentUser) {
+    throw new Error('Sign in to check your email verification status.');
+  }
+  try {
+    const { getIdToken, reload } = firebaseSdk().auth;
+    await reload(auth.currentUser);
+    await getIdToken(auth.currentUser, true);
+    return accountFromFirebaseUser(auth.currentUser);
+  } catch (error) {
+    throw readableAuthError(error);
+  }
+}
+
 export function firebaseSignOut() {
   return auth ? firebaseSdk().auth.signOut(auth) : Promise.resolve();
 }
@@ -157,6 +202,9 @@ export function firestoreAvailable() {
 export function firebaseServicesForUser(uid) {
   if (!db || auth?.currentUser?.uid !== uid) {
     throw new Error('Sign in to use Firebase data.');
+  }
+  if (auth.currentUser.emailVerified !== true) {
+    throw new Error('Verify your email to access shared study groups.');
   }
   return { db, firestore: firebaseSdk().firestore };
 }
@@ -214,6 +262,7 @@ function accountFromFirebaseUser(user) {
       user.email?.split('@')[0] ||
       'Student',
     email: user.email || '',
+    emailVerified: Boolean(user.emailVerified),
     studentId:
       pendingStudentIds.get(user.uid) || pendingAccount?.studentId || '',
   };

@@ -17,6 +17,10 @@ sign-in is enabled, and the Standard Firestore database is in
 so its current rules deny all client reads and writes. The checked-in
 `firestore.rules` file has passed the emulator suite but has not been deployed
 to this project; live app data access stays unavailable until that deployment.
+Firebase signup sends an email verification link. Verified email claims are
+required for shared study-group access; each user can still read and save only
+their own private account state before verification. This confirms control of
+the entered address, not that it belongs to a particular school domain.
 
 ## Configure a Firebase project
 
@@ -58,12 +62,16 @@ In another terminal, run:
 
 ```sh
 npm run test:firestore-rules
+npm run test:firebase-auth
 ```
 
 The test checks private account ownership, authenticated group discovery,
 private membership records, safe membership-count updates, and member-only post
 and reply reads and writes. It also rejects unauthenticated access, membership
 spoofing, nonmember posting, and unconfigured collections.
+The Auth emulator test creates a disposable demo account, sends and applies a
+verification code locally, confirms the refreshed email claim, and checks that
+shared-group access is denied before verification but allowed afterward.
 The rules-test package requires Node.js 24.12 or newer; the React Native app
 build itself retains the repository's Node.js 22.11 minimum.
 
@@ -75,10 +83,11 @@ emulators are running, then run `adb reverse tcp:9099 tcp:9099` and
 ## Current data boundary
 
 The `firestore.rules` file allows a signed-in user to read and update only their
-own `users/{uid}/private/state` document. It also allows signed-in students to
-discover group metadata, while keeping each membership record private to its
-owner. Only current group members can read or write posts and replies. Joining
-or leaving a group updates the public member count in the same validated batch.
+own `users/{uid}/private/state` document, including before email verification.
+Only users with a verified email claim can discover group metadata or access
+group data; each membership record remains private to its owner. Only current
+verified members can read or write posts and replies. Joining or leaving a
+group updates the public member count in the same validated batch.
 Each group member can add a post or reply once every five seconds; a private,
 non-deletable rate-limit document is updated atomically with each contribution.
 Unmatched documents are denied.
@@ -86,9 +95,11 @@ Unmatched documents are denied.
 The app writes its account state into the private document. Firestore limits
 documents to 1 MiB; the app uses a lower client-side size cap. Shared groups,
 memberships, posts, and replies use the separate `studyGroups` collection.
-Device-only/demo groups remain local. Tutor listings, bookings, group chat, and
-direct messages are not shared with other students yet. Google sign-in, email
-verification, and wider social data sharing still need their own design and
+Device-only/demo groups remain local. Firebase Authentication sends a
+verification email at signup, and Firestore rules require the verified-email
+claim for shared study groups. Tutor listings, bookings, group chat, and direct
+messages are not shared with other students yet. Google sign-in, school-domain
+eligibility, and wider social data sharing still need their own design and
 Firebase configuration.
 
 When Firebase values are absent from `firebaseConfig.js`, local demo/prototype
