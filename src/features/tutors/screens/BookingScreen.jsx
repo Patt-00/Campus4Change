@@ -15,35 +15,45 @@ export function BookingScreen({
   initialSlot = 0,
   onSave,
 }) {
-  const [offset, setOffset] = useState(
-    session
-      ? Math.max(
-          0,
-          Math.round(
-            (new Date(session.startsAt).setHours(0, 0, 0, 0) -
-              dayAt(0, 0).getTime()) /
-              86400000,
-          ),
-        )
-      : 0,
-  );
-  const [slot, setSlot] = useState(
-    session
-      ? Math.max(
-          0,
-          slots.findIndex(
-            x =>
-              x.hour === new Date(session.startsAt).getHours() &&
-              x.minute === new Date(session.startsAt).getMinutes(),
-          ),
-        )
-      : Math.max(0, Math.min(slots.length - 1, initialSlot)),
-  );
+  const [offset, setOffset] = useState(() => {
+    if (!session) {
+      return 0;
+    }
+    const sessionStart = new Date(session.startsAt);
+    if (!Number.isFinite(sessionStart.getTime())) {
+      return 0;
+    }
+    return Math.max(
+      0,
+      Math.round(
+        (sessionStart.setHours(0, 0, 0, 0) - dayAt(0, 0).getTime()) /
+          86400000,
+      ),
+    );
+  });
+  const [slot, setSlot] = useState(() => {
+    if (!session) {
+      return Math.max(0, Math.min(slots.length - 1, initialSlot));
+    }
+    const sessionStart = new Date(session.startsAt);
+    if (!Number.isFinite(sessionStart.getTime())) {
+      return -1;
+    }
+    return slots.findIndex(
+      x =>
+        x.hour === sessionStart.getHours() &&
+        x.minute === sessionStart.getMinutes(),
+    );
+  });
   const [subject, setSubject] = useState(session?.subject ?? tutor.subjects[0]);
   const [note, setNote] = useState(session?.note ?? '');
   const [error, setError] = useState('');
   const offsets = [...new Set([0, 1, 2, offset])];
   function save() {
+    if (!slots[slot]) {
+      setError('Choose a time to continue.');
+      return;
+    }
     const start = dayAt(offset, slots[slot].hour, slots[slot].minute);
     if (start.getTime() <= Date.now()) {
       setError('Choose a future date and time.');
@@ -117,6 +127,12 @@ export function BookingScreen({
         })}
       </View>
       <Text style={s.section}>Choose time</Text>
+      {session && !slots[slot] && (
+        <Text style={s.muted}>
+          This session&apos;s saved time is not a preset. Choose a new time to
+          reschedule it.
+        </Text>
+      )}
       <View style={s.wrap}>
         {slots.map((x, i) => (
           <Chip
