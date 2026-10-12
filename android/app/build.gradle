@@ -62,6 +62,20 @@ react {
  */
 def enableProguardInReleaseBuilds = false
 
+def releaseSigningValues = [
+    storeFile: System.getenv("C4C_RELEASE_STORE_FILE"),
+    storePassword: System.getenv("C4C_RELEASE_STORE_PASSWORD"),
+    keyAlias: System.getenv("C4C_RELEASE_KEY_ALIAS"),
+    keyPassword: System.getenv("C4C_RELEASE_KEY_PASSWORD"),
+]
+def releaseSigningConfigured = (
+    releaseSigningValues.values().every { value ->
+        value instanceof String && !value.trim().isEmpty()
+    } && new File(releaseSigningValues.storeFile ?: "").isAbsolute()
+        && file(releaseSigningValues.storeFile ?: "").isFile()
+)
+def appProject = project
+
 /**
  * The preferred build flavor of JavaScriptCore (JSC)
  *
@@ -103,18 +117,40 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        if (releaseSigningConfigured) {
+            release {
+                storeFile file(releaseSigningValues.storeFile)
+                storePassword releaseSigningValues.storePassword
+                keyAlias releaseSigningValues.keyAlias
+                keyPassword releaseSigningValues.keyPassword
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            if (releaseSigningConfigured) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
+    }
+}
+
+gradle.taskGraph.whenReady { taskGraph ->
+    def releaseArtifactsRequested = taskGraph.allTasks.any { task ->
+        task.project == appProject &&
+            ["assembleRelease", "bundleRelease", "packageRelease", "installRelease"].contains(task.name)
+    }
+    if (releaseArtifactsRequested && !releaseSigningConfigured) {
+        throw new GradleException(
+            "Release builds require a dedicated keystore. Set C4C_RELEASE_STORE_FILE, " +
+                "C4C_RELEASE_STORE_PASSWORD, C4C_RELEASE_KEY_ALIAS, and C4C_RELEASE_KEY_PASSWORD. " +
+                "Debug builds continue to use the debug keystore."
+        )
     }
 }
 

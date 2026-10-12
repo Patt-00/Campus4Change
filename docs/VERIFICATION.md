@@ -41,6 +41,11 @@ Verified for this checkpoint:
   the Poco X4 GT (`Z9GMOVDMHQV8X84D`, Android 14) was rejected with
   `INSTALL_FAILED_USER_RESTRICTED: Install canceled by user`; no runtime check
   on that device has been completed.
+- After release-signing hardening, `assembleDebug` still passes and
+  `./gradlew --no-daemon --dry-run assembleRelease` fails early without the
+  dedicated signing variables. The existing historical release APK hash
+  remained `d28127da1e1d843be3835e776b756c857b6145d292130739ef4cad2e452367de`;
+  no release key was created or used.
 - The public GitHub Actions workflow passed remotely on commit `5855ca0` in
   5m55s. It verified clean dependency installation, lint, all 55 unit tests,
   Auth/Firestore emulator tests, production bundling, and `assembleDebug`.

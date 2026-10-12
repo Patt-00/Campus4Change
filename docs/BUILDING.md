@@ -62,7 +62,7 @@ From the repository root:
 npm ci
 cd android
 .\gradlew.bat assembleDebug
-# For an APK that runs without Metro:
+# For a signed release APK, first configure the release key below:
 .\gradlew.bat assembleRelease
 ```
 
@@ -76,11 +76,11 @@ npm ci
 test -d node_modules/@react-native/gradle-plugin
 cd android
 ./gradlew assembleDebug
-# Or, for an APK that runs without Metro:
+# For a signed release APK, first configure the release key below:
 ./gradlew assembleRelease
 ```
 
-Run either Gradle build as needed; both commands are shown as options. If your prompt already ends in `android`, run `cd ..` before `npm ci`, then return to `android`. The Gradle wrapper downloads Gradle itself, but it does **not** install npm packages.
+The debug build needs no release secrets. Release artifact tasks such as `assembleRelease`, `bundleRelease`, and `installRelease` fail early unless a dedicated keystore and all four `C4C_RELEASE_*` variables are configured. If your prompt already ends in `android`, run `cd ..` before `npm ci`, then return to `android`. The Gradle wrapper downloads Gradle itself, but it does **not** install npm packages.
 
 For development, run `npm start` at the root in one terminal and `npm run android` at the root in another. A debug APK needs Metro for the JavaScript code; building it alone does not start Metro. Android Studio can also run the debug app after project sync.
 
@@ -110,7 +110,7 @@ cmake.dir=/data/data/com.termux/files/usr
 ndk.dir=/data/data/com.termux/files/home/termux-ndk
 ```
 
-Use paths that actually exist on your phone; do not copy `local.properties` between phone and PC. From the repository root, build the standalone ARM64 release APK:
+Use paths that actually exist on your phone; do not copy `local.properties` between phone and PC. A Termux release build also requires the dedicated signing variables below. From the repository root:
 
 ```sh
 npm ci
@@ -121,20 +121,51 @@ Omit `--offline` on the first build or whenever Gradle must download dependencie
 
 The release build also uses a Termux-only CMake adjustment in `scripts/termux-prefab.cmake`. Termux Clang reports `aarch64-none-linux-android24`, while Gradle extracts React Native's Prefab package configs under `lib/aarch64-linux-android/cmake`. Without the adjustment, CMake can fail to find `ReactAndroidConfig.cmake` even though the file is present. The adjustment is enabled only by the Termux build flag; PC builds keep their normal configuration.
 
-The successful build produced `android/app/build/outputs/apk/release/app-release.apk`, version 1.2.0, for `arm64-v8a`. Check an APK before distributing it:
+The historical Termux build produced `android/app/build/outputs/apk/release/app-release.apk`, version 1.2.0, for `arm64-v8a`. It used the debug key and is not a production release. Check newly signed APKs before distributing them:
 
 ```sh
 apksigner verify --verbose android/app/build/outputs/apk/release/app-release.apk
 unzip -l android/app/build/outputs/apk/release/app-release.apk | grep index.android.bundle
 ```
 
-The 2026-10-02 APK's signature verified. This build result does not establish that the APK was installed or that every screen was tested on a device. The release variant still uses the project's debug signing key, not production store signing.
+The 2026-10-02 APK's signature verified. This build result does not establish that the APK was installed or that every screen was tested on a device.
 
-## Signing and platform limits
+## Release signing and platform limits
 
-The release variant uses the repository's debug signing key for school distribution. It is not production store signing. Version 1.2.0 has version code 3 and application ID `com.campus4change`.
+The debug variant uses `android/app/debug.keystore` for development only. The release variant never falls back to that key: release artifact tasks fail before execution unless a dedicated keystore file and all four environment variables are supplied:
 
-An update requires a matching application ID and signing certificate. The v1.0.0, 1.1.0, and 1.2.0 APKs have the same signing certificate. The earlier 1.1.0 update over v1.0 succeeded on one Android 16 phone. Installation of 1.2.0 is left to the user and has not been verified. Updating is intended to retain app data; uninstalling removes it.
+- `C4C_RELEASE_STORE_FILE`: absolute path to the private keystore file.
+- `C4C_RELEASE_STORE_PASSWORD`: keystore password.
+- `C4C_RELEASE_KEY_ALIAS`: alias of the release key.
+- `C4C_RELEASE_KEY_PASSWORD`: release-key password.
+
+Generate a dedicated key interactively with `keytool` when ready to distribute. Keep the keystore outside the repository and protect it with a password manager or secrets store; never commit the file or passwords. Android signing keys must remain protected and stable for future updates. See [Android app signing](https://developer.android.com/studio/publish/app-signing) and [Gradle release signing](https://developer.android.com/build/building-cmdline#sign_your_app).
+
+On Linux/macOS, this one-time command creates a keystore outside the repository and prompts for its password and certificate details:
+
+```sh
+mkdir -p "$HOME/.android/keystores"
+keytool -genkeypair -v \
+  -keystore "$HOME/.android/keystores/campus4change-release.jks" \
+  -keyalg RSA -keysize 2048 -validity 10000 -alias campus4change
+```
+
+For a release build in a Bash session, set the file and alias, enter both passwords through hidden prompts, build, and clear the session variables afterward:
+
+```sh
+export C4C_RELEASE_STORE_FILE="$HOME/.android/keystores/campus4change-release.jks"
+export C4C_RELEASE_KEY_ALIAS="campus4change"
+read -r -s -p 'Keystore password: ' C4C_RELEASE_STORE_PASSWORD; printf '\n'; export C4C_RELEASE_STORE_PASSWORD
+read -r -s -p 'Key password: ' C4C_RELEASE_KEY_PASSWORD; printf '\n'; export C4C_RELEASE_KEY_PASSWORD
+(cd android && ./gradlew --no-daemon assembleRelease)
+unset C4C_RELEASE_STORE_FILE C4C_RELEASE_STORE_PASSWORD C4C_RELEASE_KEY_ALIAS C4C_RELEASE_KEY_PASSWORD
+```
+
+PowerShell and CI should provide the same four variables through a secure secret store. Do not save passwords in `gradle.properties`, shell history, or the repository.
+
+Version 1.2.0 has version code 3 and application ID `com.campus4change`.
+
+An update requires a matching application ID and signing certificate. The v1.0.0, 1.1.0, and 1.2.0 APKs use the same debug certificate. A dedicated release key will not update those debug-signed installs; plan the transition before distribution. The earlier 1.1.0 update over v1.0 succeeded on one Android 16 phone. Installation of 1.2.0 is left to the user and has not been verified. Uninstalling removes on-device data.
 
 Minimum Android is 7.0. Optional biometrics require Android 9 or newer. The iOS scaffold has no native implementation for these local accounts.
 
