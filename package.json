@@ -6,7 +6,7 @@
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "lint": "eslint .",
-    "start": "react-native start",
+    "start": "react-native start --host 127.0.0.1",
     "test": "jest",
     "test:firebase-auth": "node scripts/firebase-auth-verification.test.mjs",
     "test:firestore-rules": "node scripts/firestore-rules.test.mjs"

@@ -64,7 +64,8 @@ Verified for this checkpoint:
   group's details. No group or post was created during this check. The QA
   account was signed out; the app config was restored to project
   `campus4change` with emulator routing disabled. After Metro restarted on
-  port 8081, a cold launch rendered the splash screen. This verifies the
+  port 8081 bound to `127.0.0.1`, ADB reverse loaded the bundle and a cold
+  launch rendered the splash screen. This verifies the
   current Android bundle and splash only, not production Firebase access.
 - `npm test -- --runInBand` on 2026-10-13 passed all 111 tests in 20 suites.
 - A fresh disposable Auth-emulator probe remained unverified after signup and

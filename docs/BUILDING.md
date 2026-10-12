@@ -82,7 +82,7 @@ cd android
 
 The debug build needs no release secrets. Release artifact tasks such as `assembleRelease`, `bundleRelease`, and `installRelease` fail early unless a dedicated keystore and all four `C4C_RELEASE_*` variables are configured. If your prompt already ends in `android`, run `cd ..` before `npm ci`, then return to `android`. The Gradle wrapper downloads Gradle itself, but it does **not** install npm packages.
 
-For development, run `npm start` at the root in one terminal and `npm run android` at the root in another. A debug APK needs Metro for the JavaScript code; building it alone does not start Metro. Android Studio can also run the debug app after project sync.
+For development, run `npm start` at the root in one terminal and `npm run android` at the root in another. The npm script binds Metro to `127.0.0.1` so the development server is not exposed to the LAN; React Native CLI forwards port 8081 to a connected Android device. For a manually installed debug APK, run `adb reverse tcp:8081 tcp:8081` before launch. A debug APK needs Metro for the JavaScript code; building it alone does not start Metro. Android Studio can also run the debug app after project sync.
 
 Outputs are `app-debug.apk` in `android/app/build/outputs/apk/debug/` and `app-release.apk` in the equivalent `release/` folder.
 
