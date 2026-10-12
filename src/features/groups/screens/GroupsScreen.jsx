@@ -31,30 +31,32 @@ export function GroupsScreen({
   );
   const joinedGroups = filtered.filter(group => group.joined);
   const discoverGroups = filtered.filter(group => !group.joined);
+  const emptyJoinedMessage = query.trim()
+    ? 'No joined groups match this search.'
+    : 'Join a group or create your own.';
+  const emptyDiscoverMessage = query.trim()
+    ? hasMoreGroups
+      ? 'No discoverable matches on this page. Load older groups to search further.'
+      : 'No discoverable groups match this search.'
+    : hasMoreGroups
+      ? 'No discoverable groups on this page. Load older groups to see more.'
+      : groups.length
+        ? 'You have joined every available group.'
+        : 'Create your first group to organize study notes.';
   const sections = [
     {
       key: 'joined',
       title: 'Your groups',
       data: joinedGroups.length
         ? joinedGroups
-        : [{ id: 'empty-joined', emptyMessage: 'Join a group or create your own.' }],
+        : [{ id: 'empty-joined', emptyMessage: emptyJoinedMessage }],
     },
     {
       key: 'discover',
       title: 'Discover',
       data: discoverGroups.length
         ? discoverGroups
-        : [
-            {
-              id: 'empty-discover',
-              emptyMessage:
-                query.trim() && hasMoreGroups
-                  ? 'No discoverable matches on this page. Load older groups to search further.'
-                  : groups.length
-                    ? 'No discoverable groups match this search.'
-                    : 'Create your first group to organize study notes.',
-            },
-          ],
+        : [{ id: 'empty-discover', emptyMessage: emptyDiscoverMessage }],
     },
   ];
   const listHeader = (

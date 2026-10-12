@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
-import { TouchableOpacity } from 'react-native';
+import { TextInput, TouchableOpacity } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GroupsScreen } from '../src/features/groups/screens/GroupsScreen';
 import { GroupDetailsScreen } from '../src/features/groups/screens/GroupDetailsScreen';
@@ -40,6 +40,60 @@ test('group directory only mounts the first window for a large loaded list', asy
     .filter(control => control.props.accessibilityLabel?.startsWith('Open '));
   expect(mountedGroupCards.length).toBeLessThanOrEqual(10);
   expect(mountedGroupCards.length).toBeLessThan(groups.length);
+  await act(async () => renderer.unmount());
+});
+
+test('group search distinguishes joined results and prompts older-page search', async () => {
+  const groups = [
+    {
+      id: 'joined-calculus',
+      name: 'Calculus Study Team',
+      subject: 'Calculus',
+      members: 4,
+      joined: true,
+      shared: true,
+    },
+    {
+      id: 'discover-biology',
+      name: 'Biology Circle',
+      subject: 'Physics',
+      members: 3,
+      joined: false,
+      shared: true,
+    },
+  ];
+  let renderer;
+  await act(async () => {
+    renderer = renderScreen(
+      <GroupsScreen
+        go={jest.fn()}
+        back={jest.fn()}
+        groups={groups}
+        hasMoreGroups
+      />,
+    );
+  });
+
+  const search = renderer.root.findByType(TextInput);
+  await act(async () => search.props.onChangeText('PHYSICS'));
+  const visibleGroupLabels = renderer.root
+    .findAllByType(TouchableOpacity)
+    .map(control => control.props.accessibilityLabel)
+    .filter(label => label?.startsWith('Open '));
+  expect(visibleGroupLabels).toEqual(['Open Biology Circle']);
+  expect(
+    renderer.root.findByProps({
+      children: 'No joined groups match this search.',
+    }),
+  ).toBeTruthy();
+
+  await act(async () => search.props.onChangeText('accounting'));
+  expect(
+    renderer.root.findByProps({
+      children:
+        'No discoverable matches on this page. Load older groups to search further.',
+    }),
+  ).toBeTruthy();
   await act(async () => renderer.unmount());
 });
 
