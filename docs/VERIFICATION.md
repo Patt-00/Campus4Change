@@ -14,7 +14,9 @@ source contains no TypeScript files.
 Verified for this checkpoint:
 
 - `npm run lint`: passed without warnings.
-- `npm test -- --runInBand`: 94 tests passed in 18 suites.
+- `npm test -- --runInBand --coverage --coverageReporters=json --coverageReporters=json-summary`:
+  96 tests passed in 18 suites. Two new regression tests cover stale group
+  directory callbacks and pending shared writes after switching accounts.
 - The groups screen uses a virtualized `SectionList`; its regression test feeds
   80 loaded groups and confirms that the initial render mounts no more than 10
   group cards. Search tests cover case-insensitive subject filtering, joined
@@ -65,16 +67,15 @@ Verified for this checkpoint:
   SHA-256: `710f02c7852fc662a0e62137fe67c8f2e656de7ca4f63fe26f2a51a70b4a3266`;
   size: 2,099,258 bytes. The bundle contains no service-account private-key
   marker or `braces`/`micromatch` strings.
-- `JAVA_HOME=/usr/lib/jvm/java-25 ./gradlew --no-daemon assembleDebug` passed
-  for Android. The React Native CLI launch helper stalled after starting
-  Metro, so the APK was built directly with Gradle. The latest [GitHub Actions
-  run 38306902190](https://github.com/Patt-00/Campus4Change/actions/runs/38306902190)
-  passed on commit `ddd0100`: lint, all 94 unit tests, Auth/Firestore emulator
+- `./gradlew assembleDebug` passed locally with `JAVA_HOME` and `PATH` set to
+  `/usr/lib/jvm/java-25-openjdk`, and built the debug APK. The latest [GitHub Actions run
+  38309287744](https://github.com/Patt-00/Campus4Change/actions/runs/38309287744)
+  passed on commit `f5b8819`: lint, all 96 unit tests, Auth/Firestore emulator
   tests, production bundling, Android debug build, and release-signing guard.
-  `adb devices -l` detects the POCO X4 GT (model `22041216G`, Android 14)
-  through paired Wireless debugging. Two install attempts returned
-  `INSTALL_FAILED_USER_RESTRICTED: Install canceled by user`; the app remains
-  uninstalled, so no runtime check on this device has been completed.
+  The requested Redmi Turbo 4 was not connected in ADB. The Pixel 8a AVD has a
+  missing Android 37.1 image; Android 16 AVD launches repeatedly ended in an
+  emulator SIGSEGV. The final software-CPU attempt stayed offline and was
+  stopped. The APK was not installed, so no emulator UI check was completed.
 - After release-signing hardening, `assembleDebug` still passes and
   `./gradlew --no-daemon --dry-run assembleRelease` fails early without the
   dedicated signing variables. The existing historical release APK hash
@@ -112,7 +113,8 @@ Verified for this checkpoint:
   wrapper and 1.25 GB Gradle dependency cache and took 4m20s. The next warm run,
   38306080539, took 3m06s total, with `assembleDebug` taking 1m11s. Another warm
   run, 38306902190, completed in 3m38s; its `assembleDebug` step took 1m31s.
-  These are observed runs rather than a controlled benchmark; hosted-runner
+  Run 38309287744 completed in 3m20s. These are observed runs rather than a
+  controlled benchmark; hosted-runner
   variation may affect the reduction.
 
 Firebase values are populated in `src/shared/backend/firebaseConfig.js`. At the

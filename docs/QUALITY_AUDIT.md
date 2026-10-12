@@ -74,7 +74,8 @@ production-ready claim.
 - Focused tests now cover home navigation and search, tutor listing create and
   removal, private tutor filtering, group-room timer lifecycle and notes,
   shared-group retry errors, storage compatibility, and session cancellation,
-  rating, and reschedule timing.
+  rating, and reschedule timing. Shared-group tests also guard against stale
+  directory callbacks and pending writes crossing an account switch.
 - Leaving a group room with Back now keeps note drafts private. Publishing to a
   group happens only from the explicit Save Notes and Leave action.
 - Device-only groups remain available. Pending shared writes are saved in
@@ -92,8 +93,8 @@ production-ready claim.
   tests, production bundling, the Android debug build, and the release-signing
   guard. Gradle dependency and wrapper caching is enabled through the
   [`setup-java` cache option](https://github.com/actions/setup-java/blob/main/README.md).
-  The latest [remote run](https://github.com/Patt-00/Campus4Change/actions/runs/38306902190)
-  passed on commit `ddd0100` without production Firebase credentials.
+  The latest [remote run](https://github.com/Patt-00/Campus4Change/actions/runs/38309287744)
+  passed on commit `f5b8819` without production Firebase credentials.
 
 ## Open issues
 
@@ -110,9 +111,12 @@ production-ready claim.
 ## Verification record
 
 Verification is recorded in [VERIFICATION.md](VERIFICATION.md). The Pad 7
-debug UI check and production-mode Android JavaScript bundle are verified. The
-POCO X4 GT is currently visible through paired Wireless debugging, but
-Campus4Change is not installed. The latest install attempt was blocked by
-`INSTALL_FAILED_USER_RESTRICTED`; device-side install approval is still needed.
-The Firebase emulator is not a substitute for deploying the reviewed rules or
-two-account testing against the course project.
+debug UI check and production-mode Android JavaScript bundle are verified from
+earlier checkpoints. The current debug APK built successfully and CI passed,
+but the requested Redmi Turbo 4 was not connected in ADB. The installed
+Android 16 system image's AVD repeatedly crashed in emulator 37.1.11, and the
+Pixel 8a AVD points to a missing image, so the current checkpoint has no
+emulator UI verification. The previous POCO X4 GT install attempt was blocked
+by `INSTALL_FAILED_USER_RESTRICTED`. The Firebase emulator is not a substitute
+for deploying the reviewed rules or two-account testing against the course
+project.
