@@ -74,11 +74,15 @@ Verified for this checkpoint:
   Actions run 38313170989](https://github.com/Patt-00/Campus4Change/actions/runs/38313170989)
   passed on commit `d5fd90e`: lint, all 105 unit tests, Auth/Firestore emulator
   tests, production bundling, Android debug build, and release-signing guard.
-  The requested Redmi Turbo 4 was not connected in ADB. The Pixel 8a AVD has a
-  missing Android 37.1 image; Android 16 AVD launches repeatedly ended in an
-  emulator SIGSEGV. An Xvfb-windowed attempt appeared in ADB briefly before
-  QEMU crashed; no stable emulator session remained. The APK was not installed,
-  so no emulator UI check was completed.
+  The Redmi Turbo 4 reported model `24129RT7CC`, product `rodin`, and Android 16.
+  `adb install -r` updated the existing debug app without clearing its data.
+  With Metro port 8081 reversed to the device, I checked startup, the Expert
+  introduction slide, local demo sign-in, Profile, sign-out, and sign-in again;
+  Home returned with the saved demo state. The captured app-process log had no
+  fatal exception or React Native JS error. It did include a nonfatal
+  `ReactHostImpl.onWindowFocusChange` soft exception before the React context
+  was ready; the app continued normally. No personal account or production
+  Firebase workflow was used.
 - After release-signing hardening, `assembleDebug` still passes and
   `./gradlew --no-daemon --dry-run assembleRelease` fails early without the
   dedicated signing variables. The existing historical release APK hash
