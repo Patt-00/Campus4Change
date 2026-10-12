@@ -21,7 +21,7 @@ Version 1.2.0 adds custom learning interests, personal school details, clear ico
 
 When Firebase is configured, email/password accounts use Firebase Authentication and private app state syncs to that user's Firestore record. Signed-in students can discover shared groups; membership records are private, and only members can read or add group posts and replies. Pending group changes are saved locally and can be retried if the connection fails. Authentication is restored when the app reopens. An encrypted on-device copy remains available for recovery when cloud sync fails. Without Firebase configuration, the local prototype/demo account flow remains available. See [Firebase setup](docs/FIREBASE_SETUP.md).
 
-The account-state document stays private to its owner. Shared groups use separate Firestore documents. Tutor listings, bookings, group chat, and direct messages are not shared between students yet. Sample tutors do not receive bookings or messages. Live chat, calls, push notifications, email verification, and Google sign-in are not implemented. Clearing app data removes the encrypted local copy; configured Firebase accounts and cloud state remain in Firebase.
+The account-state document stays private to its owner. Shared groups use separate Firestore documents. Tutor listings, bookings, group chat, and direct messages are not shared between students yet. Sample tutors do not receive bookings or messages. Firebase signup sends an email-verification link, and shared-group access requires a verified email; automatic handling of the link inside the app and production email delivery have not been verified. Live chat, calls, push notifications, and Google sign-in are not implemented. Clearing app data removes the encrypted local copy; configured Firebase accounts and cloud state remain in Firebase.
 
 ## Demo account
 
@@ -44,7 +44,7 @@ npm run android
 
 First set your SDK location in ignored `android/local.properties`, following [BUILDING.md](docs/BUILDING.md#sdk-path-for-windows-powershell). From `android/`, run `.\gradlew.bat assembleRelease` in Windows PowerShell or `./gradlew assembleRelease` on Linux/macOS. Termux uses `./scripts/gradlew-termux.sh assembleRelease` from the root.
 
-The release APK uses the repository's debug signing key for school prototype distribution. Android is supported. The iOS scaffold has no implementation for the new local account storage.
+The existing v1.2.0 APK is signed with the repository's debug key. New release builds require a dedicated keystore and fail closed until it is configured; see [BUILDING.md](docs/BUILDING.md). Android is supported. The iOS scaffold has no implementation for the new local account storage.
 
 ## Guides and checks
 

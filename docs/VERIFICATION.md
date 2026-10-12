@@ -59,6 +59,18 @@ Verified for this checkpoint:
   It creates a disposable `example.test` user, obtains and applies the local
   verification code, refreshes the ID token, verifies the `email_verified`
   claim, and checks Firestore access before and after verification.
+- On 2026-10-13, the Redmi Turbo 4 (`24129RT7CC`, product `rodin`, Android 16)
+  loaded the Firebase-emulator-backed group directory and an existing QA
+  group's details. No group or post was created during this check. The QA
+  account was signed out; the app config was restored to project
+  `campus4change` with emulator routing disabled. After Metro restarted on
+  port 8081, a cold launch rendered the splash screen. This verifies the
+  current Android bundle and splash only, not production Firebase access.
+- `npm test -- --runInBand` on 2026-10-13 passed all 111 tests in 20 suites.
+- A fresh disposable Auth-emulator probe remained unverified after signup and
+  after requesting verification, became verified only after applying its
+  generated code, and was then deleted. The earlier QA account's verified
+  state was pre-existing emulator state, not an automatic effect of signup.
 - Session tests confirm verification controls update group access and a failed
   Firebase cloud save no longer blocks sign-out after the encrypted local copy
   succeeds. If the local save itself fails, the account remains open.
@@ -133,9 +145,9 @@ Firebase values are populated in `src/shared/backend/firebaseConfig.js`. At the
 last live Console check, production Firestore rules denied all client access;
 the current session has no authenticated Firebase CLI or gcloud credentials,
 so live rules were not rechecked. The checked-in rules have not been deployed.
-No live Firebase signup, password reset, cross-device sync, or shared student
-workflow has been tested. This APK was not uploaded as a GitHub release. It
-remains debug-signed and labeled 1.2.0.
+No production-project Firebase signup, password reset, cross-device sync, or
+shared student workflow has been tested. This APK was not uploaded as a GitHub
+release. It remains debug-signed and labeled 1.2.0.
 
 Shared group metadata, membership counts, posts, and replies now use the
 `studyGroups` Firestore collection for authenticated Firebase users. Local/demo
