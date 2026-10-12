@@ -65,7 +65,13 @@ export function SessionsScreen({ go, back, sessions, list }) {
       ? sessions.filter(x => sessionTimingStatus(x) === 'In progress')
       : [];
   const pastDue =
-    filter === 'Upcoming' ? sessions.filter(isPastDueSession) : [];
+    filter === 'Upcoming'
+      ? sessions.filter(session => isPastDueSession(session))
+      : [];
+  const needsReview =
+    filter === 'Upcoming'
+      ? sessions.filter(x => sessionTimingStatus(x) === 'Needs review')
+      : [];
   return (
     <Screen title="My Sessions" back={back} go={go} tab="Sessions">
       <View style={s.wrap}>
@@ -92,15 +98,24 @@ export function SessionsScreen({ go, back, sessions, list }) {
           {pastDue.map(card)}
         </>
       )}
-      {!filtered.length && !inProgress.length && !pastDue.length && (
-        <Empty
-          title={'No ' + filter.toLowerCase() + ' sessions'}
-          body={
-            filter === 'Upcoming'
-              ? 'Find a tutor to book your next session.'
-              : 'Sessions will appear here when their status changes.'
-          }
-        />
+      {needsReview.length > 0 && (
+        <>
+          <Text style={s.section}>Needs review</Text>
+          {needsReview.map(card)}
+        </>
+      )}
+      {!filtered.length &&
+        !inProgress.length &&
+        !pastDue.length &&
+        !needsReview.length && (
+          <Empty
+            title={'No ' + filter.toLowerCase() + ' sessions'}
+            body={
+              filter === 'Upcoming'
+                ? 'Find a tutor to book your next session.'
+                : 'Sessions will appear here when their status changes.'
+            }
+          />
       )}
       {filter === 'Upcoming' &&
         sessions.some(x => x.status === 'Completed') && (
