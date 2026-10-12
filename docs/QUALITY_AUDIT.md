@@ -32,6 +32,9 @@ production-ready claim.
 - Firebase signup sends an email verification link. Firestore rules require a
   verified-email claim for shared study-group data while keeping each user's
   private account state owner-only before verification.
+- Password-reset responses do not reveal whether an email is registered or
+  disabled. The screen always shows a neutral confirmation while network errors
+  remain actionable; tests cover both paths.
 - Sign-out distinguishes encrypted local persistence from Firebase sync. It
   keeps the account open if the local save fails, but permits sign-out after a
   successful local save when cloud sync fails and explains how to retry later.
@@ -53,8 +56,8 @@ production-ready claim.
   dropped by one high-severity package path.
 - Added a GitHub Actions workflow for lint, unit tests, Auth/Firestore emulator
   tests, production bundling, the Android debug build, and the release-signing
-  guard. The latest [remote run](https://github.com/Patt-00/Campus4Change/actions/runs/38226837725)
-  passed on commit `c77a6b2` without production Firebase credentials.
+  guard. The latest [remote run](https://github.com/Patt-00/Campus4Change/actions/runs/38288734785)
+  passed on commit `9face22` without production Firebase credentials.
 
 ## Open issues
 

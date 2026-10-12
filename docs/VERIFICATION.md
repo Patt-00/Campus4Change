@@ -14,7 +14,7 @@ source contains no TypeScript files.
 Verified for this checkpoint:
 
 - `npm run lint`: passed without warnings.
-- `npm test -- --runInBand`: 57 tests passed in 10 suites.
+- `npm test -- --runInBand`: 62 tests passed in 11 suites.
 - The Firestore rules test passed against the local Firebase Emulator Suite.
   It checks private account state, authenticated group discovery, member-only
   posts/replies, bounded cursor queries, per-member contribution cooldowns,
@@ -30,9 +30,12 @@ Verified for this checkpoint:
 - Session tests confirm verification controls update group access and a failed
   Firebase cloud save no longer blocks sign-out after the encrypted local copy
   succeeds. If the local save itself fails, the account remains open.
-- A production-mode Android JavaScript bundle passed for commit `c77a6b2`.
-  SHA-256: `184a0cf26c23ed0d0f017627f3c40aa9421f3603e60b33f8090cf97a43971050`;
-  size: 2,097,462 bytes. The bundle contains no service-account private-key
+- Password reset returns the same neutral confirmation for unknown, disabled,
+  or invalid-credential account states; network errors remain actionable.
+  Firebase service and LoginScreen tests cover the success and failure paths.
+- A production-mode Android JavaScript bundle passed for commit `9face22`.
+  SHA-256: `7cf0f5feca03b9ed6e1a7f4facc11acda40e8e64a548182ff8d70c3a7f01d105`;
+  size: 2,097,589 bytes. The bundle contains no service-account private-key
   marker or `braces`/`micromatch` strings.
 - `JAVA_HOME=/usr/lib/jvm/java-25 ./gradlew --no-daemon assembleDebug` passed
   for Android. The React Native CLI launch helper stalled after starting
@@ -47,12 +50,12 @@ Verified for this checkpoint:
   dedicated signing variables. The existing historical release APK hash
   remained `d28127da1e1d843be3835e776b756c857b6145d292130739ef4cad2e452367de`;
   no release key was created or used.
-- The public [GitHub Actions run 38226837725](https://github.com/Patt-00/Campus4Change/actions/runs/38226837725)
-  passed on commit `c77a6b2`. It verified clean dependency installation,
-  lint, all 57 unit tests, Auth/Firestore emulator tests, production bundling,
+- The public [GitHub Actions run 38288734785](https://github.com/Patt-00/Campus4Change/actions/runs/38288734785)
+  passed on commit `9face22`. It verified clean dependency installation,
+  lint, all 62 unit tests, Auth/Firestore emulator tests, production bundling,
   `assembleDebug`, and the release-signing guard.
 - Removed unused `@react-native/new-app-screen` from the application
-  dependencies after confirming it is not imported; lint, all 57 unit tests,
+  dependencies after confirming it is not imported; lint, all 62 unit tests,
   and Firestore rules tests still pass. `npm audit` now reports 47 high and
   5 moderate findings (0 critical); `npm audit --omit=dev` reports 20 high
   paths, all through the unpatched `braces` advisory in Metro/React Native
