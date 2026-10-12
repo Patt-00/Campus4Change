@@ -14,15 +14,16 @@ source contains no TypeScript files.
 Verified for this checkpoint:
 
 - `npm run lint`: passed without warnings.
-- `npm test -- --runInBand`: 63 tests passed in 11 suites.
+- `npm test -- --runInBand`: 65 tests passed in 12 suites.
 - The Firestore rules test passed against the local Firebase Emulator Suite.
   It checks private account state, authenticated group discovery, member-only
   posts/replies, bounded cursor queries, per-member contribution cooldowns,
-  owner-only membership queries, safe member counts, and verified-email requirements.
-  Unverified accounts can still access only their own private state; shared
-  group discovery and writes are denied. The real project still has its initial
-  production-mode rules that deny all client access; the checked-in rules have
-  not been deployed.
+  owner-only membership queries, safe member counts, and verified-email
+  requirements. Group directory queries are limited to 20 documents; unbounded
+  and over-limit queries fail. Unverified accounts can still access only their
+  own private state; shared group discovery and writes are denied. The real
+  project still has its initial production-mode rules that deny all client
+  access; the checked-in rules have not been deployed.
 - A deterministic directory test used two group documents and one membership.
   The previous implementation made two per-group membership `getDoc` calls
   during initial load and another after one metadata update (three total); the
@@ -31,6 +32,10 @@ Verified for this checkpoint:
   query updates joined state.
   Emulator checks allow the caller's UID query and deny unfiltered,
   other-user, and unverified membership queries.
+- Group directory pages return at most 20 documents and keep all groups
+  discoverable through a load-older action. The test pages through 42 groups,
+  checks both cursor positions, verifies membership remains live, and confirms
+  the metadata snapshot pauses with a refresh action after paging.
 - `npm run test:firebase-auth` passed against the Auth and Firestore emulators.
   It creates a disposable `example.test` user, obtains and applies the local
   verification code, refreshes the ID token, verifies the `email_verified`
@@ -41,9 +46,9 @@ Verified for this checkpoint:
 - Password reset returns the same neutral confirmation for unknown, disabled,
   or invalid-credential account states; network errors remain actionable.
   Firebase service and LoginScreen tests cover the success and failure paths.
-- A production-mode Android JavaScript bundle passed for commit `a365812`.
-  SHA-256: `51dfd19c74a56117b2cae435d24919cbe4ba385cb0a5c022c8cfe18222cdc0ed`;
-  size: 2,097,615 bytes. The bundle contains no service-account private-key
+- A production-mode Android JavaScript bundle passed for commit `13c99f4`.
+  SHA-256: `710f02c7852fc662a0e62137fe67c8f2e656de7ca4f63fe26f2a51a70b4a3266`;
+  size: 2,099,258 bytes. The bundle contains no service-account private-key
   marker or `braces`/`micromatch` strings.
 - `JAVA_HOME=/usr/lib/jvm/java-25 ./gradlew --no-daemon assembleDebug` passed
   for Android. The React Native CLI launch helper stalled after starting
@@ -58,12 +63,12 @@ Verified for this checkpoint:
   dedicated signing variables. The existing historical release APK hash
   remained `d28127da1e1d843be3835e776b756c857b6145d292130739ef4cad2e452367de`;
   no release key was created or used.
-- The public [GitHub Actions run 38291415878](https://github.com/Patt-00/Campus4Change/actions/runs/38291415878)
-  passed on commit `a365812`. It verified clean dependency installation,
-  lint, all 63 unit tests, Auth/Firestore emulator tests, production bundling,
+- The public [GitHub Actions run 38294837706](https://github.com/Patt-00/Campus4Change/actions/runs/38294837706)
+  passed on commit `13c99f4`. It verified clean dependency installation,
+  lint, all 65 unit tests, Auth/Firestore emulator tests, production bundling,
   `assembleDebug`, and the release-signing guard.
 - Removed unused `@react-native/new-app-screen` from the application
-  dependencies after confirming it is not imported; lint, all 63 unit tests,
+  dependencies after confirming it is not imported; lint, all 65 unit tests,
   and Firestore rules tests still pass. `npm audit` now reports 47 high and
   5 moderate findings (0 critical); `npm audit --omit=dev` reports 20 high
   paths, all through the unpatched `braces` advisory in Metro/React Native

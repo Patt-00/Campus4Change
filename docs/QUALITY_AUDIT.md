@@ -23,6 +23,10 @@ production-ready claim.
   per-group membership reads before the change and none after, including one
   subsequent metadata update; the membership query returned only the one owned
   record and continued to update join state live.
+- The group directory loads 20 metadata documents initially and exposes
+  cursor-based older pages; Firestore rules reject missing or larger limits.
+  Older browsing pauses the live metadata page and offers an explicit refresh,
+  while the owner-scoped membership stream stays live.
 - Shared feeds cap live windows at 20 posts and 20 replies per post; members
   can load older cursor pages on demand. Feed snapshots are kept out of durable
   private account-state records. Paging pauses the current live window until
@@ -63,8 +67,8 @@ production-ready claim.
   dropped by one high-severity package path.
 - Added a GitHub Actions workflow for lint, unit tests, Auth/Firestore emulator
   tests, production bundling, the Android debug build, and the release-signing
-  guard. The latest [remote run](https://github.com/Patt-00/Campus4Change/actions/runs/38291415878)
-  passed on commit `a365812` without production Firebase credentials.
+  guard. The latest [remote run](https://github.com/Patt-00/Campus4Change/actions/runs/38294837706)
+  passed on commit `13c99f4` without production Firebase credentials.
 
 ## Open issues
 
@@ -78,7 +82,7 @@ production-ready claim.
 | C4C-06 | Medium | The current audit reports 47 high, 5 moderate, and 0 critical findings. | `npm audit --omit=dev` still reports 20 high paths, all rooted in `braces@3.0.3` through `micromatch@4.0.8` in React Native/Metro tooling. The advisory affects `braces <=3.0.3` and has no patched version; the maintainer disputes the report. The production-mode app bundle contains no `braces`/`micromatch` strings, so the exposure is in development/build tooling rather than shipped JavaScript. The five moderate findings are test-tooling paths rooted in `sprintf-js@1.0.3`. `npm audit fix --force` proposes a breaking React Native downgrade to 0.72.17; do not apply an unofficial override without a reviewed mitigation. See the [advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) and [maintainer discussion](https://github.com/micromatch/braces/issues/84). |
 | C4C-07 | Medium | No dedicated production release key is configured. | Gradle release artifact tasks now fail closed without a dedicated keystore; a no-key release dry run was rejected before build tasks and the existing APK hash stayed unchanged. Debug builds still use the development key. No production keystore was created or used. Prior 1.2.0 APKs use the debug certificate, so a future dedicated release key will require a planned install/data transition. |
 | C4C-08 | Low | The iOS scaffold cannot use the Android storage module. | Current app support is Android-only; do not claim iOS parity until secure storage and biometrics are implemented and verified there. |
-| C4C-09 | Medium | The shared group metadata directory is still unpaginated. | The membership N+1 reads are removed, but the directory listener and initial query still load all `studyGroups` documents. If the directory grows beyond a small class cohort, add cursor pagination while preserving discoverability and fresh metadata. |
+| C4C-09 | Low | Loaded group cards are rendered together in a ScrollView. | Network reads are now paged to 20 groups at a time, but the screen accumulates every page the user loads. Profile or virtualize the group list if real directories grow large enough to affect scrolling or memory. |
 
 ## Verification record
 
