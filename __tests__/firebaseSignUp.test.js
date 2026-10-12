@@ -3,6 +3,7 @@ let mockAuth;
 let mockApp;
 let mockCreateUser;
 let mockSignIn;
+let mockSignOut;
 let mockSendEmailVerification;
 let mockReload;
 let mockGetIdToken;
@@ -44,6 +45,7 @@ jest.mock('firebase/auth', () => ({
   }),
   createUserWithEmailAndPassword: (...args) => mockCreateUser(...args),
   signInWithEmailAndPassword: (...args) => mockSignIn(...args),
+  signOut: (...args) => mockSignOut(...args),
   sendEmailVerification: (...args) => mockSendEmailVerification(...args),
   reload: (...args) => mockReload(...args),
   getIdToken: (...args) => mockGetIdToken(...args),
@@ -60,6 +62,9 @@ beforeEach(() => {
   mockApp = {};
   mockAuth = { currentUser: null };
   mockSignIn = jest.fn();
+  mockSignOut = jest.fn(async auth => {
+    auth.currentUser = null;
+  });
   mockSendEmailVerification = jest.fn(async () => {});
   mockReload = jest.fn(async () => {});
   mockGetIdToken = jest.fn(async () => 'fresh-token');
@@ -165,6 +170,33 @@ test('sign-in reloads the user and refreshes the token before reporting verifica
     id: 'verified-user',
     emailVerified: true,
   });
+});
+
+test('successful Firebase sign-out clears the transient Student ID cache', async () => {
+  const firebase = require('../src/shared/backend/firebase');
+  let observedAccount;
+  firebase.watchFirebaseUser(user => {
+    observedAccount = user;
+  });
+
+  const account = await firebase.firebaseSignUp(
+    'Jamie Student',
+    'jamie@school.edu',
+    'STU-2048',
+    'TestPassword123',
+  );
+  expect(observedAccount.studentId).toBe('STU-2048');
+
+  await firebase.firebaseSignOut();
+  expect(mockSignOut).toHaveBeenCalledWith(mockAuth);
+
+  mockAuthObserver({
+    uid: account.id,
+    email: account.email,
+    displayName: account.name,
+    emailVerified: false,
+  });
+  expect(observedAccount.studentId).toBe('');
 });
 
 test('shared Firestore services reject an unverified Firebase user', () => {

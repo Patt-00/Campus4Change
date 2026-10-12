@@ -191,8 +191,15 @@ export async function firebaseCheckEmailVerification() {
   }
 }
 
-export function firebaseSignOut() {
-  return auth ? firebaseSdk().auth.signOut(auth) : Promise.resolve();
+export async function firebaseSignOut() {
+  if (!auth) {
+    return;
+  }
+  const uid = auth.currentUser?.uid;
+  await firebaseSdk().auth.signOut(auth);
+  if (uid) {
+    pendingStudentIds.delete(uid);
+  }
 }
 
 export function firestoreAvailable() {
