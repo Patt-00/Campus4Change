@@ -92,26 +92,3 @@ jobs:
           fi
 
           echo "Release signing guard rejected missing credentials as expected."
-
-      - name: Confirm release builds require a dedicated key
-        working-directory: android
-        shell: bash
-        run: |
-          set +e
-          release_output=$(./gradlew --no-daemon --dry-run assembleRelease 2>&1)
-          release_status=$?
-          set -e
-
-          if [ "$release_status" -eq 0 ]; then
-            printf '%s\n' "$release_output"
-            echo "Release build unexpectedly accepted missing signing credentials."
-            exit 1
-          fi
-
-          if ! grep -Fq "Release builds require a dedicated keystore." <<<"$release_output"; then
-            printf '%s\n' "$release_output"
-            echo "Release build failed for a reason other than missing signing credentials."
-            exit 1
-          fi
-
-          echo "Release signing guard rejected missing credentials as expected."
