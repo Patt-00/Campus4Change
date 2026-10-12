@@ -117,8 +117,79 @@ test('shared directory refreshes stay transient and feed state is not saved', as
     });
     await flushSaveQueue();
   });
-  const saved = JSON.parse(mockStore.saveState.mock.calls.at(-1)[0]);
+  const saved = JSON.parse(mockStore.saveState.mock.calls.at(-1)[1]);
   expect(saved.groups[0].posts).toEqual([]);
   expect(saved.groups[0].postsLoaded).toBe(false);
+  await act(async () => renderer.unmount());
+});
+
+test('a queued state snapshot is not written under a newer active account', async () => {
+  let activeUser = null;
+  let releaseFirstWrite;
+  const firstWriteGate = new Promise(resolve => {
+    releaseFirstWrite = resolve;
+  });
+  const writes = [];
+  let firstWrite = true;
+  mockStore.signIn.mockImplementation(async identifier => {
+    activeUser = identifier;
+    return {
+      ...mockAccount,
+      id: identifier,
+      email: `${identifier}@campus.test`,
+    };
+  });
+  mockStore.loadState.mockImplementation(async expectedAccountId => {
+    if (expectedAccountId !== activeUser) {
+      throw new Error('The active account changed before load.');
+    }
+    return null;
+  });
+  mockStore.saveState.mockImplementation(async (expectedAccountId, serialized) => {
+    if (expectedAccountId !== activeUser) {
+      throw new Error('The active account changed before save.');
+    }
+    const saved = JSON.parse(serialized);
+    writes.push({ accountId: activeUser, stateId: saved.profile.id });
+    if (firstWrite) {
+      firstWrite = false;
+      await firstWriteGate;
+    }
+  });
+
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(<Harness />);
+  });
+  await act(async () => {
+    await currentSession.auth.signInLocal('student-a', 'pass');
+    await flushSaveQueue();
+  });
+  expect(writes).toEqual([{ accountId: 'student-a', stateId: 'student-a' }]);
+
+  await act(async () => {
+    currentSession.dispatch({
+      type: 'profile',
+      profile: { course: 'Private to A' },
+    });
+    await flushSaveQueue();
+  });
+  expect(writes).toHaveLength(1);
+
+  await act(async () => {
+    await currentSession.auth.signInLocal('student-b', 'pass');
+    await flushSaveQueue();
+  });
+  expect(currentSession.state.profile.id).toBe('student-b');
+
+  await act(async () => {
+    releaseFirstWrite();
+    for (let index = 0; index < 5; index += 1) {
+      await flushSaveQueue();
+    }
+  });
+
+  expect(writes).not.toContainEqual({ accountId: 'student-b', stateId: 'student-a' });
+  expect(writes.some(write => write.stateId === 'student-b')).toBe(true);
   await act(async () => renderer.unmount());
 });

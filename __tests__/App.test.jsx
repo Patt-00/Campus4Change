@@ -19,20 +19,42 @@ const demo = {
 };
 let mockCurrent = demo;
 let mockSaved = {};
+let mockActiveUser = null;
 const mockStore = {
-  signIn: jest.fn(async () => JSON.stringify(mockCurrent)),
-  signUp: jest.fn(async (name, email, studentId) => {
-    mockCurrent = { id: 'new-user', name, email, studentId };
+  signIn: jest.fn(async () => {
+    mockActiveUser = mockCurrent.id;
     return JSON.stringify(mockCurrent);
   }),
-  biometricSignIn: jest.fn(async () => JSON.stringify(mockCurrent)),
+  signUp: jest.fn(async (name, email, studentId) => {
+    mockCurrent = { id: 'new-user', name, email, studentId };
+    mockActiveUser = mockCurrent.id;
+    return JSON.stringify(mockCurrent);
+  }),
+  biometricSignIn: jest.fn(async () => {
+    mockActiveUser = mockCurrent.id;
+    return JSON.stringify(mockCurrent);
+  }),
   enableBiometrics: jest.fn(async () => true),
-  loadState: jest.fn(async () => mockSaved[mockCurrent.id] ?? null),
-  saveState: jest.fn(async value => {
-    mockSaved[mockCurrent.id] = value;
+  loadState: jest.fn(async expectedUserId => {
+    if (expectedUserId !== mockActiveUser) {
+      throw new Error('The active account changed before load.');
+    }
+    return mockSaved[expectedUserId] ?? null;
+  }),
+  saveState: jest.fn(async (expectedUserId, value) => {
+    if (expectedUserId !== mockActiveUser) {
+      throw new Error('The active account changed before save.');
+    }
+    mockSaved[expectedUserId] = value;
     return true;
   }),
-  signOut: jest.fn(async () => true),
+  signOut: jest.fn(async expectedUserId => {
+    if (expectedUserId !== mockActiveUser) {
+      throw new Error('The active account changed before sign-out.');
+    }
+    mockActiveUser = null;
+    return true;
+  }),
 };
 jest.mock('../src/shared/backend/firebase', () => ({
   firebaseEnabled: false,
@@ -112,6 +134,7 @@ async function confirmSignOut() {
 beforeEach(() => {
   mockCurrent = demo;
   mockSaved = {};
+  mockActiveUser = null;
   jest.clearAllMocks();
 });
 afterEach(async () => {

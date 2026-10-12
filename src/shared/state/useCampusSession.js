@@ -36,6 +36,13 @@ function errorText(error) {
   return error instanceof Error ? error.message : String(error);
 }
 
+function sessionAccountId(session) {
+  if (!session) {
+    return null;
+  }
+  return session.kind === 'firebase' ? session.uid : session.id;
+}
+
 export function useCampusSession({ onSignedIn, onSignedOut }) {
   const [state, setState] = useState(null);
   const [saveError, setSaveError] = useState('');
@@ -53,37 +60,48 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
   snapshot.current = state;
   callbacks.current = { onSignedIn, onSignedOut };
 
-  const saveLocalState = useCallback(async value => {
+  const saveLocalState = useCallback(async (value, session) => {
+    const accountId = sessionAccountId(session);
+    if (!accountId || value?.profile?.id !== accountId) {
+      throw new Error('Saved data belongs to a different account.');
+    }
     const saved = stateForPersistence(value);
-    await deviceStore().saveState(JSON.stringify(saved));
+    await deviceStore().saveState(accountId, JSON.stringify(saved));
     return saved;
   }, []);
 
-  const saveActiveState = useCallback(async value => {
-    const active = activeSession.current;
-    if (!active) {
+  const saveActiveState = useCallback(async (value, expectedSession) => {
+    if (!expectedSession) {
       throw new Error('Sign in before saving your account data.');
     }
-    const saved = await saveLocalState(value);
-    if (active.kind === 'firebase') {
-      await saveCloudState(active.uid, saved);
+    if (activeSession.current !== expectedSession) {
+      return false;
     }
+    const saved = await saveLocalState(value, expectedSession);
+    if (activeSession.current !== expectedSession) {
+      return false;
+    }
+    if (expectedSession.kind === 'firebase') {
+      await saveCloudState(expectedSession.uid, saved);
+    }
+    return true;
   }, [saveLocalState]);
 
   const updatedAt = state?.updatedAt;
   useEffect(() => {
     const value = snapshot.current;
-    if (!value || !activeSession.current) {
+    const expectedSession = activeSession.current;
+    if (!value || !expectedSession) {
       return undefined;
     }
-    if (activeSession.current.kind === 'firebase' && !cloudHydrated.current) {
+    if (expectedSession.kind === 'firebase' && !cloudHydrated.current) {
       return undefined;
     }
 
     let cancelled = false;
     const task = saveQueue.current.then(
-      () => saveActiveState(value),
-      () => saveActiveState(value),
+      () => saveActiveState(value, expectedSession),
+      () => saveActiveState(value, expectedSession),
     );
     saveQueue.current = task;
     task.then(
@@ -105,9 +123,10 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
 
   const enterLocalAccount = useCallback(async value => {
     const storage = deviceStore();
+    let account;
     try {
-      const account = parseAccount(value);
-      const saved = await storage.loadState();
+      account = parseAccount(value);
+      const saved = await storage.loadState(account.id);
       const next = asState(saved, account);
       activeSession.current = { kind: 'local', id: account.id };
       cloudHydrated.current = true;
@@ -120,7 +139,7 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
       setRestoring(false);
       callbacks.current.onSignedIn();
     } catch (error) {
-      await storage.signOut();
+      await storage.signOut(account?.id).catch(() => {});
       throw error;
     }
   }, []);
@@ -155,7 +174,7 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
 
       let cached = null;
       try {
-        cached = asState(await storage.loadState(), account);
+        cached = asState(await storage.loadState(user.uid), account);
       } catch (error) {
         setSaveError(errorText(error));
       }
@@ -190,7 +209,7 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
         const cloudHasTransientFeed =
           cloud &&
           JSON.stringify(stateForPersistence(cloud)) !== JSON.stringify(cloud);
-        await storage.saveState(JSON.stringify(saved));
+        await storage.saveState(user.uid, JSON.stringify(saved));
         if (!cloud || selected === latestLocal || cloudHasTransientFeed) {
           await saveCloudState(user.uid, saved);
         }
@@ -365,7 +384,7 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
     try {
       if (snapshot.current && active) {
         await saveQueue.current.catch(() => {});
-        const saved = await saveLocalState(snapshot.current);
+        const saved = await saveLocalState(snapshot.current, active);
         if (active.kind === 'firebase') {
           try {
             await saveCloudState(active.uid, saved);
@@ -384,7 +403,9 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
         }
       }
       try {
-        await deviceStore().signOut();
+        if (active) {
+          await deviceStore().signOut(sessionAccountId(active));
+        }
       } catch (error) {
         if (active?.kind !== 'firebase') {
           throw error;
@@ -409,11 +430,12 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
   }
 
   function retrySave() {
-    if (snapshot.current) {
+    const expectedSession = activeSession.current;
+    if (snapshot.current && expectedSession) {
       const value = snapshot.current;
       const task = saveQueue.current.then(
-        () => saveActiveState(value),
-        () => saveActiveState(value),
+        () => saveActiveState(value, expectedSession),
+        () => saveActiveState(value, expectedSession),
       );
       saveQueue.current = task;
       task.then(() => setSaveError('')).catch(error => setSaveError(errorText(error)));

@@ -68,6 +68,11 @@ class CampusStorageModule(private val context: ReactApplicationContext) : ReactC
         return "firebase_auth_$encoded"
     }
 
+    private fun requireActiveUser(expectedUserId: String) {
+        require(expectedUserId.isNotBlank() && expectedUserId.length <= 256) { "Invalid account ID." }
+        check(activeUser == expectedUserId) { "The active account changed. Please try again." }
+    }
+
     private fun hash(password: String, salt: ByteArray): ByteArray {
         val spec = PBEKeySpec(password.toCharArray(), salt, 210000, 256)
         return try { SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1").generateSecret(spec).encoded }
@@ -120,17 +125,26 @@ class CampusStorageModule(private val context: ReactApplicationContext) : ReactC
         activeUser = a.getString("id"); publicAccount(a)
     }
 
-    @ReactMethod fun loadState(promise: Promise) = run(promise) { read("state_${activeUser ?: error("Sign in first.")}") }
+    @ReactMethod fun loadState(expectedUserId: String, promise: Promise) = run(promise) {
+        requireActiveUser(expectedUserId)
+        read("state_$expectedUserId")
+    }
     @ReactMethod fun setActiveUser(userId: String, promise: Promise) = run(promise) {
         require(userId.isNotBlank() && userId.length <= 256) { "Invalid account ID." }
         activeUser = userId
         true
     }
-    @ReactMethod fun saveState(value: String, promise: Promise) {
-        val user = activeUser ?: return promise.reject("SIGNED_OUT", "Sign in first.")
-        run(promise) { JSONObject(value); write("state_$user", value); true }
+    @ReactMethod fun saveState(expectedUserId: String, value: String, promise: Promise) = run(promise) {
+        requireActiveUser(expectedUserId)
+        JSONObject(value)
+        write("state_$expectedUserId", value)
+        true
     }
-    @ReactMethod fun signOut(promise: Promise) = run(promise) { activeUser = null; true }
+    @ReactMethod fun signOut(expectedUserId: String, promise: Promise) = run(promise) {
+        requireActiveUser(expectedUserId)
+        activeUser = null
+        true
+    }
 
     // Firebase Auth's refresh token is kept in the same AES-GCM protected
     // private preferences as local app data, rather than plain AsyncStorage.
