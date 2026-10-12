@@ -8,6 +8,6 @@ export const C = {
   muted: '#8fa8b5',
   green: '#19c37d',
   yellow: '#f5b800',
-  purple: '#6955ff',
+  purple: '#8d7aff',
   danger: '#ff8391',
 };
