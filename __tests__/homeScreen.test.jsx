@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
-import { Modal, TextInput, TouchableOpacity } from 'react-native';
+import { Modal, Text, TextInput, TouchableOpacity } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { HomeScreen } from '../src/features/home/screens/HomeScreen';
 
@@ -8,6 +8,10 @@ const initialMetrics = {
   frame: { x: 0, y: 0, width: 800, height: 1200 },
   insets: { top: 0, right: 0, bottom: 0, left: 0 },
 };
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
 
 function renderHome(props) {
   return ReactTestRenderer.create(
@@ -145,5 +149,49 @@ test('empty home state offers interest and profile setup', async () => {
   expect(go).toHaveBeenLastCalledWith('Preferences');
   await act(async () => button(renderer, 'Complete your profile').props.onPress());
   expect(go).toHaveBeenLastCalledWith('Edit Profile');
+  await act(async () => renderer.unmount());
+});
+
+test('home warns about past-due bookings instead of showing a clear schedule', async () => {
+  jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-10-13T06:00:00Z'));
+  const go = jest.fn();
+  const state = {
+    profile: { id: 'student', name: 'Alex Student', interests: [], school: 'TIP' },
+    notices: [],
+    sessions: [
+      {
+        id: 'past-physics',
+        subject: 'Physics',
+        tutorId: 'mika',
+        startsAt: '2026-10-02T06:00:00.000Z',
+        status: 'Upcoming',
+      },
+      {
+        id: 'past-calculus',
+        subject: 'Calculus I',
+        tutorId: 'jamie',
+        startsAt: '2026-10-01T06:00:00.000Z',
+        status: 'Upcoming',
+      },
+    ],
+  };
+  let renderer;
+  await act(async () => {
+    renderer = renderHome({ go, state, directory: [], tutors: [] });
+  });
+
+  const visibleText = renderer.root
+    .findAllByType(Text)
+    .map(node =>
+      Array.isArray(node.props.children)
+        ? node.props.children.join('')
+        : String(node.props.children),
+    )
+    .join(' ');
+  expect(visibleText).toContain('2 past-due bookings need review');
+  expect(visibleText).not.toContain('Your schedule is clear');
+  expect(button(renderer, 'Open Physics session')).toBeUndefined();
+  await act(async () => button(renderer, 'REVIEW PAST-DUE BOOKINGS').props.onPress());
+  expect(go).toHaveBeenLastCalledWith('Sessions');
   await act(async () => renderer.unmount());
 });

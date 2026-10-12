@@ -5,6 +5,7 @@ import { Avatar, Empty, Field, Link } from '../../../shared/components/UI';
 import { IconBadge } from '../../../shared/components/Icon';
 import { AppButton } from '../../../shared/components/AppButton';
 import { sessionTime } from '../../../shared/data/demo';
+import { isPastDueSession } from '../../sessions/data/status';
 
 import { C } from '../../../shared/theme/colors';
 import { s } from '../../../shared/theme/styles';
@@ -59,6 +60,7 @@ export function HomeScreen({ go, state, directory, tutors }) {
         x.status === 'Upcoming' && new Date(x.startsAt).getTime() > Date.now(),
     )
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0];
+  const pastDue = state.sessions.filter(session => isPastDueSession(session));
   return (
     <Screen
       title="Campus4Change"
@@ -79,6 +81,23 @@ export function HomeScreen({ go, state, directory, tutors }) {
         <Text style={[s.muted, styles.demo]}>
           Demo account · Sample tutors, groups, and conversations
         </Text>
+      )}
+      {pastDue.length > 0 && (
+        <View style={[s.card, styles.pastDueCard]}>
+          <Text style={[s.name, s.danger]}>
+            {pastDue.length} past-due{' '}
+            {pastDue.length === 1 ? 'booking needs' : 'bookings need'} review
+          </Text>
+          <Text style={s.muted}>
+            These sessions passed their scheduled time. Review the details in
+            your session list.
+          </Text>
+          <AppButton
+            title="REVIEW PAST-DUE BOOKINGS"
+            outline
+            onPress={() => go('Sessions')}
+          />
+        </View>
       )}
       <Field
         icon="search"
@@ -175,8 +194,12 @@ export function HomeScreen({ go, state, directory, tutors }) {
         </TouchableOpacity>
       ) : (
         <Empty
-          title="Your schedule is clear"
-          body="Upcoming bookings will appear here."
+          title={pastDue.length ? 'No upcoming sessions' : 'Your schedule is clear'}
+          body={
+            pastDue.length
+              ? 'Past-due bookings are flagged above for review.'
+              : 'Upcoming bookings will appear here.'
+          }
         />
       )}
       <Modal
@@ -220,6 +243,7 @@ export function HomeScreen({ go, state, directory, tutors }) {
 const styles = StyleSheet.create({
   greeting: { marginBottom: 20 },
   demo: { marginBottom: 16 },
+  pastDueCard: { borderColor: C.danger, marginTop: 8 },
   match: { backgroundColor: '#092535', padding: 18, marginTop: 4 },
   eyebrow: { fontFamily: 'Inter-Bold', fontSize: 11, color: C.cyan },
   top: { marginTop: 12 },
