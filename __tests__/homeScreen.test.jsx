@@ -108,6 +108,38 @@ test('home searches tutors, shows interest matches, quick actions, and next sess
   await act(async () => renderer.unmount());
 });
 
+test('home skips malformed session times when selecting the next booking', async () => {
+  jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-10-13T06:00:00Z'));
+  const state = {
+    profile: { id: 'student', name: 'Alex Student', interests: [], school: '' },
+    notices: [],
+    sessions: [
+      {
+        id: 'valid-session',
+        subject: 'Valid',
+        tutorId: 'mika',
+        startsAt: '2026-10-14T06:00:00.000Z',
+        status: 'Upcoming',
+      },
+      {
+        id: 'malformed-session',
+        subject: 'Malformed',
+        tutorId: 'mika',
+        startsAt: Date.parse('2026-10-15T06:00:00.000Z'),
+        status: 'Upcoming',
+      },
+    ],
+  };
+  let renderer;
+  await act(async () => {
+    renderer = renderHome({ go: jest.fn(), state, directory: [], tutors: [] });
+  });
+
+  expect(button(renderer, 'Open Valid session')).toBeDefined();
+  expect(button(renderer, 'Open Malformed session')).toBeUndefined();
+  await act(async () => renderer.unmount());
+});
+
 test('home menu opens, routes to a page, and closes on request', async () => {
   const go = jest.fn();
   const state = {

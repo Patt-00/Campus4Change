@@ -54,8 +54,19 @@ export function dayAt(offset, hour = 14, minute = 0) {
   d.setHours(hour, minute, 0, 0);
   return d;
 }
+function validDate(value) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date : null;
+}
+
 export function dateLabel(iso) {
-  const d = new Date(iso);
+  const d = validDate(iso);
+  if (!d) {
+    return 'Date unavailable';
+  }
   const now = new Date();
   if (d.toDateString() === now.toDateString()) {
     return 'Today';
@@ -67,7 +78,11 @@ export function dateLabel(iso) {
   });
 }
 export function timeLabel(iso) {
-  return new Date(iso).toLocaleTimeString('en-US', {
+  const date = validDate(iso);
+  if (!date) {
+    return 'Time unavailable';
+  }
+  return date.toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
   });
@@ -76,11 +91,11 @@ export function sessionTime(iso) {
   return dateLabel(iso) + ' • ' + timeLabel(iso);
 }
 export function timeRange(iso) {
-  return (
-    timeLabel(iso) +
-    ' – ' +
-    timeLabel(new Date(new Date(iso).getTime() + 3600000).toISOString())
-  );
+  const start = validDate(iso);
+  if (!start) {
+    return 'Time unavailable';
+  }
+  return timeLabel(start) + ' – ' + timeLabel(start.getTime() + 3600000);
 }
 
 export function initialState(account) {

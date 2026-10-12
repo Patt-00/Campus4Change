@@ -15,10 +15,12 @@ Verified for this checkpoint:
 
 - `npm run lint`: passed without warnings.
 - `npm test -- --runInBand --coverage --coverageReporters=json --coverageReporters=json-summary`:
-  111 tests passed in 20 suites. Tests cover stale group callbacks and pending
+  119 tests passed in 20 suites. Tests cover stale group callbacks and pending
   shared writes across account changes, queued state persistence after a switch
   even when both accounts share the same `updatedAt`, unknown and past-due
-  session statuses, the Home overdue warning, and theme color contrast.
+  session statuses, malformed or missing session start times across Home,
+  Sessions, and Session Details, the Home overdue warning, and theme color
+  contrast.
 - The groups screen uses a virtualized `SectionList`; its regression test feeds
   80 loaded groups and confirms that the initial render mounts no more than 10
   group cards. Search tests cover case-insensitive subject filtering, joined
@@ -26,9 +28,9 @@ Verified for this checkpoint:
   exercise home routes, tutor listing and search, booking validation, session
   reschedule gating, private group-room drafts versus explicit publishing,
   timer controls and cleanup, and shared-group retry paths.
-- The Jest coverage run for this checkpoint reports 83.09% line coverage,
-  73.96% branch coverage, and 83.19% function coverage. It covers all lines in
-  the home screen at 96.66%, session details at 100%, the group-room screen at
+- The Jest coverage run for this checkpoint reports 83.35% line coverage,
+  74.49% branch coverage, and 83.63% function coverage. It covers all lines in
+  the home screen at 96.87%, session details at 100%, the group-room screen at
   100%, the local storage guard at 100%, tutor search at 96.77%, and booking
   screen at 94.44%. Coverage is
   diagnostic; the phone UI and long-session memory behavior still need device
@@ -71,7 +73,11 @@ Verified for this checkpoint:
   port 8081 bound to `127.0.0.1`, ADB reverse loaded the bundle and a cold
   launch rendered the splash screen. This verifies the
   current Android bundle and splash only, not production Firebase access.
-- `npm test -- --runInBand` on 2026-10-13 passed all 111 tests in 20 suites.
+- `npm test -- --runInBand` on 2026-10-13 passed all 119 tests in 20 suites.
+- After the malformed-session changes, the current bundle was cold-launched on
+  the Redmi Turbo 4 through loopback Metro and ADB reverse. The splash rendered
+  and filtered logs contained no React Native JS errors. This confirms launch;
+  the malformed schedule cases are verified by the focused component tests.
 - A fresh disposable Auth-emulator probe remained unverified after signup and
   after requesting verification, became verified only after applying its
   generated code, and was then deleted. The earlier QA account's verified

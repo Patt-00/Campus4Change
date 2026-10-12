@@ -5,7 +5,10 @@ import { Avatar, Empty, Field, Link } from '../../../shared/components/UI';
 import { IconBadge } from '../../../shared/components/Icon';
 import { AppButton } from '../../../shared/components/AppButton';
 import { sessionTime } from '../../../shared/data/demo';
-import { isPastDueSession } from '../../sessions/data/status';
+import {
+  isPastDueSession,
+  sessionTimingStatus,
+} from '../../sessions/data/status';
 
 import { C } from '../../../shared/theme/colors';
 import { s } from '../../../shared/theme/styles';
@@ -55,11 +58,11 @@ export function HomeScreen({ go, state, directory, tutors }) {
       ).length
     : 0;
   const next = state.sessions
-    .filter(
-      x =>
-        x.status === 'Upcoming' && new Date(x.startsAt).getTime() > Date.now(),
-    )
-    .sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0];
+    .filter(x => sessionTimingStatus(x) === 'Upcoming')
+    .sort(
+      (a, b) =>
+        new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
+    )[0];
   const pastDue = state.sessions.filter(session => isPastDueSession(session));
   return (
     <Screen

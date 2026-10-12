@@ -55,11 +55,22 @@ export function SessionsScreen({ go, back, sessions, list }) {
   }
   const filtered = sessions
     .filter(x => sessionTimingStatus(x) === filter)
-    .sort((a, b) =>
-      filter === 'Upcoming'
-        ? a.startsAt.localeCompare(b.startsAt)
-        : b.startsAt.localeCompare(a.startsAt),
-    );
+    .sort((a, b) => {
+      const aStartsAt = new Date(a.startsAt).getTime();
+      const bStartsAt = new Date(b.startsAt).getTime();
+      const aHasValidStart = Number.isFinite(aStartsAt);
+      const bHasValidStart = Number.isFinite(bStartsAt);
+      if (!aHasValidStart || !bHasValidStart) {
+        return aHasValidStart === bHasValidStart
+          ? 0
+          : aHasValidStart
+            ? -1
+            : 1;
+      }
+      return filter === 'Upcoming'
+        ? aStartsAt - bStartsAt
+        : bStartsAt - aStartsAt;
+    });
   const inProgress =
     filter === 'Upcoming'
       ? sessions.filter(x => sessionTimingStatus(x) === 'In progress')

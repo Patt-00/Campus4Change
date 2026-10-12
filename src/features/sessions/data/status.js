@@ -2,8 +2,14 @@ const SESSION_DURATION_MS = 60 * 60 * 1000;
 
 export function sessionTimingStatus(session, now = Date.now()) {
   if (session.status === 'Upcoming') {
-    const startsAt = new Date(session.startsAt).getTime();
-    if (!Number.isFinite(startsAt) || now < startsAt) {
+    const startsAt =
+      typeof session.startsAt === 'string'
+        ? new Date(session.startsAt).getTime()
+        : Number.NaN;
+    if (!Number.isFinite(startsAt) || !Number.isFinite(now)) {
+      return 'Needs review';
+    }
+    if (now < startsAt) {
       return 'Upcoming';
     }
     return now < startsAt + SESSION_DURATION_MS ? 'In progress' : 'Past due';

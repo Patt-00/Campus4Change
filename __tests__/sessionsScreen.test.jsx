@@ -107,3 +107,97 @@ test('past-due bookings are shown instead of disappearing from the upcoming tab'
 
   await act(async () => renderer.unmount());
 });
+
+test('upcoming bookings with a missing start time stay reviewable without crashing', async () => {
+  jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-10-13T06:00:00Z'));
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(
+      <SafeAreaProvider initialMetrics={initialMetrics}>
+        <SessionsScreen
+          go={jest.fn()}
+          back={jest.fn()}
+          sessions={[
+            {
+              id: 'missing-start',
+              tutorId: 'mika',
+              subject: 'Unscheduled booking',
+              status: 'Upcoming',
+            },
+            {
+              id: 'future-start',
+              tutorId: 'mika',
+              subject: 'Future booking',
+              startsAt: '2026-10-14T06:00:00.000Z',
+              status: 'Upcoming',
+            },
+          ]}
+          list={[{ id: 'mika', name: 'Mika Santos' }]}
+        />
+      </SafeAreaProvider>,
+    );
+  });
+
+  const labels = renderer.root
+    .findAllByType(Text)
+    .map(node => node.props.children)
+    .flat(Infinity)
+    .filter(label => typeof label === 'string');
+  expect(labels).toContain('Needs review');
+  expect(labels.join(' ')).toContain('Date unavailable');
+  expect(labels.join(' ')).toContain('Time unavailable');
+  expect(
+    renderer.root
+      .findAllByType(TouchableOpacity)
+      .find(node => node.props.accessibilityLabel === 'View Unscheduled booking details'),
+  ).toBeDefined();
+  await act(async () => renderer.unmount());
+});
+
+test('completed sessions with malformed start times still render in history', async () => {
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(
+      <SafeAreaProvider initialMetrics={initialMetrics}>
+        <SessionsScreen
+          go={jest.fn()}
+          back={jest.fn()}
+          sessions={[
+            {
+              id: 'completed-missing-start',
+              tutorId: 'mika',
+              subject: 'Completed without a schedule',
+              status: 'Completed',
+            },
+            {
+              id: 'completed-valid-start',
+              tutorId: 'mika',
+              subject: 'Completed with a schedule',
+              startsAt: '2026-10-12T06:00:00.000Z',
+              status: 'Completed',
+            },
+          ]}
+          list={[{ id: 'mika', name: 'Mika Santos' }]}
+        />
+      </SafeAreaProvider>,
+    );
+  });
+
+  const completedFilter = renderer.root
+    .findAllByType(TouchableOpacity)
+    .find(node => node.props.accessibilityLabel === 'Completed');
+  await act(async () => completedFilter.props.onPress());
+
+  const labels = renderer.root
+    .findAllByType(Text)
+    .map(node => node.props.children)
+    .flat(Infinity)
+    .filter(label => typeof label === 'string');
+  expect(labels).toContain('Date unavailable • Time unavailable');
+  expect(
+    renderer.root
+      .findAllByType(TouchableOpacity)
+      .find(node => node.props.accessibilityLabel === 'View Completed without a schedule details'),
+  ).toBeDefined();
+  await act(async () => renderer.unmount());
+});

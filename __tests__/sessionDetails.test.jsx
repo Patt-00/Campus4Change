@@ -77,6 +77,29 @@ test('upcoming sessions retain their reschedule action', async () => {
   await act(async () => renderer.unmount());
 });
 
+test('invalid schedules show review copy and hide rescheduling', async () => {
+  const session = {
+    id: 'missing-start',
+    tutorId: 'mika',
+    subject: 'Unscheduled booking',
+    startsAt: null,
+    status: 'Upcoming',
+  };
+  let renderer;
+  await act(async () => {
+    ({ renderer } = renderDetails(session));
+  });
+
+  const labels = renderer.root
+    .findAllByType(Text)
+    .map(node => node.props.children);
+  expect(labels).toContain('NEEDS REVIEW');
+  expect(labels).toContain('Date unavailable');
+  expect(labels).toContain('Time unavailable');
+  expect(button(renderer, 'RESCHEDULE')).toBeUndefined();
+  await act(async () => renderer.unmount());
+});
+
 test('canceling an upcoming session requires choosing the destructive action', async () => {
   const cancel = jest.fn();
   const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});

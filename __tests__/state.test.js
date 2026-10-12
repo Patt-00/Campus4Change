@@ -94,6 +94,16 @@ test('only sessions whose scheduled time is still upcoming can be rescheduled', 
     ),
   ).toBe(false);
 });
+test.each([undefined, null, '', 'not-a-date'])(
+  'upcoming sessions with an invalid start time need review: %s',
+  startsAt => {
+    const session = { status: 'Upcoming', startsAt };
+    const now = Date.parse('2026-10-13T06:00:00.000Z');
+
+    expect(sessionTimingStatus(session, now)).toBe('Needs review');
+    expect(canRescheduleSession(session, now)).toBe(false);
+  },
+);
 test('rescheduling cannot overlap another booking, and only completed sessions accept a valid rating', () => {
   let state = reducer(initialState(account), {
     type: 'book',

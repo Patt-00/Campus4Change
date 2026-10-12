@@ -63,6 +63,12 @@ production-ready claim.
   agenda, and notes; the focus timer is confined to group study rooms.
 - Session timing is displayed as upcoming, in progress, or past due from the
   stored start time without silently rewriting the user's saved status.
+- Upcoming sessions with a missing or malformed start time now go to Needs
+  review instead of appearing as upcoming. Home selects its next session from
+  valid upcoming times; session lists sort malformed values safely. Details,
+  workspaces, and cards show clear fallback text for unavailable dates and
+  times. Regression tests cover missing, null, empty, malformed, and numeric
+  start values.
 - Rescheduling now uses the computed timing status. A session that has started
   or passed its scheduled time no longer exposes the reschedule action, and the
   save handler rejects the same stale route.
