@@ -29,6 +29,10 @@
   empty, live rules are deny-all, and Manual indexes are empty. The current
   checked-in index manifest has four composite indexes, one more than the prior
   deployment prompt described; no live rules/indexes were changed.
+- The same live Console session showed App Check at **Get started**. The current
+  React Native source has no App Check initializer or native Android provider;
+  enforcement remains disabled pending a supported Android provider and signing
+  registration.
 - `.firebaserc` now sets `campus4change` as the default Firebase CLI target, and
   its JSON parses correctly. `firebase use` still cannot run because the CLI is
   unauthenticated; the Console session is available for the later approved
