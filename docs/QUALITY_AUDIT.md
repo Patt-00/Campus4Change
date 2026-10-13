@@ -224,15 +224,16 @@ production-ready claim.
 ## Verification record
 
 Verification is recorded in [VERIFICATION.md](VERIFICATION.md). On commit
-`0894e6c`, 186 Jest tests, lint, Auth/Firestore emulator tests, production
+`4669150`, 188 Jest tests, lint, Auth/Firestore emulator tests, production
 bundling, Android unit tests, and the debug build passed locally. GitHub Actions
 run
-[38466492974](https://github.com/Patt-00/Campus4Change/actions/runs/38466492974)
+[38469591778](https://github.com/Patt-00/Campus4Change/actions/runs/38469591778)
 passed all configured checks. The current APK was reinstalled and cold-launched
-on the POCO X4 GT; the Login screen showed no demo account or prefilled demo
-credentials. This did not verify the production Firebase project or a real
-two-account chat flow. Emulator success does not substitute for deploying rules
-and indexes to Firebase.
+on the POCO X4 GT; Login showed no demo account or prefilled demo credentials.
+The approved test-account retry ended in Credential Manager cancellation before
+Firebase received a token, so Google account creation and the production Firebase
+project or real two-account chat are not verified. Emulator success does not
+substitute for deploying rules and indexes to Firebase.
 
 Earlier Redmi Turbo 4 checks exercised the then-present seeded account,
 schedule-focused Sessions/Session Details, and the separate 25-minute group
