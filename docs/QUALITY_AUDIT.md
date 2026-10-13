@@ -251,13 +251,14 @@ run
 passed all configured checks. Commit `94889c0` narrows legacy-state cleanup and
 run
 [38479904396](https://github.com/Patt-00/Campus4Change/actions/runs/38479904396)
-passed all configured checks. The follow-up local migration change also clears
-an orphaned legacy biometric pointer; seven native cleanup-plan tests and the
+passed all configured checks. The follow-up migration change also clears an
+orphaned legacy biometric pointer; seven native cleanup-plan tests and the
 Android debug build pass, and the APK was installed and cold-launched on the
 POCO X4 GT. Login showed no demo account or prefilled credentials, and empty
 signup validation behaved as expected. The cache-collision case was not seeded
-on device. The follow-up migration extension still needs its GitHub Actions
-result. The approved test-account retry ended in Credential Manager cancellation
+on device. The complete workflow passed on the current tree in run
+[38480817534](https://github.com/Patt-00/Campus4Change/actions/runs/38480817534).
+The approved test-account retry ended in Credential Manager cancellation
 before Firebase received a token, so Google account creation and the production
 Firebase project or real two-account chat remain unverified. Emulator success
 does not substitute for deploying rules and indexes to Firebase.

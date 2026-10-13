@@ -11,6 +11,9 @@
   `:app:assembleDebug` passed; the updated APK installed over the POCO app
   without clearing its data, cold-launched, and showed the login screen without
   a demo account or startup errors. The cache-collision case was not seeded on-device.
+  GitHub Actions run
+  [38480817534](https://github.com/Patt-00/Campus4Change/actions/runs/38480817534)
+  passed the full configured workflow, including the migration tests and debug build.
 - On the POCO X4 GT, Sign Up showed Google and email/password options. Submitting
   the empty form showed the expected validation message, and returning to Login
   left the app signed out; no account was created during this check.
