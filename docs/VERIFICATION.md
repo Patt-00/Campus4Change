@@ -29,7 +29,8 @@
   sign-out reports a local-only save after a bounded 1.2-second cloud wait.
   Regression coverage simulates a never-resolving cloud write during account
   hydration, later local edits, sign-out, and a subsequent account switch. The
-  app displays a pending-sync status while the server acknowledgement is open.
+  app displays a pending-sync status while the server acknowledgement is open,
+  and an older cloud acknowledgement cannot clear a newer local-save error.
   Figma now has a token-bound pending-sync component and a Home instance of the
   same state; its editable text, Inter font, color bindings, and spacing binding
   were read back and visually checked.
@@ -41,12 +42,12 @@
   Session Details screens were updated to reflect those delivery boundaries.
   Chat state is keyed to the active user and conversation so switching threads
   cannot flash the previous thread under the new title.
-- `npm test -- --runInBand --coverage --testTimeout=15000`: 190 tests passed
-  in 28 suites; statement coverage 82.09% and branch coverage 72.58%.
+- `npm test -- --runInBand --coverage --testTimeout=15000`: 191 tests passed
+  in 28 suites; statement coverage 82.11% and branch coverage 72.52%.
   `npm run lint` passed without warnings. `:app:createBundleReleaseJsAndAssets`,
   `:app:testDebugUnitTest`, and `:app:assembleDebug` passed under JDK 25.
-  The production JavaScript bundle is 2,652,324 bytes with SHA-256
-  `40e4f0c809e8013cff12e7223dc13a8fcacc06e74c5254950728bb258a760aa8`.
+  The production JavaScript bundle is 2,652,576 bytes with SHA-256
+  `7f66aeedca2eddb6a6710b55204be18769e0ee07bab553fc3cc202d4f43ce1f9`.
 - Local Auth and Firestore emulator tests passed. The rules suite covers current
   group-member chat access, owner hide/restore, participant-only tutor-session
   chat, message-size and page limits, and send cooldowns. The Auth emulator

@@ -393,6 +393,72 @@ test('a pending cloud write cannot be replayed into a different Firebase account
   await act(async () => renderer.unmount());
 });
 
+test('an older cloud acknowledgement does not clear a newer local save error', async () => {
+  let releaseCloudWrite;
+  const pendingCloudWrite = new Promise(resolve => {
+    releaseCloudWrite = resolve;
+  });
+  mockLoadCloudState.mockResolvedValueOnce({
+    version: 1,
+    updatedAt: Date.now() + 1_000_000,
+    profile: { id: 'firebase-student', name: 'Student' },
+    sessions: [],
+    groups: [],
+    conversations: [],
+    notices: [],
+  });
+
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(<Harness />);
+  });
+  await act(async () => {
+    mockUserListener({
+      uid: 'firebase-student',
+      id: 'firebase-student',
+      name: 'Student',
+      email: 'student@school.test',
+      studentId: 'STU-1',
+      emailVerified: true,
+    });
+    await flushTasks();
+    await flushTasks();
+  });
+
+  mockSaveCloudState.mockImplementation(() => pendingCloudWrite);
+  mockStore.saveState.mockClear();
+  await act(async () => {
+    currentSession.dispatch({
+      type: 'profile',
+      profile: { course: 'Cloud snapshot' },
+    });
+    await flushTasks();
+    await flushTasks();
+  });
+  mockStore.saveState.mockRejectedValueOnce(
+    new Error('Encrypted storage write failed.'),
+  );
+  await act(async () => {
+    currentSession.dispatch({
+      type: 'profile',
+      profile: { year: 'Unsaved local change' },
+    });
+    await flushTasks();
+    await flushTasks();
+  });
+  expect(currentSession.saveError).toBe('Encrypted storage write failed.');
+
+  releaseCloudWrite();
+  await act(async () => {
+    await flushTasks();
+    await flushTasks();
+    await flushTasks();
+  });
+  expect(currentSession.saveError).toBe('Encrypted storage write failed.');
+  expect(currentSession.cloudSyncPending).toBe(false);
+  await act(async () => renderer.unmount());
+});
+
 test('Firebase sign-out keeps the session active when encrypted local save fails', async () => {
   let renderer;
   await act(async () => {

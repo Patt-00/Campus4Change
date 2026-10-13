@@ -102,8 +102,9 @@ production-ready claim.
   waits at most 1.2 seconds for a remote acknowledgement after saving locally.
   The app reports when a cloud write is pending. Regression tests hold a cloud
   write indefinitely, verify later local changes still persist, ensure a
-  pending write cannot cross into another account, and retry the latest state
-  after signing back into the same Firebase UID.
+  pending write cannot cross into another account, retry the latest state after
+  signing back into the same Firebase UID, and keep an older acknowledgement
+  from clearing a newer local-save error.
 - Booked and group sessions use appointment-style workspaces for their schedule,
   location or tutor, agenda, and notes. Group notes stay private until the member
   explicitly posts them.

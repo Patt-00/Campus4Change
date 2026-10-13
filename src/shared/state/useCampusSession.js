@@ -181,6 +181,7 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
     }
 
     const task = (async () => {
+      let highestAcknowledgedUpdatedAt = Number.NEGATIVE_INFINITY;
       while (
         queue.pendingState &&
         activeSession.current?.kind === 'firebase' &&
@@ -190,6 +191,13 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
         queue.pendingState = null;
         try {
           await saveCloudState(uid, nextState);
+          const updatedAt = Number(nextState.updatedAt);
+          if (Number.isFinite(updatedAt)) {
+            highestAcknowledgedUpdatedAt = Math.max(
+              highestAcknowledgedUpdatedAt,
+              updatedAt,
+            );
+          }
         } catch (error) {
           queue.pendingState = null;
           if (
@@ -206,7 +214,11 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
       const saved =
         activeSession.current?.kind === 'firebase' &&
         activeSession.current.uid === uid;
-      if (saved) {
+      const currentState = snapshot.current;
+      const currentStateWasAcknowledged =
+        currentState?.profile?.id === uid &&
+        (Number(currentState.updatedAt) || 0) <= highestAcknowledgedUpdatedAt;
+      if (saved && currentStateWasAcknowledged) {
         setSaveError('');
       } else {
         queue.pendingState = null;
