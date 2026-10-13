@@ -224,14 +224,15 @@ production-ready claim.
 ## Verification record
 
 Verification is recorded in [VERIFICATION.md](VERIFICATION.md). On commit
-`674b22e`, 169 Jest tests, lint, production bundling, and the Android debug build
-passed locally; GitHub Actions run
-[38454306951](https://github.com/Patt-00/Campus4Change/actions/runs/38454306951)
-passed all configured checks. The debug APK was installed over existing POCO
-X4 GT app data. The old seeded account no longer authenticates after launch;
-no other local account was available to test preservation on-device. This did
-not exercise a personal account or production Firebase. The Firebase emulator
-does not substitute for deploying rules or a real two-account workflow.
+`0894e6c`, 186 Jest tests, lint, Auth/Firestore emulator tests, production
+bundling, Android unit tests, and the debug build passed locally. GitHub Actions
+run
+[38466492974](https://github.com/Patt-00/Campus4Change/actions/runs/38466492974)
+passed all configured checks. The current APK was reinstalled and cold-launched
+on the POCO X4 GT; the Login screen showed no demo account or prefilled demo
+credentials. This did not verify the production Firebase project or a real
+two-account chat flow. Emulator success does not substitute for deploying rules
+and indexes to Firebase.
 
 Earlier Redmi Turbo 4 checks exercised the then-present seeded account,
 schedule-focused Sessions/Session Details, and the separate 25-minute group
