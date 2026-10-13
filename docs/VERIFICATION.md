@@ -78,10 +78,11 @@ Verified for this checkpoint:
 - An app-level regression removed a saved conversation's message array, opened
   it through Messages and Chat, then sent a new message. The thread rendered,
   recovered the array, and persisted the new message.
-- After the malformed-session changes, the current bundle was cold-launched on
-  the Redmi Turbo 4 through loopback Metro and ADB reverse. The splash rendered
-  and filtered logs contained no React Native JS errors. This confirms launch;
-  the malformed schedule cases are verified by the focused component tests.
+- After the latest conversation-recovery and malformed-session changes, the
+  current bundle was cold-launched on the Redmi Turbo 4 through loopback Metro
+  and ADB reverse. The splash rendered and filtered logs contained no React
+  Native JS errors. This confirms startup; malformed data behavior is covered
+  by the focused app and component tests.
 - The Android accessibility tree announced full booking dates and included
   session, group, tutor, message, notification, and group-post context in the
   list controls. This was checked while signed into the local demo account; no

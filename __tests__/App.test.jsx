@@ -293,7 +293,7 @@ test('a message is saved and remains after the app is remounted', async () => {
   expect(hasText('Please help with algebra')).toBe(true);
 });
 
-test('a legacy conversation without a message array opens and recovers on send', async () => {
+test('a saved conversation without a message array opens and recovers on send', async () => {
   const savedState = initialState(demo);
   const conversation = savedState.conversations.find(
     item => item.tutorId === 'jamie',
