@@ -88,6 +88,10 @@ production-ready claim.
   keeping in-progress, past-due, needs-review, and completed sessions grouped
   below. Tests cover this message with past-due data and for an empty account;
   the updated screen was checked on the Redmi Turbo 4.
+- Messages and Chat now use virtualized `FlatList` windows instead of mounting
+  every saved conversation and message. A repeatable renderer scenario reduced
+  mounted message bodies from 1,200 to 18 and inbox cards from 120 to 12 while
+  keeping full-message search and send behavior covered.
 - Booking confirmation and reminders describe a private schedule entry and
   state that the tutor has not been notified.
 - Focused tests now cover home navigation and search, tutor listing create and

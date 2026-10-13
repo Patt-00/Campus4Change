@@ -15,7 +15,7 @@ Verified for this checkpoint:
 
 - `npm run lint`: passed without warnings.
 - `npm test -- --runInBand --coverage --coverageReporters=json --coverageReporters=json-summary`:
-  126 tests passed in 20 suites. Tests cover stale group callbacks and pending
+  129 tests passed in 21 suites. Tests cover stale group callbacks and pending
   shared writes across account changes, queued state persistence after a switch
   even when both accounts share the same `updatedAt`, unknown and past-due
   session statuses, malformed or missing session start times across Home,
@@ -31,8 +31,8 @@ Verified for this checkpoint:
   exercise home routes, tutor listing and search, booking validation, session
   reschedule gating, private group-room drafts versus explicit publishing,
   timer controls and cleanup, and shared-group retry paths.
-- The Jest coverage run for this checkpoint reports 83.78% line coverage,
-  76.08% branch coverage, and 84.14% function coverage. It covers all lines in
+- The Jest coverage run for this checkpoint reports 83.88% line coverage,
+  76.24% branch coverage, and 84.33% function coverage. It covers all lines in
   the home screen at 96.87%, session details at 100%, the group-room screen at
   100%, the local storage guard at 100%, tutor search at 96.77%, and booking
   screen at 94.44%. Coverage is
@@ -75,7 +75,7 @@ Verified for this checkpoint:
   `campus4change` with emulator routing disabled. A subsequent cold launch
   rendered the splash screen through loopback Metro and ADB reverse. These
   earlier checks do not verify the new membership path or production Firebase.
-- `npm test -- --runInBand` on 2026-10-13 passed all 126 tests in 20 suites.
+- `npm test -- --runInBand` on 2026-10-13 passed all 129 tests in 21 suites.
 - A partial version-one profile missing its name, interests, tutor subjects,
   and school fields restored from the account defaults, opened Home, and
   persisted the restored values without losing session/group data.
@@ -103,6 +103,14 @@ Verified for this checkpoint:
   past-due and completed sections. The app was signed out afterward; the
   existing demo data was preserved. Filtered logs showed no fatal Android or
   React Native JavaScript error during this run.
+- A large-list component test measured the Chat and Messages render window.
+  With 1,200 synthetic messages and 120 conversations, the prior scroll views
+  mounted every item; the virtualized screens mounted 18 messages and 12 cards.
+  The same tests confirm the newest message is at the bottom, full-message
+  search still finds older text, and keyboard send still trims the draft. This
+  is a component-render count, not a device latency benchmark; no screen-level
+  check was possible in this turn because the Redmi was locked and the AVDs
+  could not start in the headless environment.
 - The current membership-path and Firestore-rule change was tested against an
   isolated Firestore Emulator, not on the phone. The Redmi was connected but at
   its lock screen during this check; no unlock or bypass was attempted.

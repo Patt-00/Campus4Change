@@ -1,5 +1,5 @@
-import React, { useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { AppButton } from '../../../shared/components/AppButton';
 import { Screen } from '../../../shared/components/Screen';
 import { Empty, Field } from '../../../shared/components/UI';
@@ -11,8 +11,11 @@ import { s } from '../../../shared/theme/styles';
 
 export function ChatScreen({ back, conversation, send, canSend = true }) {
   const [text, setText] = useState('');
-  const scroll = useRef(null);
-  const messages = conversationMessages(conversation);
+  const sourceMessages = conversation?.messages;
+  const messages = useMemo(
+    () => conversationMessages({ messages: sourceMessages }).reverse(),
+    [sourceMessages],
+  );
   function submit() {
     if (canSend && text.trim()) {
       send(text.trim());
@@ -20,41 +23,47 @@ export function ChatScreen({ back, conversation, send, canSend = true }) {
     }
   }
   return (
-    <Screen title={conversation.name || 'Conversation'} back={back} scroll={false}>
+    <Screen
+      title={conversation.name || 'Conversation'}
+      back={back}
+      scroll={false}
+    >
       <Text style={[s.muted, styles.marginBottom12]}>
         Messages stay on this device and are not delivered.
       </Text>
-      <ScrollView
-        ref={scroll}
+      <FlatList
         style={s.grow}
-        contentContainerStyle={styles.paddingBottom12paddingTop20}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        onContentSizeChange={() =>
-          scroll.current?.scrollToEnd({
-            animated: true,
-          })
+        contentContainerStyle={styles.chatContent}
+        data={messages}
+        inverted
+        keyExtractor={(message, index) =>
+          typeof message.id === 'string' && message.id
+            ? message.id
+            : `message-${messages.length - 1 - index}`
         }
-      >
-        {messages.map((m, index) => (
+        renderItem={({ item: message }) => (
           <View
-            key={typeof m.id === 'string' && m.id ? m.id : `message-${index}`}
-            style={[styles.bubble, m.mine ? styles.mine : styles.theirs]}
+            style={[styles.bubble, message.mine ? styles.mine : styles.theirs]}
           >
-            <Text style={s.text}>{messageText(m)}</Text>
+            <Text style={s.text}>{messageText(message)}</Text>
             <Text style={styles.time}>
-              {timeLabel(m.sentAt)}
-              {m.mine ? ' • Not delivered' : ''}
+              {timeLabel(message.sentAt)}
+              {message.mine ? ' • Not delivered' : ''}
             </Text>
           </View>
-        ))}
-        {!messages.length && (
+        )}
+        initialNumToRender={18}
+        maxToRenderPerBatch={12}
+        windowSize={5}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        ListEmptyComponent={
           <Empty
             title="Start a conversation"
             body="Keep notes for this conversation here."
           />
-        )}
-      </ScrollView>
+        }
+      />
       {!canSend && (
         <Text style={s.muted}>Join this group before sending messages.</Text>
       )}
@@ -104,7 +113,8 @@ const styles = StyleSheet.create({
   marginBottom12: {
     marginBottom: 12,
   },
-  paddingBottom12paddingTop20: {
+  chatContent: {
+    flexGrow: 1,
     paddingBottom: 12,
     paddingTop: 20,
   },
