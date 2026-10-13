@@ -235,6 +235,32 @@ test('shared session participants can open their booking chat', async () => {
   await act(async () => renderer.unmount());
 });
 
+test('device-only session messaging is labeled as private notes', async () => {
+  const privateNotes = jest.fn();
+  let renderer;
+  await act(async () => {
+    ({ renderer } = renderDetails(
+      {
+        id: 'device-session',
+        shared: false,
+        incoming: false,
+        tutorId: 'mika',
+        subject: 'Calculus',
+        startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        status: 'Upcoming',
+      },
+      jest.fn(),
+      privateNotes,
+    ));
+  });
+
+  expect(button(renderer, 'Open private notes')).toBeDefined();
+  expect(button(renderer, 'Message tutor')).toBeUndefined();
+  await act(async () => button(renderer, 'Open private notes').props.onPress());
+  expect(privateNotes).toHaveBeenCalledTimes(1);
+  await act(async () => renderer.unmount());
+});
+
 test('completed sessions display the current rating and allow updating it', async () => {
   const rate = jest.fn();
   const session = {

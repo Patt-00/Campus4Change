@@ -93,7 +93,13 @@ export function SessionWorkspaceScreen({
           </View>
           {message && (session.shared || !session.incoming) && (
             <Link
-              label={session.incoming ? 'Message student' : 'Message tutor'}
+              label={
+                session.shared
+                  ? session.incoming
+                    ? 'Message student'
+                    : 'Message tutor'
+                  : 'Open private notes'
+              }
               onPress={message}
             />
           )}
@@ -104,7 +110,7 @@ export function SessionWorkspaceScreen({
       <Text style={[s.muted, styles.helper]}>
         {session.shared
           ? 'Your agenda and notes stay private in your account. Use the participant chat above to message the other person. Live calls are not available yet.'
-          : 'Keep the booking details and your notes together. Live calls are not available in this version.'}
+          : 'Your notes and messages stay private on this device and are not sent to the tutor. Live calls are not available in this version.'}
       </Text>
       <Field
         label={session.shared ? 'Private agenda and notes' : 'Agenda and notes'}

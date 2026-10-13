@@ -105,6 +105,40 @@ test('a started shared session exposes the complete action', async () => {
   await act(async () => renderer.unmount());
 });
 
+test('device-only workspace labels messages as private notes', async () => {
+  const privateNotes = jest.fn();
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(
+      <SafeAreaProvider initialMetrics={initialMetrics}>
+        <SessionWorkspaceScreen
+          session={{
+            id: 'device-session',
+            shared: false,
+            incoming: false,
+            subject: 'Calculus',
+            startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+            status: 'Upcoming',
+          }}
+          tutor={{ id: 'tutor', name: 'Jordan Student' }}
+          back={jest.fn()}
+          message={privateNotes}
+          save={jest.fn()}
+          complete={jest.fn()}
+        />
+      </SafeAreaProvider>,
+    );
+  });
+
+  const copy = visibleCopy(renderer);
+  expect(button(renderer, 'Open private notes')).toBeDefined();
+  expect(button(renderer, 'Message tutor')).toBeUndefined();
+  expect(copy).toContain('not sent to the tutor');
+  await act(async () => button(renderer, 'Open private notes').props.onPress());
+  expect(privateNotes).toHaveBeenCalledTimes(1);
+  await act(async () => renderer.unmount());
+});
+
 test('the workspace timing updates when an upcoming session starts', async () => {
   jest.useFakeTimers();
   const session = {

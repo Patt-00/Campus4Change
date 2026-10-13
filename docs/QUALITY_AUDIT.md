@@ -120,7 +120,9 @@ production-ready claim.
   scheduled start: the UI, client update path, and Firestore rule enforce the
   time boundary, with tests for denial before start and success after start.
   Home, Sessions, Session Details, and Session Workspace now refresh derived
-  time status at the next start/end boundary while they remain open.
+  time status at the next start/end boundary while they remain open. Device-only
+  session contact links now say **Open private notes** and explain that they are
+  not delivered to the tutor.
 - Verified Firebase users now have live chat inside current shared groups and
   between the two participants in a tutor booking. Chat reads are limited to the
   active conversation and newest 50 messages, with older pages loaded on demand.
@@ -276,3 +278,11 @@ schedule-focused Sessions/Session Details, and the separate 25-minute group
 room timer. Those are historical UI checks, not current-runtime evidence for a
 personal account. A nonfatal focus soft exception was logged before the React
 context was ready; no app crash or JavaScript error followed.
+
+The 2026-10-14 session-workspace update passes all 203 Jest tests in 30 suites,
+lint, the Firestore rules emulator checks, production JavaScript bundling,
+Android unit tests, and the debug build. Its new screen labels keep device-only
+notes distinct from participant chat. Physical-device verification of the
+signed-in shared workspace remains outstanding because no user account was
+signed in during this check; GitHub Actions for the pending source commit must
+also finish before that commit's CI status is recorded.

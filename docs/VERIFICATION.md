@@ -21,6 +21,9 @@
   for both participants. The screen copy distinguishes private notes from chat,
   and the Figma file has an editable workspace frame linked from Session Details
   with the existing 220 ms directional transition.
+- Device-only session contact actions now say **Open private notes** and explain
+  that those messages remain on the device instead of reaching the tutor. Focused
+  Session Details and Workspace tests cover local and shared labels.
 - A future session no longer exposes Mark Session Complete. Completion is allowed
   only at or after the scheduled start in the UI and client data path, and
   Firestore rules independently enforce `request.time >= startsAt`. Tests cover
@@ -28,7 +31,7 @@
   while allowing a started-session completion. A shared clock hook refreshes
   Home, Sessions, Session Details, and Session Workspace at scheduled start/end
   boundaries, so these states update even when the screens remain open.
-- `npm test -- --runInBand`: 201 tests passed in 30 suites. `npm run lint`, the
+- `npm test -- --runInBand`: 203 tests passed in 30 suites. `npm run lint`, the
   isolated Firestore rules emulator suite, `:app:createBundleReleaseJsAndAssets`,
   `:app:testDebugUnitTest`, and `:app:assembleDebug` passed. The updated source was
   not exercised in the session workspace on the POCO because no user account was

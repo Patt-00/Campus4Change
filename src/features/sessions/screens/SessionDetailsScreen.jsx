@@ -82,7 +82,13 @@ export function SessionDetailsScreen({
           </Text>
           {message && (
             <Link
-              label={session.incoming ? 'Message student' : 'Message tutor'}
+              label={
+                session.shared
+                  ? session.incoming
+                    ? 'Message student'
+                    : 'Message tutor'
+                  : 'Open private notes'
+              }
               onPress={message}
             />
           )}
