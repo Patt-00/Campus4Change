@@ -68,14 +68,13 @@ Verified for this checkpoint:
   It creates a disposable `example.test` user, obtains and applies the local
   verification code, refreshes the ID token, verifies the `email_verified`
   claim, and checks Firestore access before and after verification.
-- On 2026-10-13, the Redmi Turbo 4 (`24129RT7CC`, product `rodin`, Android 16)
-  loaded the Firebase-emulator-backed group directory and an existing QA
-  group's details. No group or post was created during this check. The QA
-  account was signed out; the app config was restored to project
-  `campus4change` with emulator routing disabled. After Metro restarted on
-  port 8081 bound to `127.0.0.1`, ADB reverse loaded the bundle and a cold
-  launch rendered the splash screen. This verifies the
-  current Android bundle and splash only, not production Firebase access.
+- Before the latest membership-path change, the Redmi Turbo 4
+  (`24129RT7CC`, product `rodin`, Android 16) loaded the Firebase-emulator-backed
+  group directory and an existing QA group's details. No group or post was
+  created. The QA account was signed out; app config was restored to project
+  `campus4change` with emulator routing disabled. A subsequent cold launch
+  rendered the splash screen through loopback Metro and ADB reverse. These
+  earlier checks do not verify the new membership path or production Firebase.
 - `npm test -- --runInBand` on 2026-10-13 passed all 126 tests in 20 suites.
 - A partial version-one profile missing its name, interests, tutor subjects,
   and school fields restored from the account defaults, opened Home, and
@@ -90,11 +89,11 @@ Verified for this checkpoint:
 - An app-level regression removed a saved conversation's message array, opened
   it through Messages and Chat, then sent a new message. The thread rendered,
   recovered the array, and persisted the new message.
-- After the latest saved-profile, conversation-recovery, and malformed-session
-  changes, the current bundle was cold-launched on the Redmi Turbo 4 through
-  loopback Metro and ADB reverse. The splash rendered and filtered logs
-  contained no React Native JS errors. This confirms startup; malformed data
-  behavior is covered by the focused app and component tests.
+- After the saved-profile, conversation-recovery, and malformed-session
+  changes, that checkpoint's bundle was cold-launched on the Redmi Turbo 4
+  through loopback Metro and ADB reverse. The splash rendered and filtered logs
+  contained no React Native JS errors. This confirms startup for that
+  checkpoint; malformed data behavior is covered by the focused tests.
 - The Android accessibility tree announced full booking dates and included
   session, group, tutor, message, notification, and group-post context in the
   list controls. This was checked while signed into the local demo account; no
@@ -104,6 +103,9 @@ Verified for this checkpoint:
   past-due and completed sections. The app was signed out afterward; the
   existing demo data was preserved. Filtered logs showed no fatal Android or
   React Native JavaScript error during this run.
+- The current membership-path and Firestore-rule change was tested against an
+  isolated Firestore Emulator, not on the phone. The Redmi was connected but at
+  its lock screen during this check; no unlock or bypass was attempted.
 - A fresh disposable Auth-emulator probe remained unverified after signup and
   after requesting verification, became verified only after applying its
   generated code, and was then deleted. The earlier QA account's verified
@@ -118,10 +120,10 @@ Verified for this checkpoint:
   SHA-256: `710f02c7852fc662a0e62137fe67c8f2e656de7ca4f63fe26f2a51a70b4a3266`;
   size: 2,099,258 bytes. The bundle contains no service-account private-key
   marker or `braces`/`micromatch` strings.
-- `./gradlew :app:assembleDebug --max-workers=4 --console=plain` passed locally
-  and built the debug APK. The latest [GitHub Actions run
-  38335649141](https://github.com/Patt-00/Campus4Change/actions/runs/38335649141)
-  passed on commit `7484d4d`: lint, all 126 unit tests, Auth/Firestore emulator
+- `./gradlew :app:createBundleReleaseJsAndAssets --max-workers=4 --console=plain`
+  passed locally for the current source. The latest [GitHub Actions run
+  38338154347](https://github.com/Patt-00/Campus4Change/actions/runs/38338154347)
+  passed on commit `6b7a1d2`: lint, all 126 unit tests, Auth/Firestore emulator
   tests, production bundling, Android debug build, and release-signing guard.
   The Redmi Turbo 4 reported model `24129RT7CC`, product `rodin`, and Android 16.
   `adb install -r` updated the existing debug app without clearing its data.
