@@ -9,6 +9,7 @@ import {
   isPastDueSession,
   sessionTimingStatus,
 } from '../../sessions/data/status';
+import { useSessionClock } from '../../sessions/hooks/useSessionClock';
 
 import { C } from '../../../shared/theme/colors';
 import { s } from '../../../shared/theme/styles';
@@ -43,6 +44,7 @@ const quick = [
 export function HomeScreen({ go, state, directory, tutors }) {
   const [query, setQuery] = useState('');
   const [menu, setMenu] = useState(false);
+  const now = useSessionClock(state.sessions);
   const interest = state.profile.interests[0];
   const matches = interest
     ? directory.filter(
@@ -54,12 +56,12 @@ export function HomeScreen({ go, state, directory, tutors }) {
       ).length
     : 0;
   const next = state.sessions
-    .filter(x => sessionTimingStatus(x) === 'Upcoming')
+    .filter(x => sessionTimingStatus(x, now) === 'Upcoming')
     .sort(
       (a, b) =>
         new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
     )[0];
-  const pastDue = state.sessions.filter(session => isPastDueSession(session));
+  const pastDue = state.sessions.filter(session => isPastDueSession(session, now));
   return (
     <Screen
       title="Campus4Change"

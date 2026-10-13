@@ -560,7 +560,12 @@ test('About explains device-only behavior before sign-in and returns to login', 
   await press('Back');
   expect(hasText('SIGN IN')).toBe(true);
 });
-test('booked session workspace preserves drafts and completes without a focus timer', async () => {
+test('booked session workspace preserves drafts and completes after start without a focus timer', async () => {
+  const timedState = makeQaState();
+  timedState.sessions[0].startsAt = new Date(
+    Date.now() - 15 * 60 * 1000,
+  ).toISOString();
+  mockSaved[qaAccount.id] = JSON.stringify(timedState);
   const listener = jest.spyOn(BackHandler, 'addEventListener');
   await login();
   await press('View all');
@@ -596,6 +601,15 @@ test('booked session workspace preserves drafts and completes without a focus ti
   expect(cleared.props.value).toBe('');
   await press('MARK SESSION COMPLETE');
   expect(hasText('COMPLETED')).toBe(true);
+});
+
+test('future booked sessions cannot be completed before their scheduled start', async () => {
+  await login();
+  await press('View all');
+  await pressWithLabelStarting('View Calculus I details.');
+  await press('OPEN SESSION WORKSPACE');
+  expect(hasText('UPCOMING')).toBe(true);
+  expect(hasText('MARK SESSION COMPLETE')).toBe(false);
 });
 
 test('failed local saves show a retry action that saves the current account data', async () => {

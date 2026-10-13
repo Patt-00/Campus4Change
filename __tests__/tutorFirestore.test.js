@@ -34,7 +34,7 @@ function createFirestore() {
       const transaction = {
         get: jest.fn(async ref => {
           if (ref.path === 'db/tutorBookings/booking-1') {
-            const start = new Date('2026-10-15T09:00:00.000Z');
+            const start = firestore.bookingStart || new Date(Date.now() + 24 * 60 * 60 * 1000);
             const firstBucket = Math.floor(start.getTime() / (30 * 60 * 1000));
             return {
               exists: () => true,
@@ -243,12 +243,13 @@ test('subscribes to each participant role with UID-constrained booking queries',
 test('acceptance reserves both half-hour buckets and maps Firestore status safely', async () => {
   const services = createFirestore();
   firebaseServicesForUser.mockReturnValue(services);
+  services.firestore.bookingStart = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
   await updateTutorBookingStatus('tutor-1', 'booking-1', 'accept');
   const transaction = services.transactions[0];
   expect(transaction.set).toHaveBeenCalledTimes(2);
   const firstBucket = Math.floor(
-    new Date('2026-10-15T09:00:00.000Z').getTime() / (30 * 60 * 1000),
+    services.firestore.bookingStart.getTime() / (30 * 60 * 1000),
   );
   expect(transaction.set.mock.calls).toEqual(
     expect.arrayContaining([
@@ -317,6 +318,36 @@ test('declines an overlapping acceptance and releases both locks on cancellation
   expect(cancellation.update).toHaveBeenCalledWith(
     expect.objectContaining({ path: 'db/tutorBookings/booking-1' }),
     { status: 'cancelled', updatedAt: { serverTimestamp: true } },
+  );
+});
+
+test('refuses to complete an accepted booking before its scheduled start', async () => {
+  const services = createFirestore();
+  firebaseServicesForUser.mockReturnValue(services);
+  services.firestore.bookingStatus = 'accepted';
+
+  await expect(
+    updateTutorBookingStatus('student-1', 'booking-1', 'complete'),
+  ).rejects.toThrow(
+    'A session can be completed only after its scheduled start time.',
+  );
+  expect(services.transactions[0].delete).not.toHaveBeenCalled();
+  expect(services.transactions[0].update).not.toHaveBeenCalled();
+});
+
+test('allows an accepted booking to complete after its scheduled start', async () => {
+  const services = createFirestore();
+  firebaseServicesForUser.mockReturnValue(services);
+  services.firestore.bookingStatus = 'accepted';
+  services.firestore.bookingStart = new Date(Date.now() - 60 * 1000);
+  services.firestore.occupiedBy = 'booking-1';
+
+  await updateTutorBookingStatus('student-1', 'booking-1', 'complete');
+
+  expect(services.transactions[0].delete).toHaveBeenCalledTimes(2);
+  expect(services.transactions[0].update).toHaveBeenCalledWith(
+    expect.objectContaining({ path: 'db/tutorBookings/booking-1' }),
+    { status: 'completed', updatedAt: { serverTimestamp: true } },
   );
 });
 

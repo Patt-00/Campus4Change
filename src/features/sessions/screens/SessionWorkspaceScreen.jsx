@@ -10,7 +10,8 @@ import {
   Link,
 } from '../../../shared/components/UI';
 import { sessionTime } from '../../../shared/data/utils';
-import { sessionTimingStatus } from '../data/status';
+import { canCompleteSession, sessionTimingStatus } from '../data/status';
+import { useSessionClock } from '../hooks/useSessionClock';
 import { C } from '../../../shared/theme/colors';
 import { s } from '../../../shared/theme/styles';
 
@@ -27,7 +28,9 @@ export function SessionWorkspaceScreen({
   const [notes, setNotes] = useState(initialNotes);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
-  const timingStatus = sessionTimingStatus(session);
+  const now = useSessionClock(session);
+  const timingStatus = sessionTimingStatus(session, now);
+  const canComplete = canCompleteSession(session, now);
 
   async function finishSession() {
     if (saving) {
@@ -88,8 +91,11 @@ export function SessionWorkspaceScreen({
               {session.incoming ? 'Student participant' : tutor.course || 'Campus tutor'}
             </Text>
           </View>
-          {!session.shared && !session.incoming && (
-            <Link label="Message tutor" onPress={message} />
+          {message && (session.shared || !session.incoming) && (
+            <Link
+              label={session.incoming ? 'Message student' : 'Message tutor'}
+              onPress={message}
+            />
           )}
         </View>
       </View>
@@ -97,7 +103,7 @@ export function SessionWorkspaceScreen({
       <Text style={s.section}>Session notes</Text>
       <Text style={[s.muted, styles.helper]}>
         {session.shared
-          ? 'Your notes stay private in your account. Live chat and calls are not available yet.'
+          ? 'Your agenda and notes stay private in your account. Use the participant chat above to message the other person. Live calls are not available yet.'
           : 'Keep the booking details and your notes together. Live calls are not available in this version.'}
       </Text>
       <Field
@@ -119,7 +125,7 @@ export function SessionWorkspaceScreen({
         disabled={saving}
         onPress={() => save(notes)}
       />
-      {session.status === 'Upcoming' && (
+      {canComplete && (
         <AppButton
           title="MARK SESSION COMPLETE"
           busy={saving}

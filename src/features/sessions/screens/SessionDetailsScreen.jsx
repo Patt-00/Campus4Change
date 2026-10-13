@@ -10,6 +10,7 @@ import {
 } from '../../../shared/components/UI';
 import { dateLabel, timeRange } from '../../../shared/data/utils';
 import { canRescheduleSession, sessionTimingStatus } from '../data/status';
+import { useSessionClock } from '../hooks/useSessionClock';
 
 import { C } from '../../../shared/theme/colors';
 import { s } from '../../../shared/theme/styles';
@@ -27,7 +28,8 @@ export function SessionDetailsScreen({
 }) {
   const [busyAction, setBusyAction] = useState('');
   const [actionError, setActionError] = useState('');
-  const timingStatus = sessionTimingStatus(session);
+  const now = useSessionClock(session);
+  const timingStatus = sessionTimingStatus(session, now);
   async function updateRequest(action) {
     if (!respond || busyAction) {
       return;
@@ -166,7 +168,7 @@ export function SessionDetailsScreen({
             }
           />
 
-          {canRescheduleSession(session) && !session.shared && (
+          {canRescheduleSession(session, now) && !session.shared && (
             <AppButton
               title="RESCHEDULE"
               outline

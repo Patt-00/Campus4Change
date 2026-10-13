@@ -503,27 +503,85 @@ try {
     }),
   );
 
-  const completedBooking = doc(collection(bob, 'tutorBookings'));
-  const completedRequest = bookingData('bob', 'Robert Student');
-  await assertSucceeds(setDoc(completedBooking, completedRequest));
-  const acceptCompleted = writeBatch(alice);
-  addSlotLocks(acceptCompleted, alice, completedBooking.id, completedRequest);
-  acceptCompleted.update(doc(alice, 'tutorBookings', completedBooking.id), {
-    status: 'accepted',
-    updatedAt: serverTimestamp(),
-  });
-  await assertSucceeds(acceptCompleted.commit());
-  const completeBooking = writeBatch(bob);
-  completedRequest.slotBuckets.forEach(slotBucket =>
-    completeBooking.delete(
+  const futureCompletionBooking = doc(collection(bob, 'tutorBookings'));
+  const futureCompletionRequest = bookingData('bob', 'Robert Student');
+  await assertSucceeds(
+    setDoc(futureCompletionBooking, futureCompletionRequest),
+  );
+  const acceptFutureCompletion = writeBatch(alice);
+  addSlotLocks(
+    acceptFutureCompletion,
+    alice,
+    futureCompletionBooking.id,
+    futureCompletionRequest,
+  );
+  acceptFutureCompletion.update(
+    doc(alice, 'tutorBookings', futureCompletionBooking.id),
+    {
+      status: 'accepted',
+      updatedAt: serverTimestamp(),
+    },
+  );
+  await assertSucceeds(acceptFutureCompletion.commit());
+  const prematureCompletion = writeBatch(bob);
+  futureCompletionRequest.slotBuckets.forEach(slotBucket =>
+    prematureCompletion.delete(
       doc(bob, 'tutorSlots', 'alice', 'slots', String(slotBucket)),
     ),
   );
-  completeBooking.update(completedBooking, {
+  prematureCompletion.update(futureCompletionBooking, {
     status: 'completed',
     updatedAt: serverTimestamp(),
   });
-  await assertSucceeds(completeBooking.commit());
+  await assertFails(prematureCompletion.commit());
+  const stillUpcoming = await assertSucceeds(getDoc(futureCompletionBooking));
+  assert.equal(stillUpcoming.data().status, 'accepted');
+
+  const pastStartsAt = new Date(Date.now() - 60 * 60 * 1000);
+  const pastCompletionRequest = bookingData(
+    'bob',
+    'Robert Student',
+    pastStartsAt,
+  );
+  const completedBooking = doc(collection(bob, 'tutorBookings'));
+  await environment.withSecurityRulesDisabled(async context => {
+    const adminDb = context.firestore();
+    const seededAt = Timestamp.fromDate(
+      new Date(pastStartsAt.getTime() - 30 * 60 * 1000),
+    );
+    await setDoc(doc(adminDb, 'tutorBookings', completedBooking.id), {
+      ...pastCompletionRequest,
+      status: 'accepted',
+      createdAt: seededAt,
+      updatedAt: seededAt,
+    });
+    await Promise.all(
+      pastCompletionRequest.slotBuckets.map(slotBucket =>
+        setDoc(
+          doc(adminDb, 'tutorSlots', 'alice', 'slots', String(slotBucket)),
+          {
+            bookingId: completedBooking.id,
+            tutorUid: 'alice',
+            studentUid: 'bob',
+            slotBucket,
+            startsAt: pastCompletionRequest.startsAt,
+            createdAt: seededAt,
+          },
+        ),
+      ),
+    );
+  });
+  const completePastBooking = writeBatch(bob);
+  pastCompletionRequest.slotBuckets.forEach(slotBucket =>
+    completePastBooking.delete(
+      doc(bob, 'tutorSlots', 'alice', 'slots', String(slotBucket)),
+    ),
+  );
+  completePastBooking.update(completedBooking, {
+    status: 'completed',
+    updatedAt: serverTimestamp(),
+  });
+  await assertSucceeds(completePastBooking.commit());
   await assertSucceeds(
     writeBookingChat(
       bob,

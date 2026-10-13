@@ -10,7 +10,9 @@ import {
 } from '../src/shared/data/catalog';
 import { parseMeetup } from '../src/features/groups/data/meetup';
 import {
+  canCompleteSession,
   canRescheduleSession,
+  nextSessionTimingBoundary,
   sessionTimingStatus,
 } from '../src/features/sessions/data/status';
 import { stateForPersistence } from '../src/shared/state/persistence';
@@ -107,6 +109,52 @@ test('only sessions whose scheduled time is still upcoming can be rescheduled', 
       Date.parse('2026-10-12T09:00:00.000Z'),
     ),
   ).toBe(false);
+});
+test('sessions can be completed only at or after a valid scheduled start', () => {
+  const session = {
+    id: 'timed',
+    status: 'Upcoming',
+    startsAt: '2026-10-12T10:00:00.000Z',
+  };
+
+  expect(
+    canCompleteSession(session, Date.parse('2026-10-12T09:59:59.999Z')),
+  ).toBe(false);
+  expect(
+    canCompleteSession(session, Date.parse('2026-10-12T10:00:00.000Z')),
+  ).toBe(true);
+  expect(
+    canCompleteSession(session, Date.parse('2026-10-12T11:00:00.000Z')),
+  ).toBe(true);
+  expect(
+    canCompleteSession(
+      { ...session, status: 'Completed' },
+      Date.parse('2026-10-12T11:00:00.000Z'),
+    ),
+  ).toBe(false);
+  expect(
+    canCompleteSession(
+      { ...session, startsAt: 'invalid' },
+      Date.parse('2026-10-12T11:00:00.000Z'),
+    ),
+  ).toBe(false);
+});
+test('the session clock schedules status refresh at start and end boundaries', () => {
+  const startsAt = Date.parse('2026-10-12T10:00:00.000Z');
+  const session = {
+    id: 'timed',
+    status: 'Upcoming',
+    startsAt: new Date(startsAt).toISOString(),
+  };
+
+  expect(nextSessionTimingBoundary([session], startsAt - 1000)).toBe(startsAt);
+  expect(nextSessionTimingBoundary([session], startsAt)).toBe(
+    startsAt + 60 * 60 * 1000,
+  );
+  expect(nextSessionTimingBoundary([session], startsAt + 60 * 60 * 1000)).toBe(
+    null,
+  );
+  expect(nextSessionTimingBoundary([{ status: 'Pending' }], startsAt)).toBeNull();
 });
 test.each([undefined, null, '', 'not-a-date'])(
   'upcoming sessions with an invalid start time need review: %s',

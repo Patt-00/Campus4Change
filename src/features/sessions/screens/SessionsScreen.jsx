@@ -4,6 +4,7 @@ import { Screen } from '../../../shared/components/Screen';
 import { Chip, Empty, Link } from '../../../shared/components/UI';
 import { sessionTime } from '../../../shared/data/utils';
 import { isPastDueSession, sessionTimingStatus } from '../data/status';
+import { useSessionClock } from '../hooks/useSessionClock';
 
 import { s } from '../../../shared/theme/styles';
 
@@ -18,9 +19,10 @@ export function SessionsScreen({
   initialFilter = 'Upcoming',
 }) {
   const [filter, setFilter] = useState(initialFilter);
+  const now = useSessionClock(sessions);
   const requests = sessions.filter(session => session.status === 'Pending');
   function card(session) {
-    const timingStatus = sessionTimingStatus(session);
+    const timingStatus = sessionTimingStatus(session, now);
     const savedTutorName =
       list.find(t => t.id === session.tutorId)?.name ?? 'Saved tutor';
     const contactName = session.incoming
@@ -95,7 +97,7 @@ export function SessionsScreen({
       if (filter === 'Cancelled') {
         return ['Cancelled', 'Declined'].includes(session.status);
       }
-      return sessionTimingStatus(session) === filter;
+      return sessionTimingStatus(session, now) === filter;
     })
     .sort((a, b) => {
       const aStartsAt = new Date(a.startsAt).getTime();
@@ -115,15 +117,15 @@ export function SessionsScreen({
     });
   const inProgress =
     filter === 'Upcoming'
-      ? sessions.filter(x => sessionTimingStatus(x) === 'In progress')
+      ? sessions.filter(x => sessionTimingStatus(x, now) === 'In progress')
       : [];
   const pastDue =
     filter === 'Upcoming'
-      ? sessions.filter(session => isPastDueSession(session))
+      ? sessions.filter(session => isPastDueSession(session, now))
       : [];
   const needsReview =
     filter === 'Upcoming'
-      ? sessions.filter(x => sessionTimingStatus(x) === 'Needs review')
+      ? sessions.filter(x => sessionTimingStatus(x, now) === 'Needs review')
       : [];
   const completedHistory =
     filter === 'Upcoming'

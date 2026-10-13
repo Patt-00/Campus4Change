@@ -36,3 +36,46 @@ export function isPastDueSession(session, now = Date.now()) {
 export function canRescheduleSession(session, now = Date.now()) {
   return sessionTimingStatus(session, now) === 'Upcoming';
 }
+
+export function canCompleteSession(session, now = Date.now()) {
+  const startsAt =
+    typeof session?.startsAt === 'string' ||
+    typeof session?.startsAt === 'number' ||
+    session?.startsAt instanceof Date
+      ? new Date(session.startsAt).getTime()
+      : Number.NaN;
+  return (
+    ['Upcoming', 'In progress', 'Past due'].includes(session?.status) &&
+    Number.isFinite(startsAt) &&
+    Number.isFinite(now) &&
+    now >= startsAt
+  );
+}
+
+export function nextSessionTimingBoundary(sessions, now = Date.now()) {
+  if (!Array.isArray(sessions) || !Number.isFinite(now)) {
+    return null;
+  }
+
+  let nextBoundary = Number.POSITIVE_INFINITY;
+  for (const session of sessions) {
+    if (!['Upcoming', 'In progress'].includes(session?.status)) {
+      continue;
+    }
+    const startsAt =
+      typeof session.startsAt === 'string'
+        ? new Date(session.startsAt).getTime()
+        : Number.NaN;
+    if (!Number.isFinite(startsAt)) {
+      continue;
+    }
+    const endsAt = startsAt + SESSION_DURATION_MS;
+    if (startsAt > now) {
+      nextBoundary = Math.min(nextBoundary, startsAt);
+    }
+    if (endsAt > now) {
+      nextBoundary = Math.min(nextBoundary, endsAt);
+    }
+  }
+  return Number.isFinite(nextBoundary) ? nextBoundary : null;
+}

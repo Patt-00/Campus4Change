@@ -17,6 +17,22 @@
 - On the POCO X4 GT, Sign Up showed Google and email/password options. Submitting
   the empty form showed the expected validation message, and returning to Login
   left the app signed out; no account was created during this check.
+- Firebase tutor-session chat is now available from the Booked Session Workspace
+  for both participants. The screen copy distinguishes private notes from chat,
+  and the Figma file has an editable workspace frame linked from Session Details
+  with the existing 220 ms directional transition.
+- A future session no longer exposes Mark Session Complete. Completion is allowed
+  only at or after the scheduled start in the UI and client data path, and
+  Firestore rules independently enforce `request.time >= startsAt`. Tests cover
+  before/after boundary behavior, and the rules emulator denies early completion
+  while allowing a started-session completion. A shared clock hook refreshes
+  Home, Sessions, Session Details, and Session Workspace at scheduled start/end
+  boundaries, so these states update even when the screens remain open.
+- `npm test -- --runInBand`: 201 tests passed in 30 suites. `npm run lint`, the
+  isolated Firestore rules emulator suite, `:app:createBundleReleaseJsAndAssets`,
+  `:app:testDebugUnitTest`, and `:app:assembleDebug` passed. The updated source was
+  not exercised in the session workspace on the POCO because no user account was
+  signed in; shared-account behavior is verified by the UI, unit, and emulator tests.
 - A fresh `npm audit --omit=dev` still reports 20 high dependency paths rooted
   in `braces@3.0.3`; the upstream depth-guard PR is closed without merging and
   changes existing output behavior. No dependency override was applied.
@@ -44,9 +60,12 @@
 - Route changes use a 220 ms ease-out opacity and horizontal transition driven
   by React Native's native animation driver. Forward navigation enters from the
   right, Back enters from the left, and tab navigation uses a smaller dissolve.
-- The existing Figma prototype's 63 navigation links now have matching 220 ms
-  ease-out transitions: 36 directional move-ins and 27 tab dissolves. The
-  Plugin API readback confirmed all 63 saved transitions.
+- The Figma prototype now has 69 navigation action nodes with 220 ms ease-out
+  transitions: 42 directional move-ins and 27 tab dissolves. The 63 original
+  actions were preserved, and the Booked Session Workspace flow adds six actions
+  across four visible links/buttons. Plugin API readback verified destinations
+  from Session Details to the workspace, back to Session Details, and participant
+  links to the shared Chat frame.
 - The Home quick actions, Study Groups cards, Profile actions, and Sessions row
   affordance were simplified in code and in Figma while retaining the current
   dark palette, rounded cards, and cyan accents. The login has no demo sign-in,

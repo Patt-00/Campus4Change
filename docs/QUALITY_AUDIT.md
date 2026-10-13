@@ -114,6 +114,13 @@ production-ready claim.
 - Booked and group sessions use appointment-style workspaces for their schedule,
   location or tutor, agenda, and notes. Group notes stay private until the member
   explicitly posts them.
+- Firebase tutor-session chat is now reachable directly from the booked-session
+  workspace for both participants; the previous helper copy incorrectly said
+  chat was unavailable. A booking can no longer be marked complete before its
+  scheduled start: the UI, client update path, and Firestore rule enforce the
+  time boundary, with tests for denial before start and success after start.
+  Home, Sessions, Session Details, and Session Workspace now refresh derived
+  time status at the next start/end boundary while they remain open.
 - Verified Firebase users now have live chat inside current shared groups and
   between the two participants in a tutor booking. Chat reads are limited to the
   active conversation and newest 50 messages, with older pages loaded on demand.

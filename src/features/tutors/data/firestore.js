@@ -280,6 +280,15 @@ export async function updateTutorBookingStatus(uid, bookingId, status) {
       booking.status === 'accepted' &&
       ['cancel', 'complete'].includes(status)
     ) {
+      if (status === 'complete') {
+        const startsAt = booking.startsAt?.toDate?.();
+        const startTime = startsAt instanceof Date ? startsAt.getTime() : Number.NaN;
+        if (!Number.isFinite(startTime) || Date.now() < startTime) {
+          throw new Error(
+            'A session can be completed only after its scheduled start time.',
+          );
+        }
+      }
       const occupiedSlots = await Promise.all(
         slotRefs.map(slotRef => transaction.get(slotRef)),
       );

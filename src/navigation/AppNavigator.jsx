@@ -26,7 +26,10 @@ import { NotificationsScreen } from '../features/notifications/screens/Notificat
 import { BeTutorScreen } from '../features/profile/screens/BeTutorScreen';
 import { EditProfileScreen } from '../features/profile/screens/EditProfileScreen';
 import { ProfileScreen } from '../features/profile/screens/ProfileScreen';
-import { canRescheduleSession } from '../features/sessions/data/status';
+import {
+  canCompleteSession,
+  canRescheduleSession,
+} from '../features/sessions/data/status';
 import { AppButton } from '../shared/components/AppButton';
 import { Empty, Link } from '../shared/components/UI';
 import { RouteTransition } from '../shared/components/RouteTransition';
@@ -803,6 +806,12 @@ export function AppNavigator() {
               back();
             }}
             complete={async notes => {
+              if (!canCompleteSession(session)) {
+                return {
+                  error:
+                    'A session can be completed only after its scheduled start time.',
+                };
+              }
               if (session.shared) {
                 dispatch({ type: 'roomDraft', id: session.id, text: notes });
                 const result = await sharedTutors.updateRequest(

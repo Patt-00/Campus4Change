@@ -2,9 +2,9 @@
 
 Reference: [Campus4Change Mobile App Prototype](https://www.figma.com/proto/i23zbYooPqV1EkTLXfnxMo/Campus4Change-Mobile-App-Prototype?node-id=1-2&starting-point-node-id=1%3A2).
 
-The file now lists the 18 mobile screens below and a separate `Campus4Change Components` page for reusable dark-theme controls. The Login and Sign-up frames show the implemented Google buttons and account guidance, using a reusable token-bound Google button component. The component page also includes the red inline auth-feedback component used when Google sign-in does not complete and a token-bound cloud-sync pending banner. The Home frame shows its instance at the top when Firebase has not acknowledged the newest local state. The Group Session frame is built from editable text, vectors, variables, and component instances; its visual composition and the updated Group Details screen were inspected in Figma.
+The file now lists the 19 mobile screens below and a separate `Campus4Change Components` page for reusable dark-theme controls. The Login and Sign-up frames show the implemented Google buttons and account guidance, using a reusable token-bound Google button component. The component page also includes the red inline auth-feedback component used when Google sign-in does not complete and a token-bound cloud-sync pending banner. The Home frame shows its instance at the top when Firebase has not acknowledged the newest local state. The Group Session and Booked Session Workspace frames use editable text, variables, and component instances; their compositions and the updated Group Details and Session Details screens were visually inspected in Figma.
 
-The 63 existing screen-navigation links use 220 ms ease-out transitions. Forward and Back routes use directional move-ins; tab changes dissolve, matching the native-driven transitions in the React Native app.
+The prototype has 69 navigation action nodes: 42 directional 220 ms ease-out move-ins and 27 tab dissolves. The new Booked Session Workspace flow adds four visible links/buttons: Session Details to the workspace, Back to Session Details, and participant links to Chat. The Back and Open Workspace targets have reactions on both the text and button surface for reliable hit coverage.
 
 The app follows the dark background, cyan actions, rounded cards, Inter typography, circle avatars, and five-tab layout. Scrolling, device insets, editable data, validation, and local-storage notices adapt the fixed 390-by-844 reference to Android. Exact 1:1 pixel matching has not been verified.
 
@@ -25,6 +25,7 @@ The latest visual pass keeps the existing colors and card style while removing s
 | 93:2 | Group Session | Meetup topic, status, date/time, location, group notes, and explicit save/share action. |
 | 1:324 | Sessions | Upcoming, requests, completed, and cancelled filters with incoming/outgoing request context. |
 | 1:361 | Session Details | Accept/decline/cancel shared requests, tutor/student participant chat, private notes, and local reschedule/rating flows. |
+| 147:35 | Booked Session Workspace | Private agenda and notes, participant chat, and completion only after the scheduled start; Back returns to Session Details. |
 | 1:386 | Messages | Search chat names and private notes; open member or tutor-session chats. |
 | 1:422 | Chat | Deliver group messages to current members and tutor-session messages to their two participants; device-only conversations remain private notes. |
 | 1:438 | Notifications | Mark read and open linked session/group. |
@@ -38,6 +39,8 @@ The app adds supporting forms for group creation, study posts/replies, becoming 
 Version 1.2.0 keeps the visual theme while replacing letter icons with outline icons, increasing text and touch sizes, and allowing custom interests and optional user-entered school details. The dashboard uses saved interests and current tutor counts. Chosen tutor times carry into booking. Group schedules use their optional saved date/time; no schedule is invented for old groups. New accounts contain no seeded content, and device-only users see only their own saved groups and tutor listing.
 
 Group sessions show their meetup topic, scheduled date and time, location, and member count in the same appointment-style layout as booked-session workspaces. Draft notes stay private when returning with Back. The explicit Post Notes to Group action shares notes to a joined group's feed; device-only groups keep their notes local. Group sessions do not include a focus timer or a live call.
+
+The Booked Session Workspace is a supporting screen for tutor requests. Session Details opens it; Firebase sessions expose the participant chat there, and the Message tutor link opens the existing Chat frame. The mark-complete action is shown only after the booked start time.
 
 ## Limits
 

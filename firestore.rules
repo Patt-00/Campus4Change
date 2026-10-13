@@ -677,6 +677,7 @@ service cloud.firestore {
               && slotRemovedAfter(resource.data, 1))
           || (resource.data.status == 'accepted'
               && request.resource.data.status == 'completed'
+              && request.time >= resource.data.startsAt
               && slotRemovedAfter(resource.data, 0)
               && slotRemovedAfter(resource.data, 1)));
       allow delete: if false;
