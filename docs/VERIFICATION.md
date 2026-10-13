@@ -24,6 +24,11 @@
   shared Firebase features. A TIP-only `@tip.edu.ph` allowlist versus any
   verified email has been raised for product direction; no access policy was
   changed pending that decision.
+- On 2026-10-14, the authenticated Firebase Console session verified project
+  `campus4change` and its default `asia-southeast1` database. The Data tab is
+  empty, live rules are deny-all, and Manual indexes are empty. The current
+  checked-in index manifest has four composite indexes, one more than the prior
+  deployment prompt described; no live rules/indexes were changed.
 - Tutor-hook action errors are tied to the active Firebase UID and are cleared
   when the signed-in account changes. Five new hook tests cover subscriptions,
   loading, retry, stale callbacks, account switching, signed-out behavior, and
