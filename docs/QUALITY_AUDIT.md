@@ -116,11 +116,10 @@ production-ready claim.
   a new message repairs the array; malformed timestamps no longer break sorting.
   An app-level regression loads such a saved state, opens the thread, sends, and
   verifies persistence.
-- Saved profiles now fill missing newer fields from account defaults before
-  feature screens render. A version-one state missing name, interests, and
-  tutor subjects previously crashed while the tutor directory read
-  `tutorSubjects.length`; the app-level restore test verifies Home renders and
-  the recovered defaults are persisted.
+- Partial version-one profiles now fill missing fields from account defaults
+  before feature screens render. A record missing name, interests, and tutor
+  subjects previously crashed while the directory read `tutorSubjects.length`;
+  the app-level restore test verifies Home renders and the defaults persist.
 - Interactive list labels now include their visible context: session time,
   status, and tutor; group subject, membership, and sharing state; tutor
   subjects and rating; message preview; and notification body and read state.

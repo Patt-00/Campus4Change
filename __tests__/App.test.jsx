@@ -211,7 +211,7 @@ test('rejects saved data from another account and clears the native sign-in', as
   expect(mockStore.saveState).not.toHaveBeenCalled();
 });
 
-test('saved profiles missing newer fields restore defaults before Home renders', async () => {
+test('partial version-one profiles restore missing defaults before Home renders', async () => {
   const savedState = initialState(demo);
   delete savedState.profile.name;
   delete savedState.profile.interests;

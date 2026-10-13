@@ -19,7 +19,7 @@ Verified for this checkpoint:
   shared writes across account changes, queued state persistence after a switch
   even when both accounts share the same `updatedAt`, unknown and past-due
   session statuses, malformed or missing session start times across Home,
-  Sessions, and Session Details, missing profile-field restoration, contextual
+  Sessions, and Session Details, partial-profile recovery, contextual
   accessibility labels for booking dates, sessions, groups, tutors, messages,
   notifications, and group posts, the Home overdue warning, and theme color
   contrast.
@@ -76,9 +76,9 @@ Verified for this checkpoint:
   launch rendered the splash screen. This verifies the
   current Android bundle and splash only, not production Firebase access.
 - `npm test -- --runInBand` on 2026-10-13 passed all 122 tests in 20 suites.
-- A version-one saved profile missing its name, interests, tutor subjects, and
-  school fields restored from the account defaults, opened Home, and persisted
-  the restored values without losing the session/group data.
+- A partial version-one profile missing its name, interests, tutor subjects,
+  and school fields restored from the account defaults, opened Home, and
+  persisted the restored values without losing session/group data.
 - An app-level regression removed a saved conversation's message array, opened
   it through Messages and Chat, then sent a new message. The thread rendered,
   recovered the array, and persisted the new message.
