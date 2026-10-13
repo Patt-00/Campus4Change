@@ -29,6 +29,7 @@ import { ProfileScreen } from '../features/profile/screens/ProfileScreen';
 import { canRescheduleSession } from '../features/sessions/data/status';
 import { AppButton } from '../shared/components/AppButton';
 import { Empty, Link } from '../shared/components/UI';
+import { RouteTransition } from '../shared/components/RouteTransition';
 import { Screen } from '../shared/components/Screen';
 import { uid } from '../shared/data/demo';
 import { useSharedGroups } from '../features/groups/hooks/useSharedGroups';
@@ -57,6 +58,13 @@ const restoreStyles = StyleSheet.create({
 export function AppNavigator() {
   const [route, setRoute] = useState({ page: 'Onboarding' });
   const [history, setHistory] = useState([]);
+  const [transitionDirection, setTransitionDirection] = useState('forward');
+  const routeKey = JSON.stringify(route);
+  const renderTransition = children => (
+    <RouteTransition key={routeKey} direction={transitionDirection}>
+      {children}
+    </RouteTransition>
+  );
   const {
     state,
     saveError,
@@ -72,10 +80,12 @@ export function AppNavigator() {
     useCampusSession({
       onSignedIn: () => {
         setHistory([]);
+        setTransitionDirection('forward');
         setRoute({ page: 'Home' });
       },
       onSignedOut: () => {
         setHistory([]);
+        setTransitionDirection('forward');
         setRoute({ page: 'Login' });
       },
     });
@@ -144,12 +154,14 @@ export function AppNavigator() {
       ) {
         return;
       }
+      setTransitionDirection(tabs.has(target.page) ? 'tab' : 'forward');
       setHistory(prev => (tabs.has(target.page) ? [] : [...prev, route]));
       setRoute(target);
     },
     [route, state],
   );
   const back = useCallback(() => {
+    setTransitionDirection('backward');
     if (history.length) {
       setRoute(history[history.length - 1]);
       setHistory(history.slice(0, -1));
@@ -183,22 +195,24 @@ export function AppNavigator() {
     );
   }
   if (route.page === 'Onboarding') {
-    return <OnboardingScreen go={go} />;
+    return renderTransition(<OnboardingScreen go={go} />);
   }
   if (route.page === 'Introduction') {
-    return <IntroductionScreen go={go} back={back} />;
+    return renderTransition(<IntroductionScreen go={go} back={back} />);
   }
   if (route.page === 'Login') {
-    return <LoginScreen go={go} back={back} auth={auth} />;
+    return renderTransition(<LoginScreen go={go} back={back} auth={auth} />);
   }
   if (route.page === 'Sign Up') {
-    return <SignUpScreen go={go} back={back} auth={auth} />;
+    return renderTransition(<SignUpScreen go={go} back={back} auth={auth} />);
   }
   if (route.page === 'About' && !state) {
-    return <AboutScreen back={back} firebaseConfigured={auth.firebaseConfigured} />;
+    return renderTransition(
+      <AboutScreen back={back} firebaseConfigured={auth.firebaseConfigured} />,
+    );
   }
   if (!state) {
-    return <OnboardingScreen go={go} />;
+    return renderTransition(<OnboardingScreen go={go} />);
   }
   const ownId = 'local-' + state.profile.id;
   const list = syncUid ? sharedTutors.tutors : knownTutors(state);
@@ -833,15 +847,17 @@ export function AppNavigator() {
           />
         </View>
       )}
-      {screen ?? (
-        <Screen title="Not found" back={back}>
-          <Empty
-            title="This item is unavailable"
-            body="Return home and select another item."
-          />
+      {renderTransition(
+        screen ?? (
+          <Screen title="Not found" back={back}>
+            <Empty
+              title="This item is unavailable"
+              body="Return home and select another item."
+            />
 
-          <AppButton title="BACK TO HOME" onPress={() => go('Home')} />
-        </Screen>
+            <AppButton title="BACK TO HOME" onPress={() => go('Home')} />
+          </Screen>
+        ),
       )}
     </View>
   );

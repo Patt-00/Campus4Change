@@ -1,5 +1,34 @@
 # Verification for 1.2.0
 
+## Current source update — 2026-10-14
+
+- Tutor-hook action errors are tied to the active Firebase UID and are cleared
+  when the signed-in account changes. Five new hook tests cover subscriptions,
+  loading, retry, stale callbacks, account switching, signed-out behavior, and
+  tutor action routing.
+- Route changes use a 220 ms ease-out opacity and horizontal transition driven
+  by React Native's native animation driver. Forward navigation enters from the
+  right, Back enters from the left, and tab navigation uses a smaller dissolve.
+- The existing Figma prototype's 63 navigation links now have matching 220 ms
+  ease-out transitions: 36 directional move-ins and 27 tab dissolves. The
+  Plugin API readback confirmed all 63 saved transitions.
+- `npm test -- --runInBand --coverage`: 165 tests passed in 26 suites;
+  statement coverage 83.49% and branch coverage 74.60%. `npm run lint` passed
+  without warnings. `:app:createBundleReleaseJsAndAssets` passed for the updated
+  source; its 2,637,816-byte bundle has SHA-256
+  `12b3f8e7e26c022c7479ee8a20acfa2923d6eceb13a9e388f6db4e9bf1f59d5b`.
+  `:app:assembleDebug` also passed; Gradle reported the build up to date.
+- On the POCO X4 GT (model `22041216G`, Android 14), a cold launch displayed the
+  logo onboarding screen. Onboarding to Introduction to Login worked, and the
+  Login Back control returned to Introduction. A mid-transition screenshot
+  showed the reverse slide and fade in progress before it settled; filtered
+  React Native and Android error logs were empty. The app was left on Login.
+  This checked navigation only; no Google account exchange was attempted.
+- The current Firebase rules and indexes remain undeployed. The latest
+  successful GitHub Actions run before this source update was
+  [38441596481](https://github.com/Patt-00/Campus4Change/actions/runs/38441596481)
+  on `38b84af`; that run does not include this update.
+
 ## Current source work — 2026-10-13
 
 This local checkpoint is on branch `codex/firebase-auth-firestore`. It includes

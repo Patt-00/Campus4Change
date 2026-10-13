@@ -28,12 +28,16 @@ export function useSharedTutors({ uid, enabled, profile }) {
     tutorsLoaded: false,
     bookingsLoaded: false,
   });
-  const [actionError, setActionError] = useState('');
+  const [actionError, setActionError] = useState({ uid: null, message: '' });
   const [retryKey, setRetryKey] = useState(0);
-  const activeUid = useRef(uid);
-  activeUid.current = uid;
+  const activeUid = useRef(enabled ? uid : null);
+  const previousUid = useRef(uid);
+  activeUid.current = enabled ? uid : null;
 
   useEffect(() => {
+    const accountChanged = previousUid.current !== uid;
+    previousUid.current = uid;
+
     if (!enabled || !uid) {
       setResult({
         uid: null,
@@ -45,8 +49,12 @@ export function useSharedTutors({ uid, enabled, profile }) {
         tutorsLoaded: false,
         bookingsLoaded: false,
       });
-      setActionError('');
+      setActionError({ uid: null, message: '' });
       return undefined;
+    }
+
+    if (accountChanged) {
+      setActionError({ uid: null, message: '' });
     }
 
     let active = true;
@@ -116,13 +124,15 @@ export function useSharedTutors({ uid, enabled, profile }) {
   }, [enabled, retryKey, uid]);
 
   const runAction = useCallback(async action => {
-    setActionError('');
+    if (activeUid.current === uid) {
+      setActionError({ uid, message: '' });
+    }
     try {
       return await action();
     } catch (error) {
       const message = errorText(error);
       if (activeUid.current === uid) {
-        setActionError(message);
+        setActionError({ uid, message });
       }
       return { error: message };
     }
@@ -166,7 +176,8 @@ export function useSharedTutors({ uid, enabled, profile }) {
         !(result.tutorsLoaded && result.bookingsLoaded) &&
         !result.error,
     ),
-    actionError,
+    actionError:
+      enabled && uid && actionError.uid === uid ? actionError.message : '',
     hasMoreTutors: result.uid === uid && result.hasMoreTutors,
     hasMoreBookings: result.uid === uid && result.hasMoreBookings,
     retry: () => setRetryKey(value => value + 1),

@@ -50,6 +50,13 @@ production-ready claim.
   the subject filter list for previously saved profiles. Firebase tutor
   profiles publish to the verified-student directory without exposing email or
   Student ID; device-only listings remain local.
+- Shared tutor subscription state now scopes action errors to the active
+  Firebase UID. Five focused hook tests cover the two-query loading barrier,
+  retry and unsubscribe behavior, stale callbacks, account switches, signed-out
+  state, and UID-bound tutor actions.
+- Screen routes now enter with a short opacity and horizontal movement using the
+  native animation driver. Back and tab changes use distinct motion, and all
+  existing prototype navigation links have matching transitions in Figma.
 - Firebase students can send tutor session requests, see incoming/outgoing
   requests live in Sessions, and accept, decline, cancel, or complete them.
   Participant-only rules protect each request. Two timestamp-derived half-hour
