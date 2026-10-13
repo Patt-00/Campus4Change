@@ -15,13 +15,14 @@ Verified for this checkpoint:
 
 - `npm run lint`: passed without warnings.
 - `npm test -- --runInBand --coverage --coverageReporters=json --coverageReporters=json-summary`:
-  121 tests passed in 20 suites. Tests cover stale group callbacks and pending
+  122 tests passed in 20 suites. Tests cover stale group callbacks and pending
   shared writes across account changes, queued state persistence after a switch
   even when both accounts share the same `updatedAt`, unknown and past-due
   session statuses, malformed or missing session start times across Home,
-  Sessions, and Session Details, contextual accessibility labels for booking
-  dates, sessions, groups, tutors, messages, notifications, and group posts, the
-  Home overdue warning, and theme color contrast.
+  Sessions, and Session Details, missing profile-field restoration, contextual
+  accessibility labels for booking dates, sessions, groups, tutors, messages,
+  notifications, and group posts, the Home overdue warning, and theme color
+  contrast.
 - The groups screen uses a virtualized `SectionList`; its regression test feeds
   80 loaded groups and confirms that the initial render mounts no more than 10
   group cards. Search tests cover case-insensitive subject filtering, joined
@@ -29,8 +30,8 @@ Verified for this checkpoint:
   exercise home routes, tutor listing and search, booking validation, session
   reschedule gating, private group-room drafts versus explicit publishing,
   timer controls and cleanup, and shared-group retry paths.
-- The Jest coverage run for this checkpoint reports 83.58% line coverage,
-  75.22% branch coverage, and 83.96% function coverage. It covers all lines in
+- The Jest coverage run for this checkpoint reports 83.61% line coverage,
+  75.31% branch coverage, and 84.05% function coverage. It covers all lines in
   the home screen at 96.87%, session details at 100%, the group-room screen at
   100%, the local storage guard at 100%, tutor search at 96.77%, and booking
   screen at 94.44%. Coverage is
@@ -74,15 +75,18 @@ Verified for this checkpoint:
   port 8081 bound to `127.0.0.1`, ADB reverse loaded the bundle and a cold
   launch rendered the splash screen. This verifies the
   current Android bundle and splash only, not production Firebase access.
-- `npm test -- --runInBand` on 2026-10-13 passed all 121 tests in 20 suites.
+- `npm test -- --runInBand` on 2026-10-13 passed all 122 tests in 20 suites.
+- A version-one saved profile missing its name, interests, tutor subjects, and
+  school fields restored from the account defaults, opened Home, and persisted
+  the restored values without losing the session/group data.
 - An app-level regression removed a saved conversation's message array, opened
   it through Messages and Chat, then sent a new message. The thread rendered,
   recovered the array, and persisted the new message.
-- After the latest conversation-recovery and malformed-session changes, the
-  current bundle was cold-launched on the Redmi Turbo 4 through loopback Metro
-  and ADB reverse. The splash rendered and filtered logs contained no React
-  Native JS errors. This confirms startup; malformed data behavior is covered
-  by the focused app and component tests.
+- After the latest saved-profile, conversation-recovery, and malformed-session
+  changes, the current bundle was cold-launched on the Redmi Turbo 4 through
+  loopback Metro and ADB reverse. The splash rendered and filtered logs
+  contained no React Native JS errors. This confirms startup; malformed data
+  behavior is covered by the focused app and component tests.
 - The Android accessibility tree announced full booking dates and included
   session, group, tutor, message, notification, and group-post context in the
   list controls. This was checked while signed into the local demo account; no

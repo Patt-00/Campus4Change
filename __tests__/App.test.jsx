@@ -210,6 +210,46 @@ test('rejects saved data from another account and clears the native sign-in', as
   expect(mockStore.signOut).toHaveBeenCalledTimes(1);
   expect(mockStore.saveState).not.toHaveBeenCalled();
 });
+
+test('saved profiles missing newer fields restore defaults before Home renders', async () => {
+  const savedState = initialState(demo);
+  delete savedState.profile.name;
+  delete savedState.profile.interests;
+  delete savedState.profile.tutorSubjects;
+  delete savedState.profile.course;
+  delete savedState.profile.year;
+  delete savedState.profile.school;
+  mockSaved.demo = JSON.stringify(savedState);
+
+  await login();
+
+  const visibleText = renderer.root
+    .findAllByType(Text)
+    .map(node => node.props.children)
+    .flat(Infinity)
+    .filter(value => typeof value === 'string')
+    .join(' ');
+  expect(visibleText).toContain('Alex');
+  expect(hasText('Quick Actions')).toBe(true);
+  expect(hasText('YOUR LEARNING INTERESTS')).toBe(true);
+  expect(hasText('Calculus')).toBe(true);
+  expect(hasText('Edit interests')).toBe(true);
+  const restoredState = JSON.parse(mockSaved.demo);
+  const restoredProfile = restoredState.profile;
+  expect(restoredProfile.name).toBe('Alex Rivera');
+  expect(restoredProfile.interests).toEqual([
+    'Calculus',
+    'Java',
+    'Machine Learning',
+  ]);
+  expect(restoredProfile.tutorSubjects).toEqual([]);
+  expect(restoredProfile.course).toBe('BS Computer Science');
+  expect(restoredState.sessions).toEqual(savedState.sessions);
+  expect(restoredState.groups).toEqual(savedState.groups);
+  expect(restoredState.conversations).toEqual(savedState.conversations);
+  await ReactTestRenderer.act(async () => renderer.unmount());
+});
+
 test('sign-out saves the latest profile and resets navigation to login', async () => {
   await login();
   await press('Profile');

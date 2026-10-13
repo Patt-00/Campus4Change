@@ -29,7 +29,54 @@ function asState(value, account) {
   if (state.profile.id !== account.id) {
     throw new Error('Saved data belongs to a different account.');
   }
-  return state;
+
+  const defaults = initialState(account);
+  const profile = {
+    ...defaults.profile,
+    ...state.profile,
+    name:
+      typeof state.profile.name === 'string' && state.profile.name.trim()
+        ? state.profile.name.trim()
+        : defaults.profile.name,
+    email:
+      typeof state.profile.email === 'string'
+        ? state.profile.email
+        : defaults.profile.email,
+    studentId:
+      typeof state.profile.studentId === 'string'
+        ? state.profile.studentId
+        : defaults.profile.studentId,
+    course:
+      typeof state.profile.course === 'string'
+        ? state.profile.course
+        : defaults.profile.course,
+    year:
+      typeof state.profile.year === 'string'
+        ? state.profile.year
+        : defaults.profile.year,
+    school:
+      typeof state.profile.school === 'string'
+        ? state.profile.school
+        : defaults.profile.school,
+    interests: stringList(state.profile.interests, defaults.profile.interests),
+    tutorSubjects: stringList(
+      state.profile.tutorSubjects,
+      defaults.profile.tutorSubjects,
+    ),
+    bio: typeof state.profile.bio === 'string' ? state.profile.bio : '',
+  };
+
+  return {
+    ...defaults,
+    ...state,
+    profile,
+  };
+}
+
+function stringList(value, fallback) {
+  return Array.isArray(value)
+    ? value.filter(item => typeof item === 'string').map(item => item.trim()).filter(Boolean)
+    : fallback;
 }
 
 function errorText(error) {
