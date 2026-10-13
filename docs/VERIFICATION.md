@@ -15,7 +15,7 @@ Verified for this checkpoint:
 
 - `npm run lint`: passed without warnings.
 - `npm test -- --runInBand --coverage --coverageReporters=json --coverageReporters=json-summary`:
-  124 tests passed in 20 suites. Tests cover stale group callbacks and pending
+  125 tests passed in 20 suites. Tests cover stale group callbacks and pending
   shared writes across account changes, queued state persistence after a switch
   even when both accounts share the same `updatedAt`, unknown and past-due
   session statuses, malformed or missing session start times across Home,
@@ -23,7 +23,7 @@ Verified for this checkpoint:
   accessibility labels for booking dates, sessions, groups, tutors, messages,
   notifications, and group posts, the Home overdue warning, and theme color
   contrast. Profile fallback is exercised for local and mocked Firebase cloud
-  restore.
+  restore; saved null/primitive collection entries are also checked.
 - The groups screen uses a virtualized `SectionList`; its regression test feeds
   80 loaded groups and confirms that the initial render mounts no more than 10
   group cards. Search tests cover case-insensitive subject filtering, joined
@@ -31,8 +31,8 @@ Verified for this checkpoint:
   exercise home routes, tutor listing and search, booking validation, session
   reschedule gating, private group-room drafts versus explicit publishing,
   timer controls and cleanup, and shared-group retry paths.
-- The Jest coverage run for this checkpoint reports 83.73% line coverage,
-  76.00% branch coverage, and 84.05% function coverage. It covers all lines in
+- The Jest coverage run for this checkpoint reports 83.75% line coverage,
+  76.01% branch coverage, and 84.11% function coverage. It covers all lines in
   the home screen at 96.87%, session details at 100%, the group-room screen at
   100%, the local storage guard at 100%, tutor search at 96.77%, and booking
   screen at 94.44%. Coverage is
@@ -76,12 +76,14 @@ Verified for this checkpoint:
   port 8081 bound to `127.0.0.1`, ADB reverse loaded the bundle and a cold
   launch rendered the splash screen. This verifies the
   current Android bundle and splash only, not production Firebase access.
-- `npm test -- --runInBand` on 2026-10-13 passed all 124 tests in 20 suites.
+- `npm test -- --runInBand` on 2026-10-13 passed all 125 tests in 20 suites.
 - A partial version-one profile missing its name, interests, tutor subjects,
   and school fields restored from the account defaults, opened Home, and
   persisted the restored values without losing session/group data.
 - A partial personal account restored blank personal defaults; it received no
   demo interests, groups, or conversations.
+- Saved sessions, groups, conversations, and notifications with null entries
+  restore without a crash; valid rows remain intact.
 - A Firebase session loaded partial cloud state through the mocked cloud
   adapter, applied profile defaults, and wrote the normalized profile to the
   encrypted local cache. Production Firestore was not used for this test.

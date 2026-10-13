@@ -70,7 +70,19 @@ function asState(value, account) {
     ...defaults,
     ...state,
     profile,
+    sessions: objectRecords(state.sessions, defaults.sessions),
+    groups: objectRecords(state.groups, defaults.groups),
+    conversations: objectRecords(state.conversations, defaults.conversations),
+    notices: objectRecords(state.notices, defaults.notices),
   };
+}
+
+function objectRecords(value, fallback) {
+  return Array.isArray(value)
+    ? value.filter(
+        record => record && typeof record === 'object' && !Array.isArray(record),
+      )
+    : fallback;
 }
 
 function stringList(value, fallback) {

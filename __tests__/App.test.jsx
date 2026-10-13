@@ -280,6 +280,35 @@ test('partial personal profiles restore blank defaults without demo data', async
   await ReactTestRenderer.act(async () => renderer.unmount());
 });
 
+test('saved collections with non-record rows restore without dropping valid rows', async () => {
+  const savedState = initialState(demo);
+  const validCollections = {
+    sessions: savedState.sessions,
+    groups: savedState.groups,
+    conversations: savedState.conversations,
+    notices: savedState.notices,
+  };
+  savedState.sessions = [null, 'invalid-session', ...savedState.sessions];
+  savedState.groups = [null, 'invalid-group', ...savedState.groups];
+  savedState.conversations = [
+    null,
+    'invalid-conversation',
+    ...savedState.conversations,
+  ];
+  savedState.notices = [null, 'invalid-notification', ...savedState.notices];
+  mockSaved.demo = JSON.stringify(savedState);
+
+  await login();
+
+  expect(hasText('Quick Actions')).toBe(true);
+  const restoredState = JSON.parse(mockSaved.demo);
+  expect(restoredState.sessions).toEqual(validCollections.sessions);
+  expect(restoredState.groups).toEqual(validCollections.groups);
+  expect(restoredState.conversations).toEqual(validCollections.conversations);
+  expect(restoredState.notices).toEqual(validCollections.notices);
+  await ReactTestRenderer.act(async () => renderer.unmount());
+});
+
 test('sign-out saves the latest profile and resets navigation to login', async () => {
   await login();
   await press('Profile');
