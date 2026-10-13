@@ -15,6 +15,7 @@ import { CreateGroupScreen } from '../features/groups/screens/CreateGroupScreen'
 import { GroupDetailsScreen } from '../features/groups/screens/GroupDetailsScreen';
 import { GroupPostScreen } from '../features/groups/screens/GroupPostScreen';
 import { GroupStudyRoomScreen } from '../features/groups/screens/GroupStudyRoomScreen';
+import { GroupReportsScreen } from '../features/groups/screens/GroupReportsScreen';
 import { GroupsScreen } from '../features/groups/screens/GroupsScreen';
 import { SessionDetailsScreen } from '../features/sessions/screens/SessionDetailsScreen';
 import { SessionWorkspaceScreen } from '../features/sessions/screens/SessionWorkspaceScreen';
@@ -31,6 +32,7 @@ import { Empty, Link } from '../shared/components/UI';
 import { Screen } from '../shared/components/Screen';
 import { uid } from '../shared/data/demo';
 import { useSharedGroups } from '../features/groups/hooks/useSharedGroups';
+import { useSharedGroupReports } from '../features/groups/hooks/useSharedGroupReports';
 import {
   directoryTutors,
   knownTutors,
@@ -111,6 +113,16 @@ export function AppNavigator() {
     activeGroupId,
     activePostId,
   });
+  const reportGroup = groupDirectory.find(group => group.id === route.groupId);
+  const groupReports = useSharedGroupReports({
+    uid: syncUid,
+    groupId: route.groupId,
+    enabled: Boolean(
+      route.page === 'Group Reports' &&
+        reportGroup?.shared &&
+        reportGroup?.isOwner,
+    ),
+  });
   const go = useCallback(
     next => {
       const target = typeof next === 'string' ? { page: next } : next;
@@ -188,7 +200,7 @@ export function AppNavigator() {
   const tutor = list.find(t => t.id === route.tutorId);
   const session = state.sessions.find(x => x.id === route.sessionId);
   const sessionTutor = list.find(x => x.id === session?.tutorId);
-  const group = groupDirectory.find(x => x.id === route.groupId);
+  const group = reportGroup;
   const post = group?.posts.find(x => x.id === route.postId);
   const conversation = state.conversations.find(
     x => x.id === route.conversationId,
@@ -439,6 +451,14 @@ export function AppNavigator() {
             back={back}
             group={group}
             post={post}
+            userId={state.profile.id}
+            reportContent={report =>
+              dispatchGroupChange({
+                type: 'report',
+                groupId: group.id,
+                report: { ...report, id: uid('report') },
+              })
+            }
             loadingMoreReplies={loadingReplyIds.has(post.id)}
             loadMoreReplies={loadMoreReplies}
             refreshReplies={retryGroupContent}
@@ -453,6 +473,32 @@ export function AppNavigator() {
                   text,
                   createdAt: new Date().toISOString(),
                 },
+              })
+            }
+          />
+        );
+      }
+      break;
+    case 'Group Reports':
+      if (group?.shared && group.isOwner) {
+        screen = (
+          <GroupReportsScreen
+            back={back}
+            group={group}
+            reports={groupReports.reports}
+            error={groupReports.error}
+            loadingReports={groupReports.loadingReports}
+            hasMoreReports={groupReports.hasMoreReports}
+            reportsLive={groupReports.reportsLive}
+            loadingMoreReports={groupReports.loadingMoreReports}
+            loadMoreReports={groupReports.loadMoreReports}
+            refreshReports={groupReports.refreshReports}
+            moderateReport={(reportId, resolution) =>
+              dispatchGroupChange({
+                type: 'moderateReport',
+                groupId: group.id,
+                reportId,
+                resolution,
               })
             }
           />

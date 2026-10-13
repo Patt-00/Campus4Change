@@ -40,6 +40,13 @@ export function GroupDetailsScreen({
           ? 'Shared group • Posts and replies are visible to members.'
           : 'Saved on this device • Other students cannot see this group.'}
       </Text>
+      {group.shared && group.isOwner && (
+        <AppButton
+          title="REVIEW GROUP REPORTS"
+          outline
+          onPress={() => go({ page: 'Group Reports', groupId: group.id })}
+        />
+      )}
 
       <Text style={s.section}>Next meetup</Text>
       <View style={s.card}>
@@ -77,8 +84,8 @@ export function GroupDetailsScreen({
               <Text style={[s.name, s.blue]}>{p.author}</Text>
               <Text style={[s.text, styles.marginTop12]}>{p.text}</Text>
               <Text style={[s.muted, styles.fontSize9marginTop12]}>
-                {p.replies.length}{p.hasMoreReplies ? '+' : ''} replies •{' '}
-                {dateLabel(p.createdAt)}
+                {p.replies.length}
+                {p.hasMoreReplies ? '+' : ''} replies • {dateLabel(p.createdAt)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -87,7 +94,9 @@ export function GroupDetailsScreen({
           )}
           {group.shared && hasMorePosts && (
             <AppButton
-              title={loadingMorePosts ? 'LOADING OLDER POSTS...' : 'LOAD OLDER POSTS'}
+              title={
+                loadingMorePosts ? 'LOADING OLDER POSTS...' : 'LOAD OLDER POSTS'
+              }
               outline
               disabled={loadingMorePosts}
               onPress={loadMorePosts}
@@ -130,7 +139,11 @@ export function GroupDetailsScreen({
 
           <Link label="Open group chat" onPress={message} />
           {!group.isOwner && (
-            <Link label="Leave group" danger onPress={() => membership(false)} />
+            <Link
+              label="Leave group"
+              danger
+              onPress={() => membership(false)}
+            />
           )}
         </>
       )}

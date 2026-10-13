@@ -4,6 +4,7 @@ const collectionName = 'studyGroups';
 const GROUP_PAGE_SIZE = 20;
 const POST_PAGE_SIZE = 20;
 const REPLY_PAGE_SIZE = 20;
+const REPORT_PAGE_SIZE = 20;
 
 function timestampMillis(value) {
   if (value && typeof value.toMillis === 'function') {
@@ -70,6 +71,21 @@ function mapPost(
     replies,
     hasMoreReplies,
     repliesLive,
+  };
+}
+
+function mapModerationReport(reportSnapshot) {
+  const report = reportSnapshot.data();
+  return {
+    id: reportSnapshot.id,
+    targetType: report.targetType,
+    targetId: report.targetId,
+    postId: report.postId,
+    targetAuthor: report.targetAuthor,
+    contentSnapshot: report.contentSnapshot,
+    reason: report.reason,
+    status: report.status,
+    createdAt: isoTime(report.createdAt),
   };
 }
 
@@ -275,6 +291,7 @@ export function watchSharedGroupPosts(
     orderBy,
     query,
     startAfter,
+    where,
   } = firestore;
   const groupRef = doc(db, collectionName, groupId);
   const postsRef = collection(groupRef, 'posts');
@@ -350,6 +367,7 @@ export function watchSharedGroupPosts(
     replyState.unsubscribe = onSnapshot(
       query(
         collection(postSnapshot.ref, 'replies'),
+        where('moderationStatus', '==', 'visible'),
         orderBy('createdAt', 'desc'),
         limit(REPLY_PAGE_SIZE),
       ),
@@ -369,6 +387,7 @@ export function watchSharedGroupPosts(
     const repliesSnapshot = await getDocs(
       query(
         collection(postSnapshot.ref, 'replies'),
+        where('moderationStatus', '==', 'visible'),
         orderBy('createdAt', 'desc'),
         limit(REPLY_PAGE_SIZE),
       ),
@@ -405,6 +424,7 @@ export function watchSharedGroupPosts(
       const olderSnapshot = await getDocs(
         query(
           postsRef,
+          where('moderationStatus', '==', 'visible'),
           orderBy('createdAt', 'desc'),
           startAfter(cursor),
           limit(POST_PAGE_SIZE),
@@ -454,6 +474,7 @@ export function watchSharedGroupPosts(
       const olderSnapshot = await getDocs(
         query(
           collection(doc(groupRef, 'posts', postId), 'replies'),
+          where('moderationStatus', '==', 'visible'),
           orderBy('createdAt', 'desc'),
           startAfter(cursor),
           limit(REPLY_PAGE_SIZE),
@@ -485,6 +506,7 @@ export function watchSharedGroupPosts(
       unsubscribePosts = onSnapshot(
         query(
           postsRef,
+          where('moderationStatus', '==', 'visible'),
           orderBy('createdAt', 'desc'),
           limit(POST_PAGE_SIZE),
         ),
@@ -537,6 +559,118 @@ export function watchSharedGroupPosts(
       olderPosts.clear();
       pinnedPosts.clear();
       livePosts = [];
+    },
+  };
+}
+
+export function watchSharedGroupReports(uid, groupId, onReports, onError) {
+  const { db, firestore } = firebaseServicesForUser(uid);
+  const { collection, doc, getDocs, limit, onSnapshot, orderBy, query, startAfter } =
+    firestore;
+  const reportsRef = collection(
+    doc(db, collectionName, groupId),
+    'moderationReports',
+  );
+  let active = true;
+  let reportsLive = true;
+  let hasMoreReports = false;
+  let loadingMore = false;
+  let liveReports = [];
+  let unsubscribe = () => {};
+  const olderReports = new Map();
+
+  function allReports() {
+    return mergeSnapshotsDescending([...olderReports.values()], liveReports);
+  }
+
+  function publishReports() {
+    if (!active) {
+      return;
+    }
+    onReports(allReports().map(mapModerationReport), {
+      hasMoreReports,
+      reportsLive,
+    });
+  }
+
+  function handleError(error) {
+    if (active) {
+      onError(error);
+    }
+  }
+
+  function subscribeLatest() {
+    unsubscribe = onSnapshot(
+      query(reportsRef, orderBy('createdAt', 'desc'), limit(REPORT_PAGE_SIZE)),
+      snapshot => {
+        if (!active || !reportsLive) {
+          return;
+        }
+        liveReports = snapshot.docs;
+        hasMoreReports = snapshot.docs.length === REPORT_PAGE_SIZE;
+        publishReports();
+      },
+      handleError,
+    );
+  }
+
+  subscribeLatest();
+
+  return {
+    loadMoreReports: async () => {
+      if (!active || !hasMoreReports || loadingMore) {
+        return;
+      }
+      loadingMore = true;
+      try {
+        if (reportsLive) {
+          reportsLive = false;
+          unsubscribe();
+          unsubscribe = () => {};
+          publishReports();
+        }
+        const loaded = allReports();
+        const cursor = loaded[loaded.length - 1];
+        if (!cursor) {
+          hasMoreReports = false;
+          publishReports();
+          return;
+        }
+        const page = await getDocs(
+          query(
+            reportsRef,
+            orderBy('createdAt', 'desc'),
+            startAfter(cursor),
+            limit(REPORT_PAGE_SIZE),
+          ),
+        );
+        if (!active) {
+          return;
+        }
+        page.docs.forEach(snapshot => olderReports.set(snapshot.id, snapshot));
+        hasMoreReports = page.docs.length === REPORT_PAGE_SIZE;
+        publishReports();
+      } finally {
+        loadingMore = false;
+      }
+    },
+    refreshReports: () => {
+      if (!active) {
+        return;
+      }
+      unsubscribe();
+      olderReports.clear();
+      liveReports = [];
+      hasMoreReports = false;
+      reportsLive = true;
+      unsubscribe = () => {};
+      subscribeLatest();
+    },
+    unsubscribe: () => {
+      active = false;
+      unsubscribe();
+      olderReports.clear();
+      liveReports = [];
     },
   };
 }
@@ -640,6 +774,7 @@ export async function syncSharedGroupAction(uid, profile, action) {
       author: authorName(profile),
       text: post.text.trim(),
       createdAt: serverTimestamp(),
+      moderationStatus: 'visible',
     });
     batch.set(
       writeLimitRef,
@@ -679,6 +814,7 @@ export async function syncSharedGroupAction(uid, profile, action) {
       author: authorName(profile),
       text: reply.text.trim(),
       createdAt: serverTimestamp(),
+      moderationStatus: 'visible',
     });
     batch.set(
       writeLimitRef,
@@ -692,6 +828,93 @@ export async function syncSharedGroupAction(uid, profile, action) {
       { merge: true },
     );
     batch.update(groupRefForAction, { updatedAt: serverTimestamp() });
+    await batch.commit();
+    return;
+  }
+
+  if (action.type === 'report') {
+    const report = action.report;
+    if (!report || typeof report.id !== 'string' || !report.id) {
+      throw new Error('The report has no ID.');
+    }
+    const reportRef = doc(
+      groupRefForAction,
+      'moderationReports',
+      report.id,
+    );
+    const existing = await getDoc(reportRef);
+    if (existing.exists()) {
+      return;
+    }
+
+    const batch = writeBatch(db);
+    batch.set(reportRef, {
+      targetType: report.targetType,
+      targetId: report.targetId,
+      postId: report.postId ?? null,
+      targetAuthor: report.targetAuthor,
+      contentSnapshot: report.contentSnapshot,
+      reason: report.reason,
+      status: 'open',
+      createdAt: serverTimestamp(),
+      resolvedAt: null,
+    });
+    batch.set(
+      writeLimitRef,
+      {
+        uid,
+        lastWriteAt: serverTimestamp(),
+        kind: 'report',
+        writeId: report.id,
+        postId: report.postId ?? null,
+      },
+      { merge: true },
+    );
+    await batch.commit();
+    return;
+  }
+
+  if (action.type === 'moderateReport') {
+    const reportRef = doc(
+      groupRefForAction,
+      'moderationReports',
+      action.reportId,
+    );
+    const reportSnapshot = await getDoc(reportRef);
+    if (!reportSnapshot.exists()) {
+      throw new Error('This report is no longer available.');
+    }
+    const report = reportSnapshot.data();
+    const resolution = action.resolution;
+    if (
+      !['dismissed', 'hidden', 'restored'].includes(resolution) ||
+      (resolution === 'restored' && report.status !== 'hidden') ||
+      (resolution !== 'restored' && report.status !== 'open')
+    ) {
+      return;
+    }
+
+    const batch = writeBatch(db);
+    if (resolution === 'hidden' || resolution === 'restored') {
+      const targetRef =
+        report.targetType === 'post'
+          ? doc(groupRefForAction, 'posts', report.targetId)
+          : doc(
+              groupRefForAction,
+              'posts',
+              report.postId,
+              'replies',
+              report.targetId,
+            );
+      batch.update(targetRef, {
+        moderationStatus: resolution === 'hidden' ? 'hidden' : 'visible',
+        moderatedAt: serverTimestamp(),
+      });
+    }
+    batch.update(reportRef, {
+      status: resolution,
+      resolvedAt: serverTimestamp(),
+    });
     await batch.commit();
   }
 }

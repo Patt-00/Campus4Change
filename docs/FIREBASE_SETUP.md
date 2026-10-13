@@ -31,16 +31,17 @@ the entered address, not that it belongs to a particular school domain.
    SDK and copy its Firebase configuration into
    `src/shared/backend/firebaseConfig.js`.
 5. Sign in to the Firebase CLI, select the same project, and deploy the
-   checked-in rules only after reviewing and authorizing that live change:
+   checked-in Firestore rules and indexes only after reviewing and authorizing
+   that live change:
 
    ```sh
    npx firebase-tools login
    npx firebase-tools use --add
-   npx firebase-tools deploy --only firestore:rules
+   npx firebase-tools deploy --only firestore
    ```
 
    If asked, choose the Firebase project you configured above. Check the
-   selected project before deploying.
+   selected project before deploying. Index creation may take several minutes.
 6. Build and run the Android app. Sign-up creates a Firebase account, and a
    successful sign-in restores the account's Firestore state. The demo account
    remains local sample data.
@@ -102,7 +103,18 @@ verified members can read or write posts and replies. Joining or leaving a
 group updates the public member count in the same validated batch.
 Each group member can add a post or reply once every five seconds; a private,
 non-deletable rate-limit document is updated atomically with each contribution.
-Unmatched documents are denied.
+Members can report another member's visible post or reply for spam or abuse.
+Reports use that same cooldown, do not store the reporter UID, and can be
+reviewed only by the group owner. The owner can dismiss a report or reversibly
+hide and restore the reported content. Hidden posts/replies are unavailable to
+members. This is group-owner moderation; instructor-wide moderation is not
+implemented. Unmatched documents are denied.
+
+Before deploying these rules, check for existing shared posts or replies that
+do not have `moderationStatus: "visible"` and backfill them. The member feed
+queries and rules now require that field, so older records without it will not
+appear to members. The checked-in `firestore.indexes.json` supplies the
+composite indexes for those filtered feeds.
 
 The app writes its account state into the private document. Firestore limits
 documents to 1 MiB; the app uses a lower client-side size cap. Shared group

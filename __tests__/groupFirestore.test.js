@@ -1,6 +1,7 @@
 import { firebaseServicesForUser } from '../src/shared/backend/firebase';
 import {
   syncSharedGroupAction,
+  watchSharedGroupReports,
   watchSharedGroupPosts,
   watchSharedGroups,
 } from '../src/features/groups/data/firestore';
@@ -63,6 +64,22 @@ function membershipSnapshot(groupId, uid = 'student') {
   return {
     id: groupId,
     data: () => ({ uid, groupId, role: 'member' }),
+  };
+}
+
+function moderationReportSnapshot(id, createdAt) {
+  return {
+    id,
+    data: () => ({
+      targetType: 'post',
+      targetId: 'post-' + id,
+      postId: null,
+      targetAuthor: 'Student',
+      contentSnapshot: 'A reported study note',
+      reason: 'spam',
+      status: 'open',
+      createdAt,
+    }),
   };
 }
 
@@ -381,6 +398,79 @@ test('shared group directory pages all groups and pauses live metadata while bro
   expect(memberships.unsubscribe).toHaveBeenCalledTimes(1);
 });
 
+test('owner report queue pages older reports and refreshes the live page', async () => {
+  const { firestore, subscriptions } = createFirestore();
+  firebaseServicesForUser.mockReturnValue({ db: 'db', firestore });
+  const onReports = jest.fn();
+  const onError = jest.fn();
+  const newer = moderationReportSnapshot(
+    'newer',
+    '2026-10-13T10:00:00.000Z',
+  );
+  const older = moderationReportSnapshot(
+    'older',
+    '2026-10-13T09:00:00.000Z',
+  );
+  const firstPage = [
+    newer,
+    ...Array.from({ length: 19 }, (_, index) =>
+      moderationReportSnapshot(
+        'page-' + index,
+        new Date(Date.parse('2026-10-13T09:59:00Z') - index * 60000).toISOString(),
+      ),
+    ),
+  ];
+  firestore.getDocs.mockResolvedValueOnce({ docs: [older] });
+
+  const subscription = watchSharedGroupReports(
+    'owner',
+    'group-one',
+    onReports,
+    onError,
+  );
+  const latestListener = subscriptions[0];
+  expect(latestListener.target.ref.path).toBe(
+    'db/studyGroups/group-one/moderationReports',
+  );
+  expect(latestListener.target.constraints).toContainEqual({
+    field: 'createdAt',
+    direction: 'desc',
+  });
+  expect(latestListener.target.constraints).toContainEqual({
+    type: 'limit',
+    count: 20,
+  });
+
+  latestListener.next({ docs: firstPage });
+  expect(onReports.mock.calls.at(-1)[0][0].id).toBe('newer');
+  expect(onReports.mock.calls.at(-1)[1].reportsLive).toBe(true);
+  expect(onReports.mock.calls.at(-1)[1].hasMoreReports).toBe(true);
+
+  await subscription.loadMoreReports();
+  expect(firestore.getDocs.mock.calls[0][0].constraints).toContainEqual({
+    type: 'startAfter',
+    snapshot: firstPage.at(-1),
+  });
+  expect(onReports.mock.calls.at(-1)[0]).toHaveLength(21);
+  expect(onReports.mock.calls.at(-1)[0].at(-1).id).toBe('older');
+  expect(onReports.mock.calls.at(-1)[1].reportsLive).toBe(false);
+  expect(latestListener.unsubscribe).toHaveBeenCalledTimes(1);
+
+  subscription.refreshReports();
+  expect(subscriptions).toHaveLength(2);
+  const refreshed = moderationReportSnapshot(
+    'fresh',
+    '2026-10-13T11:00:00.000Z',
+  );
+  subscriptions[1].next({ docs: [refreshed] });
+  expect(onReports.mock.calls.at(-1)[0].map(report => report.id)).toEqual([
+    'fresh',
+  ]);
+  subscription.unsubscribe();
+  expect(subscriptions[1].unsubscribe).toHaveBeenCalledTimes(1);
+  expect(onError).not.toHaveBeenCalled();
+});
+
 test('shared posts and replies update the private cooldown record atomically', async () => {
   const { firestore } = createFirestore();
   firebaseServicesForUser.mockReturnValue({ db: 'db', firestore });
@@ -437,6 +527,130 @@ test('shared posts and replies update the private cooldown record atomically', a
   expect(replyLimitWrite[2]).toEqual({ merge: true });
   expect(postBatch.commit).toHaveBeenCalledTimes(1);
   expect(replyBatch.commit).toHaveBeenCalledTimes(1);
+});
+
+test('report submission omits reporter identity and shares a cooldown write', async () => {
+  const { firestore } = createFirestore();
+  firebaseServicesForUser.mockReturnValue({ db: 'db', firestore });
+  firestore.getDoc.mockResolvedValue({ exists: () => false });
+  firestore.serverTimestamp = jest.fn(() => 'server-time');
+  const batch = {
+    commit: jest.fn(async () => {}),
+    set: jest.fn(),
+    update: jest.fn(),
+  };
+  firestore.writeBatch = jest.fn(() => batch);
+
+  await syncSharedGroupAction('reporter-uid', { name: 'Reporter' }, {
+    type: 'report',
+    groupId: 'group-one',
+    report: {
+      id: 'report-one',
+      targetType: 'post',
+      targetId: 'post-one',
+      postId: null,
+      targetAuthor: 'Group Owner',
+      contentSnapshot: 'A reported note',
+      reason: 'spam',
+    },
+  });
+
+  const reportWrite = batch.set.mock.calls.find(([ref]) =>
+    ref.path.endsWith('/moderationReports/report-one'),
+  );
+  expect(reportWrite[1]).toEqual({
+    targetType: 'post',
+    targetId: 'post-one',
+    postId: null,
+    targetAuthor: 'Group Owner',
+    contentSnapshot: 'A reported note',
+    reason: 'spam',
+    status: 'open',
+    createdAt: 'server-time',
+    resolvedAt: null,
+  });
+  expect(reportWrite[1]).not.toHaveProperty('reporterUid');
+  expect(
+    batch.set.mock.calls.find(([ref]) =>
+      ref.path.endsWith('/writeLimits/reporter-uid'),
+    )[1],
+  ).toMatchObject({
+    uid: 'reporter-uid',
+    kind: 'report',
+    writeId: 'report-one',
+    postId: null,
+  });
+  expect(batch.commit).toHaveBeenCalledTimes(1);
+});
+
+test('group owner moderation hides and restores reported content atomically', async () => {
+  const { firestore } = createFirestore();
+  firebaseServicesForUser.mockReturnValue({ db: 'db', firestore });
+  firestore.getDoc.mockResolvedValueOnce({
+    exists: () => true,
+    data: () => ({
+      status: 'open',
+      targetType: 'reply',
+      postId: 'post-one',
+      targetId: 'reply-one',
+    }),
+  });
+  firestore.serverTimestamp = jest.fn(() => 'server-time');
+  const hideBatch = {
+    commit: jest.fn(async () => {}),
+    update: jest.fn(),
+  };
+  const restoreBatch = {
+    commit: jest.fn(async () => {}),
+    update: jest.fn(),
+  };
+  firestore.writeBatch = jest
+    .fn()
+    .mockReturnValueOnce(hideBatch)
+    .mockReturnValueOnce(restoreBatch);
+
+  await syncSharedGroupAction('owner-uid', { name: 'Owner' }, {
+    type: 'moderateReport',
+    groupId: 'group-one',
+    reportId: 'report-one',
+    resolution: 'hidden',
+  });
+  expect(hideBatch.update.mock.calls).toEqual([
+    [
+      { path: 'db/studyGroups/group-one/posts/post-one/replies/reply-one' },
+      { moderationStatus: 'hidden', moderatedAt: 'server-time' },
+    ],
+    [
+      { path: 'db/studyGroups/group-one/moderationReports/report-one' },
+      { status: 'hidden', resolvedAt: 'server-time' },
+    ],
+  ]);
+
+  firestore.getDoc.mockResolvedValueOnce({
+    exists: () => true,
+    data: () => ({
+      status: 'hidden',
+      targetType: 'reply',
+      postId: 'post-one',
+      targetId: 'reply-one',
+    }),
+  });
+  await syncSharedGroupAction('owner-uid', { name: 'Owner' }, {
+    type: 'moderateReport',
+    groupId: 'group-one',
+    reportId: 'report-one',
+    resolution: 'restored',
+  });
+  expect(restoreBatch.update.mock.calls).toEqual([
+    [
+      { path: 'db/studyGroups/group-one/posts/post-one/replies/reply-one' },
+      { moderationStatus: 'visible', moderatedAt: 'server-time' },
+    ],
+    [
+      { path: 'db/studyGroups/group-one/moderationReports/report-one' },
+      { status: 'restored', resolvedAt: 'server-time' },
+    ],
+  ]);
 });
 
 test('active member post listener releases reply listeners when posts leave its page', async () => {

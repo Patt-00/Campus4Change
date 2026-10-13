@@ -85,6 +85,14 @@ service cloud.firestore {
         return /databases/$(database)/documents/studyGroups/$(groupId)/posts/$(postId)/replies/$(replyId);
       }
 
+      function reportPath(reportId) {
+        return /databases/$(database)/documents/studyGroups/$(groupId)/moderationReports/$(reportId);
+      }
+
+      function groupPath() {
+        return /databases/$(database)/documents/studyGroups/$(groupId);
+      }
+
       function hasPostWritePermit(postId) {
         let permit = getAfter(writeLimitPath(request.auth.uid)).data;
         return permit.uid == request.auth.uid
@@ -103,11 +111,25 @@ service cloud.firestore {
           && permit.postId == postId;
       }
 
+      function hasReportWritePermit(reportId) {
+        let permit = getAfter(writeLimitPath(request.auth.uid)).data;
+        return permit.uid == request.auth.uid
+          && permit.lastWriteAt == request.time
+          && permit.kind == 'report'
+          && permit.writeId == reportId
+          && permit.postId == getAfter(reportPath(reportId)).data.postId;
+      }
+
       function isMember() {
         return signedIn()
           && exists(userMembershipPath(request.auth.uid))
           && get(userMembershipPath(request.auth.uid)).data.uid == request.auth.uid
           && get(userMembershipPath(request.auth.uid)).data.groupId == groupId;
+      }
+
+      function isGroupOwner() {
+        return signedIn()
+          && get(groupPath()).data.ownerUid == request.auth.uid;
       }
 
       function touchesOnlyActivity() {
@@ -169,7 +191,7 @@ service cloud.firestore {
       allow delete: if false;
 
       // One group contribution per member every five seconds. The private
-      // limiter is updated atomically with exactly one matching post or reply.
+      // limiter is updated atomically with its matching post, reply, or report.
       match /writeLimits/{userId} {
         function matchingWrite() {
           let data = request.resource.data;
@@ -195,7 +217,11 @@ service cloud.firestore {
                 && data.postId.size() <= 128
                 && existsAfter(replyPath(data.postId, data.writeId))
                 && getAfter(replyPath(data.postId, data.writeId)).data.authorUid == userId
-                && getAfter(replyPath(data.postId, data.writeId)).data.createdAt == request.time));
+                && getAfter(replyPath(data.postId, data.writeId)).data.createdAt == request.time)
+              || (data.kind == 'report'
+                && existsAfter(reportPath(data.writeId))
+                && getAfter(reportPath(data.writeId)).data.createdAt == request.time
+                && getAfter(reportPath(data.writeId)).data.postId == data.postId));
         }
 
         allow get: if signedIn() && request.auth.uid == userId;
@@ -212,14 +238,19 @@ service cloud.firestore {
       }
 
       match /posts/{postId} {
-        allow get: if isMember();
+        allow get: if isMember() && resource.data.moderationStatus == 'visible';
         allow list: if isMember()
+          && resource.data.moderationStatus == 'visible'
           && request.query.limit is int
           && request.query.limit <= 20;
         allow create: if signedIn()
           && isMember()
-          && request.resource.data.keys().hasAll(['authorUid', 'author', 'text', 'createdAt'])
-          && request.resource.data.keys().hasOnly(['authorUid', 'author', 'text', 'createdAt'])
+          && request.resource.data.keys().hasAll([
+            'authorUid', 'author', 'text', 'createdAt', 'moderationStatus'
+          ])
+          && request.resource.data.keys().hasOnly([
+            'authorUid', 'author', 'text', 'createdAt', 'moderationStatus'
+          ])
           && request.resource.data.authorUid == request.auth.uid
           && request.resource.data.author is string
           && request.resource.data.author.size() <= 100
@@ -227,19 +258,47 @@ service cloud.firestore {
           && request.resource.data.text.size() > 0
           && request.resource.data.text.size() <= 3000
           && request.resource.data.createdAt == request.time
+          && request.resource.data.moderationStatus == 'visible'
           && hasPostWritePermit(postId);
-        allow update, delete: if false;
+        allow update: if isGroupOwner()
+          && resource.data.moderationStatus in ['visible', 'hidden']
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['moderationStatus', 'moderatedAt'])
+          && request.resource.data.moderationStatus in ['visible', 'hidden']
+          && request.resource.data.moderatedAt == request.time
+          && ((resource.data.moderationStatus == 'visible'
+              && request.resource.data.moderationStatus == 'hidden')
+            || (resource.data.moderationStatus == 'hidden'
+              && request.resource.data.moderationStatus == 'visible'));
+        allow delete: if false;
 
         match /replies/{replyId} {
-          allow get: if isMember();
-          allow list: if isMember()
-            && request.query.limit is int
-            && request.query.limit <= 20;
+          function parentPostPath() {
+            return /databases/$(database)/documents/studyGroups/$(groupId)/posts/$(postId);
+          }
+
+          allow get: if isGroupOwner()
+            || (isMember()
+              && exists(parentPostPath())
+              && get(parentPostPath()).data.moderationStatus == 'visible'
+              && resource.data.moderationStatus == 'visible');
+          allow list: if (isGroupOwner() && request.query.limit is int
+              && request.query.limit <= 100)
+            || (isMember() && exists(parentPostPath())
+              && get(parentPostPath()).data.moderationStatus == 'visible'
+              && resource.data.moderationStatus == 'visible'
+              && request.query.limit is int
+              && request.query.limit <= 20);
           allow create: if signedIn()
             && isMember()
             && exists(/databases/$(database)/documents/studyGroups/$(groupId)/posts/$(postId))
-            && request.resource.data.keys().hasAll(['authorUid', 'author', 'text', 'createdAt'])
-            && request.resource.data.keys().hasOnly(['authorUid', 'author', 'text', 'createdAt'])
+            && get(parentPostPath()).data.moderationStatus == 'visible'
+            && request.resource.data.keys().hasAll([
+              'authorUid', 'author', 'text', 'createdAt', 'moderationStatus'
+            ])
+            && request.resource.data.keys().hasOnly([
+              'authorUid', 'author', 'text', 'createdAt', 'moderationStatus'
+            ])
             && request.resource.data.authorUid == request.auth.uid
             && request.resource.data.author is string
             && request.resource.data.author.size() <= 100
@@ -247,9 +306,114 @@ service cloud.firestore {
             && request.resource.data.text.size() > 0
             && request.resource.data.text.size() <= 2000
             && request.resource.data.createdAt == request.time
+            && request.resource.data.moderationStatus == 'visible'
             && hasReplyWritePermit(postId, replyId);
-          allow update, delete: if false;
+          allow update: if isGroupOwner()
+            && resource.data.moderationStatus in ['visible', 'hidden']
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['moderationStatus', 'moderatedAt'])
+            && request.resource.data.moderationStatus in ['visible', 'hidden']
+            && request.resource.data.moderatedAt == request.time
+            && ((resource.data.moderationStatus == 'visible'
+                && request.resource.data.moderationStatus == 'hidden')
+              || (resource.data.moderationStatus == 'hidden'
+                && request.resource.data.moderationStatus == 'visible'));
+          allow delete: if false;
         }
+      }
+
+      match /moderationReports/{reportId} {
+        function reportedPostPath() {
+          return /databases/$(database)/documents/studyGroups/$(groupId)/posts/$(request.resource.data.targetId);
+        }
+
+        function reportedReplyPath() {
+          return /databases/$(database)/documents/studyGroups/$(groupId)/posts/$(request.resource.data.postId)/replies/$(request.resource.data.targetId);
+        }
+
+        function reportsPost() {
+          let post = get(reportedPostPath()).data;
+          return request.resource.data.targetType == 'post'
+            && request.resource.data.postId == null
+            && exists(reportedPostPath())
+            && post.moderationStatus == 'visible'
+            && post.authorUid != request.auth.uid
+            && post.author == request.resource.data.targetAuthor
+            && post.text == request.resource.data.contentSnapshot;
+        }
+
+        function reportsReply() {
+          let reply = get(reportedReplyPath()).data;
+          return request.resource.data.targetType == 'reply'
+            && request.resource.data.postId is string
+            && request.resource.data.postId.size() > 0
+            && request.resource.data.postId.size() <= 128
+            && exists(reportedReplyPath())
+            && get(postPath(request.resource.data.postId)).data.moderationStatus == 'visible'
+            && reply.moderationStatus == 'visible'
+            && reply.authorUid != request.auth.uid
+            && reply.author == request.resource.data.targetAuthor
+            && reply.text == request.resource.data.contentSnapshot;
+        }
+
+        allow get: if isGroupOwner();
+        allow list: if isGroupOwner()
+          && request.query.limit is int
+          && request.query.limit <= 20;
+        allow create: if isMember()
+          && request.resource.data.keys().hasAll([
+            'targetType', 'targetId', 'postId', 'targetAuthor',
+            'contentSnapshot', 'reason', 'status', 'createdAt', 'resolvedAt'
+          ])
+          && request.resource.data.keys().hasOnly([
+            'targetType', 'targetId', 'postId', 'targetAuthor',
+            'contentSnapshot', 'reason', 'status', 'createdAt', 'resolvedAt'
+          ])
+          && request.resource.data.targetId is string
+          && request.resource.data.targetId.size() > 0
+          && request.resource.data.targetId.size() <= 128
+          && request.resource.data.targetAuthor is string
+          && request.resource.data.targetAuthor.size() <= 100
+          && request.resource.data.contentSnapshot is string
+          && request.resource.data.contentSnapshot.size() > 0
+          && request.resource.data.contentSnapshot.size() <= 3000
+          && request.resource.data.reason in ['spam', 'abuse']
+          && request.resource.data.status == 'open'
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.resolvedAt == null
+          && hasReportWritePermit(reportId)
+          && (reportsPost() || reportsReply());
+        function targetIsHiddenAfter() {
+          return (resource.data.targetType == 'post'
+              && existsAfter(postPath(resource.data.targetId))
+              && getAfter(postPath(resource.data.targetId)).data.moderationStatus == 'hidden')
+            || (resource.data.targetType == 'reply'
+              && existsAfter(replyPath(resource.data.postId, resource.data.targetId))
+              && getAfter(replyPath(resource.data.postId, resource.data.targetId)).data.moderationStatus == 'hidden');
+        }
+
+        function targetIsVisibleAfter() {
+          return (resource.data.targetType == 'post'
+              && existsAfter(postPath(resource.data.targetId))
+              && getAfter(postPath(resource.data.targetId)).data.moderationStatus == 'visible')
+            || (resource.data.targetType == 'reply'
+              && existsAfter(replyPath(resource.data.postId, resource.data.targetId))
+              && getAfter(replyPath(resource.data.postId, resource.data.targetId)).data.moderationStatus == 'visible');
+        }
+
+        allow update: if isGroupOwner()
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'resolvedAt'])
+          && request.resource.data.resolvedAt == request.time
+          && ((resource.data.status == 'open'
+              && request.resource.data.status == 'dismissed')
+            || (resource.data.status == 'open'
+              && request.resource.data.status == 'hidden'
+              && targetIsHiddenAfter())
+            || (resource.data.status == 'hidden'
+              && request.resource.data.status == 'restored'
+              && targetIsVisibleAfter()));
+        allow delete: if false;
       }
     }
 

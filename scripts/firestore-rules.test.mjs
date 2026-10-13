@@ -137,6 +137,7 @@ try {
     getDocs(
       query(
         collection(bob, 'studyGroups/calculus/posts'),
+        where('moderationStatus', '==', 'visible'),
         orderBy('createdAt', 'desc'),
         limit(20),
       ),
@@ -223,6 +224,7 @@ try {
     getDocs(
       query(
         collection(bob, 'studyGroups/calculus/posts'),
+        where('moderationStatus', '==', 'visible'),
         orderBy('createdAt', 'desc'),
         limit(20),
       ),
@@ -235,6 +237,7 @@ try {
     author: 'Carol',
     text: 'A non-member cannot post.',
     createdAt: serverTimestamp(),
+    moderationStatus: 'visible',
   });
   forbiddenPost.update(doc(carol, 'studyGroups/calculus'), {
     updatedAt: serverTimestamp(),
@@ -247,6 +250,7 @@ try {
     author: 'Bob',
     text: 'Share a study note.',
     createdAt: serverTimestamp(),
+    moderationStatus: 'visible',
   });
   sharedPost.set(doc(bob, 'studyGroups/calculus/writeLimits/bob'), {
     uid: 'bob',
@@ -267,6 +271,7 @@ try {
     author: 'Bob',
     text: 'This post is too soon.',
     createdAt: serverTimestamp(),
+    moderationStatus: 'visible',
   });
   rateLimitedPost.set(
     doc(bob, 'studyGroups/calculus/writeLimits/bob'),
@@ -319,6 +324,7 @@ try {
     author: 'Bob',
     text: 'Rejoining does not reset the cooldown.',
     createdAt: serverTimestamp(),
+    moderationStatus: 'visible',
   });
   postAfterRejoin.set(
     doc(bob, 'studyGroups/calculus/writeLimits/bob'),
@@ -354,6 +360,7 @@ try {
       author: 'Bob',
       text: 'A reply for group members.',
       createdAt: serverTimestamp(),
+      moderationStatus: 'visible',
     },
   );
   sharedReply.set(
@@ -376,6 +383,7 @@ try {
       await getDocs(
         query(
           collection(alice, 'studyGroups/calculus/posts'),
+          where('moderationStatus', '==', 'visible'),
           orderBy('createdAt', 'desc'),
           limit(20),
         ),
@@ -385,13 +393,21 @@ try {
   );
   const postCollection = collection(bob, 'studyGroups/calculus/posts');
   const firstPostPage = await assertSucceeds(
-    getDocs(query(postCollection, orderBy('createdAt', 'desc'), limit(1))),
+    getDocs(
+      query(
+        postCollection,
+        where('moderationStatus', '==', 'visible'),
+        orderBy('createdAt', 'desc'),
+        limit(1),
+      ),
+    ),
   );
   assert.equal(firstPostPage.size, 1);
   const nextPostPage = await assertSucceeds(
     getDocs(
       query(
         postCollection,
+        where('moderationStatus', '==', 'visible'),
         orderBy('createdAt', 'desc'),
         startAfter(firstPostPage.docs[0]),
         limit(1),
@@ -403,14 +419,283 @@ try {
     getDocs(
       query(
         collection(bob, 'studyGroups/calculus/posts/review/replies'),
+        where('moderationStatus', '==', 'visible'),
         orderBy('createdAt', 'desc'),
         limit(1),
       ),
     ),
   );
   assert.equal(replyPage.size, 1);
+  await environment.withSecurityRulesDisabled(async context => {
+    await setDoc(
+      doc(context.firestore(), 'studyGroups/calculus/writeLimits/bob'),
+      {
+        uid: 'bob',
+        lastWriteAt: Timestamp.fromMillis(Date.now() - 6000),
+        kind: 'reply',
+        writeId: 'answer',
+        postId: 'review',
+      },
+    );
+  });
+  const selfReport = writeBatch(bob);
+  selfReport.set(
+    doc(bob, 'studyGroups/calculus/moderationReports/report-self'),
+    {
+      targetType: 'post',
+      targetId: 'review',
+      postId: null,
+      targetAuthor: 'Bob',
+      contentSnapshot: 'Share a study note.',
+      reason: 'spam',
+      status: 'open',
+      createdAt: serverTimestamp(),
+      resolvedAt: null,
+    },
+  );
+  selfReport.set(
+    doc(bob, 'studyGroups/calculus/writeLimits/bob'),
+    {
+      uid: 'bob',
+      lastWriteAt: serverTimestamp(),
+      kind: 'report',
+      writeId: 'report-self',
+      postId: null,
+    },
+    { merge: true },
+  );
+  await assertFails(selfReport.commit());
+
+  const reportRef = doc(
+    alice,
+    'studyGroups/calculus/moderationReports/report-review',
+  );
+  const reportPost = writeBatch(alice);
+  reportPost.set(reportRef, {
+    targetType: 'post',
+    targetId: 'review',
+    postId: null,
+    targetAuthor: 'Bob',
+    contentSnapshot: 'Share a study note.',
+    reason: 'abuse',
+    status: 'open',
+    createdAt: serverTimestamp(),
+    resolvedAt: null,
+  });
+  reportPost.set(doc(alice, 'studyGroups/calculus/writeLimits/alice'), {
+    uid: 'alice',
+    lastWriteAt: serverTimestamp(),
+    kind: 'report',
+    writeId: 'report-review',
+    postId: null,
+  });
+  await assertSucceeds(reportPost.commit());
+  const reportTooSoon = writeBatch(alice);
+  reportTooSoon.set(
+    doc(alice, 'studyGroups/calculus/moderationReports/report-too-soon'),
+    {
+      targetType: 'post',
+      targetId: 'review',
+      postId: null,
+      targetAuthor: 'Bob',
+      contentSnapshot: 'Share a study note.',
+      reason: 'spam',
+      status: 'open',
+      createdAt: serverTimestamp(),
+      resolvedAt: null,
+    },
+  );
+  reportTooSoon.set(
+    doc(alice, 'studyGroups/calculus/writeLimits/alice'),
+    {
+      uid: 'alice',
+      lastWriteAt: serverTimestamp(),
+      kind: 'report',
+      writeId: 'report-too-soon',
+      postId: null,
+    },
+    { merge: true },
+  );
+  await assertFails(reportTooSoon.commit());
   await assertFails(
-    getDocs(query(collection(carol, 'studyGroups/calculus/posts'), limit(1))),
+    getDoc(doc(bob, 'studyGroups/calculus/moderationReports/report-review')),
+  );
+  await assertFails(
+    getDocs(
+      query(
+        collection(bob, 'studyGroups/calculus/moderationReports'),
+        orderBy('createdAt', 'desc'),
+        limit(20),
+      ),
+    ),
+  );
+  const ownerReports = await assertSucceeds(
+    getDocs(
+      query(
+        collection(alice, 'studyGroups/calculus/moderationReports'),
+        orderBy('createdAt', 'desc'),
+        limit(20),
+      ),
+    ),
+  );
+  assert.equal(ownerReports.size, 1);
+  assert.equal(Object.hasOwn(ownerReports.docs[0].data(), 'reporterUid'), false);
+
+  const hideReportedPost = writeBatch(alice);
+  hideReportedPost.update(doc(alice, 'studyGroups/calculus/posts/review'), {
+    moderationStatus: 'hidden',
+    moderatedAt: serverTimestamp(),
+  });
+  hideReportedPost.update(reportRef, {
+    status: 'hidden',
+    resolvedAt: serverTimestamp(),
+  });
+  await assertSucceeds(hideReportedPost.commit());
+  await assertFails(getDoc(doc(bob, 'studyGroups/calculus/posts/review')));
+  await environment.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), 'studyGroups/calculus/writeLimits/bob'), {
+      uid: 'bob',
+      lastWriteAt: Timestamp.fromMillis(Date.now() - 6000),
+      kind: 'reply',
+      writeId: 'reply-to-hidden-post',
+      postId: 'review',
+    });
+  });
+  const replyToHiddenPost = writeBatch(bob);
+  replyToHiddenPost.set(
+    doc(bob, 'studyGroups/calculus/posts/review/replies/reply-to-hidden-post'),
+    {
+      authorUid: 'bob',
+      author: 'Bob',
+      text: 'This reply should be denied because its post is hidden.',
+      createdAt: serverTimestamp(),
+      moderationStatus: 'visible',
+    },
+  );
+  replyToHiddenPost.set(
+    doc(bob, 'studyGroups/calculus/writeLimits/bob'),
+    {
+      uid: 'bob',
+      lastWriteAt: serverTimestamp(),
+      kind: 'reply',
+      writeId: 'reply-to-hidden-post',
+      postId: 'review',
+    },
+    { merge: true },
+  );
+  replyToHiddenPost.update(doc(bob, 'studyGroups/calculus'), {
+    updatedAt: serverTimestamp(),
+  });
+  await assertFails(replyToHiddenPost.commit());
+  assert.equal(
+    (
+      await assertSucceeds(
+        getDocs(
+          query(
+            collection(bob, 'studyGroups/calculus/posts'),
+            where('moderationStatus', '==', 'visible'),
+            orderBy('createdAt', 'desc'),
+            limit(20),
+          ),
+        ),
+      )
+    ).size,
+    0,
+  );
+
+  const restoreReportedPost = writeBatch(alice);
+  restoreReportedPost.update(doc(alice, 'studyGroups/calculus/posts/review'), {
+    moderationStatus: 'visible',
+    moderatedAt: serverTimestamp(),
+  });
+  restoreReportedPost.update(reportRef, {
+    status: 'restored',
+    resolvedAt: serverTimestamp(),
+  });
+  await assertSucceeds(restoreReportedPost.commit());
+  assert.equal(
+    (
+      await getDocs(
+        query(
+          collection(bob, 'studyGroups/calculus/posts'),
+          where('moderationStatus', '==', 'visible'),
+          orderBy('createdAt', 'desc'),
+          limit(20),
+        ),
+      )
+    ).size,
+    1,
+  );
+
+  await environment.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), 'studyGroups/calculus/writeLimits/alice'), {
+      uid: 'alice',
+      lastWriteAt: Timestamp.fromMillis(Date.now() - 6000),
+      kind: 'report',
+      writeId: 'report-review',
+      postId: null,
+    });
+  });
+  const replyReportRef = doc(
+    alice,
+    'studyGroups/calculus/moderationReports/report-answer',
+  );
+  const reportReply = writeBatch(alice);
+  reportReply.set(replyReportRef, {
+    targetType: 'reply',
+    targetId: 'answer',
+    postId: 'review',
+    targetAuthor: 'Bob',
+    contentSnapshot: 'A reply for group members.',
+    reason: 'spam',
+    status: 'open',
+    createdAt: serverTimestamp(),
+    resolvedAt: null,
+  });
+  reportReply.set(
+    doc(alice, 'studyGroups/calculus/writeLimits/alice'),
+    {
+      uid: 'alice',
+      lastWriteAt: serverTimestamp(),
+      kind: 'report',
+      writeId: 'report-answer',
+      postId: 'review',
+    },
+    { merge: true },
+  );
+  await assertSucceeds(reportReply.commit());
+  const hideReportedReply = writeBatch(alice);
+  hideReportedReply.update(
+    doc(alice, 'studyGroups/calculus/posts/review/replies/answer'),
+    { moderationStatus: 'hidden', moderatedAt: serverTimestamp() },
+  );
+  hideReportedReply.update(replyReportRef, {
+    status: 'hidden',
+    resolvedAt: serverTimestamp(),
+  });
+  await assertSucceeds(hideReportedReply.commit());
+  await assertFails(
+    getDoc(doc(bob, 'studyGroups/calculus/posts/review/replies/answer')),
+  );
+  const restoreReportedReply = writeBatch(alice);
+  restoreReportedReply.update(
+    doc(alice, 'studyGroups/calculus/posts/review/replies/answer'),
+    { moderationStatus: 'visible', moderatedAt: serverTimestamp() },
+  );
+  restoreReportedReply.update(replyReportRef, {
+    status: 'restored',
+    resolvedAt: serverTimestamp(),
+  });
+  await assertSucceeds(restoreReportedReply.commit());
+
+  await assertFails(
+    getDocs(
+      query(
+        collection(carol, 'studyGroups/calculus/posts'),
+        where('moderationStatus', '==', 'visible'),
+        limit(1),
+      ),
+    ),
   );
   await assertFails(
     setDoc(doc(bob, 'users/alice/studyGroupMemberships/calculus'), {
@@ -424,6 +709,7 @@ try {
     getDocs(
       query(
         collection(carol, 'studyGroups/calculus/posts'),
+        where('moderationStatus', '==', 'visible'),
         orderBy('createdAt', 'desc'),
         limit(20),
       ),
@@ -433,6 +719,7 @@ try {
     getDocs(
       query(
         collection(carol, 'studyGroups/calculus/posts/review/replies'),
+        where('moderationStatus', '==', 'visible'),
         orderBy('createdAt', 'desc'),
         limit(20),
       ),
@@ -446,6 +733,7 @@ try {
         author: 'Carol',
         text: 'A non-member cannot reply.',
         createdAt: serverTimestamp(),
+        moderationStatus: 'visible',
       },
     ),
   );
@@ -461,13 +749,14 @@ try {
     getDocs(
       query(
         collection(bob, 'studyGroups/calculus/posts'),
+        where('moderationStatus', '==', 'visible'),
         orderBy('createdAt', 'desc'),
         limit(20),
       ),
     ),
   );
 
-  console.log('Firestore rules passed: private state, verified shared access, bounded member feeds, contribution cooldowns, and membership are scoped.');
+  console.log('Firestore rules passed: private state, verified groups, bounded feeds, cooldowns, membership, and owner moderation are scoped.');
 } finally {
   await environment.cleanup();
 }

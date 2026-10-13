@@ -6,6 +6,7 @@ import { initialState } from '../src/shared/data/demo';
 
 let mockSession;
 let mockSharedGroupOptions;
+let mockGroupReportOptions;
 const mockSharedGroupState = {
   groups: [],
   error: '',
@@ -22,6 +23,16 @@ const mockSharedGroupState = {
   loadMoreReplies: jest.fn(),
   queueGroupCreation: jest.fn(),
   dispatchGroupChange: jest.fn(),
+};
+const mockGroupReportState = {
+  reports: [],
+  error: '',
+  loadingReports: false,
+  hasMoreReports: false,
+  reportsLive: false,
+  loadingMoreReports: false,
+  loadMoreReports: jest.fn(),
+  refreshReports: jest.fn(),
 };
 
 jest.mock('../src/shared/state/useCampusSession', () => ({
@@ -40,6 +51,13 @@ jest.mock('../src/features/groups/hooks/useSharedGroups', () => ({
   useSharedGroups: options => {
     mockSharedGroupOptions = options;
     return mockSharedGroupState;
+  },
+}));
+
+jest.mock('../src/features/groups/hooks/useSharedGroupReports', () => ({
+  useSharedGroupReports: options => {
+    mockGroupReportOptions = options;
+    return mockGroupReportState;
   },
 }));
 
@@ -93,6 +111,7 @@ test('unverified Firebase accounts see recovery actions and cannot sync shared g
     accessibilityLabel: "I've verified — check again",
   });
   expect(mockSharedGroupOptions.enabled).toBe(false);
+  expect(mockGroupReportOptions.enabled).toBe(false);
   expect(
     renderer.root
       .findAllByType(Text)
@@ -108,6 +127,7 @@ test('unverified Firebase accounts see recovery actions and cannot sync shared g
   mockSession = makeSession(true);
   await act(async () => renderer.update(<App />));
   expect(mockSharedGroupOptions.enabled).toBe(true);
+  expect(mockGroupReportOptions.enabled).toBe(false);
   expect(
     renderer.root.findAllByProps({
       accessibilityLabel: 'Resend verification email',

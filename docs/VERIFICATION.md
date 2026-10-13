@@ -5,8 +5,9 @@
 This local checkpoint is on branch `codex/firebase-auth-firestore`. It includes
 the Novice, Intermediate, and Expert introduction, Firebase email/password
 accounts, encrypted Android Auth persistence and account cache, private
-per-user state sync, and shared study groups with private memberships and
-member-only posts and replies. It is configured for Firebase project
+per-user state sync, and shared study groups with private memberships,
+member-only posts/replies, and group-owner reporting with reversible
+hide/restore. It is configured for Firebase project
 `campus4change` on the Spark plan. Email/Password sign-in is enabled, and the
 Standard Firestore database is in `asia-southeast1`. Application and test
 source contains no TypeScript files.
@@ -14,16 +15,18 @@ source contains no TypeScript files.
 Verified for this checkpoint:
 
 - `npm run lint`: passed without warnings.
-- `npm test -- --runInBand --coverage --coverageReporters=json --coverageReporters=json-summary`:
-  131 tests passed in 21 suites. Tests cover stale group callbacks and pending
+- `npm test -- --runInBand --coverage`:
+  141 tests passed in 23 suites. Tests cover stale group callbacks and pending
   shared writes across account changes, queued state persistence after a switch
   even when both accounts share the same `updatedAt`, unknown and past-due
   session statuses, malformed or missing session start times across Home,
   Sessions, and Session Details, partial-profile recovery, contextual
   accessibility labels for booking dates, sessions, groups, tutors, messages,
-  notifications, and group posts, the Home overdue warning, and theme color
-  contrast. Profile fallback is exercised for local and mocked Firebase cloud
-  restore; saved null/primitive collection entries are also checked.
+  notifications, and group posts, the Home overdue warning, theme color
+  contrast, owner-only report review, report queue paging/cleanup, and
+  hide/restore controls. Profile fallback is exercised for local and mocked
+  Firebase cloud restore; saved null/primitive collection entries are also
+  checked.
 - The groups screen uses a virtualized `SectionList`; its regression test feeds
   80 loaded groups and confirms that the initial render mounts no more than 10
   group cards. Search tests cover case-insensitive subject filtering, joined
@@ -31,8 +34,9 @@ Verified for this checkpoint:
   exercise home routes, tutor listing and search, booking validation, session
   reschedule gating, private group-room drafts versus explicit publishing,
   timer controls and cleanup, and shared-group retry paths.
-- The Jest coverage run for this checkpoint reports 83.88% line coverage,
-  76.28% branch coverage, and 84.33% function coverage. It covers all lines in
+- The Jest coverage run for this checkpoint reports 83.91% line coverage,
+  75.89% branch coverage, 84.28% function coverage, and 84.01% statement
+  coverage. It covers all lines in
   the home screen at 96.87%, session details at 100%, the group-room screen at
   100%, the local storage guard at 100%, tutor search at 96.77%, and booking
   screen at 94.44%. Coverage is
@@ -42,7 +46,11 @@ Verified for this checkpoint:
   It checks private account state, authenticated group discovery, member-only
   posts/replies, bounded cursor queries, per-member contribution cooldowns,
   owner-only membership records, safe member counts, and verified-email
-  requirements. Group directory queries are limited to 20 documents; unbounded
+  requirements. It also verifies that members cannot report their own content,
+  reports omit reporter UIDs, only the group owner can read/resolve reports,
+  hidden posts/replies cannot be read by members, and owner hide/restore actions
+  update content and report state together. Group directory queries are limited
+  to 20 documents; unbounded
   and over-limit queries fail. Unverified accounts can still access only their
   own private state; shared group discovery and writes are denied. The real
   last live Console check found initial production-mode rules that deny all
@@ -68,6 +76,15 @@ Verified for this checkpoint:
   It creates a disposable `example.test` user, obtains and applies the local
   verification code, refreshes the ID token, verifies the `email_verified`
   claim, and checks Firestore access before and after verification.
+- `./gradlew :app:createBundleReleaseJsAndAssets --max-workers=4 --console=plain`
+  passed for the current source. The bundle is 2,598,496 bytes with SHA-256
+  `e2efdf4f3cf59986945228a319975960b823248eb4400266468e8de7151f3359`; it
+  contains no `BEGIN PRIVATE KEY`, `braces`, or `micromatch` markers.
+- `./gradlew assembleDebug` passed for the current source. No physical ADB
+  device was active. I attempted the `Codex_API_36` emulator with software
+  rendering, including under Xvfb; its QEMU process exited with code 139 before
+  `sys.boot_completed`, so this moderation UI has no current device screenshot
+  or runtime verification.
 - Before the latest membership-path change, the Redmi Turbo 4
   (`24129RT7CC`, product `rodin`, Android 16) loaded the Firebase-emulator-backed
   group directory and an existing QA group's details. No group or post was
@@ -75,7 +92,7 @@ Verified for this checkpoint:
   `campus4change` with emulator routing disabled. A subsequent cold launch
   rendered the splash screen through loopback Metro and ADB reverse. These
   earlier checks do not verify the new membership path or production Firebase.
-- `npm test -- --runInBand` on 2026-10-13 passed all 131 tests in 21 suites.
+- `npm test -- --runInBand --coverage` on 2026-10-13 passed all 141 tests in 23 suites.
 - A partial version-one profile missing its name, interests, tutor subjects,
   and school fields restored from the account defaults, opened Home, and
   persisted the restored values without losing session/group data.

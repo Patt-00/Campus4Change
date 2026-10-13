@@ -14,6 +14,12 @@ function errorText(error) {
 }
 
 function groupActionErrorText(error, operation) {
+  if (error?.code === 'permission-denied' && operation.type === 'report') {
+    return 'Could not send this report. Verify group membership, avoid reporting your own content, and wait five seconds between group contributions.';
+  }
+  if (error?.code === 'permission-denied' && operation.type === 'moderateReport') {
+    return 'Only the group owner can review or hide reported content.';
+  }
   if (
     error?.code === 'permission-denied' &&
     (operation.type === 'post' || operation.type === 'reply')

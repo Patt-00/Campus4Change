@@ -86,6 +86,13 @@ record to its owner, and permits post/reply reads and writes only for members.
 Each post/reply must update a private per-member write-limit record in the same
 batch; rules enforce a five-second cooldown that leaving and rejoining cannot
 reset.
+`useSharedGroupReports` and `GroupReportsScreen` provide a paged, owner-only
+review queue for shared groups. Members can report another member's visible
+post or reply; report records omit reporter UID, and the same write cooldown
+applies. Owners can dismiss a report or reversibly hide and restore its
+content. Post/reply feeds filter to visible content, with their compound
+queries defined in `firestore.indexes.json`. Instructor-wide moderation is
+not part of this group-owner workflow.
 The private account document remains scoped to its owner. Tutor listings,
 bookings, group chats, and direct messages are still local to one account.
 
