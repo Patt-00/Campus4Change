@@ -15,7 +15,7 @@ Verified for this checkpoint:
 
 - `npm run lint`: passed without warnings.
 - `npm test -- --runInBand --coverage --coverageReporters=json --coverageReporters=json-summary`:
-  129 tests passed in 21 suites. Tests cover stale group callbacks and pending
+  131 tests passed in 21 suites. Tests cover stale group callbacks and pending
   shared writes across account changes, queued state persistence after a switch
   even when both accounts share the same `updatedAt`, unknown and past-due
   session statuses, malformed or missing session start times across Home,
@@ -32,7 +32,7 @@ Verified for this checkpoint:
   reschedule gating, private group-room drafts versus explicit publishing,
   timer controls and cleanup, and shared-group retry paths.
 - The Jest coverage run for this checkpoint reports 83.88% line coverage,
-  76.24% branch coverage, and 84.33% function coverage. It covers all lines in
+  76.28% branch coverage, and 84.33% function coverage. It covers all lines in
   the home screen at 96.87%, session details at 100%, the group-room screen at
   100%, the local storage guard at 100%, tutor search at 96.77%, and booking
   screen at 94.44%. Coverage is
@@ -75,7 +75,7 @@ Verified for this checkpoint:
   `campus4change` with emulator routing disabled. A subsequent cold launch
   rendered the splash screen through loopback Metro and ADB reverse. These
   earlier checks do not verify the new membership path or production Firebase.
-- `npm test -- --runInBand` on 2026-10-13 passed all 129 tests in 21 suites.
+- `npm test -- --runInBand` on 2026-10-13 passed all 131 tests in 21 suites.
 - A partial version-one profile missing its name, interests, tutor subjects,
   and school fields restored from the account defaults, opened Home, and
   persisted the restored values without losing session/group data.
@@ -111,6 +111,10 @@ Verified for this checkpoint:
   is a component-render count, not a device latency benchmark; no screen-level
   check was possible in this turn because the Redmi was locked and the AVDs
   could not start in the headless environment.
+- Chat copy tests verify that device-only conversations are described as
+  device-saved and Firebase conversations as syncing to the user's private
+  account, while both clearly state that messages are not delivered. The empty
+  inbox no longer implies all conversations stay only on-device.
 - The current membership-path and Firestore-rule change was tested against an
   isolated Firestore Emulator, not on the phone. The Redmi was connected but at
   its lock screen during this check; no unlock or bypass was attempted.

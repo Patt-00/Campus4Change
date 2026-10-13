@@ -9,7 +9,13 @@ import { conversationMessages, messageText } from '../data/conversation';
 import { C } from '../../../shared/theme/colors';
 import { s } from '../../../shared/theme/styles';
 
-export function ChatScreen({ back, conversation, send, canSend = true }) {
+export function ChatScreen({
+  back,
+  conversation,
+  send,
+  canSend = true,
+  cloudSynced = false,
+}) {
   const [text, setText] = useState('');
   const sourceMessages = conversation?.messages;
   const messages = useMemo(
@@ -29,7 +35,9 @@ export function ChatScreen({ back, conversation, send, canSend = true }) {
       scroll={false}
     >
       <Text style={[s.muted, styles.marginBottom12]}>
-        Messages stay on this device and are not delivered.
+        {cloudSynced
+          ? 'Messages are saved on this device and sync to your private Firebase account when online. They are not sent to the other person.'
+          : 'Messages are saved on this device and are not sent to the other person.'}
       </Text>
       <FlatList
         style={s.grow}

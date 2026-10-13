@@ -469,6 +469,7 @@ export function AppNavigator() {
             key={conversation.id}
             back={back}
             conversation={conversation}
+            cloudSynced={sessionType === 'firebase'}
             canSend={
               !conversation.groupId ||
               groupDirectory.some(g => g.id === conversation.groupId && g.joined)

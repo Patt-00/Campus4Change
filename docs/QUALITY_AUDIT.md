@@ -128,6 +128,10 @@ production-ready claim.
   a new message repairs the array; malformed timestamps no longer break sorting.
   An app-level regression loads such a saved state, opens the thread, sends, and
   verifies persistence.
+- Chat privacy copy now distinguishes device-only accounts from Firebase
+  accounts whose private conversation state syncs to Firestore. Both cases say
+  messages are not delivered to the other person; the inbox empty state no
+  longer describes every conversation as device-local.
 - Partial version-one profiles now fill missing fields from account defaults
   before feature screens render. A record missing name, interests, and tutor
   subjects previously crashed while the directory read `tutorSubjects.length`;

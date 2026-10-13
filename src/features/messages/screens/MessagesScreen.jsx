@@ -120,7 +120,7 @@ export function MessagesScreen({ go, conversations = [] }) {
         ListEmptyComponent={
           <Empty
             title="No conversations found"
-            body="Open a tutor profile or joined group to start a local conversation."
+            body="Open a tutor profile or joined group to draft a message. Messages are not sent to the other person or group."
           />
         }
         ListFooterComponent={

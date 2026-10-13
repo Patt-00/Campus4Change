@@ -80,6 +80,55 @@ test('chat sends a trimmed draft from the keyboard action', async () => {
   await act(async () => renderer.unmount());
 });
 
+test('chat explains local and Firebase storage without implying delivery', async () => {
+  let localRenderer;
+  await act(async () => {
+    localRenderer = ReactTestRenderer.create(
+      <SafeAreaProvider initialMetrics={initialMetrics}>
+        <ChatScreen
+          back={jest.fn()}
+          conversation={{ id: 'local-chat', name: 'Tutor', messages: [] }}
+          send={jest.fn()}
+        />
+      </SafeAreaProvider>,
+    );
+  });
+  await settleVirtualizedLists();
+  const localCopy = localRenderer.root
+    .findAllByType(Text)
+    .map(node => node.props.children)
+    .flat(Infinity)
+    .filter(value => typeof value === 'string');
+  expect(localCopy).toContain(
+    'Messages are saved on this device and are not sent to the other person.',
+  );
+  await act(async () => localRenderer.unmount());
+
+  let cloudRenderer;
+  await act(async () => {
+    cloudRenderer = ReactTestRenderer.create(
+      <SafeAreaProvider initialMetrics={initialMetrics}>
+        <ChatScreen
+          back={jest.fn()}
+          conversation={{ id: 'cloud-chat', name: 'Tutor', messages: [] }}
+          send={jest.fn()}
+          cloudSynced
+        />
+      </SafeAreaProvider>,
+    );
+  });
+  await settleVirtualizedLists();
+  const cloudCopy = cloudRenderer.root
+    .findAllByType(Text)
+    .map(node => node.props.children)
+    .flat(Infinity)
+    .filter(value => typeof value === 'string');
+  expect(cloudCopy).toContain(
+    'Messages are saved on this device and sync to your private Firebase account when online. They are not sent to the other person.',
+  );
+  await act(async () => cloudRenderer.unmount());
+});
+
 test('inbox virtualizes conversations and searches the full message text', async () => {
   const conversationCount = 120;
   const conversations = Array.from(
@@ -130,4 +179,30 @@ test('inbox virtualizes conversations and searches the full message text', async
       ),
   ).toBe(true);
   await act(async () => inboxRenderer.unmount());
+});
+
+test('empty inbox copy does not imply Firebase messages stay only on device', async () => {
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(
+      <SafeAreaProvider initialMetrics={initialMetrics}>
+        <MessagesScreen go={jest.fn()} conversations={[]} />
+      </SafeAreaProvider>,
+    );
+  });
+  await settleVirtualizedLists();
+
+  const labels = renderer.root
+    .findAllByType(Text)
+    .map(node => node.props.children)
+    .flat(Infinity)
+    .filter(value => typeof value === 'string');
+  expect(labels).toContain(
+    'Open a tutor profile or joined group to draft a message. Messages are not sent to the other person or group.',
+  );
+  expect(labels.some(value => value.includes('local conversation'))).toBe(
+    false,
+  );
+
+  await act(async () => renderer.unmount());
 });
