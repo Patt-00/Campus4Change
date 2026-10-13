@@ -3,7 +3,7 @@ import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { AppButton } from '../../../shared/components/AppButton';
 import { Screen } from '../../../shared/components/Screen';
 import { Empty, Field } from '../../../shared/components/UI';
-import { timeLabel } from '../../../shared/data/demo';
+import { timeLabel } from '../../../shared/data/utils';
 import { conversationMessages, messageText } from '../data/conversation';
 
 import { C } from '../../../shared/theme/colors';

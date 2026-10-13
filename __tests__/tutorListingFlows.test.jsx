@@ -139,14 +139,14 @@ test('tutor owner can remove an existing listing', async () => {
 test('tutor subject filters collapse spelling variants', async () => {
   const list = [
     {
-      id: 'sample',
-      name: 'Mika Santos',
+      id: 'tutor-taylor',
+      name: 'Taylor Student',
       subjects: ['Physics'],
       rating: 4.9,
       sessions: 12,
       response: 95,
       available: true,
-      sample: true,
+      shared: true,
     },
     {
       id: 'own',
@@ -171,14 +171,14 @@ test('tutor subject filters collapse spelling variants', async () => {
   expect(labels.filter(label => label === 'Physics')).toHaveLength(1);
   expect(labels.filter(label => label === 'physics')).toHaveLength(0);
   expect(labels.filter(label => label === 'Calculus')).toHaveLength(1);
-  const mikaLabel = labels.find(label => label?.startsWith('Mika Santos.'));
-  expect(mikaLabel).toContain('Subjects: Physics');
-  expect(mikaLabel).toContain('Rating 4.9 stars');
-  expect(mikaLabel).toContain('Sample tutor');
+  const tutorLabel = labels.find(label => label?.startsWith('Taylor Student.'));
+  expect(tutorLabel).toContain('Subjects: Physics');
+  expect(tutorLabel).toContain('Rating 4.9 stars');
+  expect(tutorLabel).toContain('Student tutor');
   await act(async () => renderer.unmount());
 });
 
-test('shared tutor directory gives a real empty state without demo listings', async () => {
+test('shared tutor directory gives a real empty state without bundled listings', async () => {
   const go = jest.fn();
   let renderer;
   await act(async () => {

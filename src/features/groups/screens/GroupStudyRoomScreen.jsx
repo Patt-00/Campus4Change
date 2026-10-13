@@ -4,7 +4,7 @@ import { AppButton } from '../../../shared/components/AppButton';
 import { Screen } from '../../../shared/components/Screen';
 import { Chip, Field } from '../../../shared/components/UI';
 import { Icon } from '../../../shared/components/Icon';
-import { dateLabel, timeLabel } from '../../../shared/data/demo';
+import { dateLabel, timeLabel } from '../../../shared/data/utils';
 import { C } from '../../../shared/theme/colors';
 import { s } from '../../../shared/theme/styles';
 

@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { Text, TouchableOpacity, View, StyleSheet } from 'react-native';
 import { Screen } from '../../../shared/components/Screen';
 import { Chip, Empty, Link } from '../../../shared/components/UI';
-import { sessionTime } from '../../../shared/data/demo';
+import { sessionTime } from '../../../shared/data/utils';
 import { isPastDueSession, sessionTimingStatus } from '../data/status';
 
 import { s } from '../../../shared/theme/styles';
 
-import { IconBadge } from '../../../shared/components/Icon';
+import { Icon, IconBadge } from '../../../shared/components/Icon';
+import { C } from '../../../shared/theme/colors';
 
 export function SessionsScreen({
   go,
@@ -64,7 +65,7 @@ export function SessionsScreen({
             : styles.historyCard,
         ]}
       >
-        <View style={s.row}>
+        <View style={[s.row, styles.sessionRow]}>
           <IconBadge name="calendar" />
           <View style={s.grow}>
             <Text style={s.name}>{session.subject}</Text>
@@ -75,20 +76,14 @@ export function SessionsScreen({
               {contactLabel}
             </Text>
           </View>
+          {session.status === 'Completed' && !session.shared ? (
+            <Text style={[s.link, styles.rateAction]}>
+              {session.rating ? 'Rated ★ ' + session.rating : 'Rate tutor'}
+            </Text>
+          ) : (
+            <Icon name="right" size={18} color={C.muted} />
+          )}
         </View>
-        <Text style={[s.link, styles.textAlignrightmarginTop12]}>
-          {session.status === 'Completed' && !session.shared
-            ? session.rating
-              ? 'Rated ★ ' + session.rating
-              : 'Rate tutor'
-            : session.status === 'Completed'
-              ? 'View details'
-            : session.status === 'Pending'
-              ? session.incoming
-                ? 'Review request'
-                : 'View request'
-              : 'View details'}
-        </Text>
       </TouchableOpacity>
     );
   }
@@ -206,10 +201,8 @@ export function SessionsScreen({
   );
 }
 const styles = StyleSheet.create({
-  upcomingCard: { minHeight: 126 },
-  historyCard: { minHeight: 100 },
-  textAlignrightmarginTop12: {
-    textAlign: 'right',
-    marginTop: 12,
-  },
+  upcomingCard: { minHeight: 88, paddingVertical: 12 },
+  historyCard: { minHeight: 88, paddingVertical: 12 },
+  sessionRow: { gap: 10 },
+  rateAction: { maxWidth: 72, textAlign: 'right' },
 });

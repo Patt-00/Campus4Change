@@ -68,8 +68,8 @@ for the platform flow and token exchange.
    If asked, choose the Firebase project you configured above. Check the
    selected project before deploying. Index creation may take several minutes.
 7. Build and run the Android app. Sign-up creates a Firebase account, and a
-   successful sign-in restores the account's Firestore state. The demo account
-   remains local sample data.
+   successful sign-in restores the account's Firestore state. No account or
+   sample listings are preloaded. Existing device-only accounts remain local.
 
 Firebase client settings identify the project; the API key is not an access
 control mechanism. Keep Firestore rules restrictive and never put service
@@ -110,7 +110,7 @@ member-only post and reply reads and writes. It also rejects unauthenticated
 access, third-party booking reads, duplicate and overlapping slot acceptance,
 forged bucket IDs and lock paths, membership spoofing, nonmember posting, and
 unconfigured collections.
-The Auth emulator test creates a disposable demo account, sends and applies a
+The Auth emulator test creates a disposable test account, sends and applies a
 verification code locally, confirms the refreshed email claim, and checks that
 shared-group access is denied before verification but allowed afterward.
 The rules-test package requires Node.js 24.12 or newer. The React Native 0.87.1
@@ -152,7 +152,7 @@ Each member's private record lives at
 `users/{uid}/studyGroupMemberships/{groupId}` and is written atomically with
 the matching group-count change. The user's exact private path supplies the
 live membership query and member authorization; no global `members`
-collection-group rule is needed. Device-only/demo groups remain local. Firebase
+collection-group rule is needed. Device-only groups remain local. Firebase
 Authentication sends a verification email at signup, and Firestore rules
 require the verified-email claim for shared study groups, tutor listings, and
 session requests.
@@ -167,7 +167,9 @@ transaction; cancellation or completion removes both locks atomically. Direct me
 group chat are still private notes rather than delivered conversations. Google
 sign-in is configured as described above. There is no school-domain allowlist.
 
-When Firebase values are absent from `firebaseConfig.js`, local demo/prototype
-accounts continue to work. With the current project configuration, new
+When Firebase values are absent from `firebaseConfig.js`, users can create and
+sign into device-only accounts. With the current project configuration, new
 accounts use Firebase Authentication. Previously created on-device accounts
-remain device-only; a data migration to Firebase is not implemented.
+remain device-only; a data migration to Firebase is not implemented. Upgrading
+from the old seeded build removes its exact bundled account and sample state,
+while preserving other local accounts and state.

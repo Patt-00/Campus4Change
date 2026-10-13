@@ -38,19 +38,25 @@ export function ProfileScreen({
       color: C.yellow,
     },
   ];
+  const accountActions = [
+    { label: 'Edit profile', page: 'Edit Profile' },
+    { label: 'Learning preferences', page: 'Preferences' },
+    { label: 'Tutor profile', page: 'Be a Tutor' },
+    { label: 'About Campus4Change', page: 'About' },
+  ];
 
   return (
     <Screen title="Profile" go={go} tab="Profile">
       <View style={styles.alignItemscenterpaddingTop8}>
-        <Avatar name={p.name} variant="tutor" size={72} />
-        <Text style={[s.heading, styles.marginTop16]}>{p.name}</Text>
+        <Avatar name={p.name} variant="tutor" size={64} />
+        <Text style={[s.heading, styles.marginTop12]}>{p.name}</Text>
         <Text style={s.muted}>
           {[p.course, p.year].filter(Boolean).join(' • ') ||
             'Add your course and year level'}
         </Text>
         {!!p.school && <Text style={[s.muted, s.center]}>{p.school}</Text>}
       </View>
-      <View style={[s.card, s.row, styles.marginTop28paddingVertical20]}>
+      <View style={[s.card, s.row, styles.statsCard]}>
         {stats.map(x => (
           <View key={x.label} style={[s.grow, styles.alignItemscenter]}>
             <Text style={[s.heading, { color: x.color }]}>{x.value}</Text>
@@ -58,34 +64,26 @@ export function ProfileScreen({
           </View>
         ))}
       </View>
-      <Text style={s.section}>Account</Text>
-      {[
-        {
-          label: 'Edit profile',
-          page: 'Edit Profile',
-        },
-        {
-          label: 'Learning preferences',
-          page: 'Preferences',
-        },
-        {
-          label: 'Tutor profile',
-          page: 'Be a Tutor',
-        },
-        { label: 'About Campus4Change', page: 'About' },
-      ].map(x => (
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel={x.label}
-          key={x.label}
-          style={[s.card, s.row, styles.minHeight54]}
-          onPress={() => go(x.page)}
-        >
-          <Text style={[s.text, s.grow]}>{x.label}</Text>
-          <Icon name="right" size={20} color={C.muted} />
-        </TouchableOpacity>
-      ))}
-      {sessionType === 'local' && state.profile.id !== 'demo' && (
+      <Text style={[s.section, styles.accountHeading]}>Account</Text>
+      <View style={[s.card, styles.accountCard]}>
+        {accountActions.map((action, index) => (
+          <View key={action.label}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={action.label}
+              style={[s.row, styles.accountRow]}
+              onPress={() => go(action.page)}
+            >
+              <Text style={[s.text, s.grow]}>{action.label}</Text>
+              <Icon name="right" size={18} color={C.muted} />
+            </TouchableOpacity>
+            {index < accountActions.length - 1 && (
+              <View style={styles.accountDivider} />
+            )}
+          </View>
+        ))}
+      </View>
+      {sessionType === 'local' && (
         <Link
           label="Enable biometric sign-in"
           onPress={async () => {
@@ -105,7 +103,7 @@ export function ProfileScreen({
         />
       )}
 
-      {firebaseConfigured && sessionType === 'local' && state.profile.id !== 'demo' && (
+      {firebaseConfigured && sessionType === 'local' && (
         <Text style={[s.muted, s.center]}>
           This existing device account does not sync to Firebase.
         </Text>
@@ -114,7 +112,7 @@ export function ProfileScreen({
       <TouchableOpacity
         accessibilityRole="button"
         accessibilityLabel="Sign out"
-        style={[s.card, styles.minHeight54justifyContentcenter]}
+        style={styles.signOutButton}
         onPress={() =>
           Alert.alert(
             'Sign out?',
@@ -146,7 +144,6 @@ export function ProfileScreen({
       </TouchableOpacity>
       <Text style={[s.muted, s.center]}>
         Campus4Change {version}
-        {p.id === 'demo' ? ' • Demo account' : ''}
       </Text>
     </Screen>
   );
@@ -156,21 +153,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 8,
   },
-  marginTop16: {
-    marginTop: 16,
+  marginTop12: {
+    marginTop: 12,
   },
-  marginTop28paddingVertical20: {
-    marginTop: 28,
-    paddingVertical: 20,
+  statsCard: {
+    marginTop: 20,
+    paddingVertical: 14,
   },
   alignItemscenter: {
     alignItems: 'center',
   },
-  minHeight54: {
-    minHeight: 54,
-  },
-  minHeight54justifyContentcenter: {
-    minHeight: 54,
+  accountHeading: { marginTop: 20, marginBottom: 8 },
+  accountCard: { paddingVertical: 4, paddingHorizontal: 12 },
+  accountRow: { minHeight: 48, paddingVertical: 4 },
+  accountDivider: { height: 1, backgroundColor: C.border },
+  signOutButton: {
+    minHeight: 48,
+    alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 8,
   },
 });

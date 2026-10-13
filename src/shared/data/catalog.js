@@ -1,47 +1,38 @@
-import { tutors } from './demo';
+function ownTutorProfile(state) {
+  const profile = state.profile;
+  if (!profile.tutorSubjects.length) {
+    return [];
+  }
 
-// Keep historical tutor IDs resolvable when opening an older saved booking.
-export function knownTutors(state) {
-  const p = state.profile;
   return [
-    ...tutors.map(t => ({ ...t, sample: true })),
-    ...(p.tutorSubjects.length
-      ? [
-          {
-            id: 'local-' + p.id,
-            name: p.name,
-            course: p.course,
-            year: p.year,
-            subjects: p.tutorSubjects,
-            rating: 0,
-            sessions: 0,
-            response: 0,
-            available: true,
-            availability: 'Your listing',
-            about: p.bio,
-            own: true,
-          },
-        ]
-      : []),
+    {
+      id: 'local-' + profile.id,
+      name: profile.name,
+      course: profile.course,
+      year: profile.year,
+      subjects: profile.tutorSubjects,
+      rating: 0,
+      sessions: 0,
+      response: 0,
+      available: true,
+      availability: 'Your listing',
+      about: profile.bio,
+      own: true,
+      shared: false,
+    },
   ];
 }
-export function directoryTutors(state) {
-  return knownTutors(state).filter(t => state.profile.id === 'demo' || t.own);
+
+// Local accounts can see their own device-only listing. Firebase directories
+// are supplied separately by the verified shared-tutor subscription.
+export function knownTutors(state) {
+  return ownTutorProfile(state);
 }
+
+export function directoryTutors(state) {
+  return ownTutorProfile(state);
+}
+
 export function visibleGroups(state) {
-  if (state.profile.id === 'demo') {
-    return state.groups;
-  }
-  return state.groups.filter(
-    g =>
-      !['calculus', 'java', 'physics'].includes(g.id) ||
-      g.joined ||
-      g.posts.some(
-        p =>
-          !['post-mika', 'post-renzo'].includes(p.id) || p.replies.length > 0,
-      ) ||
-      state.conversations.some(
-        c => c.groupId === g.id && c.messages.some(m => m.mine),
-      ),
-  );
+  return Array.isArray(state.groups) ? state.groups : [];
 }

@@ -3,7 +3,7 @@ import { Text, TouchableOpacity, View, StyleSheet } from 'react-native';
 import { AppButton } from '../../../shared/components/AppButton';
 import { Screen } from '../../../shared/components/Screen';
 import { Avatar, Chip, ErrorText, Field } from '../../../shared/components/UI';
-import { dayAt } from '../../../shared/data/demo';
+import { dayAt } from '../../../shared/data/utils';
 
 import { s } from '../../../shared/theme/styles';
 import { bookingSlots as slots } from '../data/booking';

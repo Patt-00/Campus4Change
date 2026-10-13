@@ -80,7 +80,7 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-test('Google sign-in enters the verified Firebase account and starts with no demo data', async () => {
+test('Google sign-in enters the verified Firebase account with empty initial state', async () => {
   let renderer;
   await act(async () => {
     renderer = ReactTestRenderer.create(<Harness />);

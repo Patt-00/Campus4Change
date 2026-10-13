@@ -9,7 +9,7 @@ import {
   Field,
   Link,
 } from '../../../shared/components/UI';
-import { sessionTime } from '../../../shared/data/demo';
+import { sessionTime } from '../../../shared/data/utils';
 import { sessionTimingStatus } from '../data/status';
 import { C } from '../../../shared/theme/colors';
 import { s } from '../../../shared/theme/styles';

@@ -158,7 +158,7 @@ test('home skips malformed session times when selecting the next booking', async
 test('home menu opens, routes to a page, and closes on request', async () => {
   const go = jest.fn();
   const state = {
-    profile: { id: 'demo', name: 'Alex Rivera', interests: [], school: 'TIP' },
+    profile: { id: 'student', name: 'Alex Rivera', interests: [], school: 'TIP' },
     notices: [],
     sessions: [],
   };

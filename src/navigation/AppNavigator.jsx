@@ -31,7 +31,7 @@ import { AppButton } from '../shared/components/AppButton';
 import { Empty, Link } from '../shared/components/UI';
 import { RouteTransition } from '../shared/components/RouteTransition';
 import { Screen } from '../shared/components/Screen';
-import { uid } from '../shared/data/demo';
+import { uid } from '../shared/data/utils';
 import { useSharedGroups } from '../features/groups/hooks/useSharedGroups';
 import { useSharedGroupReports } from '../features/groups/hooks/useSharedGroupReports';
 import { useSharedTutors } from '../features/tutors/hooks/useSharedTutors';

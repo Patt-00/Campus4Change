@@ -122,11 +122,7 @@ export function TutorSearchScreen({
           Number.isFinite(t.rating) && t.rating > 0
             ? `Rating ${t.rating.toFixed(1)} stars`
             : 'No rating yet';
-        const listing = t.own
-          ? 'Your listing'
-          : t.sample
-            ? 'Sample tutor'
-            : 'Student tutor';
+        const listing = t.own ? 'Your listing' : 'Student tutor';
         return (
           <TouchableOpacity
             accessibilityRole="button"
@@ -140,8 +136,8 @@ export function TutorSearchScreen({
               <View style={s.grow}>
                 <Text style={s.name}>{t.name}</Text>
                 <Text style={s.muted}>{t.subjects.join(' · ')}</Text>
-                {t.sample && (
-                  <Text style={s.star}>★ {t.rating} · Sample tutor</Text>
+                {Number.isFinite(t.rating) && t.rating > 0 && (
+                  <Text style={s.star}>★ {t.rating.toFixed(1)}</Text>
                 )}
                 {t.own && <Text style={[s.muted, s.blue]}>Your listing</Text>}
               </View>
@@ -174,7 +170,7 @@ export function TutorSearchScreen({
                   ? emailVerified
                     ? 'Publish a tutor profile to help classmates find you, or check back later.'
                     : 'Student tutor listings are available after your Firebase email is verified.'
-                  : 'Your personal tutor listing is stored on this device. The demo account includes sample tutors.'
+                  : 'Create a device-only tutor profile or sign in with Firebase to browse verified student listings.'
             }
           />
         )

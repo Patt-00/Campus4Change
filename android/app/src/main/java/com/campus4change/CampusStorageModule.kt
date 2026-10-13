@@ -6,6 +6,7 @@ import android.os.CancellationSignal
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import android.util.Log
 import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.*
 import com.facebook.react.uimanager.ViewManager
@@ -23,12 +24,26 @@ import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.PBEKeySpec
 
-/** Android-only local prototype accounts and encrypted, per-account app state. */
+/** Android-only local accounts and encrypted, per-account app state. */
 class CampusStorageModule(private val context: ReactApplicationContext) : ReactContextBaseJavaModule(context) {
     private val worker = Executors.newSingleThreadExecutor()
     private val prefs = context.getSharedPreferences("campus_private", 0)
     @Volatile private var activeUser: String? = null
     private var biometricCancel: CancellationSignal? = null
+
+    init {
+        // Queue cleanup before any bridge method can enqueue local account work.
+        worker.execute {
+            try {
+                removeLegacySeedAccount()
+            } catch (error: Exception) {
+                Log.e(
+                    "CampusStorage",
+                    "Legacy seeded-account migration failed: ${error.javaClass.simpleName}",
+                )
+            }
+        }
+    }
 
     override fun getName() = "CampusStorage"
 
@@ -86,11 +101,39 @@ class CampusStorageModule(private val context: ReactApplicationContext) : ReactC
             .put("hash", Base64.encodeToString(hash(password, salt), Base64.NO_WRAP))
     }
 
+    private fun isLegacySeedAccount(account: JSONObject): Boolean =
+        account.optString("id") == "demo"
+            && account.optString("email").equals("alex@campus.demo", ignoreCase = true)
+            && account.optString("studentId") == "DEMO"
+
+    private fun removeLegacySeedAccount() {
+        val serializedAccounts = read("accounts")
+        val existing = serializedAccounts?.let { JSONArray(it) } ?: JSONArray()
+        val retained = JSONArray()
+        var foundBundledDemo = false
+        for (index in 0 until existing.length()) {
+            val account = existing.optJSONObject(index)
+            if (account != null && isLegacySeedAccount(account)) {
+                foundBundledDemo = true
+            } else if (account != null) {
+                retained.put(account)
+            }
+        }
+        if (!foundBundledDemo) return
+
+        if (serializedAccounts != null) {
+            write("accounts", retained.toString())
+        }
+        val editor = prefs.edit().remove("state_demo")
+        if (read("biometric_user") == "demo") editor.remove("biometric_user")
+        check(editor.commit()) { "Could not remove the legacy seeded account." }
+        if (activeUser == "demo") activeUser = null
+    }
+
     private fun accounts(): JSONArray {
+        removeLegacySeedAccount()
         read("accounts")?.let { return JSONArray(it) }
-        val list = JSONArray().put(account("Alex Rivera", "alex@campus.demo", "DEMO", "Campus123!", "demo"))
-        write("accounts", list.toString())
-        return list
+        return JSONArray()
     }
 
     private fun publicAccount(a: JSONObject): String = JSONObject().put("id", a.getString("id"))
@@ -162,7 +205,7 @@ class CampusStorageModule(private val context: ReactApplicationContext) : ReactC
     }
     @ReactMethod fun enableBiometrics(promise: Promise) {
         val id = activeUser
-        if (id == null || id == "demo") {
+        if (id == null) {
             promise.reject("BIOMETRIC", "Sign in to your own local account before enabling biometrics.")
             return
         }

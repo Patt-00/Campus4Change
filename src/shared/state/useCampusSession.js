@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { initialState } from '../data/demo';
+import { initialState } from '../data/utils';
 import {
   firebaseEnabled,
   firebaseCheckEmailVerification,
@@ -17,11 +17,6 @@ import {
 import { reducer } from './reducer';
 import { stateForPersistence } from './persistence';
 import { deviceStore, parseAccount, parseState } from './storage';
-
-function isDemoAccount(identifier) {
-  const value = identifier.trim().toLowerCase();
-  return value === 'alex@campus.demo' || value === 'demo';
-}
 
 function asState(value, account) {
   if (!value) {
@@ -373,7 +368,7 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
       return true;
     },
     signIn: async (identifier, password) => {
-      if (firebaseEnabled && !isDemoAccount(identifier)) {
+      if (firebaseEnabled) {
         const account = await firebaseSignIn(identifier, password);
         setEmailVerified(Boolean(account.emailVerified));
         setEmailVerificationMessage(

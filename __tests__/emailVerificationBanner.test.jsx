@@ -2,7 +2,7 @@ import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
 import { Text } from 'react-native';
 import App from '../App';
-import { initialState } from '../src/shared/data/demo';
+import { initialState } from '../src/shared/data/utils';
 
 let mockSession;
 let mockSharedGroupOptions;

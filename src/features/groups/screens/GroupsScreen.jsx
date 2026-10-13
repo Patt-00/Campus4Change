@@ -10,7 +10,8 @@ import { AppButton } from '../../../shared/components/AppButton';
 import { Screen } from '../../../shared/components/Screen';
 import { Field } from '../../../shared/components/UI';
 
-import { IconBadge } from '../../../shared/components/Icon';
+import { Icon, IconBadge } from '../../../shared/components/Icon';
+import { C } from '../../../shared/theme/colors';
 import { s } from '../../../shared/theme/styles';
 
 export function GroupsScreen({
@@ -108,7 +109,7 @@ export function GroupsScreen({
           ', ' +
           (group.shared ? 'Shared group' : 'On this device')
         }
-        style={[s.card, s.row, styles.minHeight104]}
+        style={[s.card, s.row, styles.groupCard]}
         onPress={() =>
           go({
             page: 'Group Details',
@@ -119,13 +120,13 @@ export function GroupsScreen({
         <IconBadge name="users" />
         <View style={s.grow}>
           <Text style={s.name}>{group.name}</Text>
-          <Text style={s.muted}>
-            {group.members} {group.members === 1 ? 'member' : 'members'} •{' '}
-            {group.joined ? 'Joined' : 'Not joined'} •{' '}
-            {group.shared ? 'Shared group' : 'On this device'}
+          <Text style={s.muted} numberOfLines={1}>
+            {group.subject || 'Study group'} · {group.members}{' '}
+            {group.members === 1 ? 'member' : 'members'} ·{' '}
+            {group.shared ? 'Shared' : 'On this device'}
           </Text>
-          <Text style={[s.link, styles.marginTop8]}>Open group</Text>
         </View>
+        <Icon name="right" size={18} color={C.muted} />
       </TouchableOpacity>
     );
   }
@@ -166,8 +167,9 @@ export function GroupsScreen({
   );
 }
 const styles = StyleSheet.create({
-  minHeight104: {
-    minHeight: 104,
+  groupCard: {
+    minHeight: 84,
+    paddingVertical: 12,
   },
   marginTop8: {
     marginTop: 8,

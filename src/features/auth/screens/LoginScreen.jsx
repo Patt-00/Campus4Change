@@ -1,5 +1,12 @@
 import React, { useRef, useState } from 'react';
-import { Alert, Keyboard, Text, View, StyleSheet } from 'react-native';
+import {
+  Alert,
+  Keyboard,
+  Text,
+  TouchableOpacity,
+  View,
+  StyleSheet,
+} from 'react-native';
 import { AppButton } from '../../../shared/components/AppButton';
 import { Screen } from '../../../shared/components/Screen';
 import { ErrorText, Field, Link } from '../../../shared/components/UI';
@@ -15,6 +22,9 @@ export function LoginScreen({ go, back, auth }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [localOnly, setLocalOnly] = useState(false);
+  const [moreOptionsOpen, setMoreOptionsOpen] = useState(
+    !auth.firebaseConfigured,
+  );
   const passwordInput = useRef(null);
   async function submit(action) {
     if (busy) {
@@ -51,7 +61,7 @@ export function LoginScreen({ go, back, auth }) {
     if (!auth.firebaseConfigured || localOnly) {
       Alert.alert(
         'Local account recovery',
-        'This device account needs its original password. Email recovery is not available. The demo account remains available without your password.',
+        'This device account needs its original password. Email recovery is not available for on-device accounts.',
       );
       return;
     }
@@ -74,7 +84,7 @@ export function LoginScreen({ go, back, auth }) {
       </Text>
       {!auth.firebaseConfigured && (
         <Text style={[s.muted, styles.marginBottom12]}>
-          Firebase is not configured yet. Demo and new local accounts stay on this device.
+          Firebase is not configured yet. New accounts stay on this device.
         </Text>
       )}
       <Field
@@ -152,27 +162,46 @@ export function LoginScreen({ go, back, auth }) {
         <Text style={s.muted}>Don't have an account?</Text>
         <Link label="Sign up" onPress={() => go('Sign Up')} />
       </View>
-      {auth.firebaseConfigured && (
+      {auth.firebaseConfigured && !localOnly && (
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={
+            moreOptionsOpen ? 'Hide other options' : 'More sign-in options'
+          }
+          accessibilityState={{ expanded: moreOptionsOpen }}
+          style={styles.otherOptionsToggle}
+          onPress={() => setMoreOptionsOpen(value => !value)}
+        >
+          <Text style={s.link}>
+            {moreOptionsOpen ? 'Hide other options' : 'More sign-in options'}
+          </Text>
+        </TouchableOpacity>
+      )}
+      {auth.firebaseConfigured && moreOptionsOpen && !localOnly && (
         <View style={styles.alignSelfcenter}>
           <Link
-            label={localOnly ? 'Back to Firebase sign-in' : 'Use existing on-device account'}
+            label="Use existing on-device account"
             onPress={() => {
               setError('');
-              setLocalOnly(!localOnly);
+              setLocalOnly(true);
             }}
           />
         </View>
       )}
-      <View style={s.bigGap} />
-      <Link label="About Campus4Change" onPress={() => go('About')} />
-      <AppButton
-        title="USE DEMO ACCOUNT"
-        outline
-        disabled={busy}
-        onPress={() =>
-          submit(() => auth.signIn('alex@campus.demo', 'Campus123!'))
-        }
-      />
+      {auth.firebaseConfigured && localOnly && (
+        <View style={styles.alignSelfcenter}>
+          <Link
+            label="Back to Firebase sign-in"
+            onPress={() => {
+              setError('');
+              setLocalOnly(false);
+            }}
+          />
+        </View>
+      )}
+      <View style={styles.aboutLink}>
+        <Link label="About Campus4Change" onPress={() => go('About')} />
+      </View>
     </Screen>
   );
 }
@@ -195,4 +224,6 @@ const styles = StyleSheet.create({
   alignSelfcenter: { alignSelf: 'center' },
   googleDivider: { marginTop: 14, marginBottom: 2 },
   googleHelper: { marginTop: 8 },
+  otherOptionsToggle: { alignSelf: 'center', marginTop: 4 },
+  aboutLink: { alignSelf: 'center', marginTop: 4 },
 });

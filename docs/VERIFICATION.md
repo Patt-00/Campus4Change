@@ -12,27 +12,30 @@
 - The existing Figma prototype's 63 navigation links now have matching 220 ms
   ease-out transitions: 36 directional move-ins and 27 tab dissolves. The
   Plugin API readback confirmed all 63 saved transitions.
-- `npm test -- --runInBand --coverage`: 165 tests passed in 26 suites;
-  statement coverage 83.74% and branch coverage 74.91%. Five added Firebase
-  boundary tests verify private state reads, cross-UID rejection, and transient
-  Student ID retention when Firebase sign-out fails. `npm run lint` passed
-  without warnings. `:app:createBundleReleaseJsAndAssets` passed for the updated
-  app source; its 2,637,816-byte bundle has SHA-256
-  `12b3f8e7e26c022c7479ee8a20acfa2923d6eceb13a9e388f6db4e9bf1f59d5b`.
-  `:app:assembleDebug` also passed; Gradle reported the build up to date.
-- On the POCO X4 GT (model `22041216G`, Android 14), a cold launch displayed the
-  logo onboarding screen. Onboarding to Introduction to Login worked, and the
-  Login Back control returned to Introduction. A mid-transition screenshot
-  showed the reverse slide and fade in progress before it settled; filtered
-  React Native and Android error logs were empty. The app was left on Login.
-  A retry selected only the approved test account but returned to Login with
-  the cancellation message; the credential provider logged a generic response
-  error. No Firebase token exchange is verified, and no different account was
-  selected.
-- The current Firebase rules and indexes remain undeployed. GitHub Actions run
-  [38445047985](https://github.com/Patt-00/Campus4Change/actions/runs/38445047985)
-  passed on `373f4ba`; it includes the navigation and tutor-hook changes, but not
-  the five additional Firebase boundary tests in the current local update.
+- The Home quick actions and Study Groups cards were simplified in code and in
+  Figma while retaining the current dark palette, rounded cards, and cyan
+  accents. The login has no demo sign-in, and new account state has no seeded
+  tutors, groups, sessions, conversations, or notices. Android startup removes
+  only the exact old bundled account and its saved state/biometric pointer.
+- `npm test -- --runInBand --coverage --testTimeout=15000`: 169 tests passed
+  in 26 suites; statement coverage 82.60% and branch coverage 73.63%.
+  `npm run lint` passed without warnings. `:app:createBundleReleaseJsAndAssets`
+  and `:app:assembleDebug` passed. The production JavaScript bundle is
+  2,633,772 bytes with SHA-256
+  `a0594f04502a74b852bdcb690d1a7835f56e978d66ccc76effa7bbb3db7944a9`.
+- On the POCO X4 GT (model `22041216G`, Android 14), the debug APK installed
+  over the existing app without clearing app data. A cold launch showed the
+  logo, then Login. The screen had no demo button; attempting the former seeded
+  device-account sign-in returned the normal invalid-credentials error. This
+  verifies removal of that seeded account on the test device. The device had no
+  other known local account, so preservation of a separate local account is
+  verified by the exact-identity migration logic, not a second device account.
+  The stale Metro cache was restarted from this checkout; the current bundle
+  loaded and filtered Android/React Native error logs were empty.
+- GitHub Actions run
+  [38445815680](https://github.com/Patt-00/Campus4Change/actions/runs/38445815680)
+  passed on `468d7ca`. It predates this uncommitted minimalist/demo-removal
+  update. The checked-in Firebase rules and indexes remain undeployed.
 
 ## Current source work — 2026-10-13
 
@@ -164,12 +167,12 @@ Verified for this checkpoint:
   checkpoint; malformed data behavior is covered by the focused tests.
 - The Android accessibility tree announced full booking dates and included
   session, group, tutor, message, notification, and group-post context in the
-  list controls. This was checked while signed into the local demo account; no
-  booking was submitted, and the app was signed out afterward.
+  list controls. This was checked while signed into the legacy seeded local
+  account; no booking was submitted, and the app was signed out afterward.
 - The updated Sessions screen was served through loopback Metro to the Redmi
   Turbo 4 and showed an explicit "No upcoming sessions" message above its
   past-due and completed sections. The app was signed out afterward; the
-  existing demo data was preserved. Filtered logs showed no fatal Android or
+  existing seeded state was preserved. Filtered logs showed no fatal Android or
   React Native JavaScript error during this run.
 - A large-list component test measured the Chat and Messages render window.
   With 1,200 synthetic messages and 120 conversations, the prior scroll views
@@ -372,11 +375,11 @@ The release attaches `SHA256SUMS` and `SOURCE-BUILD.json` with its exact source 
 
 ## Update compatibility
 
-Saved state remains version 1. No saved account data is deleted. Existing interests can be edited. Earlier bookings and conversations retain their sample tutor IDs. Previously joined or edited sample groups stay visible in personal accounts; untouched sample groups are hidden. Old groups without a meetup date display **No meetup scheduled**.
+Saved state remains version 1. The Android update was installed over the older seeded build on the POCO without clearing data; the former seeded local sign-in was rejected after launch. The migration removes only the exact bundled account record, its `state_demo` data, and its biometric pointer. Other local accounts and their saved state are retained by the identity check, though a separate user-created local account was not available for an on-device preservation test. Old groups without a meetup date display **No meetup scheduled**.
 
-New accounts have blank interests and school details and no sample groups, tutors, bookings, or conversations. The public demo account retains sample content. A personal tutor listing has no fabricated rating or response rate and offers editing instead of self-booking.
+New accounts have blank interests and school details and no bundled groups, tutors, bookings, or conversations. A personal tutor listing has no fabricated rating or response rate and offers editing instead of self-booking.
 
-The package ID and certificate match older releases, and the version code increases to 3. Installation as an update is intended to retain data; this version has not been installed by the agent.
+The package ID and certificate match older releases, and the version code increases to 3. Installation as an update retained app data on the test device.
 
 ## Teacher walkthrough
 
@@ -384,8 +387,8 @@ Complete these manual checks on the exact release APK before demonstrating it.
 
 1. Install as an update and open the app. Check existing saved work after signing in.
 2. Open the splash screen and step through the Novice, Intermediate, and Expert introductions. Check Back, Skip, page dots, and Get Started.
-3. Demonstrate invalid login input, then use **USE DEMO ACCOUNT** for sample content.
-4. Search for Mika, choose a time on her profile, and book a future session. Verify the selected tutor, time, note, and overlap rejection.
+3. Demonstrate invalid login input, then create or sign in to a real test account. Confirm there is no preloaded account or sample listing.
+4. Publish a tutor profile or use a second verified Firebase account's profile, choose a time, and book a future session. Verify the selected tutor, time, note, and overlap rejection.
 5. Open a booked session workspace, confirm the tutor, schedule, and notes, and mark it complete. Reschedule, cancel, complete, and rate sessions; check upcoming, in-progress, and past-due labels.
 6. Create a group without a date and confirm no schedule is invented. Create another with a valid future date and time; reject a nonexistent date.
 7. Join/leave groups, review meetup dates and locations, and use a group session workspace. Write notes and replies, check that Back preserves a private draft, and post notes to a shared group only from the explicit action. Firebase accounts share group posts/replies when project settings and Firestore rules are configured; device-only accounts keep local groups.
@@ -397,10 +400,10 @@ Complete these manual checks on the exact release APK before demonstrating it.
 13. Use a dedicated test Google account on the Android debug build. Verify Firebase creates or restores the account, keeps the supplied name/email, and allows the Student ID to be added privately in Edit Profile. Cancel the Google sheet once and confirm the auth screen stays usable. Repeat with the exact release signing certificate before distribution. This account-level flow has not yet been completed.
 14. Sign out and sign in again to check saved data. Check biometrics on a personal account if enrolled on the phone.
 
-Verified Firebase students share tutor profiles and session requests; device-only/demo profiles and schedules remain local. Direct messages and group chat are still private notes. Signed-in Firebase users share group details, memberships, posts, and replies. About explains the remaining limits. Do not present sample contacts as live users.
+Verified Firebase students share tutor profiles and session requests; device-only profiles and schedules remain local. Direct messages and group chat are still private notes. Signed-in Firebase users share group details, memberships, posts, and replies. About explains the remaining limits.
 
 ## Historical 1.1.0 device checks
 
-The previous APK was tested on one Android 16 phone: update over v1.0.0, cold launch, empty-login validation, demo sign-in, Mika search/profile selection, past-time rejection, and future Physics booking with confirmation/details. No crash was observed in those checks. Testing then stopped at the user's request.
+The previous APK was tested on one Android 16 phone: update over v1.0.0, cold launch, empty-login validation, the then-present seeded sign-in, tutor search/profile selection, past-time rejection, and future Physics booking with confirmation/details. That seeded account and its sample flows have since been removed; these are historical checks only. No crash was observed in those checks. Testing then stopped at the user's request.
 
 Those checks apply to 1.1.0, not this APK. The prior release retains its [device verification record](https://github.com/Patt-00/Campus4Change/releases/tag/v1.1.0).

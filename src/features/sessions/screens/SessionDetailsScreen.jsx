@@ -8,7 +8,7 @@ import {
   ErrorText,
   Link,
 } from '../../../shared/components/UI';
-import { dateLabel, timeRange } from '../../../shared/data/demo';
+import { dateLabel, timeRange } from '../../../shared/data/utils';
 import { canRescheduleSession, sessionTimingStatus } from '../data/status';
 
 import { C } from '../../../shared/theme/colors';

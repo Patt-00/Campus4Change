@@ -1,4 +1,4 @@
-import { initialState, tutors } from '../src/shared/data/demo';
+import { initialState } from '../src/shared/data/utils';
 import { filterTutors } from '../src/features/tutors/data/search';
 import { hasConflict, reducer } from '../src/shared/state/reducer';
 import { parseState } from '../src/shared/state/storage';
@@ -158,8 +158,25 @@ test('rescheduling cannot overlap another booking, and only completed sessions a
   expect(state.sessions[1].rating).toBe(4);
 });
 test('membership changes are idempotent and nonmembers cannot post or send group messages', () => {
-  let state = initialState({ ...account, id: 'demo' });
-  state.groups[0].joined = false;
+  let state = initialState(account);
+  state.groups = [
+    {
+      id: 'calculus',
+      name: 'Calculus Circle',
+      subject: 'Calculus',
+      members: 1,
+      joined: false,
+      posts: [
+        {
+          id: 'existing-post',
+          author: 'Another student',
+          text: 'Study notes',
+          createdAt: booking.startsAt,
+          replies: [],
+        },
+      ],
+    },
+  ];
   const members = state.groups[0].members;
   state = reducer(state, { type: 'membership', id: 'calculus', joined: true });
   state = reducer(state, { type: 'membership', id: 'calculus', joined: true });
@@ -176,7 +193,7 @@ test('membership changes are idempotent and nonmembers cannot post or send group
       replies: [],
     },
   });
-  expect(state.groups[0].posts).toHaveLength(2);
+  expect(state.groups[0].posts).toHaveLength(1);
   state = reducer(state, {
     type: 'conversation',
     conversation: {
@@ -424,7 +441,7 @@ test('persisted account state omits shared feed caches but preserves local group
   expect(saved.groups[1].posts).toEqual([localPost]);
   expect(state.groups[0].posts).toEqual([sharedPost]);
 });
-test('new accounts have no demo bookings or messages and start with independent data', () => {
+test('new accounts start empty and keep independent local data', () => {
   const a = initialState(account);
   const b = initialState({ ...account, id: 'other' });
   a.profile.interests.push('Nursing');
@@ -437,34 +454,47 @@ test('new accounts have no demo bookings or messages and start with independent 
   expect(a.conversations).toHaveLength(0);
 });
 test('search uses names and subjects, combines filters, and handles no results', () => {
+  const tutors = [
+    {
+      id: 'tutor-1',
+      name: 'Mika Student',
+      subjects: ['Physics'],
+      rating: 4.8,
+      available: false,
+    },
+    {
+      id: 'tutor-2',
+      name: 'Jamie Student',
+      subjects: ['Calculus I'],
+      rating: 4.9,
+      available: true,
+    },
+  ];
   expect(
     filterTutors(tutors, ' mIkA ', '', false, false).map(x => x.id),
-  ).toEqual(['mika']);
+  ).toEqual(['tutor-1']);
   expect(filterTutors(tutors, 'Physics', '', true, false)).toHaveLength(0);
   expect(
     filterTutors(tutors, '', 'Calculus I', true, true).map(x => x.id),
-  ).toEqual(['jamie']);
+  ).toEqual(['tutor-2']);
 });
-test('sample data stays in the demo directory while historical IDs and used groups remain available', () => {
+test('device-only accounts have no bundled tutor or group listings', () => {
   const state = initialState(account);
   expect(directoryTutors(state)).toEqual([]);
-  expect(knownTutors(state).find(t => t.id === 'mika')?.name).toBe(
-    'Mika Santos',
-  );
-  const demoState = initialState({ ...account, id: 'demo' });
-  expect(directoryTutors(demoState)).toHaveLength(3);
-  state.groups = demoState.groups.map(g => ({ ...g, joined: false }));
+  expect(knownTutors(state)).toEqual([]);
   expect(visibleGroups(state)).toEqual([]);
-  state.groups[0].joined = true;
-  state.groups[1].posts.push({
-    id: 'my-note',
-    author: 'Student',
-    text: 'Saved work',
-    createdAt: booking.startsAt,
-    replies: [],
-  });
-  expect(visibleGroups(state).map(g => g.id)).toEqual(['calculus', 'java']);
-  expect(state.groups).toHaveLength(3);
+
+  const localGroup = {
+    id: 'local-group',
+    name: 'Student Study Circle',
+    subject: 'Writing',
+    members: 1,
+    joined: true,
+    posts: [],
+  };
+  state.groups.push(localGroup);
+  expect(visibleGroups(state)).toEqual([localGroup]);
+
   state.profile.tutorSubjects = ['Nursing'];
   expect(directoryTutors(state).map(t => t.subjects)).toEqual([['Nursing']]);
   expect(directoryTutors(state)[0].response).toBe(0);
@@ -478,7 +508,8 @@ test('meetup dates reject nonexistent dates and invalid times, and old saved gro
   expect(date.getDate()).toBe(20);
   expect(date.getHours()).toBe(16);
   expect(date.getMinutes()).toBe(30);
-  const state = initialState({ ...account, id: 'demo' });
+  const state = initialState(account);
+  state.groups.push({ id: 'old-group', name: 'Old Group' });
   delete state.groups[0].meetupAt;
   expect(parseState(JSON.stringify(state)).groups[0].meetupAt).toBeUndefined();
 });

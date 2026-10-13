@@ -16,19 +16,13 @@ export function TutorDetailsScreen({ go, back, tutor, message }) {
         <Text style={s.muted}>
           {[tutor.course, tutor.year].filter(Boolean).join(' • ')}
         </Text>
-        {tutor.sample ? (
-          <Text style={s.star}>
-            ★ {tutor.rating || 'New'} • {tutor.sessions} sessions •{' '}
-            {tutor.response}% response
-          </Text>
-        ) : tutor.shared ? (
+        {tutor.shared ? (
           <Text style={s.muted}>Student tutor · accepts session requests</Text>
         ) : (
           <Text style={s.muted}>
             {tutor.own ? 'Your device-only listing' : 'Tutor listing'}
           </Text>
         )}
-        {tutor.sample && <Text style={s.muted}>Sample tutor · Demo data</Text>}
       </View>
       <View style={s.divider} />
       <Text style={[s.section, styles.marginTop0]}>Subjects</Text>

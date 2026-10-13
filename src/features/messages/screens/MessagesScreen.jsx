@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { Screen } from '../../../shared/components/Screen';
 import { Avatar, Empty, Field, Link } from '../../../shared/components/UI';
-import { timeLabel } from '../../../shared/data/demo';
+import { timeLabel } from '../../../shared/data/utils';
 import {
   conversationMessages,
   messageText,

@@ -10,7 +10,7 @@ import {
 import { AppButton } from '../../../shared/components/AppButton';
 import { Screen } from '../../../shared/components/Screen';
 import { Empty, Link } from '../../../shared/components/UI';
-import { dateLabel } from '../../../shared/data/demo';
+import { dateLabel } from '../../../shared/data/utils';
 import { s } from '../../../shared/theme/styles';
 
 const reasonLabel = reason =>

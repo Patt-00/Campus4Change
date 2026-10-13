@@ -34,18 +34,25 @@ export function Icon({ name, size = 24, color = C.text }) {
   );
 }
 
-export function IconBadge({ name, color = C.cyan }) {
+export function IconBadge({ name, color = C.cyan, size = 44 }) {
   return (
-    <View style={[styles.badge, { backgroundColor: color + '18' }]}>
-      <Icon name={name} color={color} />
+    <View
+      style={[
+        styles.badge,
+        {
+          width: size,
+          height: size,
+          borderRadius: Math.min(12, size / 3),
+          backgroundColor: color + '18',
+        },
+      ]}
+    >
+      <Icon name={name} color={color} size={Math.round(size * 0.55)} />
     </View>
   );
 }
 const styles = StyleSheet.create({
   badge: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },

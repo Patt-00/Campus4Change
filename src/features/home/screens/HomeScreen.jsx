@@ -4,7 +4,7 @@ import { Screen } from '../../../shared/components/Screen';
 import { Avatar, Empty, Field, Link } from '../../../shared/components/UI';
 import { IconBadge } from '../../../shared/components/Icon';
 import { AppButton } from '../../../shared/components/AppButton';
-import { sessionTime } from '../../../shared/data/demo';
+import { sessionTime } from '../../../shared/data/utils';
 import {
   isPastDueSession,
   sessionTimingStatus,
@@ -16,28 +16,24 @@ import { s } from '../../../shared/theme/styles';
 const quick = [
   {
     title: 'Find a Tutor',
-    body: 'Explore subjects and skills',
     page: 'Tutor Search',
     icon: 'search',
     color: C.cyan,
   },
   {
     title: 'Be a Tutor',
-    body: 'Share what you know',
     page: 'Be a Tutor',
     icon: 'graduation',
     color: C.green,
   },
   {
     title: 'Study Groups',
-    body: 'Keep study notes together',
     page: 'Study Groups',
     icon: 'users',
     color: C.yellow,
   },
   {
     title: 'Sessions',
-    body: 'Manage your schedule',
     page: 'Sessions',
     icon: 'calendar',
     color: C.cyan,
@@ -74,17 +70,12 @@ export function HomeScreen({ go, state, directory, tutors }) {
       unread={state.notices.filter(n => !n.read).length}
     >
       <View style={[s.row, styles.greeting]}>
-        <Avatar name={state.profile.name} size={44} />
+        <Avatar name={state.profile.name} size={40} />
         <View style={s.grow}>
           <Text style={s.name}>Hello, {state.profile.name.split(' ')[0]}!</Text>
           <Text style={s.muted}>What would you like to learn today?</Text>
         </View>
       </View>
-      {state.profile.id === 'demo' && (
-        <Text style={[s.muted, styles.demo]}>
-          Demo account · Sample tutors, groups, and conversations
-        </Text>
-      )}
       {pastDue.length > 0 && (
         <View style={[s.card, styles.pastDueCard]}>
           <Text style={[s.name, s.danger]}>
@@ -118,26 +109,28 @@ export function HomeScreen({ go, state, directory, tutors }) {
         />
       )}
       <View style={[s.card, styles.match]}>
-        <Text style={styles.eyebrow}>YOUR LEARNING INTERESTS</Text>
-        <Text style={[s.heading, s.blue, styles.top]}>
-          {interest || 'Choose what to learn'}
-        </Text>
-        <Text style={s.muted}>
-          {interest
-            ? `${matches} ${
-                matches === 1 ? 'tutor matches' : 'tutors match'
-              } this interest in your directory.`
-            : 'Add your own subjects, skills, and topics.'}
-        </Text>
-        <AppButton
-          title={interest ? 'VIEW MATCHES' : 'ADD INTERESTS'}
-          onPress={() =>
-            interest
-              ? go({ page: 'Tutor Search', query: interest })
-              : go('Preferences')
-          }
-        />
-
+        <Text style={styles.eyebrow}>YOUR NEXT MATCH AWAITS</Text>
+        <View style={[s.row, styles.matchRow]}>
+          <View style={s.grow}>
+            <Text style={[s.name, s.blue]}>
+              {interest || 'Choose what to learn'}
+            </Text>
+            <Text style={s.muted}>
+              {interest
+                ? `${matches} ${matches === 1 ? 'tutor' : 'tutors'} available`
+                : 'Add an interest to get tutor matches.'}
+            </Text>
+          </View>
+          <AppButton
+            title={interest ? 'VIEW MATCHES' : 'ADD INTERESTS'}
+            style={styles.matchAction}
+            onPress={() =>
+              interest
+                ? go({ page: 'Tutor Search', query: interest })
+                : go('Preferences')
+            }
+          />
+        </View>
         {!!interest && (
           <Link label="Edit interests" onPress={() => go('Preferences')} />
         )}
@@ -158,24 +151,27 @@ export function HomeScreen({ go, state, directory, tutors }) {
           </View>
         </TouchableOpacity>
       )}
-      <Text style={[s.section, styles.top]}>Quick Actions</Text>
+      <Text style={[s.section, styles.compactSection]}>Quick Actions</Text>
       <View style={styles.grid}>
         {quick.map(q => (
           <TouchableOpacity
             key={q.page}
             accessibilityRole="button"
             accessibilityLabel={q.title}
-            style={[s.card, styles.quick]}
+            style={[s.card, s.row, styles.quick]}
             onPress={() => go(q.page)}
           >
-            <IconBadge name={q.icon} color={q.color} />
-            <Text style={s.name}>{q.title}</Text>
-            <Text style={s.muted}>{q.body}</Text>
+            <IconBadge name={q.icon} color={q.color} size={36} />
+            <Text style={[s.name, s.grow]} numberOfLines={2}>
+              {q.title}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
       <View style={s.row}>
-        <Text style={[s.section, s.grow]}>Upcoming Sessions</Text>
+        <Text style={[s.section, s.grow, styles.compactSection]}>
+          Upcoming Sessions
+        </Text>
         <Link label="View all" onPress={() => go('Sessions')} />
       </View>
       {next ? (
@@ -251,17 +247,25 @@ export function HomeScreen({ go, state, directory, tutors }) {
   );
 }
 const styles = StyleSheet.create({
-  greeting: { marginBottom: 20 },
-  demo: { marginBottom: 16 },
+  greeting: { marginBottom: 14 },
   pastDueCard: { borderColor: C.danger, marginTop: 8 },
-  match: { backgroundColor: '#092535', padding: 18, marginTop: 4 },
+  match: { padding: 14, marginTop: 4 },
+  matchRow: { marginTop: 4 },
+  matchAction: {
+    width: 128,
+    minHeight: 44,
+    paddingHorizontal: 8,
+    marginTop: 0,
+    borderRadius: 10,
+  },
   eyebrow: { fontFamily: 'Inter-Bold', fontSize: 11, color: C.cyan },
-  top: { marginTop: 12 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  compactSection: { marginTop: 20, marginBottom: 8 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   quick: {
-    flexBasis: '46%',
+    flexBasis: '47%',
     flexGrow: 1,
-    minHeight: 154,
+    minHeight: 84,
+    padding: 12,
     gap: 10,
     marginBottom: 0,
   },

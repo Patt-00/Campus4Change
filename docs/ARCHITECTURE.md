@@ -1,6 +1,6 @@
 # Campus4Change architecture
 
-The app uses React Native CLI 0.87.1, React 19.2.3, JavaScript/JSX, and Hermes. It has no navigation library or external state framework. When Firebase is configured, Firebase Authentication handles cloud accounts, Firestore syncs each user's private state, and the groups feature shares its directory, membership, posts, and replies. Firebase sign-up verifies email ownership before allowing shared group access; unverified users can access only their own private state. The local demo remains available without Firebase configuration.
+The app uses React Native CLI 0.87.1, React 19.2.3, JavaScript/JSX, and Hermes. It has no navigation library or external state framework. When Firebase is configured, Firebase Authentication handles cloud accounts, Firestore syncs each user's private state, and the groups feature shares its directory, membership, posts, and replies. Firebase sign-up verifies email ownership before allowing shared group access; unverified users can access only their own private state. Device-only accounts remain available for local use when Firebase is not configured; no preloaded account or sample data is shipped.
 
 ## Entry and ownership
 
@@ -30,7 +30,7 @@ src/
   shared/
     assets/        local images and font license
     components/    common controls and screen layout
-    data/          sample data and catalog selectors
+    data/          date helpers and catalog selectors
     state/         account hook, reducer, and Android storage interface
     backend/       Firebase initialization and project configuration
     theme/         colors and styles
@@ -67,7 +67,7 @@ account exchange still needs a completed re-authentication check.
 
 State records are plain JavaScript objects for profiles, tutors, sessions, groups, conversations, and notices. A session has an ID, tutor ID, subject, ISO start time, note, status, and optional rating. Sessions last one hour. Booking and session history use this same record.
 
-`demo.js` supplies sample tutors and initial state. Only the public demo account receives sample school details, interests, groups, bookings, and messages. Other accounts start empty. `catalog.js` selects directory tutors and visible groups while retaining historical tutor IDs for older bookings. Used sample groups remain visible after an update; saved records are not deleted.
+`data/utils.js` contains shared ID, date, and time helpers and creates blank account state. New accounts begin without tutors, groups, bookings, conversations, or notices. `catalog.js` exposes only the current device account's own tutor listing; verified Firebase tutor listings come from the shared directory subscription. Device groups come only from that account's saved state.
 
 The profile feature owns the custom-interest editor. The tutor feature owns booking slot definitions shared by its details and booking forms, and pure search/filter rules in `data/search.js`. The group feature owns meetup date validation. A group's optional `meetupAt` ISO timestamp is compatible with version-1 saved state; old groups without it show no scheduled meetup.
 
@@ -124,7 +124,7 @@ locks in the same transaction. Rules reject forged bucket IDs and status
 changes that omit the matching locks. Shared session workspace notes remain
 in each participant's private account state.
 
-Demo and device-only tutor profiles and bookings remain local. Direct messages
+Device-only tutor profiles and bookings remain local. Direct messages
 and group chat still save private notes to the user's account; they are not
 delivered to another student. Push notifications, calls, and instructor-wide
 moderation are not implemented.
@@ -138,10 +138,10 @@ moderation are not implemented.
 - Salted PBKDF2 hashes verify passwords. Real passwords are not saved as plain text.
 - A single background executor orders account and storage operations.
 - Loading and saving requires an active account.
-- Biometric setup requires a signed-in non-demo account and a successful Android biometric prompt. Sign-in uses the enrolled device biometrics. Android 9 or newer is required.
+- Biometric setup requires a signed-in local account and a successful Android biometric prompt. Sign-in uses the enrolled device biometrics. Android 9 or newer is required.
 - Android backup is disabled. Clearing app data or uninstalling removes local accounts and data.
 
-These device-only accounts are not school identity verification. Configured Firebase accounts provide email/password authentication, account recovery, private state sync, and shared study groups, but the app has no institutional sign-in or complete campus data service. The iOS scaffold cannot use this Android module.
+An update from the older seeded build removes only the exact bundled account and its sample state; other device-only accounts and their saved state are preserved. This migration runs before local account sign-in and still needs an upgrade-install check on a device. Device-only accounts are not school identity verification. Configured Firebase accounts provide email/password authentication, account recovery, private state sync, and shared study groups, but the app has no institutional sign-in or complete campus data service. The iOS scaffold cannot use this Android module.
 
 ## UI and builds
 
@@ -167,6 +167,6 @@ longer joined.
 Firebase's account-creation promise resolves and verifies that the new profile
 still receives its submitted name and Student ID.
 
-Version 1.2.0 tests also cover custom-interest addition/removal/deduplication and reopening, optional school fields, empty personal directories, historical sample data, selected booking slots, group schedule validation, and About navigation before sign-in.
+Version 1.2.0 tests also cover custom-interest addition/removal/deduplication and reopening, optional school fields, empty directories, legacy saved-state compatibility, selected booking slots, group schedule validation, and About navigation before sign-in.
 
 Jest mocks Android storage. Native encryption, biometric prompts, installation, cold launch, and Android layout require device checks. See [VERIFICATION.md](VERIFICATION.md).

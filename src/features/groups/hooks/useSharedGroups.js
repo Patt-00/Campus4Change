@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { uid as createId } from '../../../shared/data/demo';
+import { uid as createId } from '../../../shared/data/utils';
 import {
   syncSharedGroupAction,
   watchSharedGroupPosts,

@@ -40,13 +40,6 @@ export function AboutScreen({
             ? 'This device-only account stays private. Verified Firebase accounts can share study-group details, membership, posts, replies, tutor listings, and session requests. Direct messages and group chat are not delivered to other students. Group sessions show meetup details and save notes on this device; live calls are not available.'
             : 'This version has no campus server or sharing between devices. Bookings, messages, and group posts stay on this device. Group sessions show meetup details and save notes on this device. Live calls are not available.'}
       </Text>
-      <Text style={s.section}>Demo account</Text>
-      <Text style={s.text}>
-        The demo account includes sample tutors, groups, bookings, and
-        conversations. New accounts start with an empty directory and your own
-        data. A Firebase account can publish a tutor profile to verified
-        students; device-only accounts keep that listing on this device.
-      </Text>
       <Text style={s.section}>Sign-in</Text>
       <Text style={s.text}>
         {firebaseConfigured

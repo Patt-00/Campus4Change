@@ -123,7 +123,7 @@ production-ready claim.
   mounted message bodies from 1,200 to 18 and inbox cards from 120 to 12 while
   keeping full-message search and send behavior covered.
 - Firebase booking confirmation says the request is pending until the tutor
-  responds. Demo and device-only confirmation remains a private schedule entry
+  responds. Device-only confirmation remains a private schedule entry
   and explains that the tutor is not notified.
 - Focused tests now cover home navigation and search, local/shared tutor profile
   behavior, participant request mapping and slot updates, private tutor
@@ -169,7 +169,7 @@ production-ready claim.
   subjects previously crashed while the directory read `tutorSubjects.length`;
   the app-level restore test verifies Home renders and the defaults persist.
   A Firebase-session test covers partial cloud state through the mocked cloud
-  adapter. Personal accounts keep blank defaults and do not inherit demo data.
+  adapter. New accounts keep blank defaults and do not inherit bundled data.
   Restore also filters null and primitive rows from sessions, groups,
   conversations, and notices while preserving valid records; a regression test
   reproduces the null-group crash in Home.
@@ -203,14 +203,16 @@ production-ready claim.
 
 Verification is recorded in [VERIFICATION.md](VERIFICATION.md). The Pad 7
 debug UI check and production-mode Android JavaScript bundle are verified from
-earlier checkpoints. The current debug APK installed and ran on the Redmi Turbo
-4 (ADB model `24129RT7CC`, Android 16). The local demo account completed
+earlier checkpoints. The previous debug APK installed and ran on the Redmi Turbo
+4 (ADB model `24129RT7CC`, Android 16). The then-present seeded account completed
 sign-in, Profile, sign-out, and re-sign-in with its state preserved. Sessions
 and Session Details remained schedule-focused, while the group room retained
-its separate 25-minute timer. Profile counted three demo sessions, all now
-visible in Sessions; Home warns about two past-due bookings and routes to that
-list. This did not exercise a personal account or
-production Firebase. The Firebase emulator is not a substitute for deploying
+its separate 25-minute timer. Profile counted three seeded sessions, all then
+visible in Sessions; Home warned about two past-due bookings and routed to that
+list. The 2026-10-14 update was installed over existing POCO app data; the old
+seeded account no longer authenticates after launch. No other local account was
+available to verify the preservation path on-device. This did not exercise a
+personal account or production Firebase. The Firebase emulator is not a substitute for deploying
 the reviewed rules or two-account testing against the course project. A
 nonfatal React Native focus soft exception was logged before the React context
 was ready; no app crash or JS error followed.

@@ -2,7 +2,7 @@ import React from 'react';
 import { Text, View, StyleSheet } from 'react-native';
 import { AppButton } from '../../../shared/components/AppButton';
 import { Screen } from '../../../shared/components/Screen';
-import { dateLabel, timeRange } from '../../../shared/data/demo';
+import { dateLabel, timeRange } from '../../../shared/data/utils';
 
 import { s } from '../../../shared/theme/styles';
 

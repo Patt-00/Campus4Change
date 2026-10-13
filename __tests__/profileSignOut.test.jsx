@@ -3,7 +3,7 @@ import ReactTestRenderer, { act } from 'react-test-renderer';
 import { Alert } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ProfileScreen } from '../src/features/profile/screens/ProfileScreen';
-import { initialState } from '../src/shared/data/demo';
+import { initialState } from '../src/shared/data/utils';
 
 jest.mock('react-native-safe-area-context', () => {
   const R = require('react');

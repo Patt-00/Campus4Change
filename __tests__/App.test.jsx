@@ -9,15 +9,10 @@ import {
 import ReactTestRenderer from 'react-test-renderer';
 import App from '../App';
 
-import { initialState } from '../src/shared/data/demo';
+import { initialState } from '../src/shared/data/utils';
+import { makeQaState, qaAccount } from '../test-support/qaState';
 
-const demo = {
-  id: 'demo',
-  name: 'Alex Rivera',
-  email: 'alex@campus.demo',
-  studentId: 'DEMO',
-};
-let mockCurrent = demo;
+let mockCurrent = qaAccount;
 let mockSaved = {};
 let mockActiveUser = null;
 const mockStore = {
@@ -110,17 +105,6 @@ async function pressWithLabelStarting(prefix) {
     await control.props.onPress();
   });
 }
-async function pressBookingDate(index) {
-  const dateControls = renderer.root
-    .findAllByType(TouchableOpacity)
-    .filter(n => n.props.accessibilityLabel?.startsWith('Select date '));
-  const control = dateControls[index];
-  expect(control).toBeDefined();
-  expect(control.props.disabled).not.toBe(true);
-  await ReactTestRenderer.act(async () => {
-    await control.props.onPress();
-  });
-}
 async function fill(label, value) {
   const input = renderer.root
     .findAllByType(TextInput)
@@ -139,7 +123,12 @@ async function completeIntroduction() {
 async function login() {
   await render();
   await completeIntroduction();
-  await press('USE DEMO ACCOUNT');
+  await signInCurrentAccount();
+}
+async function signInCurrentAccount() {
+  await fill('Email or Student ID', mockCurrent.email);
+  await fill('Password', 'TestPass123');
+  await press('SIGN IN');
 }
 async function confirmSignOut() {
   const alert = jest.spyOn(Alert, 'alert');
@@ -153,8 +142,8 @@ async function confirmSignOut() {
   });
 }
 beforeEach(() => {
-  mockCurrent = demo;
-  mockSaved = {};
+  mockCurrent = qaAccount;
+  mockSaved = { [qaAccount.id]: JSON.stringify(makeQaState()) };
   mockActiveUser = null;
   jest.clearAllMocks();
 });
@@ -169,6 +158,8 @@ test('renders onboarding and rejects an empty sign-in form', async () => {
   await render();
   expect(hasText('GET STARTED')).toBe(true);
   await completeIntroduction();
+  expect(hasText('USE DEMO ACCOUNT')).toBe(false);
+  expect(hasText('alex@campus.demo')).toBe(false);
   await press('SIGN IN');
   expect(hasText('Enter your email or Student ID and password.')).toBe(true);
   expect(mockStore.signIn).not.toHaveBeenCalled();
@@ -202,7 +193,7 @@ test('shows an authentication failure without opening the app', async () => {
 });
 test('rejects saved data from another account and clears the native sign-in', async () => {
   mockStore.loadState.mockResolvedValueOnce(
-    JSON.stringify(initialState({ ...demo, id: 'other-account' })),
+    JSON.stringify(initialState({ ...qaAccount, id: 'other-account' })),
   );
   await login();
   expect(hasText('Saved data belongs to a different account.')).toBe(true);
@@ -211,15 +202,15 @@ test('rejects saved data from another account and clears the native sign-in', as
   expect(mockStore.saveState).not.toHaveBeenCalled();
 });
 
-test('partial version-one profiles restore missing defaults before Home renders', async () => {
-  const savedState = initialState(demo);
+test('partial version-one profiles restore blank defaults before Home renders', async () => {
+  const savedState = makeQaState();
   delete savedState.profile.name;
   delete savedState.profile.interests;
   delete savedState.profile.tutorSubjects;
   delete savedState.profile.course;
   delete savedState.profile.year;
   delete savedState.profile.school;
-  mockSaved.demo = JSON.stringify(savedState);
+  mockSaved[qaAccount.id] = JSON.stringify(savedState);
 
   await login();
 
@@ -229,28 +220,26 @@ test('partial version-one profiles restore missing defaults before Home renders'
     .flat(Infinity)
     .filter(value => typeof value === 'string')
     .join(' ');
-  expect(visibleText).toContain('Alex');
+  expect(visibleText).toContain('Jordan');
   expect(hasText('Quick Actions')).toBe(true);
-  expect(hasText('YOUR LEARNING INTERESTS')).toBe(true);
-  expect(hasText('Calculus')).toBe(true);
-  expect(hasText('Edit interests')).toBe(true);
-  const restoredState = JSON.parse(mockSaved.demo);
+  expect(hasText('YOUR NEXT MATCH AWAITS')).toBe(true);
+  expect(hasText('Choose what to learn')).toBe(true);
+  expect(hasText('ADD INTERESTS')).toBe(true);
+  const restoredState = JSON.parse(mockSaved[qaAccount.id]);
   const restoredProfile = restoredState.profile;
-  expect(restoredProfile.name).toBe('Alex Rivera');
-  expect(restoredProfile.interests).toEqual([
-    'Calculus',
-    'Java',
-    'Machine Learning',
-  ]);
+  expect(restoredProfile.name).toBe('Jordan Student');
+  expect(restoredProfile.interests).toEqual([]);
   expect(restoredProfile.tutorSubjects).toEqual([]);
-  expect(restoredProfile.course).toBe('BS Computer Science');
+  expect(restoredProfile.course).toBe('');
+  expect(restoredProfile.year).toBe('');
+  expect(restoredProfile.school).toBe('');
   expect(restoredState.sessions).toEqual(savedState.sessions);
   expect(restoredState.groups).toEqual(savedState.groups);
   expect(restoredState.conversations).toEqual(savedState.conversations);
   await ReactTestRenderer.act(async () => renderer.unmount());
 });
 
-test('partial personal profiles restore blank defaults without demo data', async () => {
+test('partial personal profiles restore blank defaults and empty collections', async () => {
   const personal = {
     id: 'partial-student',
     name: 'Student User',
@@ -281,7 +270,7 @@ test('partial personal profiles restore blank defaults without demo data', async
 });
 
 test('saved collections with non-record rows restore without dropping valid rows', async () => {
-  const savedState = initialState(demo);
+  const savedState = makeQaState();
   const validCollections = {
     sessions: savedState.sessions,
     groups: savedState.groups,
@@ -296,12 +285,12 @@ test('saved collections with non-record rows restore without dropping valid rows
     ...savedState.conversations,
   ];
   savedState.notices = [null, 'invalid-notification', ...savedState.notices];
-  mockSaved.demo = JSON.stringify(savedState);
+  mockSaved[qaAccount.id] = JSON.stringify(savedState);
 
   await login();
 
   expect(hasText('Quick Actions')).toBe(true);
-  const restoredState = JSON.parse(mockSaved.demo);
+  const restoredState = JSON.parse(mockSaved[qaAccount.id]);
   expect(restoredState.sessions).toEqual(validCollections.sessions);
   expect(restoredState.groups).toEqual(validCollections.groups);
   expect(restoredState.conversations).toEqual(validCollections.conversations);
@@ -322,12 +311,14 @@ test('sign-out saves the latest profile and resets navigation to login', async (
   expect(mockStore.saveState.mock.invocationCallOrder[0]).toBeLessThan(
     mockStore.signOut.mock.invocationCallOrder[0],
   );
-  expect(JSON.parse(mockSaved.demo).profile.name).toBe('Saved Before Sign Out');
+  expect(JSON.parse(mockSaved[qaAccount.id]).profile.name).toBe(
+    'Saved Before Sign Out',
+  );
   expect(hasText('SIGN IN')).toBe(true);
   await press('Back');
   expect(hasText('GET STARTED')).toBe(true);
   await completeIntroduction();
-  await press('USE DEMO ACCOUNT');
+  await signInCurrentAccount();
   await press('Profile');
   expect(hasText('Saved Before Sign Out')).toBe(true);
 });
@@ -346,86 +337,68 @@ test('a failed sign-out save keeps the account open and can be retried', async (
   expect(mockStore.signOut).toHaveBeenCalledTimes(1);
   expect(hasText('SIGN IN')).toBe(true);
 });
-test('search selects the actual tutor, books a future session, and opens details', async () => {
+test('device-only tutor search starts without bundled tutor profiles', async () => {
   await login();
   await press('Find a Tutor');
-  await fill('Search subject or tutor', 'Mika');
+  expect(hasText('Your directory is empty')).toBe(true);
+  expect(hasText('Mika Santos')).toBe(false);
   expect(hasText('Jamie Dela Cruz')).toBe(false);
-  await pressWithLabelStarting('Mika Santos.');
-  expect(hasText('BS Applied Physics')).toBe(false);
-  expect(hasText('Mika Santos')).toBe(true);
-  await press('BOOK SESSION');
-  await pressBookingDate(1);
-  await fill(
-    'Example: I need help with integration by parts.',
-    'Practice derivatives',
-  );
-  await press('CONFIRM BOOKING');
-  expect(hasText('Added to your schedule')).toBe(true);
-  expect(hasText('The tutor has not been notified.')).toBe(true);
-  await press('VIEW SESSION DETAILS');
-  expect(hasText('Practice derivatives')).toBe(true);
-  expect(hasText('Mika Santos')).toBe(true);
-  const saved = JSON.parse(mockSaved.demo);
-  expect(
-    saved.sessions.some(
-      x => x.tutorId === 'mika' && x.note === 'Practice derivatives',
-    ),
-  ).toBe(true);
+  await press('Create tutor profile');
+  expect(hasText('Be a Tutor')).toBe(true);
 });
 test('a message is saved and remains after the app is remounted', async () => {
   await login();
   await press('Messages');
   const chatCard = renderer.root
     .findAllByType(TouchableOpacity)
-    .find(control => control.props.accessibilityLabel?.startsWith('Chat with Jamie Dela Cruz.'));
+    .find(control => control.props.accessibilityLabel?.startsWith('Chat with Taylor Student.'));
   expect(chatCard.props.accessibilityLabel).toContain('Latest message:');
   expect(chatCard.props.accessibilityLabel).not.toContain('..');
-  await pressWithLabelStarting('Chat with Jamie Dela Cruz.');
+  await pressWithLabelStarting('Chat with Taylor Student.');
   await fill('Type a message...', 'Please help with algebra');
   await press('SEND');
   expect(hasText('Please help with algebra')).toBe(true);
   await ReactTestRenderer.act(async () => renderer.unmount());
   await login();
   await press('Messages');
-  await pressWithLabelStarting('Chat with Jamie Dela Cruz.');
+  await pressWithLabelStarting('Chat with Taylor Student.');
   expect(hasText('Please help with algebra')).toBe(true);
 });
 
 test('a saved conversation without a message array opens and recovers on send', async () => {
-  const savedState = initialState(demo);
+  const savedState = makeQaState();
   const conversation = savedState.conversations.find(
-    item => item.tutorId === 'jamie',
+    item => item.tutorId === 'tutor-taylor',
   );
   const numericTimestampConversation = savedState.conversations.find(
-    item => item.tutorId === 'renzo',
+    item => item.tutorId === 'tutor-casey',
   );
   delete conversation.messages;
   numericTimestampConversation.messages[0].sentAt = Date.parse(
     '2026-10-12T06:00:00.000Z',
   );
-  mockSaved.demo = JSON.stringify(savedState);
+  mockSaved[qaAccount.id] = JSON.stringify(savedState);
 
   await login();
   await press('Messages');
   const conversationCard = renderer.root
     .findAllByType(TouchableOpacity)
-    .find(control => control.props.accessibilityLabel?.startsWith('Chat with Jamie Dela Cruz.'));
+    .find(control => control.props.accessibilityLabel?.startsWith('Chat with Taylor Student.'));
   expect(conversationCard).toBeDefined();
   expect(conversationCard.props.accessibilityLabel).toContain(
     'Start a conversation',
   );
   const renzoCard = renderer.root
     .findAllByType(TouchableOpacity)
-    .find(control => control.props.accessibilityLabel?.startsWith('Chat with Renzo Lim.'));
+    .find(control => control.props.accessibilityLabel?.startsWith('Chat with Casey Student.'));
   expect(renzoCard.props.accessibilityLabel).toContain('Latest message: Thanks!');
 
-  await pressWithLabelStarting('Chat with Jamie Dela Cruz.');
+  await pressWithLabelStarting('Chat with Taylor Student.');
   await fill('Type a message...', 'Recovered thread');
   await press('SEND');
   expect(hasText('Recovered thread')).toBe(true);
-  const savedConversation = JSON.parse(mockSaved.demo).conversations.find(
-    item => item.tutorId === 'jamie',
+  const savedConversation = JSON.parse(mockSaved[qaAccount.id]).conversations.find(
+    item => item.tutorId === 'tutor-taylor',
   );
   expect(savedConversation.messages.at(-1)).toMatchObject({
     text: 'Recovered thread',
@@ -451,11 +424,11 @@ test('creates a group, publishes a post, and saves a reply', async () => {
   await press('Back');
   await fill('Write a study note...', 'Review Newton laws');
   await press('POST NOTE');
-  await pressWithLabelStarting('Post by Alex Rivera:');
+  await pressWithLabelStarting('Post by Jordan Student:');
   await fill('Write a reply...', 'Start with the first law');
   await press('SEND REPLY');
   expect(hasText('Start with the first law')).toBe(true);
-  const group = JSON.parse(mockSaved.demo).groups.find(
+  const group = JSON.parse(mockSaved[qaAccount.id]).groups.find(
     g => g.name === 'Exam Review Team',
   );
   expect(group.posts[0].replies[0].text).toBe('Start with the first law');
@@ -471,7 +444,7 @@ test('group-session Back preserves a private draft until it is saved to the grou
   await fill('Session notes', 'Draft not shared yet');
   await press('Back');
 
-  let saved = JSON.parse(mockSaved.demo);
+  let saved = JSON.parse(mockSaved[qaAccount.id]);
   let group = saved.groups.find(item => item.name === 'Draft Review Team');
   expect(group.posts).toHaveLength(0);
   expect(saved.roomNotes[group.id]).toBe('Draft not shared yet');
@@ -483,7 +456,7 @@ test('group-session Back preserves a private draft until it is saved to the grou
   expect(noteInput.props.value).toBe('Draft not shared yet');
   await press('SAVE NOTES AND RETURN');
 
-  saved = JSON.parse(mockSaved.demo);
+  saved = JSON.parse(mockSaved[qaAccount.id]);
   group = saved.groups.find(item => item.name === 'Draft Review Team');
   expect(group.posts.map(post => post.text)).toContain('Draft not shared yet');
   expect(saved.roomNotes[group.id]).toBeUndefined();
@@ -492,10 +465,12 @@ test('profile changes appear in the profile and survive saved state', async () =
   await login();
   await press('Profile');
   await press('Edit profile');
-  await fill('Full name', 'Alex Updated');
+  await fill('Full name', 'Jordan Updated');
   await press('SAVE CHANGES');
-  expect(hasText('Alex Updated')).toBe(true);
-  expect(JSON.parse(mockSaved.demo).profile.name).toBe('Alex Updated');
+  expect(hasText('Jordan Updated')).toBe(true);
+  expect(JSON.parse(mockSaved[qaAccount.id]).profile.name).toBe(
+    'Jordan Updated',
+  );
 });
 test('sign-up validates fields and creates a separate local account', async () => {
   await render();
@@ -520,7 +495,7 @@ test('sign-up validates fields and creates a separate local account', async () =
 });
 
 test('custom interests can be added, deduplicated, removed, and reopened without requiring school fields', async () => {
-  mockCurrent = { ...demo, id: 'fresh-user', name: 'New Student' };
+  mockCurrent = { ...qaAccount, id: 'fresh-user', name: 'New Student' };
   await render();
   await completeIntroduction();
   await fill('Email or Student ID', 'new@school.edu');
@@ -553,19 +528,6 @@ test('custom interests can be added, deduplicated, removed, and reopened without
   expect(hasText('Mika Santos')).toBe(false);
 });
 
-test('a chosen tutor time is retained by the booking form', async () => {
-  await login();
-  await press('Find a Tutor');
-  await pressWithLabelStarting('Mika Santos.');
-  await press('6:00 PM');
-  await pressBookingDate(1);
-  await press('CONFIRM BOOKING');
-  expect(hasText('Added to your schedule')).toBe(true);
-  const booked = JSON.parse(mockSaved.demo).sessions[0];
-  expect(booked.tutorId).toBe('mika');
-  expect(new Date(booked.startsAt).getHours()).toBe(18);
-});
-
 test('group creation rejects invalid schedules and stores the chosen meetup', async () => {
   await login();
   await press('Study Groups');
@@ -582,7 +544,7 @@ test('group creation rejects invalid schedules and stores the chosen meetup', as
   await press('CREATE GROUP');
   expect(hasText('Drawing Circle')).toBe(true);
   expect(hasText('No meetup scheduled')).toBe(false);
-  const group = JSON.parse(mockSaved.demo).groups.find(
+  const group = JSON.parse(mockSaved[qaAccount.id]).groups.find(
     g => g.name === 'Drawing Circle',
   );
   expect(new Date(group.meetupAt).getHours()).toBe(16);
@@ -640,10 +602,10 @@ test('failed local saves show a retry action that saves the current account data
   mockStore.saveState.mockRejectedValueOnce(new Error('Storage is full.'));
   await login();
   expect(hasText('Retry saving')).toBe(true);
-  expect(mockSaved.demo).toBeUndefined();
+  expect(mockSaved[qaAccount.id]).toBeDefined();
   await press('Retry saving');
   expect(hasText('Retry saving')).toBe(false);
-  expect(JSON.parse(mockSaved.demo).profile.id).toBe('demo');
+  expect(JSON.parse(mockSaved[qaAccount.id]).profile.id).toBe(qaAccount.id);
 });
 
 test('opening a notification marks it read and opens its linked session', async () => {
@@ -658,7 +620,7 @@ test('opening a notification marks it read and opens its linked session', async 
   expect(notificationCard.props.accessibilityLabel).not.toContain('..');
   await pressWithLabelStarting('Session reminder.');
   expect(hasText('Session Details')).toBe(true);
-  const saved = JSON.parse(mockSaved.demo);
+  const saved = JSON.parse(mockSaved[qaAccount.id]);
   expect(saved.notices.find(n => n.title === 'Session reminder').read).toBe(
     true,
   );

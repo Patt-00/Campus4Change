@@ -4,7 +4,7 @@ import { AppButton } from '../../../shared/components/AppButton';
 import { Screen } from '../../../shared/components/Screen';
 import { Empty, Field, Link } from '../../../shared/components/UI';
 
-import { dateLabel, sessionTime } from '../../../shared/data/demo';
+import { dateLabel, sessionTime } from '../../../shared/data/utils';
 import { s } from '../../../shared/theme/styles';
 
 export function GroupDetailsScreen({
