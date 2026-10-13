@@ -13,11 +13,23 @@ export function SessionsScreen({ go, back, sessions, list }) {
   const [filter, setFilter] = useState('Upcoming');
   function card(session) {
     const timingStatus = sessionTimingStatus(session);
+    const tutorName =
+      list.find(t => t.id === session.tutorId)?.name ?? 'Saved tutor';
     return (
       <TouchableOpacity
         key={session.id}
         accessibilityRole="button"
-        accessibilityLabel={'View ' + session.subject + ' details'}
+        accessibilityLabel={
+          'View ' +
+          session.subject +
+          ' details. Scheduled ' +
+          sessionTime(session.startsAt) +
+          '. Status: ' +
+          timingStatus.toLowerCase() +
+          '. Tutor: ' +
+          tutorName +
+          '.'
+        }
         onPress={() =>
           go({
             page: 'Session Details',
@@ -39,7 +51,7 @@ export function SessionsScreen({ go, back, sessions, list }) {
               {sessionTime(session.startsAt)} • {sessionTimingStatus(session)}
             </Text>
             <Text style={s.muted}>
-              {list.find(t => t.id === session.tutorId)?.name}
+              {tutorName}
             </Text>
           </View>
         </View>

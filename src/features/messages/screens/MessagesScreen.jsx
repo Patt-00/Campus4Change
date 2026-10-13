@@ -32,11 +32,18 @@ export function MessagesScreen({ go, conversations }) {
       <View style={s.gap} />
       {list.map(c => {
         const last = c.messages.at(-1);
+        const latestMessage = last?.text?.trim() || 'Start a conversation';
+        const messagePreview =
+          latestMessage.length > 120
+            ? latestMessage.slice(0, 117).trimEnd() + '…'
+            : latestMessage;
         return (
           <TouchableOpacity
             key={c.id}
             accessibilityRole="button"
-            accessibilityLabel={'Chat with ' + c.name}
+            accessibilityLabel={
+              `Chat with ${c.name}. Latest message: ${messagePreview}`
+            }
             style={styles.conversation}
             onPress={() =>
               go({

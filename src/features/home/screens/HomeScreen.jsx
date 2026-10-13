@@ -181,7 +181,14 @@ export function HomeScreen({ go, state, directory, tutors }) {
       {next ? (
         <TouchableOpacity
           accessibilityRole="button"
-          accessibilityLabel={'Open ' + next.subject + ' session'}
+          accessibilityLabel={
+            'Open ' +
+            next.subject +
+            ' session. Scheduled ' +
+            sessionTime(next.startsAt) +
+            '. Upcoming. With ' +
+            (tutors.find(t => t.id === next.tutorId)?.name ?? 'Saved tutor')
+          }
           onPress={() => go({ page: 'Session Details', sessionId: next.id })}
           style={[s.card, s.row]}
         >

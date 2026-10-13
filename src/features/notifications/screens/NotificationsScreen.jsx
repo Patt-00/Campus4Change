@@ -6,6 +6,18 @@ import { IconBadge } from '../../../shared/components/Icon';
 
 import { s } from '../../../shared/theme/styles';
 
+function spokenText(value) {
+  return String(value ?? '')
+    .trim()
+    .replace(/[.!?]+$/, '');
+}
+
+function notificationAccessibilityLabel(notice) {
+  const title = spokenText(notice.title);
+  const body = spokenText(notice.body);
+  return `${title}.${body ? ` ${body}.` : ''} ${notice.read ? 'Read' : 'Unread'}. Opens the related page.`;
+}
+
 export function NotificationsScreen({ go, back, notices, read }) {
   return (
     <Screen title="Notifications" back={back}>
@@ -15,7 +27,7 @@ export function NotificationsScreen({ go, back, notices, read }) {
       {notices.map(n => (
         <TouchableOpacity
           accessibilityRole="button"
-          accessibilityLabel={n.title + (n.read ? ', read' : ', unread')}
+          accessibilityLabel={notificationAccessibilityLabel(n)}
           key={n.id}
           style={[s.row, styles.alignItemsflexstartpaddingVertical20]}
           onPress={() => {

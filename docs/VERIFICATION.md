@@ -19,8 +19,9 @@ Verified for this checkpoint:
   shared writes across account changes, queued state persistence after a switch
   even when both accounts share the same `updatedAt`, unknown and past-due
   session statuses, malformed or missing session start times across Home,
-  Sessions, and Session Details, informative booking-date and group-post
-  accessibility labels, the Home overdue warning, and theme color contrast.
+  Sessions, and Session Details, contextual accessibility labels for booking
+  dates, sessions, groups, tutors, messages, notifications, and group posts, the
+  Home overdue warning, and theme color contrast.
 - The groups screen uses a virtualized `SectionList`; its regression test feeds
   80 loaded groups and confirms that the initial render mounts no more than 10
   group cards. Search tests cover case-insensitive subject filtering, joined
@@ -28,8 +29,8 @@ Verified for this checkpoint:
   exercise home routes, tutor listing and search, booking validation, session
   reschedule gating, private group-room drafts versus explicit publishing,
   timer controls and cleanup, and shared-group retry paths.
-- The Jest coverage run for this checkpoint reports 83.35% line coverage,
-  74.62% branch coverage, and 83.63% function coverage. It covers all lines in
+- The Jest coverage run for this checkpoint reports 83.43% line coverage,
+  74.69% branch coverage, and 83.73% function coverage. It covers all lines in
   the home screen at 96.87%, session details at 100%, the group-room screen at
   100%, the local storage guard at 100%, tutor search at 96.77%, and booking
   screen at 94.44%. Coverage is
@@ -79,9 +80,9 @@ Verified for this checkpoint:
   and filtered logs contained no React Native JS errors. This confirms launch;
   the malformed schedule cases are verified by the focused component tests.
 - The Android accessibility tree announced full booking dates and included
-  group-post note text in the post button label. This was checked while signed
-  into the local demo account; no booking was submitted, and the app was signed
-  out afterward.
+  session, group, tutor, message, notification, and group-post context in the
+  list controls. This was checked while signed into the local demo account; no
+  booking was submitted, and the app was signed out afterward.
 - A fresh disposable Auth-emulator probe remained unverified after signup and
   after requesting verification, became verified only after applying its
   generated code, and was then deleted. The earlier QA account's verified

@@ -97,28 +97,39 @@ export function TutorSearchScreen({ go, back, list, initialQuery = '' }) {
         />
       )}
       <Text style={s.section}>Tutor directory · {results.length}</Text>
-      {results.map(t => (
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel={t.name + ', view profile'}
-          key={t.id}
-          style={s.card}
-          onPress={() => go({ page: 'Tutor Details', tutorId: t.id })}
-        >
-          <View style={s.row}>
-            <Avatar name={t.name} size={44} />
-            <View style={s.grow}>
-              <Text style={s.name}>{t.name}</Text>
-              <Text style={s.muted}>{t.subjects.join(' · ')}</Text>
-              {t.sample && (
-                <Text style={s.star}>★ {t.rating} · Sample tutor</Text>
-              )}
-              {t.own && <Text style={[s.muted, s.blue]}>Your listing</Text>}
+      {results.map(t => {
+        const rating =
+          Number.isFinite(t.rating) && t.rating > 0
+            ? `Rating ${t.rating.toFixed(1)} stars`
+            : 'No rating yet';
+        const listing = t.own
+          ? 'Your listing'
+          : t.sample
+            ? 'Sample tutor'
+            : 'Tutor listing';
+        return (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={`${t.name}. Subjects: ${t.subjects.join(', ')}. ${rating}. ${listing}. View profile.`}
+            key={t.id}
+            style={s.card}
+            onPress={() => go({ page: 'Tutor Details', tutorId: t.id })}
+          >
+            <View style={s.row}>
+              <Avatar name={t.name} size={44} />
+              <View style={s.grow}>
+                <Text style={s.name}>{t.name}</Text>
+                <Text style={s.muted}>{t.subjects.join(' · ')}</Text>
+                {t.sample && (
+                  <Text style={s.star}>★ {t.rating} · Sample tutor</Text>
+                )}
+                {t.own && <Text style={[s.muted, s.blue]}>Your listing</Text>}
+              </View>
             </View>
-          </View>
-          <Text style={[s.link, styles.profile]}>View profile</Text>
-        </TouchableOpacity>
-      ))}
+            <Text style={[s.link, styles.profile]}>View profile</Text>
+          </TouchableOpacity>
+        );
+      })}
       {!results.length && (
         <Empty
           title={list.length ? 'No tutors found' : 'Your directory is empty'}

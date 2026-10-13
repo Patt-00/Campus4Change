@@ -57,12 +57,14 @@ test('sessions with unrecognized saved statuses stay visible for review', async 
   expect(labels).toContain('Needs review');
   const legacyBooking = renderer.root
     .findAllByType(TouchableOpacity)
-    .find(node => node.props.accessibilityLabel === 'View Legacy booking details');
+    .find(node => node.props.accessibilityLabel?.startsWith('View Legacy booking details.'));
   const olderAppointment = renderer.root
     .findAllByType(TouchableOpacity)
-    .find(node => node.props.accessibilityLabel === 'View Older appointment details');
+    .find(node => node.props.accessibilityLabel?.startsWith('View Older appointment details.'));
   expect(legacyBooking).toBeDefined();
   expect(olderAppointment).toBeDefined();
+  expect(legacyBooking.props.accessibilityLabel).toContain('needs review');
+  expect(legacyBooking.props.accessibilityLabel).toContain('Mika Santos');
 
   await act(async () => legacyBooking.props.onPress());
   expect(go).toHaveBeenCalledWith({
@@ -102,7 +104,7 @@ test('past-due bookings are shown instead of disappearing from the upcoming tab'
   expect(labels).toContain('Past due • review these bookings');
   const card = renderer.root
     .findAllByType(TouchableOpacity)
-    .find(node => node.props.accessibilityLabel === 'View Past-due Calculus details');
+    .find(node => node.props.accessibilityLabel?.startsWith('View Past-due Calculus details.'));
   expect(card).toBeDefined();
 
   await act(async () => renderer.unmount());
@@ -149,7 +151,7 @@ test('upcoming bookings with a missing start time stay reviewable without crashi
   expect(
     renderer.root
       .findAllByType(TouchableOpacity)
-      .find(node => node.props.accessibilityLabel === 'View Unscheduled booking details'),
+      .find(node => node.props.accessibilityLabel?.startsWith('View Unscheduled booking details.')),
   ).toBeDefined();
   await act(async () => renderer.unmount());
 });
@@ -197,7 +199,7 @@ test('completed sessions with malformed start times still render in history', as
   expect(
     renderer.root
       .findAllByType(TouchableOpacity)
-      .find(node => node.props.accessibilityLabel === 'View Completed without a schedule details'),
+      .find(node => node.props.accessibilityLabel?.startsWith('View Completed without a schedule details.')),
   ).toBeDefined();
   await act(async () => renderer.unmount());
 });

@@ -165,6 +165,10 @@ test('tutor subject filters collapse spelling variants', async () => {
   expect(labels.filter(label => label === 'Physics')).toHaveLength(1);
   expect(labels.filter(label => label === 'physics')).toHaveLength(0);
   expect(labels.filter(label => label === 'Calculus')).toHaveLength(1);
+  const mikaLabel = labels.find(label => label?.startsWith('Mika Santos.'));
+  expect(mikaLabel).toContain('Subjects: Physics');
+  expect(mikaLabel).toContain('Rating 4.9 stars');
+  expect(mikaLabel).toContain('Sample tutor');
   await act(async () => renderer.unmount());
 });
 
@@ -202,34 +206,35 @@ test('tutor directory searches, applies availability and rating, and clears filt
     renderer.root
       .findAllByType(TouchableOpacity)
       .map(control => control.props.accessibilityLabel)
-      .filter(label => label?.endsWith(', view profile'));
+      .filter(label => label?.includes('. View profile.'))
+      .map(label => label.split('. Subjects:')[0]);
 
   await act(async () =>
     input(renderer, 'Search subject or tutor').props.onChangeText('CALCULUS'),
   );
-  expect(cardLabels()).toEqual(['Bianca Student, view profile']);
+  expect(cardLabels()).toEqual(['Bianca Student']);
   await act(async () => button(renderer, 'Clear filters').props.onPress());
 
   await act(async () => button(renderer, 'Top rated').props.onPress());
   expect(cardLabels()).toEqual([
-    'Caleb Student, view profile',
-    'Bianca Student, view profile',
-    'Alex Student, view profile',
+    'Caleb Student',
+    'Bianca Student',
+    'Alex Student',
   ]);
   await act(async () => button(renderer, 'Taking requests').props.onPress());
   expect(cardLabels()).toEqual([
-    'Caleb Student, view profile',
-    'Alex Student, view profile',
+    'Caleb Student',
+    'Alex Student',
   ]);
 
   await act(async () => button(renderer, 'Subjects').props.onPress());
   await act(async () => button(renderer, 'Physics').props.onPress());
-  expect(cardLabels()).toEqual(['Alex Student, view profile']);
+  expect(cardLabels()).toEqual(['Alex Student']);
   await act(async () => button(renderer, 'Clear filters').props.onPress());
   expect(cardLabels()).toEqual([
-    'Alex Student, view profile',
-    'Bianca Student, view profile',
-    'Caleb Student, view profile',
+    'Alex Student',
+    'Bianca Student',
+    'Caleb Student',
   ]);
   await act(async () => renderer.unmount());
 });

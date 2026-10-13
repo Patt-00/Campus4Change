@@ -252,7 +252,7 @@ test('search selects the actual tutor, books a future session, and opens details
   await press('Find a Tutor');
   await fill('Search subject or tutor', 'Mika');
   expect(hasText('Jamie Dela Cruz')).toBe(false);
-  await press('Mika Santos, view profile');
+  await pressWithLabelStarting('Mika Santos.');
   expect(hasText('BS Applied Physics')).toBe(false);
   expect(hasText('Mika Santos')).toBe(true);
   await press('BOOK SESSION');
@@ -277,14 +277,19 @@ test('search selects the actual tutor, books a future session, and opens details
 test('a message is saved and remains after the app is remounted', async () => {
   await login();
   await press('Messages');
-  await press('Chat with Jamie Dela Cruz');
+  const chatCard = renderer.root
+    .findAllByType(TouchableOpacity)
+    .find(control => control.props.accessibilityLabel?.startsWith('Chat with Jamie Dela Cruz.'));
+  expect(chatCard.props.accessibilityLabel).toContain('Latest message:');
+  expect(chatCard.props.accessibilityLabel).not.toContain('..');
+  await pressWithLabelStarting('Chat with Jamie Dela Cruz.');
   await fill('Type a message...', 'Please help with algebra');
   await press('SEND');
   expect(hasText('Please help with algebra')).toBe(true);
   await ReactTestRenderer.act(async () => renderer.unmount());
   await login();
   await press('Messages');
-  await press('Chat with Jamie Dela Cruz');
+  await pressWithLabelStarting('Chat with Jamie Dela Cruz.');
   expect(hasText('Please help with algebra')).toBe(true);
 });
 test('creates a group, publishes a post, and saves a reply', async () => {
@@ -407,7 +412,7 @@ test('custom interests can be added, deduplicated, removed, and reopened without
 test('a chosen tutor time is retained by the booking form', async () => {
   await login();
   await press('Find a Tutor');
-  await press('Mika Santos, view profile');
+  await pressWithLabelStarting('Mika Santos.');
   await press('6:00 PM');
   await pressBookingDate(1);
   await press('CONFIRM BOOKING');
@@ -453,7 +458,7 @@ test('booked session workspace preserves drafts and completes without a focus ti
   const listener = jest.spyOn(BackHandler, 'addEventListener');
   await login();
   await press('View all');
-  await press('View Calculus I details');
+  await pressWithLabelStarting('View Calculus I details.');
   await press('OPEN SESSION WORKSPACE');
   expect(hasText('Booked Session')).toBe(true);
   expect(hasText('Focus timer')).toBe(false);
@@ -500,7 +505,14 @@ test('failed local saves show a retry action that saves the current account data
 test('opening a notification marks it read and opens its linked session', async () => {
   await login();
   await press('Notifications, 3 unread');
-  await press('Session reminder, unread');
+  const notificationCard = renderer.root
+    .findAllByType(TouchableOpacity)
+    .find(control => control.props.accessibilityLabel?.startsWith('Session reminder.'));
+  expect(notificationCard.props.accessibilityLabel).toContain(
+    'Your Calculus I session is on your schedule.',
+  );
+  expect(notificationCard.props.accessibilityLabel).not.toContain('..');
+  await pressWithLabelStarting('Session reminder.');
   expect(hasText('Session Details')).toBe(true);
   const saved = JSON.parse(mockSaved.demo);
   expect(saved.notices.find(n => n.title === 'Session reminder').read).toBe(

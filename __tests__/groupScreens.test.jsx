@@ -80,7 +80,9 @@ test('group search distinguishes joined results and prompts older-page search', 
     .findAllByType(TouchableOpacity)
     .map(control => control.props.accessibilityLabel)
     .filter(label => label?.startsWith('Open '));
-  expect(visibleGroupLabels).toEqual(['Open Biology Circle']);
+  expect(visibleGroupLabels).toEqual([
+    'Open Biology Circle, Physics, 3 members, Not joined, Shared group',
+  ]);
   expect(
     renderer.root.findByProps({
       children: 'No joined groups match this search.',

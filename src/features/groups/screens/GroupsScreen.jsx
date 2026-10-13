@@ -95,7 +95,19 @@ export function GroupsScreen({
     return (
       <TouchableOpacity
         accessibilityRole="button"
-        accessibilityLabel={'Open ' + group.name}
+        accessibilityLabel={
+          'Open ' +
+          group.name +
+          ', ' +
+          (group.subject || 'Subject not specified') +
+          ', ' +
+          group.members +
+          (group.members === 1 ? ' member' : ' members') +
+          ', ' +
+          (group.joined ? 'Joined' : 'Not joined') +
+          ', ' +
+          (group.shared ? 'Shared group' : 'On this device')
+        }
         style={[s.card, s.row, styles.minHeight104]}
         onPress={() =>
           go({

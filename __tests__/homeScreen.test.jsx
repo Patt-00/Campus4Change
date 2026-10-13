@@ -27,6 +27,12 @@ function button(renderer, label) {
     .find(control => control.props.accessibilityLabel === label);
 }
 
+function buttonStartingWith(renderer, prefix) {
+  return renderer.root
+    .findAllByType(TouchableOpacity)
+    .find(control => control.props.accessibilityLabel?.startsWith(prefix));
+}
+
 function input(renderer, label) {
   return renderer.root
     .findAllByType(TextInput)
@@ -100,7 +106,12 @@ test('home searches tutors, shows interest matches, quick actions, and next sess
   await act(async () => button(renderer, 'Complete your profile').props.onPress());
   expect(go).toHaveBeenLastCalledWith('Edit Profile');
 
-  await act(async () => button(renderer, 'Open Physics session').props.onPress());
+  const nextSession = buttonStartingWith(
+    renderer,
+    'Open Physics session. Scheduled',
+  );
+  expect(nextSession.props.accessibilityLabel).toContain('With Mika Santos');
+  await act(async () => nextSession.props.onPress());
   expect(go).toHaveBeenLastCalledWith({
     page: 'Session Details',
     sessionId: 'sooner',
@@ -135,8 +146,12 @@ test('home skips malformed session times when selecting the next booking', async
     renderer = renderHome({ go: jest.fn(), state, directory: [], tutors: [] });
   });
 
-  expect(button(renderer, 'Open Valid session')).toBeDefined();
-  expect(button(renderer, 'Open Malformed session')).toBeUndefined();
+  expect(
+    buttonStartingWith(renderer, 'Open Valid session. Scheduled'),
+  ).toBeDefined();
+  expect(
+    buttonStartingWith(renderer, 'Open Malformed session. Scheduled'),
+  ).toBeUndefined();
   await act(async () => renderer.unmount());
 });
 
@@ -222,7 +237,9 @@ test('home warns about past-due bookings instead of showing a clear schedule', a
     .join(' ');
   expect(visibleText).toContain('2 past-due bookings need review');
   expect(visibleText).not.toContain('Your schedule is clear');
-  expect(button(renderer, 'Open Physics session')).toBeUndefined();
+  expect(
+    buttonStartingWith(renderer, 'Open Physics session. Scheduled'),
+  ).toBeUndefined();
   await act(async () => button(renderer, 'REVIEW PAST-DUE BOOKINGS').props.onPress());
   expect(go).toHaveBeenLastCalledWith('Sessions');
   await act(async () => renderer.unmount());
