@@ -2,7 +2,7 @@
 
 Reference: [Campus4Change Mobile App Prototype](https://www.figma.com/proto/i23zbYooPqV1EkTLXfnxMo/Campus4Change-Mobile-App-Prototype?node-id=1-2&starting-point-node-id=1%3A2).
 
-The file now lists the 18 mobile screens below and a separate `Campus4Change Components` page for reusable dark-theme controls. The Login and Sign-up frames show the implemented Google buttons and account guidance, using a reusable token-bound Google button component. The component page also includes the red inline auth-feedback component used when Google sign-in does not complete. The Group Session frame is built from editable text, vectors, variables, and component instances; its visual composition and the updated Group Details screen were inspected in Figma.
+The file now lists the 18 mobile screens below and a separate `Campus4Change Components` page for reusable dark-theme controls. The Login and Sign-up frames show the implemented Google buttons and account guidance, using a reusable token-bound Google button component. The component page also includes the red inline auth-feedback component used when Google sign-in does not complete and a token-bound cloud-sync pending banner. The Home frame shows its instance at the top when Firebase has not acknowledged the newest local state. The Group Session frame is built from editable text, vectors, variables, and component instances; its visual composition and the updated Group Details screen were inspected in Figma.
 
 The 63 existing screen-navigation links use 220 ms ease-out transitions. Forward and Back routes use directional move-ins; tab changes dissolve, matching the native-driven transitions in the React Native app.
 
@@ -15,7 +15,7 @@ The latest visual pass keeps the existing colors and card style while removing s
 | 1:2 | Onboarding | Open login. |
 | 1:15 | Login | Firebase email/password or Android Google sign-in, existing local credentials, password reset, and biometrics for local accounts. No demo sign-in is included. |
 | 1:39 | Sign-up | Create an email/password Firebase or device account; Google sign-up uses the Google name/email and adds Student ID privately after sign-in. |
-| 1:69 | Home | Search, quick actions, next session, menu, notifications, tabs. |
+| 1:69 | Home | Search, quick actions, next session, menu, notifications, tabs; shows pending cloud sync when device state is waiting for Firebase acknowledgement. |
 | 1:133 | Tutor Search | The account's own device-only listing or live Firebase student listings, subject filters, and a real empty state. |
 | 1:187 | Tutor Details | Selected tutor profile, public subjects, and request-a-session action. A tutor chat opens from the resulting session request. |
 | 1:218 | Book Session | Subject/date/time/note selection; Firebase accounts send a pending request. Future and overlap checks apply. |

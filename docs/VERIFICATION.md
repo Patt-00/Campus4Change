@@ -28,7 +28,11 @@
   acknowledgements. Pending cloud snapshots are coalesced per Firebase UID, and
   sign-out reports a local-only save after a bounded 1.2-second cloud wait.
   Regression coverage simulates a never-resolving cloud write during account
-  hydration, later local edits, sign-out, and a subsequent account switch.
+  hydration, later local edits, sign-out, and a subsequent account switch. The
+  app displays a pending-sync status while the server acknowledgement is open.
+  Figma now has a token-bound pending-sync component and a Home instance of the
+  same state; its editable text, Inter font, color bindings, and spacing binding
+  were read back and visually checked.
 - Verified Firebase students now share live group chat with current group
   members and tutor-session chat with the booking's two participants. The
   active chat reads a bounded latest-50 window and loads older pages on demand;
@@ -41,8 +45,8 @@
   in 28 suites; statement coverage 82.09% and branch coverage 72.58%.
   `npm run lint` passed without warnings. `:app:createBundleReleaseJsAndAssets`,
   `:app:testDebugUnitTest`, and `:app:assembleDebug` passed under JDK 25.
-  The production JavaScript bundle is 2,651,748 bytes with SHA-256
-  `77614d01b8c06709b07dea44ef09516cbe965402ddb1c6f0e7c04510a63a474e`.
+  The production JavaScript bundle is 2,652,324 bytes with SHA-256
+  `40e4f0c809e8013cff12e7223dc13a8fcacc06e74c5254950728bb258a760aa8`.
 - Local Auth and Firestore emulator tests passed. The rules suite covers current
   group-member chat access, owner hide/restore, participant-only tutor-session
   chat, message-size and page limits, and send cooldowns. The Auth emulator

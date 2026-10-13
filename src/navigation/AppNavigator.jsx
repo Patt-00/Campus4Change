@@ -69,6 +69,7 @@ export function AppNavigator() {
   const {
     state,
     saveError,
+    cloudSyncPending,
     auth,
     dispatch,
     signOut,
@@ -922,6 +923,13 @@ export function AppNavigator() {
         <View style={s.banner}>
           <Text style={s.error}>
             A tutor change was not saved: {sharedTutors.actionError}
+          </Text>
+        </View>
+      )}
+      {cloudSyncPending && !saveError && (
+        <View style={s.banner}>
+          <Text accessibilityRole="status" style={s.muted}>
+            Saved on this device. Waiting to sync with Firebase.
           </Text>
         </View>
       )}

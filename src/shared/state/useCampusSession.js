@@ -116,6 +116,7 @@ function waitForCloudWrite(promise, timeoutMs) {
 export function useCampusSession({ onSignedIn, onSignedOut }) {
   const [state, setState] = useState(null);
   const [saveError, setSaveError] = useState('');
+  const [pendingCloudUid, setPendingCloudUid] = useState(null);
   const [restoring, setRestoring] = useState(firebaseEnabled);
   const [sessionType, setSessionType] = useState(null);
   const [emailVerified, setEmailVerified] = useState(true);
@@ -168,6 +169,7 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
     }
 
     const uid = expectedSession.uid;
+    setPendingCloudUid(uid);
     let queue = cloudWrites.current.get(uid);
     if (!queue) {
       queue = { pendingState: null, task: null };
@@ -196,6 +198,7 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
           ) {
             setSaveError(errorText(error));
           }
+          setPendingCloudUid(current => current === uid ? null : current);
           return false;
         }
       }
@@ -208,6 +211,7 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
       } else {
         queue.pendingState = null;
       }
+      setPendingCloudUid(current => current === uid ? null : current);
       return saved;
     })();
     queue.task = task;
@@ -246,6 +250,7 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
           ) {
             setSaveError(errorText(error));
           }
+          setPendingCloudUid(current => current === uid ? null : current);
         }
       },
     );
@@ -668,6 +673,11 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
   return {
     state,
     saveError,
+    cloudSyncPending: Boolean(
+      sessionType === 'firebase' &&
+      state?.profile?.id &&
+      pendingCloudUid === state.profile.id
+    ),
     auth,
     dispatch,
     signOut,

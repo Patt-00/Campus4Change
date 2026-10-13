@@ -100,8 +100,10 @@ production-ready claim.
 - Local account-state writes no longer wait behind Firestore server
   acknowledgements. Cloud snapshots are coalesced by Firebase UID, and sign-out
   waits at most 1.2 seconds for a remote acknowledgement after saving locally.
-  Regression tests hold a cloud write indefinitely, verify later local changes
-  still persist, and ensure a pending write cannot cross into another account.
+  The app reports when a cloud write is pending. Regression tests hold a cloud
+  write indefinitely, verify later local changes still persist, ensure a
+  pending write cannot cross into another account, and retry the latest state
+  after signing back into the same Firebase UID.
 - Booked and group sessions use appointment-style workspaces for their schedule,
   location or tutor, agenda, and notes. Group notes stay private until the member
   explicitly posts them.

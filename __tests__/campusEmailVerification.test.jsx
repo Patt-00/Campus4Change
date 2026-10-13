@@ -280,6 +280,7 @@ test('a pending Firebase write does not block local persistence or sign-out', as
   });
 
   expect(mockStore.saveState).toHaveBeenCalledTimes(2);
+  expect(currentSession.cloudSyncPending).toBe(true);
   const newestLocalState = JSON.parse(mockStore.saveState.mock.calls.at(-1)[1]);
   expect(newestLocalState.profile).toMatchObject({
     course: 'Computer Science',
@@ -328,6 +329,7 @@ test('a pending Firebase write does not block local persistence or sign-out', as
     await flushTasks();
   });
   expect(mockSaveCloudState).toHaveBeenCalledTimes(2);
+  expect(currentSession.cloudSyncPending).toBe(false);
   await act(async () => renderer.unmount());
 });
 
@@ -378,6 +380,7 @@ test('a pending cloud write cannot be replayed into a different Firebase account
     await flushTasks();
   });
   expect(currentSession.state.profile.id).toBe('firebase-b');
+  expect(currentSession.cloudSyncPending).toBe(false);
 
   releaseFirstWrite();
   await act(async () => {
