@@ -7,7 +7,7 @@ The source supports PC Android tooling and a separate Termux build path. This is
 | Setting | Version |
 | --- | --- |
 | React Native / React | 0.87.1 / 19.2.3 |
-| Node minimum / recommended JDK | 22.11.0 / 17 |
+| Node.js engine range / recommended JDK | `^22.13.0 || ^24.3.0 || >=26.0.0` ([React Native 0.87 requirements](https://reactnative.dev/blog/2026/08/11/react-native-0.87)) / 17 |
 | Gradle wrapper / resolved Android Gradle Plugin | 9.4.1 / 9.2.1 |
 | Kotlin | 2.2.0 |
 | Compile / target / minimum SDK | 37 / 36 / 24 |
@@ -71,7 +71,7 @@ PowerShell requires the `.\` prefix for a program in the current folder. If alre
 On Linux/macOS, set `sdk.dir` in `android/local.properties` to that machine's SDK location. From the **repository root**, install the JavaScript dependencies before running Gradle; `android/settings.gradle` loads the React Native Gradle plugin from `node_modules`:
 
 ```sh
-node --version # must satisfy package.json: >= 22.11.0
+node --version # must satisfy package.json: ^22.13.0 || ^24.3.0 || >=26.0.0
 npm ci
 test -d node_modules/@react-native/gradle-plugin
 cd android

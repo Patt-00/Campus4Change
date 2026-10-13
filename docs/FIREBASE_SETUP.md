@@ -85,8 +85,9 @@ spoofing, nonmember posting, and unconfigured collections.
 The Auth emulator test creates a disposable demo account, sends and applies a
 verification code locally, confirms the refreshed email claim, and checks that
 shared-group access is denied before verification but allowed afterward.
-The rules-test package requires Node.js 24.12 or newer; the React Native app
-build itself retains the repository's Node.js 22.11 minimum.
+The rules-test package requires Node.js 24.12 or newer. The React Native 0.87.1
+app build requires the Node.js engine range declared in `package.json`:
+`^22.13.0 || ^24.3.0 || >=26.0.0`.
 
 For an Android debug build that tests Auth/Firestore from the app, set
 `firebaseEmulatorHost` to `127.0.0.1` in the local Firebase config while the

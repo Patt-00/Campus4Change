@@ -12,6 +12,7 @@ Version 1.2.0 adds custom learning interests, personal school details, clear ico
 - Tutor search, filters, and the correct selected tutor profile.
 - Future one-hour bookings, overlap checks, rescheduling, cancellation, completion, and ratings.
 - Study-group discovery and collaboration: Firebase accounts share group details, membership counts, posts, and replies. Device-only accounts keep their groups locally.
+- Members can report another member's shared post or reply; group owners can review reports and dismiss, hide, or restore content.
 - Booked-session workspace with tutor/schedule context and session notes; group study rooms keep the personal focus timer. Expired bookings are labeled as past due rather than shown as future sessions.
 - Conversation search, saved messages, in-app notifications, and learning preferences.
 - A tutor profile that is listed in this account's local directory.
@@ -19,7 +20,7 @@ Version 1.2.0 adds custom learning interests, personal school details, clear ico
 - Optional group meetup dates and times, with valid-date and future-time checks.
 - About screen with device storage, demo data, and service limits.
 
-When Firebase is configured, email/password accounts use Firebase Authentication and private app state syncs to that user's Firestore record. Signed-in students can discover shared groups; membership records are private, and only members can read or add group posts and replies. Pending group changes are saved locally and can be retried if the connection fails. Authentication is restored when the app reopens. An encrypted on-device copy remains available for recovery when cloud sync fails. Without Firebase configuration, the local prototype/demo account flow remains available. See [Firebase setup](docs/FIREBASE_SETUP.md).
+When Firebase is configured, email/password accounts use Firebase Authentication and private app state syncs to that user's Firestore record. Signed-in students can discover shared groups; membership and report records are restricted, and only members can read or add group posts and replies. Members can report another member's content without including their UID in the report; only the group owner can review reports and reversibly hide or restore content. Pending group changes are saved locally and can be retried if the connection fails. Authentication is restored when the app reopens. An encrypted on-device copy remains available for recovery when cloud sync fails. Without Firebase configuration, the local prototype/demo account flow remains available. See [Firebase setup](docs/FIREBASE_SETUP.md).
 
 The account-state document stays private to its owner. Shared groups use separate Firestore documents. Tutor listings, bookings, group chat, and direct messages are not shared between students yet. Sample tutors do not receive bookings or messages. Firebase signup sends an email-verification link, and shared-group access requires a verified email; automatic handling of the link inside the app and production email delivery have not been verified. Live chat, calls, push notifications, and Google sign-in are not implemented. Clearing app data removes the encrypted local copy; configured Firebase accounts and cloud state remain in Firebase.
 
@@ -33,7 +34,7 @@ Updating preserves saved account data. Earlier bookings and conversations still 
 
 ## Run and build
 
-Install Node.js 22.11 or newer, JDK 17, and the SDK versions in [BUILDING.md](docs/BUILDING.md).
+Install a Node.js version supported by React Native 0.87.1 (`^22.13.0 || ^24.3.0 || >=26.0.0`), JDK 17, and the SDK versions in [BUILDING.md](docs/BUILDING.md).
 
 ```sh
 npm ci

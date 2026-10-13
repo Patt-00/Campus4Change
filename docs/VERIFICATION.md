@@ -14,7 +14,11 @@ source contains no TypeScript files.
 
 Verified for this checkpoint:
 
-- `npm run lint`: passed without warnings.
+- `npm run lint`: passed without warnings with coverage output already present;
+  `.eslintignore` excludes generated coverage assets from source linting.
+- `npm ci --dry-run --ignore-scripts --no-audit --no-fund` passed under Node
+  24.18.0. The root engine range now matches React Native 0.87.1's package
+  metadata, and the lockfile records the same range.
 - `npm test -- --runInBand --coverage`:
   141 tests passed in 23 suites. Tests cover stale group callbacks and pending
   shared writes across account changes, queued state persistence after a switch

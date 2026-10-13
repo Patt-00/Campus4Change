@@ -13,6 +13,10 @@ production-ready claim.
 - Shared Firebase study groups support signed-in discovery, membership, posts,
   and replies. Membership documents are private to their owners; posts/replies
   are readable only by members.
+- Members can report another member's visible post/reply without storing the
+  reporter UID. A paged report queue is available to the group owner, who can
+  dismiss a report or reversibly hide/restore its content; instructor-wide
+  moderation remains open until the teacher confirms that role and scope.
 - Shared group feeds are merged with live directory metadata so the active
   member post listener's content reaches the details and post screens. A
   regression test covers this source-to-screen data merge.
@@ -56,6 +60,8 @@ production-ready claim.
 - Firebase signup sends an email verification link. Firestore rules require a
   verified-email claim for shared study-group data while keeping each user's
   private account state owner-only before verification.
+- The project Node engine range now matches React Native 0.87.1's declared
+  support range; the separate Firebase rules-test package requires Node 24.12+.
 - Password-reset responses do not reveal whether an email is registered or
   disabled. The screen always shows a neutral confirmation while network errors
   remain actionable; tests cover both paths.
@@ -151,8 +157,8 @@ production-ready claim.
   tests, production bundling, the Android debug build, and the release-signing
   guard. Gradle dependency and wrapper caching is enabled through the
   [`setup-java` cache option](https://github.com/actions/setup-java/blob/main/README.md).
-  The latest [remote run](https://github.com/Patt-00/Campus4Change/actions/runs/38341603367)
-  passed on commit `5497371` without production Firebase credentials.
+  The latest [remote run](https://github.com/Patt-00/Campus4Change/actions/runs/38346833304)
+  passed on commit `f973d71` without production Firebase credentials.
 
 ## Open issues
 
@@ -163,7 +169,7 @@ production-ready claim.
 | C4C-03 | High | The final-project acceptance rubric is not accessible in the current course. | The local `Canvas_Modules.md` index contains Modules 1-5 although its heading says nine modules. It lists a Module 1 project proposal, Module 3 prototype, Module 4 React prototype translation, and Module 5 React Native Environment/App/State/Props/Styling topics plus Firebase Integration and Firebase Authentication assignments. At the last browser check, the course Assignments page was disabled and the module link returned Access Denied. The outline confirms React Native/Firebase learning scope but does not define final-project acceptance. Keep Google sign-in, Hosting, cross-student bookings, chat, and instructor-wide moderation as unconfirmed scope until the teacher supplies the rubric. |
 | C4C-04 | Medium | Tutor listings, bookings, direct messages, and group chat are not shared between students. | Firebase accounts sync this data inside each user's private state; device-only accounts keep it local. Cross-student tutor, booking, and messaging workflows are not implemented. Confirm whether the final rubric requires those workflows before designing their schemas. |
 | C4C-05 | Medium | Shared groups have no instructor-wide moderation path. | Group members can report another member's post or reply, and the group owner can dismiss the report or reversibly hide/restore the content. Reports omit reporter UID and share the five-second contribution cooldown. The course has not established an instructor role or broader moderation requirements; confirm that scope from the acceptance rubric. |
-| C4C-06 | Medium | The current audit reports 47 high, 5 moderate, and 0 critical findings. | `npm audit --omit=dev` still reports 20 high paths, all rooted in `braces@3.0.3` through `micromatch@4.0.8` in React Native/Metro tooling. The advisory affects `braces <=3.0.3` and has no patched version; the maintainer disputes the report. The production-mode app bundle contains no `braces`/`micromatch` strings, so the exposure is in development/build tooling rather than shipped JavaScript. Metro now binds to loopback by default, reducing LAN exposure without changing that dependency finding. The five moderate findings are test-tooling paths rooted in `sprintf-js@1.0.3`, for which the advisory also has no patched version. Do not apply an unofficial override without a reviewed mitigation. See the [braces advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm), [braces maintainer discussion](https://github.com/micromatch/braces/issues/84), and [sprintf-js advisory](https://github.com/advisories/GHSA-hp3w-g68c-fv3c). |
+| C4C-06 | Medium | The current audit reports 47 high, 5 moderate, and 0 critical findings. | On 2026-10-13, `npm audit --omit=dev` still reported 20 high paths; the affected packages are React Native/Metro build tooling rooted in `braces@3.0.3` through `micromatch@4.0.8`. The advisory affects `braces <=3.0.3` and has no patched release; the maintainer disputes the report. The production bundle has no `braces`/`micromatch` strings, so this is build-tooling exposure rather than shipped JavaScript. `npm audit fix --dry-run` made no changes and offered only major toolchain changes; no compatible fix is available for the direct `braces` or `sprintf-js` advisories. Metro binds to loopback by default, reducing LAN exposure without changing the finding. The five moderate findings are test-tooling paths rooted in `sprintf-js@1.0.3`, also with no patched version. Do not apply an unofficial override without a reviewed mitigation. See the [braces advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm), [braces maintainer discussion](https://github.com/micromatch/braces/issues/84), and [sprintf-js advisory](https://github.com/advisories/GHSA-hp3w-g68c-fv3c). |
 | C4C-07 | Medium | No dedicated production release key is configured. | Gradle release artifact tasks now fail closed without a dedicated keystore; a no-key release dry run was rejected before build tasks and the existing APK hash stayed unchanged. Debug builds still use the development key. No production keystore was created or used. Prior 1.2.0 APKs use the debug certificate, so a future dedicated release key will require a planned install/data transition. |
 | C4C-08 | Low | The iOS scaffold cannot use the Android storage module. | Current app support is Android-only; do not claim iOS parity until secure storage and biometrics are implemented and verified there. |
 ## Verification record
