@@ -69,8 +69,9 @@ production-ready claim.
   keeps the account open if the local save fails, but permits sign-out after a
   successful local save when cloud sync fails and explains how to retry later.
   A successful Firebase sign-out also clears the transient Student ID cache.
-- Booked sessions now use a booking-focused workspace for schedule, tutor,
-  agenda, and notes; the focus timer is confined to group study rooms.
+- Booked and group sessions use appointment-style workspaces for their schedule,
+  location or tutor, agenda, and notes. Group notes stay private until the member
+  explicitly posts them.
 - Session timing is displayed as upcoming, in progress, or past due from the
   stored start time without silently rewriting the user's saved status.
 - Upcoming sessions with a missing or malformed start time now go to Needs
@@ -109,8 +110,8 @@ production-ready claim.
   the test recreates a same-timestamp account switch and confirms no old state
   is written under the new account. Theme tests enforce 4.5:1 contrast for
   small foreground text on the dark surfaces and cyan button fill.
-- Leaving a group room with Back now keeps note drafts private. Publishing to a
-  group happens only from the explicit Save Notes and Leave action.
+- Leaving a group session with Back keeps note drafts private. Publishing to a
+  shared group happens only from the explicit Post Notes to Group action.
 - Device-only groups remain available. Pending shared writes are saved in
   account state and can be retried.
 - Firestore emulator tests cover account isolation, group discovery, membership

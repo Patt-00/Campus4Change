@@ -35,10 +35,10 @@ export function AboutScreen({
       <Text style={s.section}>Connecting with other students</Text>
       <Text style={s.text}>
         {firebaseConfigured && cloudSession
-          ? 'Verified Firebase accounts share study-group details, membership, posts, and replies. Tutor listings, bookings, direct messages, and group chat remain private to each account. Group study rooms have a focus timer; booked-session workspaces organize session details and notes. Live calls are not available.'
+          ? 'Verified Firebase accounts share study-group details, membership, posts, and replies. Tutor listings, bookings, direct messages, and group chat remain private to each account. Group sessions keep meetup details and notes together; notes are shared only when you post them. Live calls are not available.'
           : firebaseConfigured
-            ? 'This device-only account stays private. Verified Firebase accounts can share study-group details, membership, posts, and replies. Bookings, direct messages, and group chat remain private. Group rooms have a focus timer; booked sessions use a notes workspace without live calls.'
-            : 'This version has no campus server or sharing between devices. Bookings, messages, and group posts stay on this device. Group study rooms have a focus timer; booked sessions use a notes workspace. Live calls are not available.'}
+            ? 'This device-only account stays private. Verified Firebase accounts can share study-group details, membership, posts, and replies. Bookings, direct messages, and group chat remain private. Group sessions show meetup details and save notes on this device; live calls are not available.'
+            : 'This version has no campus server or sharing between devices. Bookings, messages, and group posts stay on this device. Group sessions show meetup details and save notes on this device. Live calls are not available.'}
       </Text>
       <Text style={s.section}>Demo account</Text>
       <Text style={s.text}>

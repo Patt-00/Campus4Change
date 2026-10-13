@@ -443,9 +443,11 @@ test('creates a group, publishes a post, and saves a reply', async () => {
   await press('CREATE GROUP');
   expect(hasText('Exam Review Team')).toBe(true);
   expect(hasText('No meetup scheduled')).toBe(true);
-  await press('OPEN GROUP STUDY ROOM');
-  expect(hasText('Group Study Room')).toBe(true);
-  expect(hasText('Focus timer')).toBe(true);
+  await press('OPEN GROUP SESSION');
+  expect(hasText('Group Session')).toBe(true);
+  expect(hasText('Exam Review Team')).toBe(true);
+  expect(hasText('Focus timer')).toBe(false);
+  expect(hasText('START TIMER')).toBe(false);
   await press('Back');
   await fill('Write a study note...', 'Review Newton laws');
   await press('POST NOTE');
@@ -458,15 +460,15 @@ test('creates a group, publishes a post, and saves a reply', async () => {
   );
   expect(group.posts[0].replies[0].text).toBe('Start with the first law');
 });
-test('group-room Back preserves a private draft until Save Notes and Leave', async () => {
+test('group-session Back preserves a private draft until it is saved to the group', async () => {
   await login();
   await press('Study Groups');
   await press('+ CREATE GROUP');
   await fill('Group name', 'Draft Review Team');
   await fill('Subject', 'Physics');
   await press('CREATE GROUP');
-  await press('OPEN GROUP STUDY ROOM');
-  await fill('Write what you learned...', 'Draft not shared yet');
+  await press('OPEN GROUP SESSION');
+  await fill('Session notes', 'Draft not shared yet');
   await press('Back');
 
   let saved = JSON.parse(mockSaved.demo);
@@ -474,12 +476,12 @@ test('group-room Back preserves a private draft until Save Notes and Leave', asy
   expect(group.posts).toHaveLength(0);
   expect(saved.roomNotes[group.id]).toBe('Draft not shared yet');
 
-  await press('OPEN GROUP STUDY ROOM');
+  await press('OPEN GROUP SESSION');
   const noteInput = renderer.root
     .findAllByType(TextInput)
-    .find(input => input.props.accessibilityLabel === 'Write what you learned...');
+    .find(input => input.props.accessibilityLabel === 'Session notes');
   expect(noteInput.props.value).toBe('Draft not shared yet');
-  await press('SAVE NOTES AND LEAVE');
+  await press('SAVE NOTES AND RETURN');
 
   saved = JSON.parse(mockSaved.demo);
   group = saved.groups.find(item => item.name === 'Draft Review Team');

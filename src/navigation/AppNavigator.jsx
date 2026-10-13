@@ -620,13 +620,13 @@ export function AppNavigator() {
         );
       }
       break;
-    case 'Group Study Room':
+    case 'Group Session':
       if (group?.joined) {
         screen = (
           <GroupStudyRoomScreen
             key={group.id}
             back={back}
-            title={group.name}
+            group={group}
             shared={group.shared}
             initialNotes={state.roomNotes?.[group.id] ?? ''}
             onDraft={text =>

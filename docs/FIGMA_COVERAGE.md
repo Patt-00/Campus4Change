@@ -2,7 +2,7 @@
 
 Reference: [Campus4Change Mobile App Prototype](https://www.figma.com/proto/i23zbYooPqV1EkTLXfnxMo/Campus4Change-Mobile-App-Prototype?node-id=1-2&starting-point-node-id=1%3A2).
 
-The file was inspected again for 1.1.0. Page metadata lists the 17 screens below. Detailed design context was retrieved for onboarding, sign-up, home, and tutor search. The connector's usage limit blocked further detailed requests. Public prototype screens and complete page metadata were used for the remaining views.
+The file now lists the 18 mobile screens below and a separate `Campus4Change Components` page for the reusable dark-theme tokens and controls used by the session view. The Group Session frame is built from editable text, vectors, variables, and component instances; its visual composition and the updated Group Details screen were inspected in Figma.
 
 The app follows the dark background, cyan actions, rounded cards, Inter typography, circle avatars, and five-tab layout. Scrolling, device insets, editable data, validation, and local-storage notices adapt the fixed 390-by-844 reference to Android. Exact 1:1 pixel matching has not been verified.
 
@@ -17,7 +17,8 @@ The app follows the dark background, cyan actions, rounded cards, Inter typograp
 | 1:218 | Book Session | Subject/date/time/note selection; future and overlap checks. |
 | 1:251 | Booking Confirmed | Saved booking summary, home, session details. |
 | 1:263 | Study Groups | Joined/discover views, search, creation, membership. |
-| 1:302 | Group Details | Join/leave, actual meetup schedule, posts/replies, local chat, study room. |
+| 1:302 | Group Details | Join/leave, actual meetup schedule, posts/replies, local chat, group session entry. |
+| 93:2 | Group Session | Meetup topic, status, date/time, location, group notes, and explicit save/share action. |
 | 1:324 | Sessions | Upcoming/completed/cancelled filters, selected details. |
 | 1:361 | Session Details | Reschedule, cancel, message, room, completion, rating. |
 | 1:386 | Messages | Search conversations and open chat. |
@@ -32,7 +33,7 @@ The app adds supporting forms for group creation, study posts/replies, becoming 
 
 Version 1.2.0 keeps the visual theme while replacing letter icons with outline icons, increasing text and touch sizes, and allowing custom interests and optional user-entered school details. The dashboard uses saved interests and current tutor counts. Chosen tutor times carry into booking. Group schedules use their optional saved date/time; no schedule is invented for old groups. Sample content belongs to the demo account, with historical personal work preserved.
 
-Group study rooms have a 25-minute personal focus timer and saved notes. Booked sessions open a workspace with the tutor, scheduled time, and agenda/notes, then can be marked complete; the timer is not part of a booked session. Group room notes are published to the joined group's feed; Firebase groups share those notes with their members. Back navigation preserves drafts.
+Group sessions show their meetup topic, scheduled date and time, location, and member count in the same appointment-style layout as booked-session workspaces. Draft notes stay private when returning with Back. The explicit Post Notes to Group action shares notes to a joined group's feed; device-only groups keep their notes local. Group sessions do not include a focus timer or a live call.
 
 ## Limits
 

@@ -44,42 +44,50 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-test('group room timer starts, pauses, resets, completes, and restarts', async () => {
-  jest.useFakeTimers();
-  jest.setSystemTime(new Date('2026-10-13T00:00:00.000Z'));
-  const setIntervalSpy = jest.spyOn(global, 'setInterval');
-  const clearIntervalSpy = jest.spyOn(global, 'clearInterval');
+test('group session shows meetup details without a focus timer', async () => {
   let renderer;
   await act(async () => {
-    renderer = renderRoom();
+    renderer = renderRoom({
+      group: {
+        name: 'Calculus Study Circle',
+        subject: 'Calculus',
+        members: 12,
+        meetup: 'Integration Techniques Review',
+        meetupAt: '2099-05-15T16:00:00.000Z',
+        room: 'Q-5221',
+      },
+    });
   });
 
-  expect(hasText(renderer, '25:00')).toBe(true);
-  await act(async () => button(renderer, 'START TIMER').props.onPress());
-  expect(button(renderer, 'PAUSE TIMER')).toBeTruthy();
-
-  await act(async () => jest.advanceTimersByTime(1000));
-  expect(hasText(renderer, '24:59')).toBe(true);
-  await act(async () => button(renderer, 'PAUSE TIMER').props.onPress());
-  expect(hasText(renderer, '24:59')).toBe(true);
-  expect(button(renderer, 'START TIMER')).toBeTruthy();
-
-  await act(async () => button(renderer, 'RESET TIMER').props.onPress());
-  expect(hasText(renderer, '25:00')).toBe(true);
-  await act(async () => button(renderer, 'START TIMER').props.onPress());
-  await act(async () => {
-    jest.setSystemTime(new Date(Date.now() + 25 * 60 * 1000));
-    jest.advanceTimersByTime(500);
-  });
-  expect(hasText(renderer, '00:00')).toBe(true);
-  expect(button(renderer, 'RESTART TIMER')).toBeTruthy();
-
-  await act(async () => button(renderer, 'RESTART TIMER').props.onPress());
-  expect(hasText(renderer, '25:00')).toBe(true);
-  expect(button(renderer, 'PAUSE TIMER')).toBeTruthy();
-  const roomTimer = setIntervalSpy.mock.results.at(-1).value;
+  expect(hasText(renderer, 'Group Session')).toBe(true);
+  expect(hasText(renderer, 'UPCOMING')).toBe(true);
+  expect(hasText(renderer, 'Integration Techniques Review')).toBe(true);
+  expect(hasText(renderer, 'Q-5221')).toBe(true);
+  expect(hasText(renderer, 'Calculus Study Circle')).toBe(true);
+  expect(hasText(renderer, '12 members')).toBe(true);
+  expect(hasText(renderer, 'Focus timer')).toBe(false);
+  expect(hasText(renderer, 'START TIMER')).toBe(false);
   await act(async () => renderer.unmount());
-  expect(clearIntervalSpy).toHaveBeenCalledWith(roomTimer);
+});
+
+test('group session explains when a meetup has not been scheduled', async () => {
+  let renderer;
+  await act(async () => {
+    renderer = renderRoom({
+      group: {
+        name: 'Exam Review Team',
+        subject: 'Physics',
+        members: 1,
+        meetup: 'Physics review',
+      },
+    });
+  });
+
+  expect(hasText(renderer, 'NOT SCHEDULED')).toBe(true);
+  expect(hasText(renderer, 'No date added')).toBe(true);
+  expect(hasText(renderer, 'No time added')).toBe(true);
+  expect(hasText(renderer, 'Location not set')).toBe(true);
+  await act(async () => renderer.unmount());
 });
 
 test('group room saves note drafts and finishes when the user goes back', async () => {
@@ -93,7 +101,7 @@ test('group room saves note drafts and finishes when the user goes back', async 
 
   const notes = renderer.root
     .findAllByType(TextInput)
-    .find(input => input.props.accessibilityLabel === 'Write what you learned...');
+    .find(input => input.props.accessibilityLabel === 'Session notes');
   await act(async () => notes.props.onChangeText('Reviewed integration rules'));
   expect(onDraft).toHaveBeenLastCalledWith('Reviewed integration rules');
 
@@ -103,20 +111,20 @@ test('group room saves note drafts and finishes when the user goes back', async 
   await act(async () => renderer.unmount());
 });
 
-test('group room Save Notes and Leave finishes with the current notes', async () => {
+test('group session posts notes only from the explicit group-share action', async () => {
   const back = jest.fn();
   const finish = jest.fn();
   let renderer;
   await act(async () => {
-    renderer = renderRoom({ back, finish });
+    renderer = renderRoom({ back, finish, shared: true });
   });
 
   const notes = renderer.root
     .findAllByType(TextInput)
-    .find(input => input.props.accessibilityLabel === 'Write what you learned...');
+    .find(input => input.props.accessibilityLabel === 'Session notes');
   await act(async () => notes.props.onChangeText('Review chapter six'));
   await act(async () =>
-    button(renderer, 'SAVE NOTES AND LEAVE').props.onPress(),
+    button(renderer, 'POST NOTES TO GROUP').props.onPress(),
   );
   expect(finish).toHaveBeenCalledWith('Review chapter six', true);
   expect(back).toHaveBeenCalledTimes(1);

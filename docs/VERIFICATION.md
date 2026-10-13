@@ -20,7 +20,7 @@ Verified for this checkpoint:
   24.18.0. The root engine range now matches React Native 0.87.1's package
   metadata, and the lockfile records the same range.
 - `npm test -- --runInBand --coverage`:
-  141 tests passed in 23 suites. Tests cover stale group callbacks and pending
+  142 tests passed in 23 suites. Tests cover stale group callbacks and pending
   shared writes across account changes, queued state persistence after a switch
   even when both accounts share the same `updatedAt`, unknown and past-due
   session statuses, malformed or missing session start times across Home,
@@ -36,16 +36,20 @@ Verified for this checkpoint:
   group cards. Search tests cover case-insensitive subject filtering, joined
   group empty copy, and the prompt to search older pages. Other focused tests
   exercise home routes, tutor listing and search, booking validation, session
-  reschedule gating, private group-room drafts versus explicit publishing,
-  timer controls and cleanup, and shared-group retry paths.
-- The Jest coverage run for this checkpoint reports 83.91% line coverage,
-  75.89% branch coverage, 84.28% function coverage, and 84.01% statement
-  coverage. It covers all lines in
-  the home screen at 96.87%, session details at 100%, the group-room screen at
-  100%, the local storage guard at 100%, tutor search at 96.77%, and booking
-  screen at 94.44%. Coverage is
-  diagnostic; the phone UI and long-session memory behavior still need device
-  verification.
+  reschedule gating, group-session date states and location fallbacks, private
+  draft handling versus explicit note sharing, and shared-group retry paths.
+- The current Jest coverage run reports 83.85% line coverage, 76.19% branch
+  coverage, 84.20% function coverage, and 83.93% statement coverage. The group
+  session screen has 100% statement and function coverage; its schedule-state
+  branches are covered in tests. Coverage is diagnostic; the physical-device
+  interaction was also checked separately below.
+- On the Poco X4 GT (model `22041216G`, Android 14), the debug app rendered the
+  Group Session screen through Metro over USB. It shows the upcoming topic,
+  date, time, and room with notes and no focus timer. Saving an empty note
+  returned to Group Details and left the recent-post list unchanged.
+- The Figma prototype now includes an editable Group Session frame and a
+  separate Campus4Change Components page; screenshots of Group Details,
+  Group Session, and the reusable component board were visually reviewed.
 - The Firestore rules test passed against the local Firebase Emulator Suite.
   It checks private account state, authenticated group discovery, member-only
   posts/replies, bounded cursor queries, per-member contribution cooldowns,
@@ -337,9 +341,9 @@ Complete these manual checks on the exact release APK before demonstrating it.
 2. Open the splash screen and step through the Novice, Intermediate, and Expert introductions. Check Back, Skip, page dots, and Get Started.
 3. Demonstrate invalid login input, then use **USE DEMO ACCOUNT** for sample content.
 4. Search for Mika, choose a time on her profile, and book a future session. Verify the selected tutor, time, note, and overlap rejection.
-5. Open a booked session workspace, confirm the tutor, schedule, and notes, and mark it complete without a focus timer. Reschedule, cancel, complete, and rate sessions; check upcoming, in-progress, and past-due labels.
+5. Open a booked session workspace, confirm the tutor, schedule, and notes, and mark it complete. Reschedule, cancel, complete, and rate sessions; check upcoming, in-progress, and past-due labels.
 6. Create a group without a date and confirm no schedule is invented. Create another with a valid future date and time; reject a nonexistent date.
-7. Join/leave groups, write notes and replies, and use a study-room timer. Firebase accounts share group posts/replies when project settings and Firestore rules are configured; device-only accounts keep local groups. Check drafts after Android Back and after reopening.
+7. Join/leave groups, review meetup dates and locations, and use a group session workspace. Write notes and replies, check that Back preserves a private draft, and post notes to a shared group only from the explicit action. Firebase accounts share group posts/replies when project settings and Firestore rules are configured; device-only accounts keep local groups.
 8. Save a message and reopen it. Direct messages and group chat remain local and are not delivered to another device.
 9. Open notifications and check their read state.
 10. Add a custom interest, reject a duplicate with different letter case, remove an interest, and save. Check the home interest and tutor count.

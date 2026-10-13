@@ -25,11 +25,11 @@ export function GroupDetailsScreen({
     <Screen title={group.name} back={back}>
       <Text style={s.muted}>{group.members} members</Text>
       <AppButton
-        title={group.joined ? 'OPEN GROUP STUDY ROOM' : 'JOIN GROUP'}
+        title={group.joined ? 'OPEN GROUP SESSION' : 'JOIN GROUP'}
         onPress={() =>
           group.joined
             ? go({
-                page: 'Group Study Room',
+                page: 'Group Session',
                 groupId: group.id,
               })
             : membership(true)
@@ -48,13 +48,15 @@ export function GroupDetailsScreen({
         />
       )}
 
-      <Text style={s.section}>Next meetup</Text>
+      <Text style={s.section}>Next group session</Text>
       <View style={s.card}>
-        <Text style={s.name}>{group.meetup}</Text>
+        <Text style={s.name}>{group.meetup || 'Study session'}</Text>
         <Text style={s.muted}>
           {group.meetupAt ? sessionTime(group.meetupAt) : 'No meetup scheduled'}
         </Text>
-        <Text style={s.muted}>Focus room • {group.room}</Text>
+        <Text style={s.muted}>
+          Location • {group.room || 'Not set'}
+        </Text>
       </View>
       <Text style={s.section}>Recent posts</Text>
       {group.shared && !group.joined ? (
