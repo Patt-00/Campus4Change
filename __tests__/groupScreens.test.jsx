@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
-import { TextInput, TouchableOpacity } from 'react-native';
+import { Text, TextInput, TouchableOpacity } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GroupsScreen } from '../src/features/groups/screens/GroupsScreen';
 import { GroupDetailsScreen } from '../src/features/groups/screens/GroupDetailsScreen';
@@ -306,5 +306,34 @@ test('post details expose older replies only to joined members', async () => {
       accessibilityLabel: 'LOAD OLDER REPLIES',
     }),
   ).toHaveLength(0);
+  await act(async () => renderer.unmount());
+});
+
+test('legacy post IDs no longer inject bundled sample content', async () => {
+  let renderer;
+  await act(async () => {
+    renderer = renderScreen(
+      <GroupPostScreen
+        back={jest.fn()}
+        group={{ id: 'legacy-group', name: 'Group', joined: true }}
+        post={{
+          id: 'post-mika',
+          author: 'Student',
+          text: 'A saved study note',
+          replies: [],
+        }}
+        reply={jest.fn()}
+      />,
+    );
+  });
+
+  const rendered = renderer.root
+    .findAllByType(Text)
+    .map(node => node.props.children)
+    .flat(Infinity)
+    .filter(value => typeof value === 'string');
+  expect(rendered).toContain('A saved study note');
+  expect(rendered).not.toContain('Sample reviewer: integration by parts');
+  expect(rendered).not.toContain('∫ u dv = uv − ∫ v du');
   await act(async () => renderer.unmount());
 });

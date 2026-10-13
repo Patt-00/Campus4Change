@@ -118,7 +118,7 @@ export function GroupDetailsScreen({
           <Text style={s.section}>Share with the group</Text>
           <Text style={s.muted}>
             {group.shared
-              ? 'Your posts and replies are shared with group members.'
+              ? 'Your posts, replies, and chat messages are shared with current group members.'
               : 'Posts and replies stay on this device.'}
           </Text>
           <View style={s.gap} />

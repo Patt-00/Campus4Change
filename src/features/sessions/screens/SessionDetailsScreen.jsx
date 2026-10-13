@@ -78,22 +78,25 @@ export function SessionDetailsScreen({
           <Text style={s.name}>
             {session.incoming ? session.studentName || 'Student' : tutor.name}
           </Text>
-          {!session.shared && !session.incoming && (
-            <Link label="Message tutor" onPress={message} />
+          {message && (
+            <Link
+              label={session.incoming ? 'Message student' : 'Message tutor'}
+              onPress={message}
+            />
           )}
         </View>
       </View>
       {session.shared && (
         <Text style={s.muted}>
-          Session requests sync between both students. Private chat is not
-          available yet.
+          Session requests sync between both students. Messages in this session
+          chat are delivered to both participants.
         </Text>
       )}
       <Text style={s.section}>Session workspace</Text>
       <View style={s.card}>
         <Text style={s.muted}>
-          Review the booking and keep session notes here. Live calls and shared
-          chat are not available yet.
+          Review the booking and keep session notes here. Live calls are not
+          available yet.
         </Text>
       </View>
       {!!session.note && (

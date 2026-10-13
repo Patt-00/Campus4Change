@@ -73,6 +73,14 @@ The profile feature owns the custom-interest editor. The tutor feature owns book
 
 `shared/state/reducer.js` applies profile edits, bookings, session changes, memberships, posts, replies, messages, read notices, and study-note drafts. It rejects overlapping bookings, invalid ratings, and group posts/messages from non-members. A version-1 `pendingSharedActions` queue preserves shared group writes in the encrypted device state so the navigator can retry them after network failures.
 
+`features/messages/data/firestore.js` stores live group chat under each shared
+group and tutor-session chat under its booking. `useSharedMessages` watches only
+the active chat, loads a bounded latest-message window, and keeps chat snapshots
+out of private account state. Firestore rules require current group membership
+or booking participation; group owners can report-hide and restore reported
+chat messages. Device-only conversations and older saved conversations remain
+private notes in the account-state record.
+
 The account hook saves changed state to encrypted Android storage. With Firebase configured, it also saves the complete state under `users/{uid}/private/state` and restores the user's Firebase session at app launch. If a newer encrypted local copy exists than the cloud copy, it is synced up. Save failures appear in the navigator's banner with a retry action. Sign-out first requires the encrypted local save; if only the cloud write fails, the user can still sign out and receives a warning so the next sign-in can retry the local copy. A failed local save keeps the account open. Loaded state must belong to the account that signed in. Saved JSON remains version 1.
 
 `features/groups/data/firestore.js` maps the group feature model to
@@ -124,8 +132,7 @@ locks in the same transaction. Rules reject forged bucket IDs and status
 changes that omit the matching locks. Shared session workspace notes remain
 in each participant's private account state.
 
-Device-only tutor profiles and bookings remain local. Direct messages
-and group chat still save private notes to the user's account; they are not
+Device-only tutor profiles and bookings remain local. Private notes are not
 delivered to another student. Push notifications, calls, and instructor-wide
 moderation are not implemented.
 

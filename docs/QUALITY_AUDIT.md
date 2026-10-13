@@ -67,6 +67,11 @@ production-ready claim.
   locks are written atomically for each one-hour acceptance, preventing both
   duplicate and overlapping reservations. Rules reject forged bucket IDs and
   mismatched lock paths. Shared workspace notes stay private to each account.
+- Verified Firebase students now have live group chat limited to current
+  members and tutor-session chat limited to the booking's two participants.
+  Group messages are rate-limited and support the group-owner report/hide/restore
+  flow. Private notes for device-only accounts and older saved conversations
+  remain private.
 - Shared feeds cap live windows at 20 posts and 20 replies per post; members
   can load older cursor pages on demand. Feed snapshots are kept out of durable
   private account-state records. Paging pauses the current live window until
@@ -95,6 +100,14 @@ production-ready claim.
 - Booked and group sessions use appointment-style workspaces for their schedule,
   location or tutor, agenda, and notes. Group notes stay private until the member
   explicitly posts them.
+- Verified Firebase users now have live chat inside current shared groups and
+  between the two participants in a tutor booking. Chat reads are limited to the
+  active conversation and newest 50 messages, with older pages loaded on demand.
+  Group chat shares the five-second member contribution limiter and its messages
+  can be reported, hidden, and restored by the group owner. Device-only
+  conversations remain private notes. Hook state is scoped to the active user
+  and conversation; a regression test ensures a route change cannot briefly
+  render the prior conversation's messages beneath the new title.
 - Session timing is displayed as upcoming, in progress, or past due from the
   stored start time without silently rewriting the user's saved status.
 - Upcoming sessions with a missing or malformed start time now go to Needs
@@ -177,7 +190,9 @@ production-ready claim.
   deletion, and biometric-pointer deletion atomically. If an older partial
   migration already removed the account row, recovery recognizes only the
   matching legacy profile ID/email. Two Android local unit tests protect the
-  exact identity boundary, and CI runs `:app:testDebugUnitTest`.
+  exact identity boundary, and CI runs `:app:testDebugUnitTest`. The shipped
+  sign-in flow has no demo account or prefilled demo credentials; in application
+  code the old identity is referenced only by the cleanup migration and tests.
 - Interactive list labels now include their visible context: session time,
   status, and tutor; group subject, membership, and sharing state; tutor
   subjects and rating; message preview; and notification body and read state.
@@ -200,8 +215,8 @@ production-ready claim.
 | C4C-01 | High | The checked-in Firestore rules and indexes have not been deployed. | The last live Console check found project `campus4change` on Spark, its Standard database in `asia-southeast1`, and initial production-mode deny-all rules. In this session, `firebase projects:list` failed because Firebase CLI is unauthenticated, and gcloud has no active credentials, so the live rule state cannot be rechecked. Before deployment, inspect for manually seeded legacy group-member documents and migrate any that exist to `users/{uid}/studyGroupMemberships/{groupId}`; add `moderationStatus: "visible"` to any legacy shared posts/replies; then deploy the reviewed rules and indexes with authorization and run live data tests. |
 | C4C-02 | High | No real-project, two-account shared-group workflow has been verified. | At the last live check, app access was denied by the initial production-mode rules. The current Firebase CLI is unauthenticated, so recheck that state after signing in. Then deploy the reviewed rules with authorization, verify two test email addresses, and test create/discover/join/post/reply/leave against the project. |
 | C4C-03 | High | The final-project acceptance rubric is not accessible in the current course. | The local `Canvas_Modules.md` index contains Modules 1-5 although its heading says nine modules. It lists a Module 1 project proposal, Module 3 prototype, Module 4 React prototype translation, and Module 5 React Native Environment/App/State/Props/Styling topics plus Firebase Integration and Firebase Authentication assignments. At the last browser check, the course Assignments page was disabled and the module link returned Access Denied. The outline confirms React Native/Firebase learning scope but does not define final-project acceptance. Google sign-in is implemented and configured for Android; keep Hosting and instructor-wide moderation out until the teacher supplies the rubric. |
-| C4C-04 | Medium | Direct and group messages are not delivered between students. | The existing Messages/Chat screens still store private notes in each user's account; joined shared groups can open the same notes-only screen. Before adding delivery, confirm scope against the teacher's rubric. A secure implementation should bind group messages to current membership, direct messages to a tutor-booking relationship, enforce message limits, provide a group-owner abuse-report/hide path, and pass emulator plus real two-account tests after rules are deployed. Push notifications remain a separate missing feature. |
-| C4C-05 | Medium | Shared groups have no instructor-wide moderation path. | Group members can report another member's post or reply, and the group owner can dismiss the report or reversibly hide/restore the content. Reports omit reporter UID and share the five-second contribution cooldown. The course has not established an instructor role or broader moderation requirements; confirm that scope from the acceptance rubric. |
+| C4C-04 | Medium | Live chat lacks real-project two-account and push-notification verification. | Emulator rules now allow current shared-group members to exchange live chat messages and limit tutor-session chat to its two booking participants. Test coverage includes participant checks, message limits, cooldowns, cancellation state, group membership, and owner hide/restore. Production rules and indexes remain undeployed, so no real two-account flow is verified; OS push notifications are not implemented. |
+| C4C-05 | Medium | Shared groups have no instructor-wide moderation path. | Group members can report another member's post, reply, or chat message without storing reporter UID. The group owner can dismiss a report or reversibly hide and restore the target; chat-message moderation is included in emulator tests. The course has not established an instructor role or broader moderation requirements; confirm that scope from the acceptance rubric. |
 | C4C-06 | Medium | The current audit reports 47 high, 5 moderate, and 0 critical findings. | On 2026-10-14, `npm audit --omit=dev` still reported 20 high paths; the affected packages are React Native/Metro build tooling rooted in `braces@3.0.3` through `micromatch@4.0.8`. The advisory affects `braces <=3.0.3` and has no patched release; the maintainer disputes the report. The production bundle has no `braces`/`micromatch` strings, so this is build-tooling exposure rather than shipped JavaScript. `npm audit fix --dry-run` made no changes and offered only major toolchain changes; no compatible fix is available for the direct `braces` or `sprintf-js` advisories. Metro binds to loopback by default, reducing LAN exposure without changing the finding. The five moderate findings are test-tooling paths rooted in `sprintf-js@1.0.3`, also with no patched version. Do not apply an unofficial override without a reviewed mitigation. See the [braces advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm), [braces maintainer discussion](https://github.com/micromatch/braces/issues/84), and [sprintf-js advisory](https://github.com/advisories/GHSA-hp3w-g68c-fv3c). |
 | C4C-07 | Medium | No dedicated production release key is configured. | Gradle release artifact tasks now fail closed without a dedicated keystore; a no-key release dry run was rejected before build tasks and the existing APK hash stayed unchanged. Debug builds still use the development key. No production keystore was created or used. Prior 1.2.0 APKs use the debug certificate, so a future dedicated release key will require a planned install/data transition. |
 | C4C-08 | Low | The iOS scaffold cannot use the Android storage module. | Current app support is Android-only; do not claim iOS parity until secure storage and biometrics are implemented and verified there. |

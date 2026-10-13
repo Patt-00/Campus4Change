@@ -899,13 +899,15 @@ export async function syncSharedGroupAction(uid, profile, action) {
       const targetRef =
         report.targetType === 'post'
           ? doc(groupRefForAction, 'posts', report.targetId)
-          : doc(
-              groupRefForAction,
-              'posts',
-              report.postId,
-              'replies',
-              report.targetId,
-            );
+          : report.targetType === 'chatMessage'
+            ? doc(groupRefForAction, 'chatMessages', report.targetId)
+            : doc(
+                groupRefForAction,
+                'posts',
+                report.postId,
+                'replies',
+                report.targetId,
+              );
       batch.update(targetRef, {
         moderationStatus: resolution === 'hidden' ? 'hidden' : 'visible',
         moderatedAt: serverTimestamp(),

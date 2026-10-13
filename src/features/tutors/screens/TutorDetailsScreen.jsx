@@ -72,8 +72,8 @@ export function TutorDetailsScreen({ go, back, tutor, message }) {
 
           {tutor.shared ? (
             <Text style={s.muted}>
-              Private chat is not available yet. Session requests are shared
-              with both students.
+              Request a session to open a private chat with this tutor. Session
+              requests are shared with both students.
             </Text>
           ) : (
             <AppButton

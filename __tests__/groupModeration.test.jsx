@@ -59,6 +59,38 @@ test('shared group owners can open their report queue', async () => {
   await act(async () => renderer.unmount());
 });
 
+test('group report queue labels moderated chat messages', async () => {
+  let renderer;
+  await act(async () => {
+    renderer = renderScreen(
+      <GroupReportsScreen
+        back={jest.fn()}
+        group={{ id: 'group-one', name: 'Calculus Circle' }}
+        reports={[
+          {
+            id: 'chat-report',
+            targetType: 'chatMessage',
+            targetAuthor: 'Group member',
+            contentSnapshot: 'A reported message.',
+            reason: 'abuse',
+            status: 'open',
+            createdAt: '2026-10-14T12:00:00.000Z',
+          },
+        ]}
+        moderateReport={jest.fn()}
+      />,
+    );
+  });
+
+  const text = renderer.root
+    .findAllByType(Text)
+    .map(node => node.props.children)
+    .flat(Infinity);
+  expect(text).toContain('Chat message');
+  expect(text).toContain('A reported message.');
+  await act(async () => renderer.unmount());
+});
+
 test('nonowners do not get a moderation queue entry point', async () => {
   let renderer;
   await act(async () => {

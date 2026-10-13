@@ -85,6 +85,10 @@ service cloud.firestore {
         return /databases/$(database)/documents/studyGroups/$(groupId)/posts/$(postId)/replies/$(replyId);
       }
 
+      function chatMessagePath(messageId) {
+        return /databases/$(database)/documents/studyGroups/$(groupId)/chatMessages/$(messageId);
+      }
+
       function reportPath(reportId) {
         return /databases/$(database)/documents/studyGroups/$(groupId)/moderationReports/$(reportId);
       }
@@ -109,6 +113,15 @@ service cloud.firestore {
           && permit.kind == 'reply'
           && permit.writeId == replyId
           && permit.postId == postId;
+      }
+
+      function hasChatWritePermit(messageId) {
+        let permit = getAfter(writeLimitPath(request.auth.uid)).data;
+        return permit.uid == request.auth.uid
+          && permit.lastWriteAt == request.time
+          && permit.kind == 'chat'
+          && permit.writeId == messageId
+          && permit.postId == null;
       }
 
       function hasReportWritePermit(reportId) {
@@ -218,6 +231,11 @@ service cloud.firestore {
                 && existsAfter(replyPath(data.postId, data.writeId))
                 && getAfter(replyPath(data.postId, data.writeId)).data.authorUid == userId
                 && getAfter(replyPath(data.postId, data.writeId)).data.createdAt == request.time)
+              || (data.kind == 'chat'
+                && data.postId == null
+                && existsAfter(chatMessagePath(data.writeId))
+                && getAfter(chatMessagePath(data.writeId)).data.senderUid == userId
+                && getAfter(chatMessagePath(data.writeId)).data.sentAt == request.time)
               || (data.kind == 'report'
                 && existsAfter(reportPath(data.writeId))
                 && getAfter(reportPath(data.writeId)).data.createdAt == request.time
@@ -322,6 +340,43 @@ service cloud.firestore {
         }
       }
 
+      match /chatMessages/{messageId} {
+        allow get: if isGroupOwner()
+          || (isMember() && resource.data.moderationStatus == 'visible');
+        allow list: if (isGroupOwner() || isMember())
+          && resource.data.moderationStatus == 'visible'
+          && request.query.limit is int
+          && request.query.limit <= 50;
+        allow create: if isMember()
+          && request.resource.data.keys().hasAll([
+            'senderUid', 'senderName', 'text', 'sentAt', 'moderationStatus'
+          ])
+          && request.resource.data.keys().hasOnly([
+            'senderUid', 'senderName', 'text', 'sentAt', 'moderationStatus'
+          ])
+          && request.resource.data.senderUid == request.auth.uid
+          && request.resource.data.senderName is string
+          && request.resource.data.senderName.size() > 0
+          && request.resource.data.senderName.size() <= 100
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 2000
+          && request.resource.data.sentAt == request.time
+          && request.resource.data.moderationStatus == 'visible'
+          && hasChatWritePermit(messageId);
+        allow update: if isGroupOwner()
+          && resource.data.moderationStatus in ['visible', 'hidden']
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['moderationStatus', 'moderatedAt'])
+          && request.resource.data.moderationStatus in ['visible', 'hidden']
+          && request.resource.data.moderatedAt == request.time
+          && ((resource.data.moderationStatus == 'visible'
+              && request.resource.data.moderationStatus == 'hidden')
+            || (resource.data.moderationStatus == 'hidden'
+              && request.resource.data.moderationStatus == 'visible'));
+        allow delete: if false;
+      }
+
       match /moderationReports/{reportId} {
         function reportedPostPath() {
           return /databases/$(database)/documents/studyGroups/$(groupId)/posts/$(request.resource.data.targetId);
@@ -329,6 +384,10 @@ service cloud.firestore {
 
         function reportedReplyPath() {
           return /databases/$(database)/documents/studyGroups/$(groupId)/posts/$(request.resource.data.postId)/replies/$(request.resource.data.targetId);
+        }
+
+        function reportedChatMessagePath() {
+          return /databases/$(database)/documents/studyGroups/$(groupId)/chatMessages/$(request.resource.data.targetId);
         }
 
         function reportsPost() {
@@ -354,6 +413,17 @@ service cloud.firestore {
             && reply.authorUid != request.auth.uid
             && reply.author == request.resource.data.targetAuthor
             && reply.text == request.resource.data.contentSnapshot;
+        }
+
+        function reportsChatMessage() {
+          let message = get(reportedChatMessagePath()).data;
+          return request.resource.data.targetType == 'chatMessage'
+            && request.resource.data.postId == null
+            && exists(reportedChatMessagePath())
+            && message.moderationStatus == 'visible'
+            && message.senderUid != request.auth.uid
+            && message.senderName == request.resource.data.targetAuthor
+            && message.text == request.resource.data.contentSnapshot;
         }
 
         allow get: if isGroupOwner();
@@ -382,14 +452,17 @@ service cloud.firestore {
           && request.resource.data.createdAt == request.time
           && request.resource.data.resolvedAt == null
           && hasReportWritePermit(reportId)
-          && (reportsPost() || reportsReply());
+          && (reportsPost() || reportsReply() || reportsChatMessage());
         function targetIsHiddenAfter() {
           return (resource.data.targetType == 'post'
               && existsAfter(postPath(resource.data.targetId))
               && getAfter(postPath(resource.data.targetId)).data.moderationStatus == 'hidden')
             || (resource.data.targetType == 'reply'
               && existsAfter(replyPath(resource.data.postId, resource.data.targetId))
-              && getAfter(replyPath(resource.data.postId, resource.data.targetId)).data.moderationStatus == 'hidden');
+              && getAfter(replyPath(resource.data.postId, resource.data.targetId)).data.moderationStatus == 'hidden')
+            || (resource.data.targetType == 'chatMessage'
+              && existsAfter(chatMessagePath(resource.data.targetId))
+              && getAfter(chatMessagePath(resource.data.targetId)).data.moderationStatus == 'hidden');
         }
 
         function targetIsVisibleAfter() {
@@ -398,7 +471,10 @@ service cloud.firestore {
               && getAfter(postPath(resource.data.targetId)).data.moderationStatus == 'visible')
             || (resource.data.targetType == 'reply'
               && existsAfter(replyPath(resource.data.postId, resource.data.targetId))
-              && getAfter(replyPath(resource.data.postId, resource.data.targetId)).data.moderationStatus == 'visible');
+              && getAfter(replyPath(resource.data.postId, resource.data.targetId)).data.moderationStatus == 'visible')
+            || (resource.data.targetType == 'chatMessage'
+              && existsAfter(chatMessagePath(resource.data.targetId))
+              && getAfter(chatMessagePath(resource.data.targetId)).data.moderationStatus == 'visible');
         }
 
         allow update: if isGroupOwner()
@@ -462,6 +538,18 @@ service cloud.firestore {
     // sessions reserve two half-hour buckets so overlapping start times cannot
     // both be accepted.
     match /tutorBookings/{bookingId} {
+      function bookingPath() {
+        return /databases/$(database)/documents/tutorBookings/$(bookingId);
+      }
+
+      function bookingChatMessagePath(messageId) {
+        return /databases/$(database)/documents/tutorBookings/$(bookingId)/chatMessages/$(messageId);
+      }
+
+      function bookingChatWriteLimitPath(userId) {
+        return /databases/$(database)/documents/tutorBookings/$(bookingId)/chatWriteLimits/$(userId);
+      }
+
       function tutorProfilePath(tutorUid) {
         return /databases/$(database)/documents/tutorProfiles/$(tutorUid);
       }
@@ -493,6 +581,25 @@ service cloud.firestore {
         return signedIn()
           && (request.auth.uid == resource.data.studentUid
             || request.auth.uid == resource.data.tutorUid);
+      }
+
+      function isChatParticipant() {
+        return signedIn()
+          && exists(bookingPath())
+          && (request.auth.uid == get(bookingPath()).data.studentUid
+            || request.auth.uid == get(bookingPath()).data.tutorUid);
+      }
+
+      function maySendChat() {
+        return isChatParticipant()
+          && get(bookingPath()).data.status in ['pending', 'accepted', 'completed'];
+      }
+
+      function hasChatWritePermit(messageId) {
+        let permit = getAfter(bookingChatWriteLimitPath(request.auth.uid)).data;
+        return permit.uid == request.auth.uid
+          && permit.lastSentAt == request.time
+          && permit.messageId == messageId;
       }
 
       function validNewRequest() {
@@ -573,6 +680,64 @@ service cloud.firestore {
               && slotRemovedAfter(resource.data, 0)
               && slotRemovedAfter(resource.data, 1)));
       allow delete: if false;
+
+      match /chatMessages/{messageId} {
+        function validSenderName(booking) {
+          return (request.auth.uid == booking.studentUid
+              && request.resource.data.senderName == booking.studentName)
+            || (request.auth.uid == booking.tutorUid
+              && request.resource.data.senderName == booking.tutorName);
+        }
+
+        allow get: if isChatParticipant();
+        allow list: if isChatParticipant()
+          && request.query.limit is int
+          && request.query.limit <= 50;
+        allow create: if maySendChat()
+          && request.resource.data.keys().hasAll([
+            'senderUid', 'senderName', 'text', 'sentAt'
+          ])
+          && request.resource.data.keys().hasOnly([
+            'senderUid', 'senderName', 'text', 'sentAt'
+          ])
+          && request.resource.data.senderUid == request.auth.uid
+          && request.resource.data.senderName is string
+          && request.resource.data.senderName.size() > 0
+          && request.resource.data.senderName.size() <= 100
+          && validSenderName(get(bookingPath()).data)
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 2000
+          && request.resource.data.sentAt == request.time
+          && hasChatWritePermit(messageId);
+        allow update, delete: if false;
+      }
+
+      match /chatWriteLimits/{userId} {
+        function matchingMessage() {
+          let data = request.resource.data;
+          return data.keys().hasAll(['uid', 'lastSentAt', 'messageId'])
+            && data.keys().hasOnly(['uid', 'lastSentAt', 'messageId'])
+            && data.uid == userId
+            && data.lastSentAt == request.time
+            && data.messageId is string
+            && data.messageId.size() > 0
+            && data.messageId.size() <= 128
+            && existsAfter(bookingChatMessagePath(data.messageId))
+            && getAfter(bookingChatMessagePath(data.messageId)).data.senderUid == userId
+            && getAfter(bookingChatMessagePath(data.messageId)).data.sentAt == request.time;
+        }
+
+        allow create: if maySendChat()
+          && request.auth.uid == userId
+          && matchingMessage();
+        allow update: if maySendChat()
+          && request.auth.uid == userId
+          && matchingMessage()
+          && resource.data.lastSentAt is timestamp
+          && request.time >= resource.data.lastSentAt + duration.value(1, 's');
+        allow delete: if false;
+      }
     }
 
     // The lock path is derived from the request's numeric UTC half-hour bucket.

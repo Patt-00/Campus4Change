@@ -35,6 +35,7 @@ import { uid } from '../shared/data/utils';
 import { useSharedGroups } from '../features/groups/hooks/useSharedGroups';
 import { useSharedGroupReports } from '../features/groups/hooks/useSharedGroupReports';
 import { useSharedTutors } from '../features/tutors/hooks/useSharedTutors';
+import { useSharedMessages } from '../features/messages/hooks/useSharedMessages';
 import {
   directoryTutors,
   knownTutors,
@@ -128,6 +129,14 @@ export function AppNavigator() {
     uid: syncUid,
     enabled: Boolean(syncUid),
     profile: state?.profile,
+  });
+  const sharedMessages = useSharedMessages({
+    uid: syncUid,
+    groups: groupDirectory,
+    bookings: sharedTutors.bookings,
+    activeConversationId:
+      route.page === 'Chat' ? route.conversationId : null,
+    senderName: state?.profile?.name,
   });
   const reportGroup = groupDirectory.find(group => group.id === route.groupId);
   const groupReports = useSharedGroupReports({
@@ -240,9 +249,9 @@ export function AppNavigator() {
       : null);
   const group = reportGroup;
   const post = group?.posts.find(x => x.id === route.postId);
-  const conversation = state.conversations.find(
-    x => x.id === route.conversationId,
-  );
+  const conversation =
+    sharedMessages.conversations.find(x => x.id === route.conversationId) ||
+    state.conversations.find(x => x.id === route.conversationId);
   function message(t) {
     const id = 'chat-' + t.id;
     dispatch({
@@ -253,6 +262,15 @@ export function AppNavigator() {
   }
   function groupMessage() {
     if (!group?.joined) {
+      return;
+    }
+    if (syncUid && group.shared) {
+      const sharedConversation = sharedMessages.conversations.find(
+        candidate => candidate.groupId === group.id,
+      );
+      if (sharedConversation) {
+        go({ page: 'Chat', conversationId: sharedConversation.id });
+      }
       return;
     }
     const id = 'chat-' + group.id;
@@ -427,11 +445,23 @@ export function AppNavigator() {
               return sharedTutors.updateRequest(session.id, action);
             }}
             privateNotes={state.roomNotes?.[session.id] ?? ''}
+            message={
+              session.shared
+                ? () => {
+                    const sharedConversation = sharedMessages.conversations.find(
+                      candidate => candidate.bookingId === session.id,
+                    );
+                    if (sharedConversation) {
+                      go({
+                        page: 'Chat',
+                        conversationId: sharedConversation.id,
+                      });
+                    }
+                  }
+                : () => message(sessionTutor)
+            }
             rate={rating =>
               dispatch({ type: 'session', id: session.id, changes: { rating } })
-            }
-            message={
-              session.shared ? undefined : () => message(sessionTutor)
             }
           />
         );
@@ -586,31 +616,76 @@ export function AppNavigator() {
       }
       break;
     case 'Messages':
-      screen = <MessagesScreen go={go} conversations={state.conversations} />;
+      screen = (
+        <MessagesScreen
+          go={go}
+          conversations={[...sharedMessages.conversations, ...state.conversations]}
+          sharedAccount={sessionType === 'firebase'}
+          emailVerified={emailVerified}
+        />
+      );
       break;
     case 'Chat':
       if (conversation) {
+        const isSharedChat = conversation.delivery === 'shared';
         screen = (
           <ChatScreen
             key={conversation.id}
             back={back}
-            conversation={conversation}
+            conversation={
+              isSharedChat
+                ? { ...conversation, messages: sharedMessages.messages }
+                : conversation
+            }
             cloudSynced={sessionType === 'firebase'}
             canSend={
-              !conversation.groupId ||
-              groupDirectory.some(g => g.id === conversation.groupId && g.joined)
+              isSharedChat
+                ? conversation.canSend
+                : !conversation.groupId ||
+                  groupDirectory.some(
+                    g => g.id === conversation.groupId && g.joined,
+                  )
             }
-            send={text =>
-              dispatch({
-                type: 'message',
-                id: conversation.id,
-                message: {
-                  id: uid('message'),
-                  text,
-                  mine: true,
-                  sentAt: new Date().toISOString(),
-                },
-              })
+            loading={isSharedChat && sharedMessages.loading}
+            loadError={isSharedChat ? sharedMessages.error : ''}
+            retry={isSharedChat ? sharedMessages.retry : undefined}
+            hasMoreMessages={isSharedChat && sharedMessages.hasMoreMessages}
+            loadingOlderMessages={isSharedChat && sharedMessages.loadingOlderMessages}
+            loadMoreMessages={
+              isSharedChat ? sharedMessages.loadMoreMessages : undefined
+            }
+            reportMessage={
+              isSharedChat && conversation.kind === 'group'
+                ? (chatMessage, reason) =>
+                    dispatchGroupChange({
+                      type: 'report',
+                      groupId: conversation.groupId,
+                      report: {
+                        id: uid('report'),
+                        targetType: 'chatMessage',
+                        targetId: chatMessage.id,
+                        postId: null,
+                        targetAuthor: chatMessage.senderName || 'Group member',
+                        contentSnapshot: chatMessage.text,
+                        reason,
+                      },
+                    })
+                : undefined
+            }
+            send={
+              isSharedChat
+                ? sharedMessages.send
+                : text =>
+                    dispatch({
+                      type: 'message',
+                      id: conversation.id,
+                      message: {
+                        id: uid('message'),
+                        text,
+                        mine: true,
+                        sentAt: new Date().toISOString(),
+                      },
+                    })
             }
           />
         );
@@ -694,7 +769,21 @@ export function AppNavigator() {
             back={back}
             session={session}
             tutor={sessionTutor}
-            message={session.shared ? undefined : () => message(sessionTutor)}
+            message={
+              session.shared
+                ? () => {
+                    const sharedConversation = sharedMessages.conversations.find(
+                      candidate => candidate.bookingId === session.id,
+                    );
+                    if (sharedConversation) {
+                      go({
+                        page: 'Chat',
+                        conversationId: sharedConversation.id,
+                      });
+                    }
+                  }
+                : () => message(sessionTutor)
+            }
             initialNotes={state.roomNotes?.[session.id] ?? session.note}
             onDraft={text =>
               dispatch({ type: 'roomDraft', id: session.id, text })

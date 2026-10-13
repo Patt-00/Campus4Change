@@ -20,12 +20,25 @@
   commits its state and biometric-pointer cleanup atomically. It also recognizes
   the exact legacy profile state if an older partial migration removed the
   account record but left its state behind.
-- `npm test -- --runInBand --coverage --testTimeout=15000`: 169 tests passed
-  in 26 suites; statement coverage 82.60% and branch coverage 73.63%.
-  `npm run lint` passed without warnings. `:app:createBundleReleaseJsAndAssets`
-  and `:app:assembleDebug` passed. The production JavaScript bundle is
-  2,633,772 bytes with SHA-256
-  `a0594f04502a74b852bdcb690d1a7835f56e978d66ccc76effa7bbb3db7944a9`.
+- Verified Firebase students now share live group chat with current group
+  members and tutor-session chat with the booking's two participants. The
+  active chat reads a bounded latest-50 window and loads older pages on demand;
+  group messages can be reported to the owner and hidden or restored. Device-only
+  conversations stay private notes. The Figma Messages, Chat, Group Details, and
+  Session Details screens were updated to reflect those delivery boundaries.
+  Chat state is keyed to the active user and conversation so switching threads
+  cannot flash the previous thread under the new title.
+- `npm test -- --runInBand --coverage --testTimeout=15000`: 186 tests passed
+  in 28 suites; statement coverage 82.29% and branch coverage 72.88%.
+  `npm run lint` passed without warnings. `:app:createBundleReleaseJsAndAssets`,
+  `:app:testDebugUnitTest`, and `:app:assembleDebug` passed under JDK 25.
+  The production JavaScript bundle is 2,648,976 bytes with SHA-256
+  `2c0e7774ef6f2b21b60b1836cbdca05da44eea31406030098c08d6f2db776764`.
+- Local Auth and Firestore emulator tests passed. The rules suite covers current
+  group-member chat access, owner hide/restore, participant-only tutor-session
+  chat, message-size and page limits, and send cooldowns. The Auth emulator
+  confirmed private state remains owner-only until the verified-email claim is
+  refreshed. These emulator checks do not verify the live Firebase project.
 - `:app:testDebugUnitTest` passed 2 native tests. They verify the account
   migration requires the exact legacy account identity and that fallback
   cleanup only recognizes its matching profile ID/email. Gradle tests and the
@@ -35,12 +48,17 @@
   was then installed over the existing POCO app data and cold-launched to the
   logo without React Native or Android error logs.
 - On the POCO X4 GT (model `22041216G`, Android 14), the debug APK installed
-  over the existing app without clearing app data. A cold launch showed the
-  logo, then Login. The screen had no demo button; attempting the former seeded
-  device-account sign-in returned the normal invalid-credentials error. This
-  verifies removal of that seeded account on the test device. The device had no
-  other known local account, so preservation of a separate local account is
-  verified by the exact-identity migration logic, not a second device account.
+  over the existing app without clearing app data. The current APK was
+  reinstalled and launched; the logo appeared, and after skipping the
+  introduction the Login screen exposed school-email/password and Google sign-in
+  with no demo button or prefilled demo credentials. The existing device history
+  also showed the former seeded device-account sign-in returning the normal
+  invalid-credentials error. This verifies removal of that seeded account on
+  the test device. The device had no other known local account, so preservation
+  of a separate local account is verified by the exact-identity migration
+  logic, not a second device account.
+  Filtered launch logs showed the React Native app starting without a fatal
+  Android exception or JavaScript error.
   This seed-removal check preceded the atomic-write hardening. The current
   atomic migration was cold-launched after the old state had already been
   removed; its two JVM tests cover identity matching but not SharedPreferences
@@ -57,7 +75,7 @@
   [38456821435](https://github.com/Patt-00/Campus4Change/actions/runs/38456821435)
   passed, including the new `:app:testDebugUnitTest` step.
 
-## Current source work — 2026-10-13
+## Earlier source work — 2026-10-13
 
 This local checkpoint is on branch `codex/firebase-auth-firestore`. It includes
 the Novice, Intermediate, and Expert introduction, Firebase email/password and
@@ -291,15 +309,18 @@ No production-project Firebase signup, password reset, cross-device sync, or
 shared student workflow has been tested. This APK was not uploaded as a GitHub
 release. It remains debug-signed and labeled 1.2.0.
 
-Shared group metadata and member counts, posts, and replies use the
-`studyGroups` Firestore collection for authenticated Firebase users. Each
-member's private `users/{uid}/studyGroupMemberships/{groupId}` record drives
-join state and member authorization. Local/demo groups remain on-device.
-Verified Firebase accounts can publish tutor profiles and exchange participant-
-only session requests. Tutor acceptance reserves two half-hour buckets in one
-transaction; participant cancellation/completion releases both locks atomically.
-Demo/device-only tutor listings and schedules remain local. Direct messages and
-group chat still save private notes and are not delivered between students. The current
+Shared group metadata, membership, posts, replies, and member chat use the
+`studyGroups` Firestore collection for verified Firebase users. Each member's
+private `users/{uid}/studyGroupMemberships/{groupId}` record drives join state
+and member authorization. Verified Firebase accounts can publish tutor
+profiles and exchange participant-only session requests. Tutor acceptance
+reserves two half-hour buckets in one transaction; participant
+cancellation/completion releases both locks atomically. Tutor-session chat is
+limited to each booking's two participants, and shared workspace notes stay
+private to each account. Device-only groups, tutor listings, schedules, and
+conversations remain local. At the earlier 2026-10-13 checkpoint, direct
+messages and group chats saved only private notes; shared Firebase chat was
+added in the current source update above. The current
 dependency audit reports 47 high and 5 moderate findings (0 critical);
 `npm audit --omit=dev` reports 20 high paths rooted in the `braces@3.0.3`
 advisory. The production-mode JavaScript bundle
@@ -412,7 +433,7 @@ Complete these manual checks on the exact release APK before demonstrating it.
 5. Open a booked session workspace, confirm the tutor, schedule, and notes, and mark it complete. Reschedule, cancel, complete, and rate sessions; check upcoming, in-progress, and past-due labels.
 6. Create a group without a date and confirm no schedule is invented. Create another with a valid future date and time; reject a nonexistent date.
 7. Join/leave groups, review meetup dates and locations, and use a group session workspace. Write notes and replies, check that Back preserves a private draft, and post notes to a shared group only from the explicit action. Firebase accounts share group posts/replies when project settings and Firestore rules are configured; device-only accounts keep local groups.
-8. Save a message and reopen it. Direct messages and group chat remain local and are not delivered to another device.
+8. Open a shared group's chat and exchange messages with another current member. Open a tutor-session chat and exchange messages with the other booking participant. Confirm a nonmember and a third student cannot read or send in either chat. Verify group owners can review a chat-message report and hide/restore its message. Device-only conversations remain private notes.
 9. Open notifications and check their read state.
 10. Add a custom interest, reject a duplicate with different letter case, remove an interest, and save. Check the home interest and tutor count.
 11. Create a separate account and confirm that interests and school fields start blank, with an empty tutor directory and groups. Save preferences without entering school details.
@@ -420,7 +441,7 @@ Complete these manual checks on the exact release APK before demonstrating it.
 13. Use a dedicated test Google account on the Android debug build. Verify Firebase creates or restores the account, keeps the supplied name/email, and allows the Student ID to be added privately in Edit Profile. Cancel the Google sheet once and confirm the auth screen stays usable. Repeat with the exact release signing certificate before distribution. This account-level flow has not yet been completed.
 14. Sign out and sign in again to check saved data. Check biometrics on a personal account if enrolled on the phone.
 
-Verified Firebase students share tutor profiles and session requests; device-only profiles and schedules remain local. Direct messages and group chat are still private notes. Signed-in Firebase users share group details, memberships, posts, and replies. About explains the remaining limits.
+Verified Firebase students share tutor profiles, session requests, current-member group chats, and tutor-session chats limited to their two participants. Device-only conversations remain private notes. Signed-in Firebase users share group details, memberships, posts, replies, and chat. About explains the remaining limits.
 
 ## Historical 1.1.0 device checks
 

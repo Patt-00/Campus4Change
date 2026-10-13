@@ -18,7 +18,12 @@ import {
 import { C } from '../../../shared/theme/colors';
 import { s } from '../../../shared/theme/styles';
 
-export function MessagesScreen({ go, conversations = [] }) {
+export function MessagesScreen({
+  go,
+  conversations = [],
+  sharedAccount = false,
+  emailVerified = true,
+}) {
   const [query, setQuery] = useState('');
   const searchableConversations = useMemo(
     () =>
@@ -36,7 +41,10 @@ export function MessagesScreen({ go, conversations = [] }) {
             ...conversation,
             name,
             messages,
-            latestMessageTime: messageTimestamp(messages.at(-1)) ?? 0,
+            latestMessageTime:
+              messageTimestamp(messages.at(-1)) ??
+              messageTimestamp(conversation.activityAt) ??
+              0,
           };
         })
         .filter(
@@ -71,7 +79,10 @@ export function MessagesScreen({ go, conversations = [] }) {
         renderItem={({ item: conversation }) => {
           const last = conversation.messages.at(-1);
           const latestMessage =
-            messageText(last).trim() || 'Start a conversation';
+            messageText(last).trim() ||
+            (conversation.delivery === 'shared'
+              ? conversation.subtitle || 'Shared chat'
+              : 'Start a conversation');
           const messagePreview =
             latestMessage.length > 120
               ? latestMessage.slice(0, 117).trimEnd() + '…'
@@ -79,7 +90,11 @@ export function MessagesScreen({ go, conversations = [] }) {
           return (
             <TouchableOpacity
               accessibilityRole="button"
-              accessibilityLabel={`Chat with ${conversation.name}. Latest message: ${messagePreview}`}
+              accessibilityLabel={
+                conversation.delivery === 'shared'
+                  ? `Chat with ${conversation.name}. Shared chat: ${messagePreview}`
+                  : `Chat with ${conversation.name}. Latest message: ${messagePreview}`
+              }
               style={styles.conversation}
               onPress={() =>
                 go({
@@ -109,7 +124,7 @@ export function MessagesScreen({ go, conversations = [] }) {
         ListHeaderComponent={
           <View>
             <Field
-              placeholder="Search messages"
+              placeholder="Search chat names and private notes"
               icon="search"
               value={query}
               onChangeText={setQuery}
@@ -119,8 +134,16 @@ export function MessagesScreen({ go, conversations = [] }) {
         }
         ListEmptyComponent={
           <Empty
-            title="No conversations found"
-            body="Open a tutor profile or joined group to draft a message. Messages are not sent to the other person or group."
+            title={normalizedQuery ? 'No conversations found' : 'No messages yet'}
+            body={
+              normalizedQuery
+                ? 'Try another chat name or saved note.'
+                : sharedAccount
+                  ? emailVerified
+                    ? 'Group chats appear when you join a shared group. Tutor chats appear with your session requests.'
+                    : 'Verify your email before joining group chats or starting tutor chats. Private notes stay in your Firebase account.'
+                  : 'Open a tutor profile or joined group to draft a message. Messages are not sent to the other person or group.'
+            }
           />
         }
         ListFooterComponent={

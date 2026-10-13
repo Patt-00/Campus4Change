@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { FlatList, Text, TextInput, TouchableOpacity } from 'react-native';
+import { Alert, FlatList, Text, TextInput, TouchableOpacity } from 'react-native';
 import { ChatScreen } from '../src/features/messages/screens/ChatScreen';
 import { MessagesScreen } from '../src/features/messages/screens/MessagesScreen';
 
@@ -15,6 +15,8 @@ async function settleVirtualizedLists() {
     await new Promise(resolve => setTimeout(resolve, 80));
   });
 }
+
+afterEach(() => jest.restoreAllMocks());
 
 test('chat virtualizes long threads and keeps the newest message at the bottom', async () => {
   const messageCount = 1200;
@@ -127,6 +129,69 @@ test('chat explains local and Firebase storage without implying delivery', async
     'Messages are saved on this device and sync to your private Firebase account when online. They are not sent to the other person.',
   );
   await act(async () => cloudRenderer.unmount());
+});
+
+test('shared group chat announces delivery and lets members report another member message', async () => {
+  const reportMessage = jest.fn();
+  jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(
+      <SafeAreaProvider initialMetrics={initialMetrics}>
+        <ChatScreen
+          back={jest.fn()}
+          conversation={{
+            id: 'shared-group-calculus',
+            name: 'Calculus Circle',
+            kind: 'group',
+            delivery: 'shared',
+            messages: [
+              {
+                id: 'message-one',
+                senderUid: 'other-student',
+                senderName: 'Casey Student',
+                text: 'Can we review problem 3?',
+                sentAt: '2026-10-14T10:00:00.000Z',
+                mine: false,
+              },
+            ],
+          }}
+          send={jest.fn()}
+          reportMessage={reportMessage}
+        />
+      </SafeAreaProvider>,
+    );
+  });
+  await settleVirtualizedLists();
+
+  const visibleText = renderer.root
+    .findAllByType(Text)
+    .map(node => node.props.children)
+    .flat(Infinity)
+    .filter(value => typeof value === 'string');
+  expect(visibleText).toContain(
+    'Messages are delivered to current members of this group.',
+  );
+  expect(visibleText).toContain('Casey Student');
+  expect(visibleText).not.toContain('Not delivered');
+
+  const reportButton = renderer.root
+    .findAllByType(TouchableOpacity)
+    .find(node => node.props.accessibilityLabel === 'Report message');
+  expect(reportButton).toBeDefined();
+  await act(async () => reportButton.props.onPress());
+  const spam = Alert.alert.mock.calls.at(-1)[2].find(action => action.text === 'Spam');
+  await act(async () => spam.onPress());
+  expect(reportMessage).toHaveBeenCalledWith(
+    expect.objectContaining({ id: 'message-one', text: 'Can we review problem 3?' }),
+    'spam',
+  );
+  const updatedText = renderer.root
+    .findAllByType(Text)
+    .map(node => node.props.children)
+    .flat(Infinity);
+  expect(updatedText).toContain('Report queued for group-owner review.');
+  await act(async () => renderer.unmount());
 });
 
 test('inbox virtualizes conversations and searches the full message text', async () => {

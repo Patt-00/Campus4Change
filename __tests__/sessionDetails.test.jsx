@@ -9,7 +9,7 @@ const initialMetrics = {
   insets: { top: 0, right: 0, bottom: 0, left: 0 },
 };
 
-function renderDetails(session, go = jest.fn()) {
+function renderDetails(session, go = jest.fn(), message = jest.fn()) {
   const renderer = ReactTestRenderer.create(
     <SafeAreaProvider initialMetrics={initialMetrics}>
       <SessionDetailsScreen
@@ -19,11 +19,11 @@ function renderDetails(session, go = jest.fn()) {
         tutor={{ id: 'mika', name: 'Mika Santos' }}
         cancel={jest.fn()}
         rate={jest.fn()}
-        message={jest.fn()}
+        message={message}
       />
     </SafeAreaProvider>,
   );
-  return { renderer, go };
+  return { renderer, go, message };
 }
 
 function button(renderer, label) {
@@ -185,6 +185,53 @@ test('incoming shared requests can be accepted or declined without rescheduling'
 
   await act(async () => button(renderer, 'ACCEPT SESSION REQUEST').props.onPress());
   expect(respond).toHaveBeenCalledWith('accept');
+  await act(async () => renderer.unmount());
+});
+
+test('shared session participants can open their booking chat', async () => {
+  const outgoingMessage = jest.fn();
+  let renderer;
+  await act(async () => {
+    ({ renderer } = renderDetails(
+      {
+        id: 'outgoing-chat-session',
+        shared: true,
+        incoming: false,
+        tutorName: 'Tutor Student',
+        subject: 'Calculus',
+        startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        status: 'Pending',
+      },
+      jest.fn(),
+      outgoingMessage,
+    ));
+  });
+  const tutorMessageButton = button(renderer, 'Message tutor');
+  expect(tutorMessageButton).toBeDefined();
+  await act(async () => tutorMessageButton.props.onPress());
+  expect(outgoingMessage).toHaveBeenCalledTimes(1);
+  await act(async () => renderer.unmount());
+
+  const incomingMessage = jest.fn();
+  await act(async () => {
+    ({ renderer } = renderDetails(
+      {
+        id: 'incoming-chat-session',
+        shared: true,
+        incoming: true,
+        studentName: 'Student Student',
+        subject: 'Calculus',
+        startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        status: 'Pending',
+      },
+      jest.fn(),
+      incomingMessage,
+    ));
+  });
+  const studentMessageButton = button(renderer, 'Message student');
+  expect(studentMessageButton).toBeDefined();
+  await act(async () => studentMessageButton.props.onPress());
+  expect(incomingMessage).toHaveBeenCalledTimes(1);
   await act(async () => renderer.unmount());
 });
 

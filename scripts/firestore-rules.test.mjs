@@ -172,6 +172,69 @@ try {
       );
     });
   };
+  const writeBookingChat = (
+    context,
+    bookingId,
+    senderUid,
+    senderName,
+    messageId,
+    text,
+  ) => {
+    const db = context;
+    const batch = writeBatch(db);
+    batch.set(doc(db, 'tutorBookings', bookingId, 'chatMessages', messageId), {
+      senderUid,
+      senderName,
+      text,
+      sentAt: serverTimestamp(),
+    });
+    batch.set(
+      doc(db, 'tutorBookings', bookingId, 'chatWriteLimits', senderUid),
+      {
+        uid: senderUid,
+        lastSentAt: serverTimestamp(),
+        messageId,
+      },
+      { merge: true },
+    );
+    return batch.commit();
+  };
+  const writeGroupChat = (
+    context,
+    groupId,
+    senderUid,
+    senderName,
+    messageId,
+    text,
+  ) => {
+    const db = context;
+    const batch = writeBatch(db);
+    batch.set(
+      doc(db, 'studyGroups', groupId, 'chatMessages', messageId),
+      {
+        senderUid,
+        senderName,
+        text,
+        sentAt: serverTimestamp(),
+        moderationStatus: 'visible',
+      },
+    );
+    batch.set(
+      doc(db, 'studyGroups', groupId, 'writeLimits', senderUid),
+      {
+        uid: senderUid,
+        lastWriteAt: serverTimestamp(),
+        kind: 'chat',
+        writeId: messageId,
+        postId: null,
+      },
+      { merge: true },
+    );
+    batch.update(doc(db, 'studyGroups', groupId), {
+      updatedAt: serverTimestamp(),
+    });
+    return batch.commit();
+  };
   const bobBooking = doc(collection(bob, 'tutorBookings'));
   const bobRequest = bookingData('bob');
   await assertFails(
@@ -292,6 +355,86 @@ try {
       getDoc(doc(carol, 'tutorSlots', 'alice', 'slots', String(bucket))),
     );
   }
+  await assertSucceeds(
+    writeBookingChat(
+      bob,
+      bobBooking.id,
+      'bob',
+      'Bob Student',
+      'booking-chat-one',
+      'I have a question about the session.',
+    ),
+  );
+  await assertFails(
+    writeBookingChat(
+      bob,
+      bobBooking.id,
+      'bob',
+      'Bob Student',
+      'booking-chat-too-soon',
+      'The booking chat has a short send cooldown.',
+    ),
+  );
+  await new Promise(resolve => setTimeout(resolve, 1200));
+  const bobChatPage = await assertSucceeds(
+    getDocs(
+      query(
+        collection(bob, 'tutorBookings', bobBooking.id, 'chatMessages'),
+        orderBy('sentAt', 'desc'),
+        limit(50),
+      ),
+    ),
+  );
+  assert.equal(bobChatPage.size, 1);
+  assert.equal(bobChatPage.docs[0].data().senderUid, 'bob');
+  await assertSucceeds(
+    getDocs(
+      query(
+        collection(alice, 'tutorBookings', bobBooking.id, 'chatMessages'),
+        orderBy('sentAt', 'desc'),
+        limit(50),
+      ),
+    ),
+  );
+  await assertFails(
+    getDocs(
+      query(
+        collection(bob, 'tutorBookings', bobBooking.id, 'chatMessages'),
+        orderBy('sentAt', 'desc'),
+        limit(51),
+      ),
+    ),
+  );
+  await assertFails(
+    getDocs(
+      query(
+        collection(carol, 'tutorBookings', bobBooking.id, 'chatMessages'),
+        orderBy('sentAt', 'desc'),
+        limit(50),
+      ),
+    ),
+  );
+  await assertFails(
+    writeBookingChat(
+      bob,
+      bobBooking.id,
+      'bob',
+      'Impersonated Tutor',
+      'booking-chat-spoofed-name',
+      'A spoofed sender name should be rejected.',
+    ),
+  );
+  await assertFails(
+    updateDoc(
+      doc(bob, 'tutorBookings', bobBooking.id, 'chatMessages', 'booking-chat-one'),
+      { text: 'Edited after sending' },
+    ),
+  );
+  await assertFails(
+    getDoc(
+      doc(bob, 'tutorBookings', bobBooking.id, 'chatWriteLimits', 'bob'),
+    ),
+  );
   await assertFails(
     updateDoc(bobBooking, {
       status: 'completed',
@@ -341,6 +484,16 @@ try {
   });
   await assertSucceeds(cancelBob.commit());
   await assertFails(
+    writeBookingChat(
+      bob,
+      bobBooking.id,
+      'bob',
+      'Bob Student',
+      'cancelled-booking-message',
+      'A cancelled session cannot send new messages.',
+    ),
+  );
+  await assertFails(
     updateDoc(doc(carol, 'tutorBookings', bobBooking.id), {
       status: 'cancelled',
       updatedAt: serverTimestamp(),
@@ -368,6 +521,16 @@ try {
     updatedAt: serverTimestamp(),
   });
   await assertSucceeds(completeBooking.commit());
+  await assertSucceeds(
+    writeBookingChat(
+      bob,
+      completedBooking.id,
+      'bob',
+      'Robert Student',
+      'completed-booking-message',
+      'A completed session can keep its chat history.',
+    ),
+  );
 
   const declinedBooking = doc(collection(bob, 'tutorBookings'));
   await assertSucceeds(
@@ -1063,6 +1226,133 @@ try {
       },
     ),
   );
+  await environment.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), 'studyGroups/calculus/writeLimits/bob'), {
+      uid: 'bob',
+      lastWriteAt: Timestamp.fromMillis(Date.now() - 6000),
+      kind: 'reply',
+      writeId: 'answer',
+      postId: 'review',
+    });
+    await setDoc(doc(context.firestore(), 'studyGroups/calculus/writeLimits/alice'), {
+      uid: 'alice',
+      lastWriteAt: Timestamp.fromMillis(Date.now() - 6000),
+      kind: 'report',
+      writeId: 'report-answer',
+      postId: 'review',
+    });
+  });
+  await assertSucceeds(
+    writeGroupChat(
+      bob,
+      'calculus',
+      'bob',
+      'Bob Student',
+      'group-chat-one',
+      'This is a delivered group message.',
+    ),
+  );
+  await assertFails(
+    writeGroupChat(
+      bob,
+      'calculus',
+      'bob',
+      'Bob Student',
+      'group-chat-too-soon',
+      'The group chat cooldown applies to messages.',
+    ),
+  );
+  const groupChatMessages = collection(bob, 'studyGroups/calculus/chatMessages');
+  const groupChatQuery = () =>
+    query(
+      groupChatMessages,
+      where('moderationStatus', '==', 'visible'),
+      orderBy('sentAt', 'desc'),
+      limit(50),
+    );
+  assert.equal((await assertSucceeds(getDocs(groupChatQuery()))).size, 1);
+  await assertFails(
+    getDocs(
+      query(
+        collection(carol, 'studyGroups/calculus/chatMessages'),
+        where('moderationStatus', '==', 'visible'),
+        orderBy('sentAt', 'desc'),
+        limit(50),
+      ),
+    ),
+  );
+  await assertFails(
+    getDocs(collection(bob, 'studyGroups/calculus/chatMessages')),
+  );
+  await assertFails(
+    getDocs(
+      query(
+        groupChatMessages,
+        where('moderationStatus', '==', 'visible'),
+        orderBy('sentAt', 'desc'),
+        limit(51),
+      ),
+    ),
+  );
+  await assertFails(
+    updateDoc(
+      doc(bob, 'studyGroups/calculus/chatMessages/group-chat-one'),
+      { text: 'Changed after sending' },
+    ),
+  );
+
+  const chatReportRef = doc(
+    alice,
+    'studyGroups/calculus/moderationReports/report-chat-message',
+  );
+  const reportChatMessage = writeBatch(alice);
+  reportChatMessage.set(chatReportRef, {
+    targetType: 'chatMessage',
+    targetId: 'group-chat-one',
+    postId: null,
+    targetAuthor: 'Bob Student',
+    contentSnapshot: 'This is a delivered group message.',
+    reason: 'abuse',
+    status: 'open',
+    createdAt: serverTimestamp(),
+    resolvedAt: null,
+  });
+  reportChatMessage.set(
+    doc(alice, 'studyGroups/calculus/writeLimits/alice'),
+    {
+      uid: 'alice',
+      lastWriteAt: serverTimestamp(),
+      kind: 'report',
+      writeId: 'report-chat-message',
+      postId: null,
+    },
+    { merge: true },
+  );
+  await assertSucceeds(reportChatMessage.commit());
+  const hideChatMessage = writeBatch(alice);
+  hideChatMessage.update(
+    doc(alice, 'studyGroups/calculus/chatMessages/group-chat-one'),
+    { moderationStatus: 'hidden', moderatedAt: serverTimestamp() },
+  );
+  hideChatMessage.update(chatReportRef, {
+    status: 'hidden',
+    resolvedAt: serverTimestamp(),
+  });
+  await assertSucceeds(hideChatMessage.commit());
+  await assertFails(
+    getDoc(doc(bob, 'studyGroups/calculus/chatMessages/group-chat-one')),
+  );
+  const restoreChatMessage = writeBatch(alice);
+  restoreChatMessage.update(
+    doc(alice, 'studyGroups/calculus/chatMessages/group-chat-one'),
+    { moderationStatus: 'visible', moderatedAt: serverTimestamp() },
+  );
+  restoreChatMessage.update(chatReportRef, {
+    status: 'restored',
+    resolvedAt: serverTimestamp(),
+  });
+  await assertSucceeds(restoreChatMessage.commit());
+
   const leaveGroup = writeBatch(bob);
   leaveGroup.delete(doc(bob, 'users/bob/studyGroupMemberships/calculus'));
   leaveGroup.update(doc(bob, 'studyGroups/calculus'), {
@@ -1081,8 +1371,11 @@ try {
       ),
     ),
   );
+  await assertFails(
+    getDoc(doc(bob, 'studyGroups/calculus/chatMessages/group-chat-one')),
+  );
 
-  console.log('Firestore rules passed: private state, tutor listings and requests, verified groups, bounded feeds, cooldowns, membership, and owner moderation are scoped.');
+  console.log('Firestore rules passed: private state, tutor listings and session chat, verified group membership/chat, bounded feeds, cooldowns, and owner moderation are scoped.');
 } finally {
   await environment.cleanup();
 }

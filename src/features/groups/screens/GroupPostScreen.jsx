@@ -73,17 +73,6 @@ export function GroupPostScreen({
           Report queued for group-owner review. It will sync when connected.
         </Text>
       )}
-      {post.id === 'post-mika' && (
-        <View style={s.card}>
-          <Text style={s.name}>Sample reviewer: integration by parts</Text>
-          <Text style={s.text}>∫ u dv = uv − ∫ v du</Text>
-          <Text style={s.muted}>
-            Choose u so that differentiating it makes the expression simpler.
-            Choose dv so that it can be integrated.
-          </Text>
-          <Text style={s.text}>Example: ∫ x eˣ dx = x eˣ − eˣ + C.</Text>
-        </View>
-      )}
       <Text style={s.section}>Replies</Text>
       {group.joined && post.hasMoreReplies && (
         <AppButton

@@ -78,6 +78,18 @@ jest.mock('../src/features/tutors/hooks/useSharedTutors', () => ({
   }),
 }));
 
+jest.mock('../src/features/messages/hooks/useSharedMessages', () => ({
+  useSharedMessages: () => ({
+    conversations: [],
+    activeConversation: null,
+    messages: [],
+    loading: false,
+    error: '',
+    send: jest.fn(),
+    retry: jest.fn(),
+  }),
+}));
+
 jest.mock('react-native-safe-area-context', () => {
   const R = require('react');
   return {

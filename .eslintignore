@@ -1,3 +1,5 @@
 artifacts/
 .tools/
 coverage/
+android/build/
+android/app/build/

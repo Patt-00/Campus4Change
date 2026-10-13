@@ -74,7 +74,12 @@ export function GroupReportsScreen({
         renderItem={({ item: report }) => (
           <View style={s.card}>
             <Text style={s.section}>
-              {report.targetType === 'post' ? 'Post' : 'Reply'} •{' '}
+              {report.targetType === 'post'
+                ? 'Post'
+                : report.targetType === 'chatMessage'
+                  ? 'Chat message'
+                  : 'Reply'}
+              {' • '}
               {reasonLabel(report.reason)}
             </Text>
             <Text style={s.muted}>Content by {report.targetAuthor}</Text>

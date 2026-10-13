@@ -35,9 +35,9 @@ export function AboutScreen({
       <Text style={s.section}>Connecting with other students</Text>
       <Text style={s.text}>
         {firebaseConfigured && cloudSession
-          ? 'Verified Firebase accounts can share study-group details, membership, posts, replies, and tutor listings. A session request is visible to the student and tutor and stays pending until the tutor responds. Notes in booked sessions stay private. Direct messages and group chat are private notes and are not delivered to other students. Group-session notes are shared only when posted. Live calls are not available.'
+          ? 'Verified Firebase accounts can share study-group details, membership, posts, replies, group chats, tutor listings, and session requests. Chat messages are delivered only to current group members or the participants in a tutor request. A request stays pending until the tutor responds. Notes in booked sessions stay private, and group-session notes are shared only when posted. Push notifications and live calls are not available.'
           : firebaseConfigured
-            ? 'This device-only account stays private. Verified Firebase accounts can share study-group details, membership, posts, replies, tutor listings, and session requests. Direct messages and group chat are not delivered to other students. Group sessions show meetup details and save notes on this device; live calls are not available.'
+            ? 'This device-only account stays private. Verified Firebase accounts can share study-group details, membership, posts, replies, group chats, tutor listings, and session requests. Chat messages are delivered only to current group members or tutor-request participants. Group-session notes from this device-only account stay on this device; push notifications and live calls are not available.'
             : 'This version has no campus server or sharing between devices. Bookings, messages, and group posts stay on this device. Group sessions show meetup details and save notes on this device. Live calls are not available.'}
       </Text>
       <Text style={s.section}>Sign-in</Text>

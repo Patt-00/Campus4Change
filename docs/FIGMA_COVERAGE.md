@@ -17,16 +17,16 @@ The latest visual pass keeps the existing colors and card style while removing s
 | 1:39 | Sign-up | Create an email/password Firebase or device account; Google sign-up uses the Google name/email and adds Student ID privately after sign-in. |
 | 1:69 | Home | Search, quick actions, next session, menu, notifications, tabs. |
 | 1:133 | Tutor Search | The account's own device-only listing or live Firebase student listings, subject filters, and a real empty state. |
-| 1:187 | Tutor Details | Selected tutor profile, public subjects, and request-a-session action. Shared chat remains unavailable. |
+| 1:187 | Tutor Details | Selected tutor profile, public subjects, and request-a-session action. A tutor chat opens from the resulting session request. |
 | 1:218 | Book Session | Subject/date/time/note selection; Firebase accounts send a pending request. Future and overlap checks apply. |
 | 1:251 | Booking Confirmed | Local schedule confirmation or shared request status and link to Requests. |
 | 1:263 | Study Groups | Joined/discover views, search, creation, membership. |
-| 1:302 | Group Details | Join/leave, actual meetup schedule, posts/replies, local chat, group session entry. |
+| 1:302 | Group Details | Join/leave, meetup schedule, posts/replies, shared-member group chat, group session entry. Device-only chats remain private. |
 | 93:2 | Group Session | Meetup topic, status, date/time, location, group notes, and explicit save/share action. |
 | 1:324 | Sessions | Upcoming, requests, completed, and cancelled filters with incoming/outgoing request context. |
-| 1:361 | Session Details | Accept/decline/cancel shared requests, private notes, local reschedule/rating flows. |
-| 1:386 | Messages | Search conversations and open chat. |
-| 1:422 | Chat | Save sent messages and reopen them. |
+| 1:361 | Session Details | Accept/decline/cancel shared requests, tutor/student participant chat, private notes, and local reschedule/rating flows. |
+| 1:386 | Messages | Search chat names and private notes; open member or tutor-session chats. |
+| 1:422 | Chat | Deliver group messages to current members and tutor-session messages to their two participants; device-only conversations remain private notes. |
 | 1:438 | Notifications | Mark read and open linked session/group. |
 | 1:458 | Profile | Current data/counts, edit, preferences, biometric setup, sign-out. |
 | 1:495 | Edit Profile | Save name, course, year, school, interests. |
@@ -43,6 +43,6 @@ Group sessions show their meetup topic, scheduled date and time, location, and m
 
 Device-only data stays in the account's state. With Firebase configured, verified students share the study-group directory, memberships, posts, replies, published tutor profiles, and participant-only session requests. The code now includes a Requests filter and response actions that extend the original flow.
 
-The checked-in Firestore rules and indexes have not been deployed to the project, so real-project sharing is not verified. Direct messages and group chat have no live delivery. Rooms have no live participants, voice, or video. Notifications have no OS push delivery. Firebase password reset is available to configured Firebase accounts; device-only accounts must use their original password.
+The checked-in Firestore rules and indexes have not been deployed to the project, so real-project sharing and two-account chat are not verified. Rooms have no live participants, voice, or video. Notifications have no OS push delivery. Firebase password reset is available to configured Firebase accounts; device-only accounts must use their original password.
 
 Firebase Authentication, private account-state sync, and shared study-group data are implemented when configured. This checkout now uses Firebase project `campus4change`; its Email/Password provider and Singapore Firestore database are configured, but the checked-in rules have not been deployed. Firebase verifies ownership of the entered email before allowing shared-group access; no school-domain allowlist or file-upload service is connected, and real two-account workflows remain unverified, so this is not yet a complete online service.
