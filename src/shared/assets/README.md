@@ -1,6 +1,6 @@
 # Bundled assets
 
-The circle SVGs were exported from the Campus4Change Figma reference, file `i23zbYooPqV1EkTLXfnxMo`. Matching PNGs were rendered at four times their displayed size. Screens load these PNGs locally and add text or initials in React Native.
+The circle SVGs were exported from the Campus4Change Figma reference, file `i23zbYooPqV1EkTLXfnxMo`. Matching PNGs were rendered at four times their displayed size. The welcome screen uses the complete `campus4change-logo.png` lockup, including the education mark and wordmark, as a bundled image.
 
 Inter was downloaded from the [Google Fonts Inter directory](https://github.com/google/fonts/tree/main/ofl/inter). Android bundles static Regular, Medium, SemiBold, and Bold instances in `android/app/src/main/assets/fonts/`. The font license is included as `Inter-OFL.txt`.
 
