@@ -61,6 +61,10 @@ production-ready claim.
 - Screen routes now enter with a short opacity and horizontal movement using the
   native animation driver. Back and tab changes use distinct motion, and all
   existing prototype navigation links have matching transitions in Figma.
+- Android screens no longer add the status-bar height on top of a root view that
+  already begins below the status bar. A focused test distinguishes the safe-area
+  provider inset from `StatusBar.currentHeight`; the POCO Login header moved up by
+  100 native pixels without clipping or startup errors.
 - Firebase students can send tutor session requests, see incoming/outgoing
   requests live in Sessions, and accept, decline, cancel, or complete them.
   Participant-only rules protect each request. Two timestamp-derived half-hour

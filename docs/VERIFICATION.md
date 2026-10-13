@@ -20,6 +20,11 @@
   commits its state and biometric-pointer cleanup atomically. It also recognizes
   the exact legacy profile state if an older partial migration removed the
   account record but left its state behind.
+- Android screens now use the safe-area provider's top inset without adding
+  `StatusBar.currentHeight` again. The POCO content root already begins below the
+  status bar; removing the duplicate inset moved Login content upward by 100
+  native pixels and closer to the Figma spacing. A regression test verifies
+  the wrapper uses the provider inset.
 - Android Google ID-token parsing catches the parser exception that the Kotlin
   Credential Manager library can throw through its Java API. The debug build
   logs only exception classes and Firebase error codes; `auth/invalid-credential`
@@ -42,12 +47,12 @@
   Session Details screens were updated to reflect those delivery boundaries.
   Chat state is keyed to the active user and conversation so switching threads
   cannot flash the previous thread under the new title.
-- `npm test -- --runInBand --coverage --testTimeout=15000`: 191 tests passed
-  in 28 suites; statement coverage 82.11% and branch coverage 72.52%.
+- `npm test -- --runInBand --coverage --testTimeout=15000`: 192 tests passed
+  in 29 suites; statement coverage 82.11% and branch coverage 72.50%.
   `npm run lint` passed without warnings. `:app:createBundleReleaseJsAndAssets`,
   `:app:testDebugUnitTest`, and `:app:assembleDebug` passed under JDK 25.
-  The production JavaScript bundle is 2,652,576 bytes with SHA-256
-  `7f66aeedca2eddb6a6710b55204be18769e0ee07bab553fc3cc202d4f43ce1f9`.
+  The production JavaScript bundle is 2,652,536 bytes with SHA-256
+  `2637da87931149987eaccb477f3b2475bd4e3c2bd8bd25c35bf3961ce1822f06`.
 - Local Auth and Firestore emulator tests passed. The rules suite covers current
   group-member chat access, owner hide/restore, participant-only tutor-session
   chat, message-size and page limits, and send cooldowns. The Auth emulator

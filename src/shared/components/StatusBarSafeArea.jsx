@@ -2,7 +2,8 @@ import React from 'react';
 import { StatusBar, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// A normal full-screen View preserves tablet layout; insets protect system bars.
+// Android's content root is already below the status bar, so use the provider
+// inset instead of adding StatusBar.currentHeight a second time.
 export function StatusBarSafeArea({ children, style }) {
   const insets = useSafeAreaInsets();
   return (
@@ -10,7 +11,7 @@ export function StatusBarSafeArea({ children, style }) {
       style={[
         style,
         {
-          paddingTop: Math.max(insets.top, StatusBar.currentHeight ?? 0),
+          paddingTop: insets.top,
           paddingBottom: insets.bottom,
         },
       ]}
