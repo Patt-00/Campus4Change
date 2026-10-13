@@ -41,6 +41,10 @@
   verifies removal of that seeded account on the test device. The device had no
   other known local account, so preservation of a separate local account is
   verified by the exact-identity migration logic, not a second device account.
+  This seed-removal check preceded the atomic-write hardening. The current
+  atomic migration was cold-launched after the old state had already been
+  removed; its two JVM tests cover identity matching but not SharedPreferences
+  transaction behavior with seeded data on a device.
   The stale Metro cache was restarted from this checkout; the current bundle
   loaded and filtered Android/React Native error logs were empty.
 - GitHub Actions run
