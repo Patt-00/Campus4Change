@@ -104,7 +104,9 @@ production-ready claim.
   write indefinitely, verify later local changes still persist, ensure a
   pending write cannot cross into another account, retry the latest state after
   signing back into the same Firebase UID, and keep an older acknowledgement
-  from clearing a newer local-save error.
+  from clearing a newer local-save error. Firestore emulator coverage confirms a
+  local listener sees an offline write before its server acknowledgement and
+  that the write resolves after network access returns.
 - Booked and group sessions use appointment-style workspaces for their schedule,
   location or tutor, agenda, and notes. Group notes stay private until the member
   explicitly posts them.
@@ -232,16 +234,19 @@ production-ready claim.
 ## Verification record
 
 Verification is recorded in [VERIFICATION.md](VERIFICATION.md). On commit
-`4669150`, 188 Jest tests, lint, Auth/Firestore emulator tests, production
+`9229f55`, 191 Jest tests, lint, Auth/Firestore emulator tests, production
 bundling, Android unit tests, and the debug build passed locally. GitHub Actions
 run
-[38469591778](https://github.com/Patt-00/Campus4Change/actions/runs/38469591778)
-passed all configured checks. The current APK was reinstalled and cold-launched
-on the POCO X4 GT; Login showed no demo account or prefilled demo credentials.
-The approved test-account retry ended in Credential Manager cancellation before
-Firebase received a token, so Google account creation and the production Firebase
-project or real two-account chat are not verified. Emulator success does not
-substitute for deploying rules and indexes to Firebase.
+[38475024257](https://github.com/Patt-00/Campus4Change/actions/runs/38475024257)
+passed all configured checks. The separate offline-write emulator assertion
+also passed locally: listeners saw the local mutation before acknowledgement,
+and the promise resolved after network access returned. The current APK was
+reinstalled and cold-launched on the POCO X4 GT; Login showed no demo account or
+prefilled demo credentials. The approved test-account retry ended in Credential
+Manager cancellation before Firebase received a token, so Google account
+creation and the production Firebase project or real two-account chat remain
+unverified. Emulator success does not substitute for deploying rules and indexes
+to Firebase.
 
 Earlier Redmi Turbo 4 checks exercised the then-present seeded account,
 schedule-focused Sessions/Session Details, and the separate 25-minute group

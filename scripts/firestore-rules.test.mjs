@@ -9,10 +9,13 @@ import {
   collection,
   collectionGroup,
   doc,
+  disableNetwork,
+  enableNetwork,
   getDoc,
   getDocs,
   increment,
   limit,
+  onSnapshot,
   orderBy,
   query,
   serverTimestamp,
@@ -1375,7 +1378,60 @@ try {
     getDoc(doc(bob, 'studyGroups/calculus/chatMessages/group-chat-one')),
   );
 
-  console.log('Firestore rules passed: private state, tutor listings and session chat, verified group membership/chat, bounded feeds, cooldowns, and owner moderation are scoped.');
+  const offlineStudent = environment
+    .authenticatedContext('offline-student', verifiedClaims)
+    .firestore();
+  const offlineState = doc(
+    offlineStudent,
+    'users/offline-student/private/state',
+  );
+  await disableNetwork(offlineStudent);
+  let unsubscribeOfflineState = () => {};
+  let timeoutId;
+  let writeState = 'pending';
+  const offlineSnapshot = new Promise((resolve, reject) => {
+    unsubscribeOfflineState = onSnapshot(
+      offlineState,
+      { includeMetadataChanges: true },
+      snapshot => {
+        if (snapshot.exists() && snapshot.metadata.hasPendingWrites) {
+          resolve(snapshot.data());
+        }
+      },
+      reject,
+    );
+  });
+  const localTimeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(
+      () => reject(new Error('Firestore did not expose its offline local write.')),
+      5000,
+    );
+  });
+  const offlineWrite = setDoc(
+    offlineState,
+    stateFor('offline-student'),
+  ).then(
+    () => {
+      writeState = 'acknowledged';
+    },
+    () => {
+      writeState = 'rejected';
+    },
+  );
+  try {
+    const localValue = await Promise.race([offlineSnapshot, localTimeout]);
+    clearTimeout(timeoutId);
+    assert.equal(localValue.state.profile.id, 'offline-student');
+    assert.equal(writeState, 'pending');
+  } finally {
+    clearTimeout(timeoutId);
+    unsubscribeOfflineState();
+    await enableNetwork(offlineStudent);
+  }
+  await offlineWrite;
+  assert.equal(writeState, 'acknowledged');
+
+  console.log('Firestore rules and offline persistence passed: private state, tutor listings and session chat, verified group membership/chat, bounded feeds, cooldowns, owner moderation, and locally visible pending writes are covered.');
 } finally {
   await environment.cleanup();
 }
