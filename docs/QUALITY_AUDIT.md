@@ -207,6 +207,9 @@ production-ready claim.
   exact identity boundary, and CI runs `:app:testDebugUnitTest`. The shipped
   sign-in flow has no demo account or prefilled demo credentials; in application
   code the old identity is referenced only by the cleanup migration and tests.
+  The migration now deletes `state_demo` only when its own profile matches that
+  identity, even if the old account row is also present, protecting an unrelated
+  Firebase cache that happens to use the same storage key.
 - Interactive list labels now include their visible context: session time,
   status, and tutor; group subject, membership, and sharing state; tutor
   subjects and rating; message preview; and notification body and read state.
@@ -231,26 +234,27 @@ production-ready claim.
 | C4C-03 | High | The final-project acceptance rubric is not accessible in the current course. | The local `Canvas_Modules.md` index contains Modules 1-5 although its heading says nine modules. It lists a Module 1 project proposal, Module 3 prototype, Module 4 React prototype translation, and Module 5 React Native Environment/App/State/Props/Styling topics plus Firebase Integration and Firebase Authentication assignments. At the last browser check, the course Assignments page was disabled and the module link returned Access Denied. The outline confirms React Native/Firebase learning scope but does not define final-project acceptance. Google sign-in is implemented and configured for Android; keep Hosting and instructor-wide moderation out until the teacher supplies the rubric. |
 | C4C-04 | Medium | Live chat lacks real-project two-account and push-notification verification. | Emulator rules now allow current shared-group members to exchange live chat messages and limit tutor-session chat to its two booking participants. Test coverage includes participant checks, message limits, cooldowns, cancellation state, group membership, and owner hide/restore. Production rules and indexes remain undeployed, so no real two-account flow is verified; OS push notifications are not implemented. |
 | C4C-05 | Medium | Shared groups have no instructor-wide moderation path. | Group members can report another member's post, reply, or chat message without storing reporter UID. The group owner can dismiss a report or reversibly hide and restore the target; chat-message moderation is included in emulator tests. The course has not established an instructor role or broader moderation requirements; confirm that scope from the acceptance rubric. |
-| C4C-06 | Medium | The current audit reports 47 high, 5 moderate, and 0 critical findings. | On 2026-10-14, `npm audit --omit=dev` still reported 20 high paths; the affected packages are React Native/Metro build tooling rooted in `braces@3.0.3` through `micromatch@4.0.8`. The advisory affects `braces <=3.0.3` and has no patched release; the maintainer disputes the report. The production bundle has no `braces`/`micromatch` strings, so this is build-tooling exposure rather than shipped JavaScript. `npm audit fix --dry-run` made no changes and offered only major toolchain changes; no compatible fix is available for the direct `braces` or `sprintf-js` advisories. Metro binds to loopback by default, reducing LAN exposure without changing the finding. The five moderate findings are test-tooling paths rooted in `sprintf-js@1.0.3`, also with no patched version. Do not apply an unofficial override without a reviewed mitigation. See the [braces advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm), [braces maintainer discussion](https://github.com/micromatch/braces/issues/84), and [sprintf-js advisory](https://github.com/advisories/GHSA-hp3w-g68c-fv3c). |
+| C4C-06 | Medium | The current audit reports 47 high, 5 moderate, and 0 critical findings. | On 2026-10-14, `npm audit --omit=dev` still reported 20 high paths; the affected packages are React Native/Metro build tooling rooted in `braces@3.0.3` through `micromatch@4.0.8`. The advisory affects `braces <=3.0.3` and has no patched release; the maintainer disputes the report. The production bundle has no `braces`/`micromatch` strings, so this is build-tooling exposure rather than shipped JavaScript. `npm audit fix --dry-run` made no changes and offered only major toolchain changes; no compatible fix is available for the direct `braces` or `sprintf-js` advisories. The upstream depth-guard patch is closed without merging and changes existing `stringify` output, so a local override is not a verified compatible fix. Metro binds to loopback by default, reducing LAN exposure without changing the finding. The five moderate findings are test-tooling paths rooted in `sprintf-js@1.0.3`, also with no patched version. Do not apply an unofficial override without a reviewed mitigation. See the [braces advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm), [braces maintainer discussion](https://github.com/micromatch/braces/issues/84), [closed depth-guard PR](https://github.com/micromatch/braces/pull/72), and [sprintf-js advisory](https://github.com/advisories/GHSA-hp3w-g68c-fv3c). |
 | C4C-07 | Medium | No dedicated production release key is configured. | Gradle release artifact tasks now fail closed without a dedicated keystore; a no-key release dry run was rejected before build tasks and the existing APK hash stayed unchanged. Debug builds still use the development key. No production keystore was created or used. Prior 1.2.0 APKs use the debug certificate, so a future dedicated release key will require a planned install/data transition. |
 | C4C-08 | Low | The iOS scaffold cannot use the Android storage module. | Current app support is Android-only; do not claim iOS parity until secure storage and biometrics are implemented and verified there. |
 | C4C-09 | Medium | Google-to-Firebase account exchange is not yet verified. | The Firebase Google provider and debug signing fingerprint are configured, and the native Credential Manager integration builds. The latest single retry on the POCO X4 GT returned `GetCredentialCancellationException` immediately after selecting the previously approved test account, before an ID token reached Firebase. No password, verification code, or biometric was entered. The code now logs only this exception class and safely returns to the auth screen; a user-assisted successful retry is still needed. A release certificate also needs its own fingerprint. |
+| C4C-10 | Medium | Campus eligibility is based on verified email ownership, not verified student affiliation. | The client and Firestore rules require a verified email but accept any domain, and Google sign-in can use any Google account. The setup guide records that there is no domain allowlist. Decide whether Campus4Change is TIP-only (`@tip.edu.ph`) or open to any verified email before changing client and server policy; the domain choice has been requested and remains unresolved. |
 ## Verification record
 
 Verification is recorded in [VERIFICATION.md](VERIFICATION.md). On commit
-`c3dcdb6`, 191 Jest tests, lint, Auth/Firestore emulator tests, production
+`c6fe73d`, 192 Jest tests, lint, Auth/Firestore emulator tests, production
 bundling, Android unit tests, and the debug build passed locally. GitHub Actions
 run
-[38475765952](https://github.com/Patt-00/Campus4Change/actions/runs/38475765952)
-passed all configured checks, including the offline-write emulator assertion:
-listeners saw the local mutation before acknowledgement, and the write promise
-resolved after network access returned. The current APK was
-reinstalled and cold-launched on the POCO X4 GT; Login showed no demo account or
-prefilled demo credentials. The approved test-account retry ended in Credential
-Manager cancellation before Firebase received a token, so Google account
-creation and the production Firebase project or real two-account chat remain
-unverified. Emulator success does not substitute for deploying rules and indexes
-to Firebase.
+[38478344342](https://github.com/Patt-00/Campus4Change/actions/runs/38478344342)
+passed all configured checks. The current local migration change separately
+passes the six native identity/cleanup-plan tests and Android debug build; its
+APK was installed and cold-launched on the POCO X4 GT, and Login showed no demo
+account or prefilled credentials. The cleanup collision case was not seeded on
+device. The approved test-account retry ended in Credential Manager cancellation
+before Firebase received a token, so Google account creation and the production
+Firebase project or real two-account chat remain unverified. Emulator success
+does not substitute for deploying rules and indexes to Firebase. The current
+local migration change still needs its GitHub Actions result.
 
 Earlier Redmi Turbo 4 checks exercised the then-present seeded account,
 schedule-focused Sessions/Session Details, and the separate 25-minute group

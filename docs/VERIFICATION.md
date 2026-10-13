@@ -2,6 +2,20 @@
 
 ## Current source update — 2026-10-14
 
+- Legacy-account migration now checks the saved `state_demo` profile separately
+  from the account row and removes the state only on the exact legacy profile
+  ID/email. This prevents removing a different user's cached Firebase state if
+  its UID happens to be `demo`. `:app:testDebugUnitTest` and
+  `:app:assembleDebug` passed; the updated APK installed over the POCO app
+  without clearing its data, cold-launched, and showed the login screen without
+  a demo account or startup errors. The collision case was not seeded on-device.
+- A fresh `npm audit --omit=dev` still reports 20 high dependency paths rooted
+  in `braces@3.0.3`; the upstream depth-guard PR is closed without merging and
+  changes existing output behavior. No dependency override was applied.
+- The campus identity policy remains unresolved: any verified email can use
+  shared Firebase features. A TIP-only `@tip.edu.ph` allowlist versus any
+  verified email has been raised for product direction; no access policy was
+  changed pending that decision.
 - Tutor-hook action errors are tied to the active Firebase UID and are cleared
   when the signed-in account changes. Five new hook tests cover subscriptions,
   loading, retry, stale callbacks, account switching, signed-out behavior, and

@@ -125,31 +125,27 @@ class CampusStorageModule(private val context: ReactApplicationContext) : ReactC
                 retained.put(account)
             }
         }
-        val legacyStateProfile = if (foundLegacyAccount) {
-            null
-        } else {
-            runCatching { read("state_demo") }
-                .getOrNull()
-                ?.let { runCatching { JSONObject(it).optJSONObject("profile") }.getOrNull() }
-        }
-        val foundLegacyState = legacyStateProfile?.let { profile ->
-            LegacySeedIdentity.matchesState(
-                profile.optString("id"),
-                profile.optString("email"),
-            )
-        } == true
-        if (!foundLegacyAccount && !foundLegacyState) return
+        val legacyStateProfile = runCatching { read("state_demo") }
+            .getOrNull()
+            ?.let { runCatching { JSONObject(it).optJSONObject("profile") }.getOrNull() }
+        val cleanup = LegacySeedIdentity.cleanupPlan(
+            legacyAccountFound = foundLegacyAccount,
+            stateProfileId = legacyStateProfile?.optString("id"),
+            stateEmail = legacyStateProfile?.optString("email"),
+        ) ?: return
 
         // Commit the account list, state, and biometric pointer together so a
         // failed write cannot leave the removed seed's state orphaned.
         val editor = prefs.edit()
-        if (foundLegacyAccount && serializedAccounts != null) {
+        if (cleanup.removeAccount && serializedAccounts != null) {
             editor.putString("accounts", encrypt(retained.toString()))
         }
-        editor.remove("state_demo")
-        if (read("biometric_user") == "demo") editor.remove("biometric_user")
+        if (cleanup.removeState) editor.remove("state_demo")
+        if (cleanup.removeAccount && read("biometric_user") == "demo") {
+            editor.remove("biometric_user")
+        }
         check(editor.commit()) { "Could not remove the legacy seeded account." }
-        if (activeUser == "demo") activeUser = null
+        if (cleanup.removeAccount && activeUser == "demo") activeUser = null
     }
 
     private fun accounts(): JSONArray {

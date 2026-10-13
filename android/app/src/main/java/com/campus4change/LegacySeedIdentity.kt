@@ -13,4 +13,22 @@ internal object LegacySeedIdentity {
 
     fun matchesState(profileId: String, email: String): Boolean =
         profileId == ACCOUNT_ID && email.equals(ACCOUNT_EMAIL, ignoreCase = true)
+
+    fun cleanupPlan(
+        legacyAccountFound: Boolean,
+        stateProfileId: String?,
+        stateEmail: String?,
+    ): LegacySeedCleanupPlan? {
+        val legacyStateFound = matchesState(stateProfileId.orEmpty(), stateEmail.orEmpty())
+        if (!legacyAccountFound && !legacyStateFound) return null
+        return LegacySeedCleanupPlan(
+            removeAccount = legacyAccountFound,
+            removeState = legacyStateFound,
+        )
+    }
 }
+
+internal data class LegacySeedCleanupPlan(
+    val removeAccount: Boolean,
+    val removeState: Boolean,
+)
