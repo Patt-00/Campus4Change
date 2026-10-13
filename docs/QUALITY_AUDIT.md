@@ -189,10 +189,9 @@ production-ready claim.
   guard. Gradle dependency and wrapper caching is enabled through the
   [`setup-java` cache option](https://github.com/actions/setup-java/blob/main/README.md).
   Remote run
-  [38454306951](https://github.com/Patt-00/Campus4Change/actions/runs/38454306951)
-  passed on commit `674b22e` without production Firebase credentials. The new
-  workflow also runs `:app:testDebugUnitTest`; its two migration tests pass
-  locally under JDK 25.
+  [38456821435](https://github.com/Patt-00/Campus4Change/actions/runs/38456821435)
+  passed on commit `af7ea01` without production Firebase credentials. It also
+  ran `:app:testDebugUnitTest`, including both migration identity tests.
 
 ## Open issues
 

@@ -48,6 +48,10 @@
   passed on `674b22e`, including lint, unit tests, Auth/Firestore emulators,
   production bundling, debug build, and the release-signing guard. The checked-in
   Firebase rules and indexes remain undeployed.
+- Follow-up commit `af7ea01` made legacy account cleanup atomic and added two
+  native migration identity tests. GitHub Actions run
+  [38456821435](https://github.com/Patt-00/Campus4Change/actions/runs/38456821435)
+  passed, including the new `:app:testDebugUnitTest` step.
 
 ## Current source work — 2026-10-13
 

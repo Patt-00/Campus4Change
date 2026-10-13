@@ -7,7 +7,7 @@ The source supports PC Android tooling and a separate Termux build path. This is
 | Setting | Version |
 | --- | --- |
 | React Native / React | 0.87.1 / 19.2.3 |
-| Node.js engine range / recommended JDK | `^22.13.0 || ^24.3.0 || >=26.0.0` ([React Native 0.87 requirements](https://reactnative.dev/blog/2026/08/11/react-native-0.87)) / 17 |
+| Node.js engine range / recommended JDK | `^22.13.0 || ^24.3.0 || >=26.0.0` ([React Native 0.87 requirements](https://reactnative.dev/blog/2026/08/11/react-native-0.87)) / 17 (CI also validates 25) |
 | Gradle wrapper / resolved Android Gradle Plugin | 9.4.1 / 9.2.1 |
 | Kotlin | 2.2.0 |
 | Compile / target / minimum SDK | 37 / 36 / 24 |
@@ -95,7 +95,7 @@ The original 1.2.0 Windows release verification used SDK/JDK tools in ignored `.
 - **`Included build .../node_modules/@react-native/gradle-plugin does not exist`:** run `npm ci` from the repository root (the directory with `package.json` and `package-lock.json`), wait for it to finish successfully, then rerun Gradle. If `npm ci` fails, fix that npm error first; do not edit `android/settings.gradle` or install the plugin separately. Check with `test -d node_modules/@react-native/gradle-plugin`.
 - **SDK location not found:** create or correct `android/local.properties` as above, then rerun Gradle.
 - **Missing SDK/NDK package or license:** install the exact version through SDK Manager and accept its license. Build Tools 36.0.0 does not satisfy this project's explicit 37.0.0 setting.
-- **Java version error:** check `java -version` and `.\gradlew.bat --version` from `android/`. Set `JAVA_HOME` to a JDK 17 installation and reopen the terminal. Android Studio's Gradle JDK and the terminal's Java installation can differ.
+- **Java version error:** check `java -version` and `.\gradlew.bat --version` from `android/`. Set `JAVA_HOME` to a supported JDK 17 installation and reopen the terminal. CI also verifies JDK 25. On the current Fedora workstation, the default OpenJDK 27 fails while compiling the Gradle script with `Unsupported class file major version 71`; using the installed JDK 25 succeeds. Android Studio's Gradle JDK and the terminal's Java installation can differ.
 - **Gradle deprecation warning or Problems report:** read the actual failure under **What went wrong**. These messages alone do not mean the build failed.
 
 ## Termux
