@@ -139,6 +139,10 @@ export async function firebaseGoogleSignIn() {
     if (error?.code === 'GOOGLE_SIGN_IN_CANCELED') {
       return null;
     }
+    if (__DEV__ && typeof error?.code === 'string') {
+      // Keep debug logs useful without writing tokens or provider messages.
+      console.warn('[Campus4Change] Google sign-in failed:', error.code);
+    }
     throw readableGoogleAuthError(error);
   }
 }
@@ -356,6 +360,8 @@ function readableGoogleAuthError(error) {
     GOOGLE_SIGN_IN_FAILED: 'Could not complete Google sign-in. Try again.',
     'auth/account-exists-with-different-credential':
       'This email already uses a different sign-in method. Use that method instead.',
+    'auth/invalid-credential':
+      'Firebase could not verify this Google account. Try again or use email/password.',
     'auth/operation-not-allowed':
       'Google sign-in is not enabled in Firebase Console yet.',
     'auth/network-request-failed':

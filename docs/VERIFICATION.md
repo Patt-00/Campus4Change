@@ -20,6 +20,10 @@
   commits its state and biometric-pointer cleanup atomically. It also recognizes
   the exact legacy profile state if an older partial migration removed the
   account record but left its state behind.
+- Android Google ID-token parsing catches the parser exception that the Kotlin
+  Credential Manager library can throw through its Java API. The debug build
+  logs only exception classes and Firebase error codes; `auth/invalid-credential`
+  now returns a specific, safe message.
 - Verified Firebase students now share live group chat with current group
   members and tutor-session chat with the booking's two participants. The
   active chat reads a bounded latest-50 window and loads older pages on demand;
@@ -28,12 +32,12 @@
   Session Details screens were updated to reflect those delivery boundaries.
   Chat state is keyed to the active user and conversation so switching threads
   cannot flash the previous thread under the new title.
-- `npm test -- --runInBand --coverage --testTimeout=15000`: 186 tests passed
-  in 28 suites; statement coverage 82.29% and branch coverage 72.88%.
+- `npm test -- --runInBand --coverage --testTimeout=15000`: 188 tests passed
+  in 28 suites; statement coverage 82.42% and branch coverage 72.96%.
   `npm run lint` passed without warnings. `:app:createBundleReleaseJsAndAssets`,
   `:app:testDebugUnitTest`, and `:app:assembleDebug` passed under JDK 25.
-  The production JavaScript bundle is 2,648,976 bytes with SHA-256
-  `2c0e7774ef6f2b21b60b1836cbdca05da44eea31406030098c08d6f2db776764`.
+  The production JavaScript bundle is 2,649,064 bytes with SHA-256
+  `0f8cc5ae08a2135d93a770f81da3a9cd41d28ba494421d6381b4e41e5eebe7bb`.
 - Local Auth and Firestore emulator tests passed. The rules suite covers current
   group-member chat access, owner hide/restore, participant-only tutor-session
   chat, message-size and page limits, and send cooldowns. The Auth emulator
@@ -64,6 +68,11 @@
   logic, not a second device account.
   Filtered launch logs showed the React Native app starting without a fatal
   Android exception or JavaScript error.
+  One later Google sign-in attempt selected the previously approved test
+  account and returned to the auth screen before producing an ID token. The
+  new safe diagnostic recorded `GetCredentialCancellationException`; Firebase
+  token exchange did not run. No password, verification code, or biometric was
+  entered, so successful Google-to-Firebase sign-in remains unverified.
   This seed-removal check preceded the atomic-write hardening. The current
   atomic migration was cold-launched after the old state had already been
   removed; its two JVM tests cover identity matching but not SharedPreferences

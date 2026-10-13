@@ -252,6 +252,52 @@ test('Google account-picker cancellation returns without signing into Firebase',
   expect(mockSignInWithCredential).not.toHaveBeenCalled();
 });
 
+test('Google ID-token parsing failures are returned as handled auth errors', async () => {
+  const warning = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  try {
+    const firebase = require('../src/shared/backend/firebase');
+    mockGoogleSignIn.mockRejectedValueOnce({
+      code: 'GOOGLE_SIGN_IN_INVALID_RESPONSE',
+      message: 'Do not expose credential data.',
+    });
+
+    await expect(firebase.firebaseGoogleSignIn()).rejects.toThrow(
+      'Google returned an invalid sign-in response.',
+    );
+    expect(mockSignInWithCredential).not.toHaveBeenCalled();
+    expect(warning).toHaveBeenCalledWith(
+      '[Campus4Change] Google sign-in failed:',
+      'GOOGLE_SIGN_IN_INVALID_RESPONSE',
+    );
+  } finally {
+    warning.mockRestore();
+  }
+});
+
+test('Firebase Google credential errors show a clear message and log only the error code', async () => {
+  const warning = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  try {
+    const firebase = require('../src/shared/backend/firebase');
+    mockSignInWithCredential.mockRejectedValueOnce({
+      code: 'auth/invalid-credential',
+      message: 'Do not expose credential data.',
+    });
+
+    await expect(firebase.firebaseGoogleSignIn()).rejects.toThrow(
+      'Firebase could not verify this Google account. Try again or use email/password.',
+    );
+    expect(warning).toHaveBeenCalledWith(
+      '[Campus4Change] Google sign-in failed:',
+      'auth/invalid-credential',
+    );
+    expect(JSON.stringify(warning.mock.calls)).not.toContain(
+      'Do not expose credential data.',
+    );
+  } finally {
+    warning.mockRestore();
+  }
+});
+
 test.each([
   'auth/invalid-credential',
   'auth/user-disabled',

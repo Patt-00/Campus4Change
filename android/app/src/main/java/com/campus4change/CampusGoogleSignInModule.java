@@ -3,6 +3,7 @@ package com.campus4change;
 import android.app.Activity;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import androidx.credentials.ClearCredentialStateRequest;
 import androidx.credentials.CredentialManager;
@@ -30,6 +31,7 @@ import java.util.List;
 import java.util.concurrent.Executor;
 
 public final class CampusGoogleSignInModule extends ReactContextBaseJavaModule {
+  private static final String TAG = "CampusGoogleSignIn";
   private final ReactApplicationContext context;
 
   CampusGoogleSignInModule(ReactApplicationContext context) {
@@ -96,7 +98,14 @@ public final class CampusGoogleSignInModule extends ReactContextBaseJavaModule {
                 } else {
                   promise.resolve(idToken);
                 }
-              } catch (RuntimeException error) {
+              } catch (Exception error) {
+                // The Kotlin Google ID library can throw its parsing exception
+                // through this Java API without declaring it in the signature.
+                Log.w(
+                    TAG,
+                    "Google ID token parsing failed ("
+                        + error.getClass().getSimpleName()
+                        + ").");
                 promise.reject(
                     "GOOGLE_SIGN_IN_INVALID_RESPONSE",
                     "Google returned an invalid sign-in response.");
@@ -105,6 +114,11 @@ public final class CampusGoogleSignInModule extends ReactContextBaseJavaModule {
 
             @Override
             public void onError(GetCredentialException error) {
+              Log.w(
+                  TAG,
+                  "Credential Manager sign-in failed ("
+                      + error.getClass().getSimpleName()
+                      + ").");
               if (error instanceof GetCredentialCancellationException) {
                 promise.reject("GOOGLE_SIGN_IN_CANCELED", "Google sign-in was cancelled.");
               } else if (error instanceof NoCredentialException) {
@@ -119,6 +133,11 @@ public final class CampusGoogleSignInModule extends ReactContextBaseJavaModule {
             }
           });
     } catch (Exception error) {
+      Log.w(
+          TAG,
+          "Credential Manager sign-in could not start ("
+              + error.getClass().getSimpleName()
+              + ").");
       promise.reject("GOOGLE_SIGN_IN_FAILED", "Could not open Google sign-in. Try again.");
     }
   }

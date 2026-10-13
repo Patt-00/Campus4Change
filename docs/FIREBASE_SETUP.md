@@ -36,7 +36,7 @@ can add a Student ID later in Edit Profile, where it stays in private account
 state. The screens and debug build are verified on the POCO X4 GT; an actual
 Google account sign-in has not yet been verified end-to-end.
 See [Android's Credential Manager Google sign-in guide](https://developer.android.com/identity/sign-in/credential-manager-siwg-implementation)
-and [Firebase's Google ID token sign-in guide](https://firebase.google.com/docs/auth/web/google-signin)
+and [Firebase's Google sign-in guide for Android](https://firebase.google.com/docs/auth/android/google-signin)
 for the platform flow and token exchange.
 
 ## Configure a Firebase project
