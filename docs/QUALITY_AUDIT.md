@@ -131,8 +131,8 @@ production-ready claim.
   tests, production bundling, the Android debug build, and the release-signing
   guard. Gradle dependency and wrapper caching is enabled through the
   [`setup-java` cache option](https://github.com/actions/setup-java/blob/main/README.md).
-  The latest [remote run](https://github.com/Patt-00/Campus4Change/actions/runs/38329988641)
-  passed on commit `bc59b48` without production Firebase credentials.
+  The latest [remote run](https://github.com/Patt-00/Campus4Change/actions/runs/38330970427)
+  passed on commit `a89982a` without production Firebase credentials.
 
 ## Open issues
 
