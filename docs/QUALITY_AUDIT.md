@@ -10,6 +10,10 @@ production-ready claim.
 
 - Firebase email/password auth, encrypted Android auth persistence, and
   private per-user Firestore state are implemented.
+- Private cloud-state reads verify the authenticated UID before constructing a
+  document reference and remain available to the owner before email
+  verification. Regression tests cover missing documents, cross-UID denial,
+  and preservation of the transient Student ID when Firebase sign-out fails.
 - Android Google sign-in/sign-up uses Credential Manager and Firebase token
   exchange. The Firebase provider and debug certificate are configured; the
   POCO X4 GT showed both auth screens and opened the approved account chooser.
@@ -194,7 +198,7 @@ production-ready claim.
 | C4C-06 | Medium | The current audit reports 47 high, 5 moderate, and 0 critical findings. | On 2026-10-14, `npm audit --omit=dev` still reported 20 high paths; the affected packages are React Native/Metro build tooling rooted in `braces@3.0.3` through `micromatch@4.0.8`. The advisory affects `braces <=3.0.3` and has no patched release; the maintainer disputes the report. The production bundle has no `braces`/`micromatch` strings, so this is build-tooling exposure rather than shipped JavaScript. `npm audit fix --dry-run` made no changes and offered only major toolchain changes; no compatible fix is available for the direct `braces` or `sprintf-js` advisories. Metro binds to loopback by default, reducing LAN exposure without changing the finding. The five moderate findings are test-tooling paths rooted in `sprintf-js@1.0.3`, also with no patched version. Do not apply an unofficial override without a reviewed mitigation. See the [braces advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm), [braces maintainer discussion](https://github.com/micromatch/braces/issues/84), and [sprintf-js advisory](https://github.com/advisories/GHSA-hp3w-g68c-fv3c). |
 | C4C-07 | Medium | No dedicated production release key is configured. | Gradle release artifact tasks now fail closed without a dedicated keystore; a no-key release dry run was rejected before build tasks and the existing APK hash stayed unchanged. Debug builds still use the development key. No production keystore was created or used. Prior 1.2.0 APKs use the debug certificate, so a future dedicated release key will require a planned install/data transition. |
 | C4C-08 | Low | The iOS scaffold cannot use the Android storage module. | Current app support is Android-only; do not claim iOS parity until secure storage and biometrics are implemented and verified there. |
-| C4C-09 | Medium | Google-to-Firebase account exchange is not yet verified. | The Firebase Google provider and debug signing fingerprint are configured, the native Credential Manager integration builds, and both auth screens were checked on the POCO X4 GT. After the owner reported completing Google's re-authentication, the app returned to Sign Up and Firebase Authentication still showed no user. Cancelling the account chooser now produces explicit retry feedback; the real credential exchange remains unverified. Release signing fingerprints must also be added before release. |
+| C4C-09 | Medium | Google-to-Firebase account exchange is not yet verified. | The Firebase Google provider and debug signing fingerprint are configured, and the native Credential Manager integration builds. On the POCO X4 GT, selecting the approved test account returned to Login with the explicit retry message; the credential provider reported a response error, so Firebase token exchange is still unverified. Do not select a different account or repeatedly retry the same canceled flow. A successful release also needs the release signing fingerprint. |
 ## Verification record
 
 Verification is recorded in [VERIFICATION.md](VERIFICATION.md). The Pad 7

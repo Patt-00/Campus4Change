@@ -3,6 +3,7 @@ let mockAuth;
 let mockApp;
 let mockDb;
 let mockDoc;
+let mockGetDoc;
 let mockSetDoc;
 let mockServerTimestamp;
 let mockCreateUser;
@@ -75,6 +76,7 @@ jest.mock('firebase/auth', () => ({
 jest.mock('firebase/firestore', () => ({
   getFirestore: jest.fn(() => mockDb),
   doc: (...args) => mockDoc(...args),
+  getDoc: (...args) => mockGetDoc(...args),
   setDoc: (...args) => mockSetDoc(...args),
   serverTimestamp: (...args) => mockServerTimestamp(...args),
 }));
@@ -85,6 +87,7 @@ beforeEach(() => {
   mockDb = {};
   mockAuth = { currentUser: null };
   mockDoc = jest.fn((db, ...path) => ({ db, path: path.join('/') }));
+  mockGetDoc = jest.fn();
   mockSetDoc = jest.fn(async () => {});
   mockServerTimestamp = jest.fn(() => 'server-timestamp');
   mockSignIn = jest.fn();
@@ -309,6 +312,35 @@ test('successful Firebase sign-out clears the transient Student ID cache', async
   expect(observedAccount.studentId).toBe('');
 });
 
+test('failed Firebase sign-out keeps the account Student ID cache recoverable', async () => {
+  const firebase = require('../src/shared/backend/firebase');
+  let observedAccount;
+  firebase.watchFirebaseUser(user => {
+    observedAccount = user;
+  });
+
+  const account = await firebase.firebaseSignUp(
+    'Jamie Student',
+    'jamie@school.edu',
+    'STU-2048',
+    'TestPassword123',
+  );
+  mockSignOut.mockRejectedValueOnce(new Error('Could not reach Firebase.'));
+
+  await expect(firebase.firebaseSignOut()).rejects.toThrow(
+    'Could not reach Firebase.',
+  );
+  mockAuthObserver({
+    uid: account.id,
+    email: account.email,
+    displayName: account.name,
+    emailVerified: false,
+  });
+
+  expect(observedAccount.studentId).toBe('STU-2048');
+  expect(mockClearGoogleCredentialState).not.toHaveBeenCalled();
+});
+
 test('shared Firestore services reject an unverified Firebase user', () => {
   const firebase = require('../src/shared/backend/firebase');
   mockAuth.currentUser = {
@@ -323,6 +355,18 @@ test('shared Firestore services reject an unverified Firebase user', () => {
   mockAuth.currentUser.emailVerified = true;
   expect(firebase.firebaseServicesForUser('unverified-user')).toHaveProperty(
     'firestore',
+  );
+});
+
+test('shared Firestore services reject a different authenticated UID', () => {
+  const firebase = require('../src/shared/backend/firebase');
+  mockAuth.currentUser = {
+    uid: 'signed-in-user',
+    emailVerified: true,
+  };
+
+  expect(() => firebase.firebaseServicesForUser('requested-user')).toThrow(
+    'Sign in to use Firebase data.',
   );
 });
 
@@ -378,6 +422,55 @@ test('cloud state saves target the authenticated user document', async () => {
     state,
     updatedAt: 'server-timestamp',
   });
+});
+
+test('private cloud state loads only from the authenticated UID and works before email verification', async () => {
+  const firebase = require('../src/shared/backend/firebase');
+  mockAuth.currentUser = {
+    uid: 'cloud-user',
+    emailVerified: false,
+  };
+  const state = {
+    version: 1,
+    profile: { id: 'cloud-user', studentId: 'STU-2048' },
+  };
+  mockGetDoc.mockResolvedValue({
+    exists: () => true,
+    data: () => ({ state, updatedAt: 'server-time' }),
+  });
+
+  await expect(firebase.loadCloudState('cloud-user')).resolves.toEqual(state);
+
+  expect(mockDoc).toHaveBeenCalledWith(
+    mockDb,
+    'users',
+    'cloud-user',
+    'private',
+    'state',
+  );
+  expect(mockGetDoc).toHaveBeenCalledWith({
+    db: mockDb,
+    path: 'users/cloud-user/private/state',
+  });
+});
+
+test('private cloud state returns null when the authenticated user has no saved document', async () => {
+  const firebase = require('../src/shared/backend/firebase');
+  mockAuth.currentUser = { uid: 'cloud-user', emailVerified: false };
+  mockGetDoc.mockResolvedValue({ exists: () => false });
+
+  await expect(firebase.loadCloudState('cloud-user')).resolves.toBeNull();
+});
+
+test('private cloud state refuses to read another UID before constructing a document reference', async () => {
+  const firebase = require('../src/shared/backend/firebase');
+  mockAuth.currentUser = { uid: 'signed-in-user', emailVerified: true };
+
+  await expect(firebase.loadCloudState('requested-user')).rejects.toThrow(
+    'Sign in to load your Firebase account data.',
+  );
+  expect(mockDoc).not.toHaveBeenCalled();
+  expect(mockGetDoc).not.toHaveBeenCalled();
 });
 
 test('cloud state rejects profile data owned by a different Firebase user', async () => {

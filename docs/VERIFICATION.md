@@ -13,9 +13,11 @@
   ease-out transitions: 36 directional move-ins and 27 tab dissolves. The
   Plugin API readback confirmed all 63 saved transitions.
 - `npm test -- --runInBand --coverage`: 165 tests passed in 26 suites;
-  statement coverage 83.49% and branch coverage 74.60%. `npm run lint` passed
+  statement coverage 83.74% and branch coverage 74.91%. Five added Firebase
+  boundary tests verify private state reads, cross-UID rejection, and transient
+  Student ID retention when Firebase sign-out fails. `npm run lint` passed
   without warnings. `:app:createBundleReleaseJsAndAssets` passed for the updated
-  source; its 2,637,816-byte bundle has SHA-256
+  app source; its 2,637,816-byte bundle has SHA-256
   `12b3f8e7e26c022c7479ee8a20acfa2923d6eceb13a9e388f6db4e9bf1f59d5b`.
   `:app:assembleDebug` also passed; Gradle reported the build up to date.
 - On the POCO X4 GT (model `22041216G`, Android 14), a cold launch displayed the
@@ -23,11 +25,14 @@
   Login Back control returned to Introduction. A mid-transition screenshot
   showed the reverse slide and fade in progress before it settled; filtered
   React Native and Android error logs were empty. The app was left on Login.
-  This checked navigation only; no Google account exchange was attempted.
-- The current Firebase rules and indexes remain undeployed. The latest
-  successful GitHub Actions run before this source update was
-  [38441596481](https://github.com/Patt-00/Campus4Change/actions/runs/38441596481)
-  on `38b84af`; that run does not include this update.
+  A retry selected only the approved test account but returned to Login with
+  the cancellation message; the credential provider logged a generic response
+  error. No Firebase token exchange is verified, and no different account was
+  selected.
+- The current Firebase rules and indexes remain undeployed. GitHub Actions run
+  [38445047985](https://github.com/Patt-00/Campus4Change/actions/runs/38445047985)
+  passed on `373f4ba`; it includes the navigation and tutor-hook changes, but not
+  the five additional Firebase boundary tests in the current local update.
 
 ## Current source work — 2026-10-13
 
