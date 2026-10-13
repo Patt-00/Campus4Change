@@ -2,7 +2,7 @@
 
 Reference: [Campus4Change Mobile App Prototype](https://www.figma.com/proto/i23zbYooPqV1EkTLXfnxMo/Campus4Change-Mobile-App-Prototype?node-id=1-2&starting-point-node-id=1%3A2).
 
-The file now lists the 18 mobile screens below and a separate `Campus4Change Components` page for reusable dark-theme controls. The Login and Sign-up frames now show the implemented Google buttons and account guidance, using a reusable token-bound Google button component. The Group Session frame is also built from editable text, vectors, variables, and component instances; its visual composition and the updated Group Details screen were inspected in Figma.
+The file now lists the 18 mobile screens below and a separate `Campus4Change Components` page for reusable dark-theme controls. The Login and Sign-up frames show the implemented Google buttons and account guidance, using a reusable token-bound Google button component. The component page also includes the red inline auth-feedback component used when Google sign-in does not complete. The Group Session frame is built from editable text, vectors, variables, and component instances; its visual composition and the updated Group Details screen were inspected in Figma.
 
 The app follows the dark background, cyan actions, rounded cards, Inter typography, circle avatars, and five-tab layout. Scrolling, device insets, editable data, validation, and local-storage notices adapt the fixed 390-by-844 reference to Android. Exact 1:1 pixel matching has not been verified.
 

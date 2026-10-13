@@ -44,6 +44,35 @@ test('login offers Google sign-in and calls the shared Firebase action', async (
   await ReactTestRenderer.act(async () => renderer.unmount());
 });
 
+test('login explains when Google sign-in returns without an account', async () => {
+  let renderer;
+  await ReactTestRenderer.act(async () => {
+    renderer = ReactTestRenderer.create(
+      <LoginScreen
+        auth={{
+          firebaseConfigured: true,
+          googleSignInAvailable: true,
+          signInWithGoogle: async () => false,
+        }}
+        back={jest.fn()}
+        go={jest.fn()}
+      />,
+    );
+  });
+
+  await ReactTestRenderer.act(async () =>
+    button(renderer, 'Continue with Google').props.onPress(),
+  );
+  const copy = renderer.root
+    .findAllByType(Text)
+    .map(node => node.props.children)
+    .flat(Infinity);
+  expect(copy).toContain(
+    'Google sign-in did not complete. Try again or use email and password.',
+  );
+  await ReactTestRenderer.act(async () => renderer.unmount());
+});
+
 test('sign-up offers Google and explains how to add the private Student ID later', async () => {
   const signInWithGoogle = jest.fn(async () => true);
   let renderer;
@@ -73,6 +102,35 @@ test('sign-up offers Google and explains how to add the private Student ID later
     button(renderer, 'Sign up with Google').props.onPress(),
   );
   expect(signInWithGoogle).toHaveBeenCalledTimes(1);
+  await ReactTestRenderer.act(async () => renderer.unmount());
+});
+
+test('sign-up explains when Google sign-in returns without an account', async () => {
+  let renderer;
+  await ReactTestRenderer.act(async () => {
+    renderer = ReactTestRenderer.create(
+      <SignUpScreen
+        auth={{
+          firebaseConfigured: true,
+          googleSignInAvailable: true,
+          signInWithGoogle: async () => false,
+        }}
+        back={jest.fn()}
+        go={jest.fn()}
+      />,
+    );
+  });
+
+  await ReactTestRenderer.act(async () =>
+    button(renderer, 'Sign up with Google').props.onPress(),
+  );
+  const copy = renderer.root
+    .findAllByType(Text)
+    .map(node => node.props.children)
+    .flat(Infinity);
+  expect(copy).toContain(
+    'Google sign-in did not complete. Try again or use email and password.',
+  );
   await ReactTestRenderer.act(async () => renderer.unmount());
 });
 

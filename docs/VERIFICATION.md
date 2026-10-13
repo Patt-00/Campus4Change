@@ -19,8 +19,8 @@ Verified for this checkpoint:
 - `npm ci --dry-run --ignore-scripts --no-audit --no-fund` passed under Node
   24.18.0. The root engine range now matches React Native 0.87.1's package
   metadata, and the lockfile records the same range.
-- `npm test -- --runInBand`: 158 tests passed in 25 suites. Coverage includes
-  Google auth screens and token exchange, tutor profile publishing and removal,
+- `npm test -- --runInBand`: 160 tests passed in 25 suites. Coverage includes
+  Google auth screens, cancellation feedback, and token exchange, tutor profile publishing and removal,
   request status transitions and slot locks, as well as stale group callbacks and pending
   shared writes across account changes, queued state persistence after a switch
   even when both accounts share the same `updatedAt`, unknown and past-due
@@ -45,8 +45,10 @@ Verified for this checkpoint:
   the private Student ID guidance, and verification requirements. Google
   Credential Manager displayed the approved test account, which was selected;
   Google then requested a fresh “Verify it’s you” step before returning the ID
-  token. Firebase account exchange remains unverified pending the account
-  owner completing that device check. An earlier POCO check verified
+  token. After the owner reported completing the prompt, the app returned to
+  Sign Up and Firebase Authentication still showed no user, so the token
+  exchange remains unverified. Cancelling the account chooser now shows a
+  clear retry message instead of silently returning to the form. An earlier POCO check verified
   the scheduled Group Session screen without a focus timer.
 - The Figma Login and Sign-up frames now include editable Google auth button
   instances, matching guidance, and a reusable color-token-bound component on

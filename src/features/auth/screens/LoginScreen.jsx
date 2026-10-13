@@ -6,6 +6,9 @@ import { ErrorText, Field, Link } from '../../../shared/components/UI';
 import { GoogleAuthButton } from '../components/GoogleAuthButton';
 import { s } from '../../../shared/theme/styles';
 
+const GOOGLE_SIGN_IN_CANCELLED =
+  'Google sign-in did not complete. Try again or use email and password.';
+
 export function LoginScreen({ go, back, auth }) {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -21,9 +24,10 @@ export function LoginScreen({ go, back, auth }) {
     setBusy(true);
     Keyboard.dismiss();
     try {
-      await action();
+      return await action();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+      return undefined;
     } finally {
       setBusy(false);
     }
@@ -118,7 +122,12 @@ export function LoginScreen({ go, back, auth }) {
             title="Continue with Google"
             busy={busy}
             disabled={!auth.googleSignInAvailable}
-            onPress={() => submit(auth.signInWithGoogle)}
+            onPress={async () => {
+              const signedIn = await submit(auth.signInWithGoogle);
+              if (signedIn === false) {
+                setError(GOOGLE_SIGN_IN_CANCELLED);
+              }
+            }}
           />
           {!auth.googleSignInAvailable && (
             <Text style={[s.muted, s.center, styles.googleHelper]}>
