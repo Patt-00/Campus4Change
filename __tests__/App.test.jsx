@@ -250,6 +250,36 @@ test('partial version-one profiles restore missing defaults before Home renders'
   await ReactTestRenderer.act(async () => renderer.unmount());
 });
 
+test('partial personal profiles restore blank defaults without demo data', async () => {
+  const personal = {
+    id: 'partial-student',
+    name: 'Student User',
+    email: 'student@school.edu',
+    studentId: 'STU-100',
+  };
+  mockCurrent = personal;
+  const savedState = initialState(personal);
+  delete savedState.profile.interests;
+  delete savedState.profile.tutorSubjects;
+  delete savedState.profile.course;
+  delete savedState.profile.year;
+  delete savedState.profile.school;
+  mockSaved[personal.id] = JSON.stringify(savedState);
+
+  await login();
+
+  expect(hasText('Complete your profile')).toBe(true);
+  const restoredState = JSON.parse(mockSaved[personal.id]);
+  expect(restoredState.profile.interests).toEqual([]);
+  expect(restoredState.profile.tutorSubjects).toEqual([]);
+  expect(restoredState.profile.course).toBe('');
+  expect(restoredState.profile.year).toBe('');
+  expect(restoredState.profile.school).toBe('');
+  expect(restoredState.groups).toEqual([]);
+  expect(restoredState.conversations).toEqual([]);
+  await ReactTestRenderer.act(async () => renderer.unmount());
+});
+
 test('sign-out saves the latest profile and resets navigation to login', async () => {
   await login();
   await press('Profile');

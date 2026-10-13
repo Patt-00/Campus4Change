@@ -15,7 +15,7 @@ Verified for this checkpoint:
 
 - `npm run lint`: passed without warnings.
 - `npm test -- --runInBand --coverage --coverageReporters=json --coverageReporters=json-summary`:
-  122 tests passed in 20 suites. Tests cover stale group callbacks and pending
+  123 tests passed in 20 suites. Tests cover stale group callbacks and pending
   shared writes across account changes, queued state persistence after a switch
   even when both accounts share the same `updatedAt`, unknown and past-due
   session statuses, malformed or missing session start times across Home,
@@ -75,10 +75,12 @@ Verified for this checkpoint:
   port 8081 bound to `127.0.0.1`, ADB reverse loaded the bundle and a cold
   launch rendered the splash screen. This verifies the
   current Android bundle and splash only, not production Firebase access.
-- `npm test -- --runInBand` on 2026-10-13 passed all 122 tests in 20 suites.
+- `npm test -- --runInBand` on 2026-10-13 passed all 123 tests in 20 suites.
 - A partial version-one profile missing its name, interests, tutor subjects,
   and school fields restored from the account defaults, opened Home, and
   persisted the restored values without losing session/group data.
+- A partial personal account restored blank personal defaults; it received no
+  demo interests, groups, or conversations.
 - An app-level regression removed a saved conversation's message array, opened
   it through Messages and Chat, then sent a new message. The thread rendered,
   recovered the array, and persisted the new message.
