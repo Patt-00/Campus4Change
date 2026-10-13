@@ -100,6 +100,27 @@ async function press(label) {
     await control.props.onPress();
   });
 }
+async function pressWithLabelStarting(prefix) {
+  const control = renderer.root
+    .findAllByType(TouchableOpacity)
+    .find(n => n.props.accessibilityLabel?.startsWith(prefix));
+  expect(control).toBeDefined();
+  expect(control.props.disabled).not.toBe(true);
+  await ReactTestRenderer.act(async () => {
+    await control.props.onPress();
+  });
+}
+async function pressBookingDate(index) {
+  const dateControls = renderer.root
+    .findAllByType(TouchableOpacity)
+    .filter(n => n.props.accessibilityLabel?.startsWith('Select date '));
+  const control = dateControls[index];
+  expect(control).toBeDefined();
+  expect(control.props.disabled).not.toBe(true);
+  await ReactTestRenderer.act(async () => {
+    await control.props.onPress();
+  });
+}
 async function fill(label, value) {
   const input = renderer.root
     .findAllByType(TextInput)
@@ -235,7 +256,7 @@ test('search selects the actual tutor, books a future session, and opens details
   expect(hasText('BS Applied Physics')).toBe(false);
   expect(hasText('Mika Santos')).toBe(true);
   await press('BOOK SESSION');
-  await press('Date 1');
+  await pressBookingDate(1);
   await fill(
     'Example: I need help with integration by parts.',
     'Practice derivatives',
@@ -281,7 +302,7 @@ test('creates a group, publishes a post, and saves a reply', async () => {
   await press('Back');
   await fill('Write a study note...', 'Review Newton laws');
   await press('POST NOTE');
-  await press('Post by Alex Rivera');
+  await pressWithLabelStarting('Post by Alex Rivera:');
   await fill('Write a reply...', 'Start with the first law');
   await press('SEND REPLY');
   expect(hasText('Start with the first law')).toBe(true);
@@ -388,7 +409,7 @@ test('a chosen tutor time is retained by the booking form', async () => {
   await press('Find a Tutor');
   await press('Mika Santos, view profile');
   await press('6:00 PM');
-  await press('Date 1');
+  await pressBookingDate(1);
   await press('CONFIRM BOOKING');
   expect(hasText('Added to your schedule')).toBe(true);
   const booked = JSON.parse(mockSaved.demo).sessions[0];

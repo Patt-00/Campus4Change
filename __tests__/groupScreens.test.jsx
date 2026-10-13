@@ -202,6 +202,51 @@ test('member group feed exposes the older-post page action', async () => {
   await act(async () => renderer.unmount());
 });
 
+test('group post cards announce the note content and reply action', async () => {
+  let renderer;
+  await act(async () => {
+    renderer = renderScreen(
+      <GroupDetailsScreen
+        back={jest.fn()}
+        go={jest.fn()}
+        group={{
+          id: 'group-one',
+          name: 'Calculus Circle',
+          members: 5,
+          joined: true,
+          shared: true,
+          postsLoaded: true,
+          meetup: '',
+          room: 'C-1',
+          posts: [
+            {
+              id: 'post-one',
+              author: 'Mika Santos',
+              text: 'Use the chain rule for this example.',
+              replies: [],
+              createdAt: '2026-10-13T06:00:00.000Z',
+            },
+          ],
+        }}
+        membership={jest.fn()}
+        addPost={jest.fn()}
+        message={jest.fn()}
+      />,
+    );
+  });
+
+  const postCard = renderer.root
+    .findAllByType(TouchableOpacity)
+    .find(control => control.props.accessibilityLabel?.startsWith('Post by '));
+  expect(postCard.props.accessibilityLabel).toContain(
+    'Use the chain rule for this example.',
+  );
+  expect(postCard.props.accessibilityHint).toBe(
+    'Opens this post and its replies.',
+  );
+  await act(async () => renderer.unmount());
+});
+
 test('post details expose older replies only to joined members', async () => {
   const loadMoreReplies = jest.fn();
   const props = {

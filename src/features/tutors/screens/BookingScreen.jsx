@@ -94,7 +94,15 @@ export function BookingScreen({
             <TouchableOpacity
               key={n}
               accessibilityRole="button"
-              accessibilityLabel={'Date ' + n}
+              accessibilityLabel={
+                'Select date ' +
+                d.toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric',
+                })
+              }
               accessibilityState={{
                 selected: n === offset,
               }}

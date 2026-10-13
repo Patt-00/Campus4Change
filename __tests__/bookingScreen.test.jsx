@@ -59,7 +59,12 @@ test('booking form rejects past slots and forwards a valid future selection', as
   ).toBe(true);
   expect(onSave).not.toHaveBeenCalled();
 
-  await act(async () => button(renderer, 'Date 1').props.onPress());
+  const nextDate = button(
+    renderer,
+    'Select date Wednesday, October 14, 2026',
+  );
+  expect(nextDate.props.accessibilityState.selected).toBe(false);
+  await act(async () => nextDate.props.onPress());
   await act(async () => button(renderer, 'Calculus').props.onPress());
   await act(async () => button(renderer, '4:30 PM').props.onPress());
   await act(async () =>

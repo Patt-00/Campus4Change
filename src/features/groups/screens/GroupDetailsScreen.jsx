@@ -63,7 +63,8 @@ export function GroupDetailsScreen({
             <TouchableOpacity
               key={p.id}
               accessibilityRole="button"
-              accessibilityLabel={'Post by ' + p.author}
+              accessibilityLabel={'Post by ' + p.author + ': ' + p.text}
+              accessibilityHint="Opens this post and its replies."
               style={[s.card, styles.minHeight106]}
               onPress={() =>
                 go({

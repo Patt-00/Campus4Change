@@ -111,6 +111,9 @@ production-ready claim.
 - The Firestore rules test now requires an explicit opt-in before clearing the
   selected emulator project's default database. CI supplies that flag for its
   fresh emulator; normal local invocations refuse to erase existing test data.
+- Booking date controls announce the full calendar date, and group post buttons
+  announce the author and note text. Both labels were checked in the Redmi's
+  Android accessibility tree and have focused regression coverage.
 - Added a GitHub Actions workflow for lint, unit tests, Auth/Firestore emulator
   tests, production bundling, the Android debug build, and the release-signing
   guard. Gradle dependency and wrapper caching is enabled through the
