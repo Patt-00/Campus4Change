@@ -24,6 +24,11 @@
   Credential Manager library can throw through its Java API. The debug build
   logs only exception classes and Firebase error codes; `auth/invalid-credential`
   now returns a specific, safe message.
+- Device-state saves now continue independently of Firestore server
+  acknowledgements. Pending cloud snapshots are coalesced per Firebase UID, and
+  sign-out reports a local-only save after a bounded 1.2-second cloud wait.
+  Regression coverage simulates a never-resolving cloud write during account
+  hydration, later local edits, sign-out, and a subsequent account switch.
 - Verified Firebase students now share live group chat with current group
   members and tutor-session chat with the booking's two participants. The
   active chat reads a bounded latest-50 window and loads older pages on demand;
@@ -32,12 +37,12 @@
   Session Details screens were updated to reflect those delivery boundaries.
   Chat state is keyed to the active user and conversation so switching threads
   cannot flash the previous thread under the new title.
-- `npm test -- --runInBand --coverage --testTimeout=15000`: 188 tests passed
-  in 28 suites; statement coverage 82.42% and branch coverage 72.96%.
+- `npm test -- --runInBand --coverage --testTimeout=15000`: 190 tests passed
+  in 28 suites; statement coverage 82.09% and branch coverage 72.58%.
   `npm run lint` passed without warnings. `:app:createBundleReleaseJsAndAssets`,
   `:app:testDebugUnitTest`, and `:app:assembleDebug` passed under JDK 25.
-  The production JavaScript bundle is 2,649,064 bytes with SHA-256
-  `0f8cc5ae08a2135d93a770f81da3a9cd41d28ba494421d6381b4e41e5eebe7bb`.
+  The production JavaScript bundle is 2,651,748 bytes with SHA-256
+  `77614d01b8c06709b07dea44ef09516cbe965402ddb1c6f0e7c04510a63a474e`.
 - Local Auth and Firestore emulator tests passed. The rules suite covers current
   group-member chat access, owner hide/restore, participant-only tutor-session
   chat, message-size and page limits, and send cooldowns. The Auth emulator

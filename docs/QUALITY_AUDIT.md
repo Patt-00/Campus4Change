@@ -97,6 +97,11 @@ production-ready claim.
   keeps the account open if the local save fails, but permits sign-out after a
   successful local save when cloud sync fails and explains how to retry later.
   A successful Firebase sign-out also clears the transient Student ID cache.
+- Local account-state writes no longer wait behind Firestore server
+  acknowledgements. Cloud snapshots are coalesced by Firebase UID, and sign-out
+  waits at most 1.2 seconds for a remote acknowledgement after saving locally.
+  Regression tests hold a cloud write indefinitely, verify later local changes
+  still persist, and ensure a pending write cannot cross into another account.
 - Booked and group sessions use appointment-style workspaces for their schedule,
   location or tutor, agenda, and notes. Group notes stay private until the member
   explicitly posts them.

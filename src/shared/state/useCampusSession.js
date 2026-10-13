@@ -18,6 +18,8 @@ import { reducer } from './reducer';
 import { stateForPersistence } from './persistence';
 import { deviceStore, parseAccount, parseState } from './storage';
 
+const SIGN_OUT_CLOUD_SYNC_TIMEOUT_MS = 1200;
+
 function asState(value, account) {
   if (!value) {
     return initialState(account);
@@ -99,6 +101,18 @@ function sessionAccountId(session) {
   return session.kind === 'firebase' ? session.uid : session.id;
 }
 
+// Firestore write promises wait for server acknowledgement, so sign-out must be bounded.
+function waitForCloudWrite(promise, timeoutMs) {
+  let timeoutId;
+  const timeout = new Promise(resolve => {
+    timeoutId = setTimeout(() => resolve(false), timeoutMs);
+  });
+  return Promise.race([
+    Promise.resolve(promise).then(Boolean, () => false),
+    timeout,
+  ]).finally(() => clearTimeout(timeoutId));
+}
+
 export function useCampusSession({ onSignedIn, onSignedOut }) {
   const [state, setState] = useState(null);
   const [saveError, setSaveError] = useState('');
@@ -111,6 +125,9 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
   const cloudHydrated = useRef(false);
   const firebaseSignOutInProgress = useRef(false);
   const cloudEntries = useRef(new Map());
+  // Keep only the newest unsent snapshot per Firebase UID while a write is in flight.
+  const cloudWrites = useRef(new Map());
+  // Device writes are quick and durable; never serialize them behind network acks.
   const saveQueue = useRef(Promise.resolve());
   const callbacks = useRef({ onSignedIn, onSignedOut });
   snapshot.current = state;
@@ -126,22 +143,114 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
     return saved;
   }, []);
 
-  const saveActiveState = useCallback(async (value, expectedSession) => {
+  const saveLocalActiveState = useCallback(async (value, expectedSession) => {
     if (!expectedSession) {
       throw new Error('Sign in before saving your account data.');
     }
     if (activeSession.current !== expectedSession) {
-      return false;
+      return null;
     }
     const saved = await saveLocalState(value, expectedSession);
     if (activeSession.current !== expectedSession) {
-      return false;
+      return null;
     }
-    if (expectedSession.kind === 'firebase') {
-      await saveCloudState(expectedSession.uid, saved);
-    }
-    return true;
+    return saved;
   }, [saveLocalState]);
+
+  const queueCloudSave = useCallback((value, expectedSession) => {
+    if (
+      expectedSession?.kind !== 'firebase' ||
+      value?.profile?.id !== expectedSession.uid ||
+      activeSession.current?.kind !== 'firebase' ||
+      activeSession.current.uid !== expectedSession.uid
+    ) {
+      return Promise.resolve(false);
+    }
+
+    const uid = expectedSession.uid;
+    let queue = cloudWrites.current.get(uid);
+    if (!queue) {
+      queue = { pendingState: null, task: null };
+      cloudWrites.current.set(uid, queue);
+    }
+    queue.pendingState = value;
+    if (queue.task) {
+      return queue.task;
+    }
+
+    const task = (async () => {
+      while (
+        queue.pendingState &&
+        activeSession.current?.kind === 'firebase' &&
+        activeSession.current.uid === uid
+      ) {
+        const nextState = queue.pendingState;
+        queue.pendingState = null;
+        try {
+          await saveCloudState(uid, nextState);
+        } catch (error) {
+          queue.pendingState = null;
+          if (
+            activeSession.current?.kind === 'firebase' &&
+            activeSession.current.uid === uid
+          ) {
+            setSaveError(errorText(error));
+          }
+          return false;
+        }
+      }
+
+      const saved =
+        activeSession.current?.kind === 'firebase' &&
+        activeSession.current.uid === uid;
+      if (saved) {
+        setSaveError('');
+      } else {
+        queue.pendingState = null;
+      }
+      return saved;
+    })();
+    queue.task = task;
+    task.then(
+      () => {
+        if (queue.task !== task) {
+          return;
+        }
+        queue.task = null;
+        const currentSession = activeSession.current;
+        if (
+          queue.pendingState &&
+          currentSession?.kind === 'firebase' &&
+          currentSession.uid === uid
+        ) {
+          queueCloudSave(queue.pendingState, currentSession).catch(error => {
+            if (
+              activeSession.current?.kind === 'firebase' &&
+              activeSession.current.uid === uid
+            ) {
+              setSaveError(errorText(error));
+            }
+          });
+        } else if (!queue.pendingState) {
+          cloudWrites.current.delete(uid);
+        }
+      },
+      error => {
+        if (queue.task === task) {
+          queue.task = null;
+          queue.pendingState = null;
+          cloudWrites.current.delete(uid);
+          if (
+            activeSession.current?.kind === 'firebase' &&
+            activeSession.current.uid === uid
+          ) {
+            setSaveError(errorText(error));
+          }
+        }
+      },
+    );
+    return task;
+  }, []);
 
   const updatedAt = state?.updatedAt;
   const accountId = state?.profile?.id;
@@ -157,16 +266,24 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
 
     let cancelled = false;
     const task = saveQueue.current.then(
-      () => saveActiveState(value, expectedSession),
-      () => saveActiveState(value, expectedSession),
+      () => saveLocalActiveState(value, expectedSession),
+      () => saveLocalActiveState(value, expectedSession),
     );
     saveQueue.current = task;
-    task.then(
-      () => {
-        if (!cancelled) {
-          setSaveError('');
-        }
-      },
+    task.then(saved => {
+      if (cancelled || !saved) {
+        return;
+      }
+      if (expectedSession.kind === 'firebase') {
+        queueCloudSave(saved, expectedSession).catch(error => {
+          if (activeSession.current === expectedSession) {
+            setSaveError(errorText(error));
+          }
+        });
+      } else {
+        setSaveError('');
+      }
+    },
       error => {
         if (!cancelled) {
           setSaveError(errorText(error));
@@ -176,7 +293,7 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
     return () => {
       cancelled = true;
     };
-  }, [saveActiveState, updatedAt, accountId]);
+  }, [queueCloudSave, saveLocalActiveState, updatedAt, accountId]);
 
   const enterLocalAccount = useCallback(async value => {
     const storage = deviceStore();
@@ -268,7 +385,17 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
           JSON.stringify(stateForPersistence(cloud)) !== JSON.stringify(cloud);
         await storage.saveState(user.uid, JSON.stringify(saved));
         if (!cloud || selected === latestLocal || cloudHasTransientFeed) {
-          await saveCloudState(user.uid, saved);
+          const currentSession = activeSession.current;
+          if (
+            currentSession?.kind === 'firebase' &&
+            currentSession.uid === user.uid
+          ) {
+            queueCloudSave(saved, currentSession).catch(error => {
+              if (activeSession.current === currentSession) {
+                setSaveError(errorText(error));
+              }
+            });
+          }
         }
         if (activeSession.current?.uid === user.uid) {
           setSaveError('');
@@ -296,7 +423,7 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
       () => cloudEntries.current.delete(user.uid),
     );
     return task;
-  }, []);
+  }, [queueCloudSave]);
 
   useEffect(() => {
     if (!firebaseEnabled) {
@@ -467,11 +594,10 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
         await saveQueue.current.catch(() => {});
         const saved = await saveLocalState(snapshot.current, active);
         if (active.kind === 'firebase') {
-          try {
-            await saveCloudState(active.uid, saved);
-          } catch {
-            cloudSaved = false;
-          }
+          cloudSaved = await waitForCloudWrite(
+            queueCloudSave(saved, active),
+            SIGN_OUT_CLOUD_SYNC_TIMEOUT_MS,
+          );
         }
       }
       if (active?.kind === 'firebase') {
@@ -515,11 +641,27 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
     if (snapshot.current && expectedSession) {
       const value = snapshot.current;
       const task = saveQueue.current.then(
-        () => saveActiveState(value, expectedSession),
-        () => saveActiveState(value, expectedSession),
+        () => saveLocalActiveState(value, expectedSession),
+        () => saveLocalActiveState(value, expectedSession),
       );
       saveQueue.current = task;
-      task.then(() => setSaveError('')).catch(error => setSaveError(errorText(error)));
+      task.then(
+        saved => {
+          if (!saved) {
+            return;
+          }
+          if (expectedSession.kind === 'firebase') {
+            queueCloudSave(saved, expectedSession).catch(error => {
+              if (activeSession.current === expectedSession) {
+                setSaveError(errorText(error));
+              }
+            });
+          } else {
+            setSaveError('');
+          }
+        },
+        error => setSaveError(errorText(error)),
+      );
     }
   }
 

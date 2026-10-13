@@ -235,6 +235,161 @@ test('Firebase sign-out succeeds when cloud sync fails after local state is save
   await act(async () => renderer.unmount());
 });
 
+test('a pending Firebase write does not block local persistence or sign-out', async () => {
+  let releaseCloudWrite;
+  const pendingCloudWrite = new Promise(resolve => {
+    releaseCloudWrite = resolve;
+  });
+  mockSaveCloudState.mockImplementation(() => pendingCloudWrite);
+
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(<Harness />);
+  });
+  await act(async () => {
+    mockUserListener({
+      uid: 'firebase-student',
+      id: 'firebase-student',
+      name: 'Student',
+      email: 'student@school.test',
+      studentId: 'STU-1',
+      emailVerified: true,
+    });
+    await flushTasks();
+    await flushTasks();
+  });
+  expect(currentSession.sessionType).toBe('firebase');
+  expect(currentSession.state.profile.id).toBe('firebase-student');
+
+  mockStore.saveState.mockClear();
+  await act(async () => {
+    currentSession.dispatch({
+      type: 'profile',
+      profile: { course: 'Computer Science' },
+    });
+    await flushTasks();
+    await flushTasks();
+  });
+  await act(async () => {
+    currentSession.dispatch({
+      type: 'profile',
+      profile: { year: '3rd Year' },
+    });
+    await flushTasks();
+    await flushTasks();
+  });
+
+  expect(mockStore.saveState).toHaveBeenCalledTimes(2);
+  const newestLocalState = JSON.parse(mockStore.saveState.mock.calls.at(-1)[1]);
+  expect(newestLocalState.profile).toMatchObject({
+    course: 'Computer Science',
+    year: '3rd Year',
+  });
+
+  let signOutTimedOut = false;
+  let signOutResult;
+  await act(async () => {
+    signOutResult = await Promise.race([
+      currentSession.signOut(),
+      new Promise(resolve =>
+        setTimeout(() => {
+          signOutTimedOut = true;
+          resolve(null);
+        }, 1800),
+      ),
+    ]);
+  });
+  expect(signOutTimedOut).toBe(false);
+  expect(signOutResult).toEqual({ signedOut: true, cloudSaved: false });
+  expect(mockFirebaseSignOut).toHaveBeenCalledTimes(1);
+
+  mockStore.loadState.mockResolvedValueOnce(JSON.stringify(newestLocalState));
+  await act(async () => {
+    mockUserListener({
+      uid: 'firebase-student',
+      id: 'firebase-student',
+      name: 'Student',
+      email: 'student@school.test',
+      studentId: 'STU-1',
+      emailVerified: true,
+    });
+    await flushTasks();
+    await flushTasks();
+  });
+  expect(currentSession.state.profile).toMatchObject({
+    course: 'Computer Science',
+    year: '3rd Year',
+  });
+
+  releaseCloudWrite();
+  await act(async () => {
+    await flushTasks();
+    await flushTasks();
+    await flushTasks();
+  });
+  expect(mockSaveCloudState).toHaveBeenCalledTimes(2);
+  await act(async () => renderer.unmount());
+});
+
+test('a pending cloud write cannot be replayed into a different Firebase account', async () => {
+  let releaseFirstWrite;
+  const firstWritePending = new Promise(resolve => {
+    releaseFirstWrite = resolve;
+  });
+  const cloudWrites = [];
+  mockSaveCloudState.mockImplementation((uid, value) => {
+    cloudWrites.push({ uid, profileId: value.profile.id });
+    return uid === 'firebase-a' ? firstWritePending : Promise.resolve();
+  });
+
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(<Harness />);
+  });
+  await act(async () => {
+    mockUserListener({
+      uid: 'firebase-a',
+      id: 'firebase-a',
+      name: 'Student A',
+      email: 'a@school.test',
+      emailVerified: true,
+    });
+    await flushTasks();
+    await flushTasks();
+  });
+  await act(async () => {
+    currentSession.dispatch({
+      type: 'profile',
+      profile: { course: 'Private to A' },
+    });
+    await flushTasks();
+    await flushTasks();
+  });
+
+  await act(async () => {
+    mockUserListener({
+      uid: 'firebase-b',
+      id: 'firebase-b',
+      name: 'Student B',
+      email: 'b@school.test',
+      emailVerified: true,
+    });
+    await flushTasks();
+    await flushTasks();
+  });
+  expect(currentSession.state.profile.id).toBe('firebase-b');
+
+  releaseFirstWrite();
+  await act(async () => {
+    await flushTasks();
+    await flushTasks();
+  });
+  expect(cloudWrites).toContainEqual({ uid: 'firebase-a', profileId: 'firebase-a' });
+  expect(cloudWrites).toContainEqual({ uid: 'firebase-b', profileId: 'firebase-b' });
+  expect(cloudWrites).not.toContainEqual({ uid: 'firebase-b', profileId: 'firebase-a' });
+  await act(async () => renderer.unmount());
+});
+
 test('Firebase sign-out keeps the session active when encrypted local save fails', async () => {
   let renderer;
   await act(async () => {
