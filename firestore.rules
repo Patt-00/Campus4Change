@@ -458,16 +458,35 @@ service cloud.firestore {
       allow delete: if signedIn() && request.auth.uid == tutorUid;
     }
 
-    // A request is visible only to the two participating students. Tutors
-    // decide whether to accept it; either participant can cancel, and either
-    // participant can mark an accepted session complete.
+    // A request is visible only to the two participating students. One-hour
+    // sessions reserve two half-hour buckets so overlapping start times cannot
+    // both be accepted.
     match /tutorBookings/{bookingId} {
       function tutorProfilePath(tutorUid) {
         return /databases/$(database)/documents/tutorProfiles/$(tutorUid);
       }
 
-      function slotPath(tutorUid, slotKey) {
-        return /databases/$(database)/documents/tutorSlots/$(tutorUid)/slots/$(slotKey);
+      function slotPath(tutorUid, slotBucket) {
+        return /databases/$(database)/documents/tutorSlots/$(tutorUid)/slots/$(slotBucket);
+      }
+
+      function slotBucketsFor(startsAt) {
+        let firstBucket = math.floor(startsAt.toMillis() / 1800000);
+        return [firstBucket, firstBucket + 1];
+      }
+
+      function hasMatchingSlotAfter(data, bookingId, index) {
+        let bucket = data.slotBuckets[index];
+        return existsAfter(slotPath(data.tutorUid, bucket))
+          && getAfter(slotPath(data.tutorUid, bucket)).data.bookingId == bookingId
+          && getAfter(slotPath(data.tutorUid, bucket)).data.tutorUid == data.tutorUid
+          && getAfter(slotPath(data.tutorUid, bucket)).data.studentUid == data.studentUid
+          && getAfter(slotPath(data.tutorUid, bucket)).data.slotBucket == bucket
+          && getAfter(slotPath(data.tutorUid, bucket)).data.startsAt == data.startsAt;
+      }
+
+      function slotRemovedAfter(data, index) {
+        return !existsAfter(slotPath(data.tutorUid, data.slotBuckets[index]));
       }
 
       function isParticipant() {
@@ -480,12 +499,12 @@ service cloud.firestore {
         let data = request.resource.data;
         return data.keys().hasAll([
             'studentUid', 'tutorUid', 'studentName', 'tutorName',
-            'subject', 'startsAt', 'slotKey', 'note', 'status', 'participantUids',
+            'subject', 'startsAt', 'slotBuckets', 'note', 'status', 'participantUids',
             'createdAt', 'updatedAt'
           ])
           && data.keys().hasOnly([
             'studentUid', 'tutorUid', 'studentName', 'tutorName',
-            'subject', 'startsAt', 'slotKey', 'note', 'status', 'participantUids',
+            'subject', 'startsAt', 'slotBuckets', 'note', 'status', 'participantUids',
             'createdAt', 'updatedAt'
           ])
           && data.studentUid == request.auth.uid
@@ -504,9 +523,14 @@ service cloud.firestore {
           && data.note.size() <= 2000
           && data.startsAt is timestamp
           && data.startsAt > request.time
-          && data.slotKey is string
-          && data.slotKey.size() <= 64
-          && data.slotKey.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$')
+          && data.startsAt.toMillis() % 1800000 == 0
+          && data.startsAt.nanos() == 0
+          && data.slotBuckets is list
+          && data.slotBuckets.size() == 2
+          && data.slotBuckets[0] is int
+          && data.slotBuckets[1] is int
+          && data.slotBuckets[0] == slotBucketsFor(data.startsAt)[0]
+          && data.slotBuckets[1] == slotBucketsFor(data.startsAt)[1]
           && data.status == 'pending'
           && data.participantUids is list
           && data.participantUids.size() == 2
@@ -537,25 +561,30 @@ service cloud.firestore {
         && ((resource.data.status == 'pending'
               && request.auth.uid == resource.data.tutorUid
               && ((request.resource.data.status == 'accepted'
-                  && existsAfter(slotPath(resource.data.tutorUid, resource.data.slotKey))
-                  && getAfter(slotPath(resource.data.tutorUid, resource.data.slotKey)).data.bookingId == bookingId)
+                  && hasMatchingSlotAfter(resource.data, bookingId, 0)
+                  && hasMatchingSlotAfter(resource.data, bookingId, 1))
                 || request.resource.data.status == 'declined'))
           || (resource.data.status in ['pending', 'accepted']
               && request.resource.data.status == 'cancelled'
-              && (resource.data.status == 'pending'
-                || !existsAfter(slotPath(resource.data.tutorUid, resource.data.slotKey))))
+              && slotRemovedAfter(resource.data, 0)
+              && slotRemovedAfter(resource.data, 1))
           || (resource.data.status == 'accepted'
               && request.resource.data.status == 'completed'
-              && !existsAfter(slotPath(resource.data.tutorUid, resource.data.slotKey))));
+              && slotRemovedAfter(resource.data, 0)
+              && slotRemovedAfter(resource.data, 1)));
       allow delete: if false;
     }
 
-    // A single accepted request owns its tutor/time lock. Booking status and
-    // lock changes must happen in the same transaction, preventing two
-    // verified students from being accepted for the exact same slot.
-    match /tutorSlots/{tutorUid}/slots/{slotKey} {
+    // The lock path is derived from the request's numeric UTC half-hour bucket.
+    // Each accepted one-hour request owns two adjacent locks, preventing both
+    // exact-time duplicates and overlapping starts.
+    match /tutorSlots/{tutorUid}/slots/{slotId} {
       function bookingPath(bookingId) {
         return /databases/$(database)/documents/tutorBookings/$(bookingId);
+      }
+
+      function canonicalSlotPath(slotBucket) {
+        return /databases/$(database)/documents/tutorSlots/$(tutorUid)/slots/$(slotBucket);
       }
 
       allow get: if signedIn()
@@ -565,29 +594,40 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.auth.uid == tutorUid
         && request.resource.data.keys().hasAll([
-          'bookingId', 'tutorUid', 'studentUid', 'slotKey', 'startsAt', 'createdAt'
+          'bookingId', 'tutorUid', 'studentUid', 'slotBucket', 'startsAt', 'createdAt'
         ])
         && request.resource.data.keys().hasOnly([
-          'bookingId', 'tutorUid', 'studentUid', 'slotKey', 'startsAt', 'createdAt'
+          'bookingId', 'tutorUid', 'studentUid', 'slotBucket', 'startsAt', 'createdAt'
         ])
         && request.resource.data.bookingId is string
         && request.resource.data.bookingId.size() > 0
         && request.resource.data.tutorUid == tutorUid
-        && request.resource.data.slotKey == slotKey
+        && request.resource.data.slotBucket is int
+        && request.path == canonicalSlotPath(request.resource.data.slotBucket)
         && request.resource.data.createdAt == request.time
         && existsAfter(bookingPath(request.resource.data.bookingId))
         && getAfter(bookingPath(request.resource.data.bookingId)).data.tutorUid == tutorUid
         && getAfter(bookingPath(request.resource.data.bookingId)).data.studentUid == request.resource.data.studentUid
-        && getAfter(bookingPath(request.resource.data.bookingId)).data.slotKey == slotKey
+        && getAfter(bookingPath(request.resource.data.bookingId)).data.slotBuckets.size() == 2
+        && (getAfter(bookingPath(request.resource.data.bookingId)).data.slotBuckets[0]
+              == request.resource.data.slotBucket
+          || getAfter(bookingPath(request.resource.data.bookingId)).data.slotBuckets[1]
+              == request.resource.data.slotBucket)
         && getAfter(bookingPath(request.resource.data.bookingId)).data.startsAt == request.resource.data.startsAt
         && getAfter(bookingPath(request.resource.data.bookingId)).data.status == 'accepted';
       allow update: if false;
       allow delete: if signedIn()
         && (request.auth.uid == tutorUid
           || request.auth.uid == resource.data.studentUid)
+        && resource.data.slotBucket is int
+        && request.path == canonicalSlotPath(resource.data.slotBucket)
         && existsAfter(bookingPath(resource.data.bookingId))
         && getAfter(bookingPath(resource.data.bookingId)).data.tutorUid == tutorUid
-        && getAfter(bookingPath(resource.data.bookingId)).data.slotKey == slotKey
+        && getAfter(bookingPath(resource.data.bookingId)).data.slotBuckets.size() == 2
+        && (getAfter(bookingPath(resource.data.bookingId)).data.slotBuckets[0]
+              == resource.data.slotBucket
+          || getAfter(bookingPath(resource.data.bookingId)).data.slotBuckets[1]
+              == resource.data.slotBucket)
         && getAfter(bookingPath(resource.data.bookingId)).data.status in ['cancelled', 'completed'];
     }
 

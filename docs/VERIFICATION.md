@@ -20,8 +20,9 @@ Verified for this checkpoint:
   24.18.0. The root engine range now matches React Native 0.87.1's package
   metadata, and the lockfile records the same range.
 - `npm test -- --runInBand`: 160 tests passed in 25 suites. Coverage includes
-  Google auth screens, cancellation feedback, and token exchange, tutor profile publishing and removal,
-  request status transitions and slot locks, as well as stale group callbacks and pending
+  Google auth screens, cancellation feedback, and token exchange, tutor profile
+  publishing and removal, request status transitions, and slot locks, as well as
+  stale group callbacks and pending
   shared writes across account changes, queued state persistence after a switch
   even when both accounts share the same `updatedAt`, unknown and past-due
   session statuses, malformed or missing session start times across Home,
@@ -66,8 +67,9 @@ Verified for this checkpoint:
   to 20 documents; unbounded
   and over-limit queries fail. Unverified accounts can still access only their
   own private state; shared group discovery and writes are denied. Tutor listing
-  privacy, participant-only requests, duplicate-slot rejection, and atomic
-  reservation release also pass. The real
+  privacy, participant-only requests, forged-bucket/path and misaligned-time
+  rejection, overlapping-slot rejection, and atomic release of both
+  reservations also pass. The real
   last live Console check found initial production-mode rules that deny all
   client access. Firebase CLI is unauthenticated in this session, so that live
   state was not rechecked; the checked-in rules have not been deployed.
@@ -237,8 +239,8 @@ Shared group metadata and member counts, posts, and replies use the
 member's private `users/{uid}/studyGroupMemberships/{groupId}` record drives
 join state and member authorization. Local/demo groups remain on-device.
 Verified Firebase accounts can publish tutor profiles and exchange participant-
-only session requests. Tutor acceptance and slot reservation happen in one
-transaction; participant cancellation/completion releases the lock atomically.
+only session requests. Tutor acceptance reserves two half-hour buckets in one
+transaction; participant cancellation/completion releases both locks atomically.
 Demo/device-only tutor listings and schedules remain local. Direct messages and
 group chat still save private notes and are not delivered between students. The current
 dependency audit reports 47 high and 5 moderate findings (0 critical);

@@ -52,9 +52,10 @@ production-ready claim.
   Student ID; device-only listings remain local.
 - Firebase students can send tutor session requests, see incoming/outgoing
   requests live in Sessions, and accept, decline, cancel, or complete them.
-  Participant-only rules protect each request. Tutor/time locks are written
-  atomically with acceptance so the same exact slot cannot be accepted twice.
-  Shared session workspace notes stay private to each account.
+  Participant-only rules protect each request. Two timestamp-derived half-hour
+  locks are written atomically for each one-hour acceptance, preventing both
+  duplicate and overlapping reservations. Rules reject forged bucket IDs and
+  mismatched lock paths. Shared workspace notes stay private to each account.
 - Shared feeds cap live windows at 20 posts and 20 replies per post; members
   can load older cursor pages on demand. Feed snapshots are kept out of durable
   private account-state records. Paging pauses the current live window until

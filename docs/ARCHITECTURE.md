@@ -115,11 +115,14 @@ to accept or decline. Student and tutor inboxes use separate UID-constrained
 queries so the rules can prove every returned record belongs to that user.
 The navigator merges those live requests into the existing Sessions menu;
 pending requests remain pending until accepted. Accepting a request uses a
-transaction to reserve a tutor/time document under `tutorSlots/{tutorUid}`.
-The booking status and slot lock are created atomically, and cancellation or
-completion releases the lock in the same transaction. Rules reject status
-changes that omit the matching lock update. Shared session workspace notes
-remain in each participant's private account state.
+transaction to reserve two adjacent UTC half-hour documents under
+`tutorSlots/{tutorUid}/slots`; numeric bucket IDs are derived from the request
+timestamp and validated by the rules. This covers the one-hour duration, so
+requests starting 30 minutes apart cannot both be accepted. Booking status and
+both locks are created atomically, and cancellation or completion releases both
+locks in the same transaction. Rules reject forged bucket IDs and status
+changes that omit the matching locks. Shared session workspace notes remain
+in each participant's private account state.
 
 Demo and device-only tutor profiles and bookings remain local. Direct messages
 and group chat still save private notes to the user's account; they are not

@@ -2,6 +2,7 @@ import { firebaseServicesForUser } from '../../../shared/backend/firebase';
 
 const PROFILE_PAGE_SIZE = 20;
 const BOOKING_PAGE_SIZE = 100;
+const SLOT_BUCKET_MS = 30 * 60 * 1000;
 
 function isoTime(value) {
   if (typeof value === 'string') {
@@ -56,7 +57,7 @@ export function mapTutorBooking(snapshot, uid) {
     studentName: booking.studentName,
     subject: booking.subject,
     startsAt: isoTime(booking.startsAt),
-    slotKey: booking.slotKey,
+    slotBuckets: booking.slotBuckets,
     note: booking.note,
     status: appStatus(booking.status),
     remoteStatus: booking.status,
@@ -184,9 +185,14 @@ export async function createTutorBooking(uid, studentName, tutor, subject, start
   if (!Number.isFinite(start.getTime()) || start.getTime() <= Date.now()) {
     throw new Error('Choose a future date and time.');
   }
+  if (start.getTime() % SLOT_BUCKET_MS !== 0) {
+    throw new Error('Choose a time on the hour or half-hour.');
+  }
   if (!tutor.subjects?.includes(subject)) {
     throw new Error('Choose one of this tutor’s listed subjects.');
   }
+  const firstBucket = Math.floor(start.getTime() / SLOT_BUCKET_MS);
+  const slotBuckets = [firstBucket, firstBucket + 1];
   const booking = {
     studentUid: uid,
     tutorUid: tutor.id,
@@ -194,7 +200,7 @@ export async function createTutorBooking(uid, studentName, tutor, subject, start
     tutorName: String(tutor.name || 'Campus tutor').trim().slice(0, 100),
     subject: String(subject).trim().slice(0, 100),
     startsAt: Timestamp.fromDate(start),
-    slotKey: start.toISOString(),
+    slotBuckets,
     note: String(note || '').trim().slice(0, 2000),
     status: 'pending',
     participantUids: [uid, tutor.id],
@@ -212,6 +218,7 @@ export async function createTutorBooking(uid, studentName, tutor, subject, start
     studentName: booking.studentName,
     subject: booking.subject,
     startsAt: start.toISOString(),
+    slotBuckets,
     note: booking.note,
     status: 'Pending',
     remoteStatus: 'pending',
@@ -237,45 +244,53 @@ export async function updateTutorBookingStatus(uid, bookingId, status) {
       throw new Error('This session request is no longer available.');
     }
     const booking = snapshot.data();
-    const slotRef = doc(
-      db,
-      'tutorSlots',
-      booking.tutorUid,
-      'slots',
-      booking.slotKey,
+    if (
+      !Array.isArray(booking.slotBuckets) ||
+      booking.slotBuckets.length !== 2 ||
+      !booking.slotBuckets.every(Number.isSafeInteger) ||
+      booking.slotBuckets[1] !== booking.slotBuckets[0] + 1
+    ) {
+      throw new Error('The reserved session time is invalid. Refresh and retry.');
+    }
+    const slotRefs = booking.slotBuckets.map(bucket =>
+      doc(db, 'tutorSlots', booking.tutorUid, 'slots', String(bucket)),
     );
 
     if (status === 'accept') {
       if (booking.status !== 'pending') {
         throw new Error('This request has already been answered.');
       }
-      const occupiedSlot = await transaction.get(slotRef);
-      if (
-        occupiedSlot.exists() &&
-        occupiedSlot.data().bookingId !== bookingId
-      ) {
+      const occupiedSlots = await Promise.all(
+        slotRefs.map(slotRef => transaction.get(slotRef)),
+      );
+      if (occupiedSlots.some(slot => slot.exists())) {
         throw new Error('This time was just accepted for another request.');
       }
-      transaction.set(slotRef, {
-        bookingId,
-        tutorUid: booking.tutorUid,
-        studentUid: booking.studentUid,
-        slotKey: booking.slotKey,
-        startsAt: booking.startsAt,
-        createdAt: serverTimestamp(),
-      });
+      for (let index = 0; index < slotRefs.length; index += 1) {
+        transaction.set(slotRefs[index], {
+          bookingId,
+          tutorUid: booking.tutorUid,
+          studentUid: booking.studentUid,
+          slotBucket: booking.slotBuckets[index],
+          startsAt: booking.startsAt,
+          createdAt: serverTimestamp(),
+        });
+      }
     } else if (
       booking.status === 'accepted' &&
       ['cancel', 'complete'].includes(status)
     ) {
-      const occupiedSlot = await transaction.get(slotRef);
+      const occupiedSlots = await Promise.all(
+        slotRefs.map(slotRef => transaction.get(slotRef)),
+      );
       if (
-        !occupiedSlot.exists() ||
-        occupiedSlot.data().bookingId !== bookingId
+        occupiedSlots.some(
+          slot => !slot.exists() || slot.data().bookingId !== bookingId,
+        )
       ) {
         throw new Error('The session time is no longer reserved. Refresh and retry.');
       }
-      transaction.delete(slotRef);
+      slotRefs.forEach(slotRef => transaction.delete(slotRef));
     } else if (
       booking.status !== 'pending' ||
       !['decline', 'cancel'].includes(status)

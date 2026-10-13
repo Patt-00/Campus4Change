@@ -34,13 +34,15 @@ function createFirestore() {
       const transaction = {
         get: jest.fn(async ref => {
           if (ref.path === 'db/tutorBookings/booking-1') {
+            const start = new Date('2026-10-15T09:00:00.000Z');
+            const firstBucket = Math.floor(start.getTime() / (30 * 60 * 1000));
             return {
               exists: () => true,
               data: () => ({
                 tutorUid: 'tutor-1',
                 studentUid: 'student-1',
-                slotKey: '2026-10-15T09:00:00.000Z',
-                startsAt: { seconds: 1792054800 },
+                slotBuckets: [firstBucket, firstBucket + 1],
+                startsAt: { toDate: () => start },
                 status: firestore.bookingStatus || 'pending',
               }),
             };
@@ -123,7 +125,10 @@ test('publishes only bounded, normalized tutor profile fields', async () => {
 test('creates a pending request only for a listed tutor and one of their subjects', async () => {
   const services = createFirestore();
   firebaseServicesForUser.mockReturnValue(services);
-  const startsAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  const startsAt = new Date(
+    Math.ceil((Date.now() + 60 * 60 * 1000) / (30 * 60 * 1000)) *
+      (30 * 60 * 1000),
+  ).toISOString();
   const tutor = {
     id: 'tutor-1',
     name: 'Taylor Student',
@@ -158,6 +163,8 @@ test('creates a pending request only for a listed tutor and one of their subject
     participantUids: ['student-1', 'tutor-1'],
   });
   expect(written.startsAt.toDate().toISOString()).toBe(startsAt);
+  const firstBucket = Math.floor(new Date(startsAt).getTime() / (30 * 60 * 1000));
+  expect(written.slotBuckets).toEqual([firstBucket, firstBucket + 1]);
   expect(written).not.toHaveProperty('studentEmail');
 
   await expect(
@@ -166,6 +173,16 @@ test('creates a pending request only for a listed tutor and one of their subject
   await expect(
     createTutorBooking('student-1', 'Jordan', tutor, 'Physics', startsAt, ''),
   ).rejects.toThrow('Choose one of this tutor’s listed subjects.');
+  await expect(
+    createTutorBooking(
+      'student-1',
+      'Jordan',
+      tutor,
+      'Calculus',
+      new Date(new Date(startsAt).getTime() + 15 * 60 * 1000).toISOString(),
+      '',
+    ),
+  ).rejects.toThrow('Choose a time on the hour or half-hour.');
   expect(services.firestore.addDoc).toHaveBeenCalledTimes(1);
 });
 
@@ -223,19 +240,35 @@ test('subscribes to each participant role with UID-constrained booking queries',
   expect(asTutor.unsubscribe).toHaveBeenCalledTimes(1);
 });
 
-test('updates only the appointment status and maps Firestore status safely', async () => {
+test('acceptance reserves both half-hour buckets and maps Firestore status safely', async () => {
   const services = createFirestore();
   firebaseServicesForUser.mockReturnValue(services);
 
   await updateTutorBookingStatus('tutor-1', 'booking-1', 'accept');
   const transaction = services.transactions[0];
-  expect(transaction.set).toHaveBeenCalledWith(
-    expect.objectContaining({ path: expect.stringContaining('/tutorSlots/tutor-1/slots/') }),
-    expect.objectContaining({
-      bookingId: 'booking-1',
-      tutorUid: 'tutor-1',
-      studentUid: 'student-1',
-    }),
+  expect(transaction.set).toHaveBeenCalledTimes(2);
+  const firstBucket = Math.floor(
+    new Date('2026-10-15T09:00:00.000Z').getTime() / (30 * 60 * 1000),
+  );
+  expect(transaction.set.mock.calls).toEqual(
+    expect.arrayContaining([
+      [
+        expect.objectContaining({ path: `db/tutorSlots/tutor-1/slots/${firstBucket}` }),
+        expect.objectContaining({
+          bookingId: 'booking-1',
+          tutorUid: 'tutor-1',
+          studentUid: 'student-1',
+          slotBucket: firstBucket,
+        }),
+      ],
+      [
+        expect.objectContaining({ path: `db/tutorSlots/tutor-1/slots/${firstBucket + 1}` }),
+        expect.objectContaining({
+          bookingId: 'booking-1',
+          slotBucket: firstBucket + 1,
+        }),
+      ],
+    ]),
   );
   expect(transaction.update).toHaveBeenCalledWith(
     expect.objectContaining({ path: 'db/tutorBookings/booking-1' }),
@@ -261,7 +294,7 @@ test('updates only the appointment status and maps Firestore status safely', asy
   expect(mapped).toMatchObject({ id: 'booking-2', incoming: false, status: 'Declined' });
 });
 
-test('declines a simultaneous exact-slot acceptance and releases locks on cancellation', async () => {
+test('declines an overlapping acceptance and releases both locks on cancellation', async () => {
   const services = createFirestore();
   firebaseServicesForUser.mockReturnValue(services);
   services.firestore.occupiedBy = 'another-booking';
@@ -274,8 +307,12 @@ test('declines a simultaneous exact-slot acceptance and releases locks on cancel
   services.firestore.bookingStatus = 'accepted';
   await updateTutorBookingStatus('tutor-1', 'booking-1', 'cancel');
   const cancellation = services.transactions[1];
-  expect(cancellation.delete).toHaveBeenCalledWith(
-    expect.objectContaining({ path: expect.stringContaining('/tutorSlots/tutor-1/slots/') }),
+  expect(cancellation.delete).toHaveBeenCalledTimes(2);
+  expect(cancellation.delete.mock.calls.map(([ref]) => ref.path)).toEqual(
+    expect.arrayContaining([
+      expect.stringMatching(/^db\/tutorSlots\/tutor-1\/slots\/\d+$/),
+      expect.stringMatching(/^db\/tutorSlots\/tutor-1\/slots\/\d+$/),
+    ]),
   );
   expect(cancellation.update).toHaveBeenCalledWith(
     expect.objectContaining({ path: 'db/tutorBookings/booking-1' }),

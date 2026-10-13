@@ -104,11 +104,12 @@ npm run test:firebase-auth
 ```
 
 The test checks private account ownership, listed tutor profiles, participant-
-only session requests, same-slot acceptance locks, authenticated group
-discovery, private membership records, safe membership-count updates, and
+only session requests, overlapping-session reservation locks, authenticated
+group discovery, private membership records, safe membership-count updates, and
 member-only post and reply reads and writes. It also rejects unauthenticated
-access, third-party booking reads, duplicate slot acceptance, membership
-spoofing, nonmember posting, and unconfigured collections.
+access, third-party booking reads, duplicate and overlapping slot acceptance,
+forged bucket IDs and lock paths, membership spoofing, nonmember posting, and
+unconfigured collections.
 The Auth emulator test creates a disposable demo account, sends and applies a
 verification code locally, confirms the refreshed email claim, and checks that
 shared-group access is denied before verification but allowed afterward.
@@ -161,8 +162,8 @@ only the fields needed for a student listing. Session requests live at
 `tutorBookings/{bookingId}` and can be read only by the student and tutor.
 Request status changes are limited to tutor acceptance/decline, participant
 cancellation, or participant completion. Accepting a request creates a
-`tutorSlots/{tutorUid}/slots/{slotKey}` reservation in the same transaction;
-cancellation or completion removes that lock atomically. Direct messages and
+two `tutorSlots/{tutorUid}/slots/{slotBucket}` reservations in the same
+transaction; cancellation or completion removes both locks atomically. Direct messages and
 group chat are still private notes rather than delivered conversations. Google
 sign-in is configured as described above. There is no school-domain allowlist.
 

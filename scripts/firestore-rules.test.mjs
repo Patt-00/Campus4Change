@@ -130,10 +130,19 @@ try {
     }),
   );
 
+  const slotBucketMs = 30 * 60 * 1000;
+  const nextFutureHalfHour = () =>
+    new Date(
+      Math.ceil((Date.now() + 86400000) / slotBucketMs) * slotBucketMs,
+    );
+  const slotBucketsFor = start => {
+    const first = Math.floor(start.getTime() / slotBucketMs);
+    return [first, first + 1];
+  };
   const bookingData = (
     studentUid,
     studentName = 'Bob Student',
-    start = new Date(Date.now() + 86400000),
+    start = nextFutureHalfHour(),
   ) => ({
     studentUid,
     tutorUid: 'alice',
@@ -141,13 +150,28 @@ try {
     tutorName: 'Alice Student',
     subject: 'Calculus',
     startsAt: Timestamp.fromDate(start),
-    slotKey: start.toISOString(),
+    slotBuckets: slotBucketsFor(start),
     note: 'Please review integration by parts.',
     status: 'pending',
     participantUids: [studentUid, 'alice'],
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
+  const addSlotLocks = (batch, db, bookingId, booking) => {
+    booking.slotBuckets.forEach(slotBucket => {
+      batch.set(
+        doc(db, 'tutorSlots', booking.tutorUid, 'slots', String(slotBucket)),
+        {
+          bookingId,
+          tutorUid: booking.tutorUid,
+          studentUid: booking.studentUid,
+          slotBucket,
+          startsAt: booking.startsAt,
+          createdAt: serverTimestamp(),
+        },
+      );
+    });
+  };
   const bobBooking = doc(collection(bob, 'tutorBookings'));
   const bobRequest = bookingData('bob');
   await assertFails(
@@ -158,6 +182,25 @@ try {
   );
   await assertFails(
     setDoc(doc(alice, 'tutorBookings/self-booking'), bookingData('alice')),
+  );
+  const misalignedStart = nextFutureHalfHour();
+  await assertFails(
+    setDoc(
+      doc(bob, 'tutorBookings/misaligned-start'),
+      bookingData(
+        'bob',
+        'Bob Student',
+        new Date(misalignedStart.getTime() + 15 * 60 * 1000),
+      ),
+    ),
+  );
+  const forgedBuckets = bookingData('bob');
+  forgedBuckets.slotBuckets = [
+    forgedBuckets.slotBuckets[0] + 10,
+    forgedBuckets.slotBuckets[1] + 10,
+  ];
+  await assertFails(
+    setDoc(doc(bob, 'tutorBookings/forged-buckets'), forgedBuckets),
   );
   await assertSucceeds(setDoc(bobBooking, bobRequest));
   const bobBookings = await assertSucceeds(
@@ -203,23 +246,52 @@ try {
       updatedAt: serverTimestamp(),
     }),
   );
-  const acceptBob = writeBatch(alice);
-  const bobSlot = doc(alice, 'tutorSlots', 'alice', 'slots', bobRequest.slotKey);
-  acceptBob.set(bobSlot, {
-    bookingId: bobBooking.id,
-    tutorUid: 'alice',
-    studentUid: 'bob',
-    slotKey: bobRequest.slotKey,
-    startsAt: bobRequest.startsAt,
-    createdAt: serverTimestamp(),
+  const forgedSlotPath = writeBatch(alice);
+  const firstBucket = bobRequest.slotBuckets[0];
+  const secondBucket = bobRequest.slotBuckets[1];
+  forgedSlotPath.set(
+    doc(alice, 'tutorSlots', 'alice', 'slots', String(firstBucket + 10)),
+    {
+      bookingId: bobBooking.id,
+      tutorUid: 'alice',
+      studentUid: 'bob',
+      slotBucket: firstBucket,
+      startsAt: bobRequest.startsAt,
+      createdAt: serverTimestamp(),
+    },
+  );
+  forgedSlotPath.set(
+    doc(alice, 'tutorSlots', 'alice', 'slots', String(secondBucket)),
+    {
+      bookingId: bobBooking.id,
+      tutorUid: 'alice',
+      studentUid: 'bob',
+      slotBucket: secondBucket,
+      startsAt: bobRequest.startsAt,
+      createdAt: serverTimestamp(),
+    },
+  );
+  forgedSlotPath.update(doc(alice, 'tutorBookings', bobBooking.id), {
+    status: 'accepted',
+    updatedAt: serverTimestamp(),
   });
+  await assertFails(forgedSlotPath.commit());
+
+  const acceptBob = writeBatch(alice);
+  addSlotLocks(acceptBob, alice, bobBooking.id, bobRequest);
   acceptBob.update(doc(alice, 'tutorBookings', bobBooking.id), {
     status: 'accepted',
     updatedAt: serverTimestamp(),
   });
   await assertSucceeds(acceptBob.commit());
-  await assertSucceeds(getDoc(doc(bob, 'tutorSlots', 'alice', 'slots', bobRequest.slotKey)));
-  await assertFails(getDoc(doc(carol, 'tutorSlots', 'alice', 'slots', bobRequest.slotKey)));
+  for (const bucket of bobRequest.slotBuckets) {
+    await assertSucceeds(
+      getDoc(doc(bob, 'tutorSlots', 'alice', 'slots', String(bucket))),
+    );
+    await assertFails(
+      getDoc(doc(carol, 'tutorSlots', 'alice', 'slots', String(bucket))),
+    );
+  }
   await assertFails(
     updateDoc(bobBooking, {
       status: 'completed',
@@ -231,26 +303,38 @@ try {
   const duplicateRequest = bookingData(
     'carol',
     'Carol Student',
-    new Date(bobRequest.slotKey),
+    bobRequest.startsAt.toDate(),
   );
   await assertSucceeds(setDoc(duplicateBooking, duplicateRequest));
   const acceptDuplicate = writeBatch(alice);
-  acceptDuplicate.set(bobSlot, {
-    bookingId: duplicateBooking.id,
-    tutorUid: 'alice',
-    studentUid: 'carol',
-    slotKey: duplicateRequest.slotKey,
-    startsAt: duplicateRequest.startsAt,
-    createdAt: serverTimestamp(),
-  });
+  addSlotLocks(acceptDuplicate, alice, duplicateBooking.id, duplicateRequest);
   acceptDuplicate.update(doc(alice, 'tutorBookings', duplicateBooking.id), {
     status: 'accepted',
     updatedAt: serverTimestamp(),
   });
   await assertFails(acceptDuplicate.commit());
 
+  const overlappingBooking = doc(collection(carol, 'tutorBookings'));
+  const overlappingRequest = bookingData(
+    'carol',
+    'Carol Student',
+    new Date(bobRequest.startsAt.toDate().getTime() + 30 * 60 * 1000),
+  );
+  await assertSucceeds(setDoc(overlappingBooking, overlappingRequest));
+  const acceptOverlap = writeBatch(alice);
+  addSlotLocks(acceptOverlap, alice, overlappingBooking.id, overlappingRequest);
+  acceptOverlap.update(doc(alice, 'tutorBookings', overlappingBooking.id), {
+    status: 'accepted',
+    updatedAt: serverTimestamp(),
+  });
+  await assertFails(acceptOverlap.commit());
+
   const cancelBob = writeBatch(bob);
-  cancelBob.delete(doc(bob, 'tutorSlots', 'alice', 'slots', bobRequest.slotKey));
+  bobRequest.slotBuckets.forEach(slotBucket =>
+    cancelBob.delete(
+      doc(bob, 'tutorSlots', 'alice', 'slots', String(slotBucket)),
+    ),
+  );
   cancelBob.update(bobBooking, {
     status: 'cancelled',
     updatedAt: serverTimestamp(),
@@ -267,34 +351,18 @@ try {
   const completedRequest = bookingData('bob', 'Robert Student');
   await assertSucceeds(setDoc(completedBooking, completedRequest));
   const acceptCompleted = writeBatch(alice);
-  const completedSlot = doc(
-    alice,
-    'tutorSlots',
-    'alice',
-    'slots',
-    completedRequest.slotKey,
-  );
-  acceptCompleted.set(completedSlot, {
-    bookingId: completedBooking.id,
-    tutorUid: 'alice',
-    studentUid: 'bob',
-    slotKey: completedRequest.slotKey,
-    startsAt: completedRequest.startsAt,
-    createdAt: serverTimestamp(),
-  });
+  addSlotLocks(acceptCompleted, alice, completedBooking.id, completedRequest);
   acceptCompleted.update(doc(alice, 'tutorBookings', completedBooking.id), {
     status: 'accepted',
     updatedAt: serverTimestamp(),
   });
   await assertSucceeds(acceptCompleted.commit());
   const completeBooking = writeBatch(bob);
-  completeBooking.delete(doc(
-    bob,
-    'tutorSlots',
-    'alice',
-    'slots',
-    completedRequest.slotKey,
-  ));
+  completedRequest.slotBuckets.forEach(slotBucket =>
+    completeBooking.delete(
+      doc(bob, 'tutorSlots', 'alice', 'slots', String(slotBucket)),
+    ),
+  );
   completeBooking.update(completedBooking, {
     status: 'completed',
     updatedAt: serverTimestamp(),
