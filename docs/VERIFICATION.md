@@ -31,8 +31,8 @@ Verified for this checkpoint:
   exercise home routes, tutor listing and search, booking validation, session
   reschedule gating, private group-room drafts versus explicit publishing,
   timer controls and cleanup, and shared-group retry paths.
-- The Jest coverage run for this checkpoint reports 83.76% line coverage,
-  76.05% branch coverage, and 84.11% function coverage. It covers all lines in
+- The Jest coverage run for this checkpoint reports 83.78% line coverage,
+  76.08% branch coverage, and 84.14% function coverage. It covers all lines in
   the home screen at 96.87%, session details at 100%, the group-room screen at
   100%, the local storage guard at 100%, tutor search at 96.77%, and booking
   screen at 94.44%. Coverage is
@@ -41,7 +41,7 @@ Verified for this checkpoint:
 - The Firestore rules test passed against the local Firebase Emulator Suite.
   It checks private account state, authenticated group discovery, member-only
   posts/replies, bounded cursor queries, per-member contribution cooldowns,
-  owner-only membership queries, safe member counts, and verified-email
+  owner-only membership records, safe member counts, and verified-email
   requirements. Group directory queries are limited to 20 documents; unbounded
   and over-limit queries fail. Unverified accounts can still access only their
   own private state; shared group discovery and writes are denied. The real
@@ -53,13 +53,13 @@ Verified for this checkpoint:
   against an isolated emulator on port 8181; the app's existing emulator on
   port 8080 was left untouched.
 - A deterministic directory test used two group documents and one membership.
-  The previous implementation made two per-group membership `getDoc` calls
-  during initial load and another after one metadata update (three total); the
-  updated implementation makes zero per-group `getDoc` calls and gets the one
-  owned membership through a UID-filtered collection-group query. The live
-  query updates joined state.
-  Emulator checks allow the caller's UID query and deny unfiltered,
-  other-user, and unverified membership queries.
+  The directory subscribes to the signed-in user's exact
+  `studyGroupMemberships` subcollection and updates join state without
+  per-group `getDoc` calls. Emulator checks allow this owner-scoped query,
+  reject another user's path, reject collection-group membership reads, and
+  confirm a private `members` document at an unrelated path cannot be read.
+  A pre-fix emulator probe showed that the old recursive `members` rule
+  returned that unrelated document in the group-membership query.
 - Group directory pages return at most 20 documents and keep all groups
   discoverable through a load-older action. The test pages through 42 groups,
   checks both cursor positions, verifies membership remains live, and confirms
@@ -186,11 +186,13 @@ No production-project Firebase signup, password reset, cross-device sync, or
 shared student workflow has been tested. This APK was not uploaded as a GitHub
 release. It remains debug-signed and labeled 1.2.0.
 
-Shared group metadata, membership counts, posts, and replies now use the
-`studyGroups` Firestore collection for authenticated Firebase users. Local/demo
-groups remain on-device. Tutor listings, bookings, direct messages, and group
-chat are not shared between students; a Firebase user's private account state,
-including that user's bookings, syncs only to that account. The current
+Shared group metadata and member counts, posts, and replies use the
+`studyGroups` Firestore collection for authenticated Firebase users. Each
+member's private `users/{uid}/studyGroupMemberships/{groupId}` record drives
+join state and member authorization. Local/demo groups remain on-device.
+Tutor listings, bookings, direct messages, and group chat are not shared
+between students; a Firebase user's private account state, including that
+user's bookings, syncs only to that account. The current
 dependency audit reports 47 high and 5 moderate findings (0 critical);
 `npm audit --omit=dev` reports 20 high paths rooted in the `braces@3.0.3`
 advisory. The production-mode JavaScript bundle

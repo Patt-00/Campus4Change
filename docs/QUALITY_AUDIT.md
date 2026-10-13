@@ -16,13 +16,17 @@ production-ready claim.
 - Shared group feeds are merged with live directory metadata so the active
   member post listener's content reaches the details and post screens. A
   regression test covers this source-to-screen data merge.
-- Shared group membership state now comes from a live collection-group query
-  constrained to the current UID instead of a separate point read for each
-  group. Rules and emulator tests keep that query private to its owner.
-- A repeatable two-group test with one joined membership measured three
-  per-group membership reads before the change and none after, including one
-  subsequent metadata update; the membership query returned only the one owned
-  record and continued to update join state live.
+- Shared group membership state now comes from one live listener on the signed-in
+  user's `users/{uid}/studyGroupMemberships` subcollection. The same private
+  records authorize group access and update the member count atomically, so the
+  app no longer needs a recursive collection-group rule for the generic
+  `members` collection ID.
+- An emulator probe reproduced the old rule's leak: a `members` collection-group
+  query returned a seeded private document from an unrelated path alongside the
+  expected group membership. A two-group regression test now verifies the
+  owner-scoped listener updates join state without per-group reads; emulator
+  rules deny collection-group reads for both `members` and
+  `studyGroupMemberships` and allow only the owner's exact membership path.
 - The group directory loads 20 metadata documents initially and exposes
   cursor-based older pages; Firestore rules reject missing or larger limits.
   Older browsing pauses the live metadata page and offers an explicit refresh,
@@ -146,7 +150,7 @@ production-ready claim.
 
 | ID | Priority | Issue | Evidence and next action |
 | --- | --- | --- | --- |
-| C4C-01 | High | The checked-in Firestore rules have not been deployed. | The last live Console check found project `campus4change` on Spark, its Standard database in `asia-southeast1`, and initial production-mode deny-all rules. In this session, `firebase projects:list` failed because Firebase CLI is unauthenticated, and gcloud has no active credentials, so the live rule state cannot be rechecked. Sign in, recheck, and explicitly authorize deployment before live data tests. |
+| C4C-01 | High | The checked-in Firestore rules have not been deployed. | The last live Console check found project `campus4change` on Spark, its Standard database in `asia-southeast1`, and initial production-mode deny-all rules. In this session, `firebase projects:list` failed because Firebase CLI is unauthenticated, and gcloud has no active credentials, so the live rule state cannot be rechecked. Before deployment, inspect for manually seeded legacy group-member documents and migrate any that exist to `users/{uid}/studyGroupMemberships/{groupId}`; then explicitly authorize deployment and live data tests. |
 | C4C-02 | High | No real-project, two-account shared-group workflow has been verified. | At the last live check, app access was denied by the initial production-mode rules. The current Firebase CLI is unauthenticated, so recheck that state after signing in. Then deploy the reviewed rules with authorization, verify two test email addresses, and test create/discover/join/post/reply/leave against the project. |
 | C4C-03 | High | The final-project acceptance rubric is not accessible in the current course. | The local `Canvas_Modules.md` copy lists a Module 1 project proposal, Module 3 Project Progress 1 prototype, Module 4 React prototype translation, and Module 5 Firebase Auth exercise; it contains only Modules 1-5 despite its nine-module heading. At the last browser check, the course Assignments page was disabled and the module link returned Access Denied. No available item defines final React Native acceptance. Keep Google sign-in, Hosting, cross-student bookings, chat, and moderation as unconfirmed scope until the teacher supplies the rubric. |
 | C4C-04 | Medium | Tutor listings, bookings, direct messages, and group chat are not shared between students. | Firebase accounts sync this data inside each user's private state; device-only accounts keep it local. Cross-student tutor, booking, and messaging workflows are not implemented. Confirm whether the final rubric requires those workflows before designing their schemas. |

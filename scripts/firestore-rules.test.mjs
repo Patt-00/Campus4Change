@@ -73,7 +73,7 @@ try {
   await assertFails(setDoc(doc(alice, 'tutors/mika'), { name: 'Mika' }));
 
   const groupAlice = doc(alice, 'studyGroups/calculus');
-  const ownerMember = doc(alice, 'studyGroups/calculus/members/alice');
+  const ownerMember = doc(alice, 'users/alice/studyGroupMemberships/calculus');
   const createGroup = writeBatch(alice);
   createGroup.set(groupAlice, {
     ownerUid: 'alice',
@@ -88,6 +88,7 @@ try {
   });
   createGroup.set(ownerMember, {
     uid: 'alice',
+    groupId: 'calculus',
     role: 'owner',
     joinedAt: serverTimestamp(),
   });
@@ -129,7 +130,9 @@ try {
       subject: 'Study',
     }),
   );
-  await assertFails(getDoc(doc(bob, 'studyGroups/calculus/members/alice')));
+  await assertFails(
+    getDoc(doc(bob, 'users/alice/studyGroupMemberships/calculus')),
+  );
   await assertFails(
     getDocs(
       query(
@@ -149,8 +152,9 @@ try {
   await assertFails(getDocs(collection(anonymous, 'studyGroups')));
 
   const joinGroup = writeBatch(bob);
-  joinGroup.set(doc(bob, 'studyGroups/calculus/members/bob'), {
+  joinGroup.set(doc(bob, 'users/bob/studyGroupMemberships/calculus'), {
     uid: 'bob',
+    groupId: 'calculus',
     role: 'member',
     joinedAt: serverTimestamp(),
   });
@@ -161,31 +165,56 @@ try {
   await assertSucceeds(joinGroup.commit());
   assert.equal((await getDoc(doc(alice, 'studyGroups/calculus'))).data().memberCount, 2);
   const aliceMemberships = await assertSucceeds(
-    getDocs(
-      query(
-        collectionGroup(alice, 'members'),
-        where('uid', '==', 'alice'),
-      ),
-    ),
+    getDocs(collection(alice, 'users/alice/studyGroupMemberships')),
   );
   assert.equal(aliceMemberships.size, 1);
-  assert.equal(aliceMemberships.docs[0].ref.path, 'studyGroups/calculus/members/alice');
+  assert.equal(
+    aliceMemberships.docs[0].ref.path,
+    'users/alice/studyGroupMemberships/calculus',
+  );
   const bobMemberships = await assertSucceeds(
-    getDocs(
-      query(collectionGroup(bob, 'members'), where('uid', '==', 'bob')),
-    ),
+    getDocs(collection(bob, 'users/bob/studyGroupMemberships')),
   );
   assert.equal(bobMemberships.size, 1);
-  await assertFails(getDocs(collectionGroup(alice, 'members')));
+  await assertFails(
+    setDoc(doc(carol, 'users/carol/studyGroupMemberships/calculus'), {
+      uid: 'carol',
+      groupId: 'calculus',
+      role: 'member',
+      joinedAt: serverTimestamp(),
+    }),
+  );
+  await assertFails(
+    getDocs(collection(bob, 'users/alice/studyGroupMemberships')),
+  );
   await assertFails(
     getDocs(
       query(collectionGroup(alice, 'members'), where('uid', '==', 'bob')),
     ),
   );
+  await environment.withSecurityRulesDisabled(async context => {
+    await setDoc(
+      doc(context.firestore(), 'privateRecords/alice/members/alice'),
+      { uid: 'alice', privateValue: 'must stay private' },
+    );
+  });
+  await assertFails(
+    getDocs(
+      query(collectionGroup(alice, 'members'), where('uid', '==', 'alice')),
+    ),
+  );
   await assertFails(
     getDocs(
       query(
-        collectionGroup(unverified, 'members'),
+        collectionGroup(alice, 'studyGroupMemberships'),
+        where('uid', '==', 'alice'),
+      ),
+    ),
+  );
+  await assertFails(
+    getDocs(
+      query(
+        collection(unverified, 'users/unverified/studyGroupMemberships'),
         where('uid', '==', 'unverified'),
       ),
     ),
@@ -261,18 +290,24 @@ try {
       .commit(),
   );
   const leaveDuringCooldown = writeBatch(bob);
-  leaveDuringCooldown.delete(doc(bob, 'studyGroups/calculus/members/bob'));
+  leaveDuringCooldown.delete(
+    doc(bob, 'users/bob/studyGroupMemberships/calculus'),
+  );
   leaveDuringCooldown.update(doc(bob, 'studyGroups/calculus'), {
     memberCount: increment(-1),
     updatedAt: serverTimestamp(),
   });
   await assertSucceeds(leaveDuringCooldown.commit());
   const rejoinDuringCooldown = writeBatch(bob);
-  rejoinDuringCooldown.set(doc(bob, 'studyGroups/calculus/members/bob'), {
-    uid: 'bob',
-    role: 'member',
-    joinedAt: serverTimestamp(),
-  });
+  rejoinDuringCooldown.set(
+    doc(bob, 'users/bob/studyGroupMemberships/calculus'),
+    {
+      uid: 'bob',
+      groupId: 'calculus',
+      role: 'member',
+      joinedAt: serverTimestamp(),
+    },
+  );
   rejoinDuringCooldown.update(doc(bob, 'studyGroups/calculus'), {
     memberCount: increment(1),
     updatedAt: serverTimestamp(),
@@ -378,8 +413,9 @@ try {
     getDocs(query(collection(carol, 'studyGroups/calculus/posts'), limit(1))),
   );
   await assertFails(
-    setDoc(doc(bob, 'studyGroups/calculus/members/alice'), {
+    setDoc(doc(bob, 'users/alice/studyGroupMemberships/calculus'), {
       uid: 'bob',
+      groupId: 'calculus',
       role: 'owner',
       joinedAt: serverTimestamp(),
     }),
@@ -414,7 +450,7 @@ try {
     ),
   );
   const leaveGroup = writeBatch(bob);
-  leaveGroup.delete(doc(bob, 'studyGroups/calculus/members/bob'));
+  leaveGroup.delete(doc(bob, 'users/bob/studyGroupMemberships/calculus'));
   leaveGroup.update(doc(bob, 'studyGroups/calculus'), {
     memberCount: increment(-1),
     updatedAt: serverTimestamp(),

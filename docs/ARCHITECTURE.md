@@ -66,10 +66,13 @@ The profile feature owns the custom-interest editor. The tutor feature owns book
 The account hook saves changed state to encrypted Android storage. With Firebase configured, it also saves the complete state under `users/{uid}/private/state` and restores the user's Firebase session at app launch. If a newer encrypted local copy exists than the cloud copy, it is synced up. Save failures appear in the navigator's banner with a retry action. Sign-out first requires the encrypted local save; if only the cloud write fails, the user can still sign out and receives a warning so the next sign-in can retry the local copy. A failed local save keeps the account open. Loaded state must belong to the account that signed in. Saved JSON remains version 1.
 
 `features/groups/data/firestore.js` maps the group feature model to
-`studyGroups/{groupId}`, private member records, posts, and replies. Directory
-updates read only changed group metadata and membership; post and reply
-listeners run only while a member has that group open. `useSharedGroups` merges
-the active member feed into the directory record before screens consume it.
+`studyGroups/{groupId}`, the owner's private
+`users/{uid}/studyGroupMemberships/{groupId}` record, posts, and replies. The
+user-scoped membership record is the source of truth for join state and group
+authorization; it avoids a database-wide collection-group read. Directory
+updates read changed group metadata and the current user's membership set; post
+and reply listeners run only while a member has that group open. `useSharedGroups`
+merges the active member feed into the directory record before screens consume it.
 Live listeners cap each window at 20 posts and 20 replies per post; screens can
 load older pages by document cursor. Paging pauses the live window and shows a
 refresh action so history browsing does not accumulate an unbounded stream of

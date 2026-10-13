@@ -73,8 +73,11 @@ function mapPost(
   };
 }
 
-function groupIdFromMembership(snapshot) {
-  return snapshot.ref?.parent?.parent?.id ?? null;
+function groupIdFromMembership(snapshot, uid) {
+  const membership = snapshot.data();
+  return membership.uid === uid && membership.groupId === snapshot.id
+    ? snapshot.id
+    : null;
 }
 
 function mapGroup(uid, groupSnapshot, memberGroupIds) {
@@ -103,14 +106,12 @@ export function watchSharedGroups(uid, onGroups, onError) {
   const { db, firestore } = firebaseServicesForUser(uid);
   const {
     collection,
-    collectionGroup,
     getDocs,
     limit,
     onSnapshot,
     orderBy,
     query,
     startAfter,
-    where,
   } = firestore;
   let active = true;
   const groupsById = new Map();
@@ -184,15 +185,15 @@ export function watchSharedGroups(uid, onGroups, onError) {
     },
     handleError,
   );
-  // One owner-scoped membership stream replaces per-group membership reads.
+  // This exact user path avoids a database-wide collection-group grant.
   const unsubscribeMemberships = onSnapshot(
-    query(collectionGroup(db, 'members'), where('uid', '==', uid)),
+    collection(db, 'users', uid, 'studyGroupMemberships'),
     snapshot => {
       if (!active) {
         return;
       }
       memberGroupIds = new Set(
-        snapshot.docs.map(groupIdFromMembership).filter(Boolean),
+        snapshot.docs.map(doc => groupIdFromMembership(doc, uid)).filter(Boolean),
       );
       membershipsLoaded = true;
       publishGroups();
@@ -471,7 +472,7 @@ export function watchSharedGroupPosts(
     }
   }
 
-  getDoc(doc(groupRef, 'members', uid))
+  getDoc(doc(db, 'users', uid, 'studyGroupMemberships', groupId))
     .then(membership => {
       if (!active) {
         return;
@@ -572,8 +573,9 @@ export async function syncSharedGroupAction(uid, profile, action) {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
-    batch.set(doc(groupRef, 'members', uid), {
+    batch.set(doc(db, 'users', uid, 'studyGroupMemberships', group.id), {
       uid,
+      groupId: group.id,
       role: 'owner',
       joinedAt: serverTimestamp(),
     });
@@ -586,7 +588,13 @@ export async function syncSharedGroupAction(uid, profile, action) {
     throw new Error('The group action has no group ID.');
   }
   const groupRefForAction = doc(db, collectionName, groupId);
-  const memberRef = doc(groupRefForAction, 'members', uid);
+  const memberRef = doc(
+    db,
+    'users',
+    uid,
+    'studyGroupMemberships',
+    groupId,
+  );
   const writeLimitRef = doc(groupRefForAction, 'writeLimits', uid);
 
   if (action.type === 'membership') {
@@ -601,6 +609,7 @@ export async function syncSharedGroupAction(uid, profile, action) {
     if (action.joined) {
       batch.set(memberRef, {
         uid,
+        groupId,
         role: 'member',
         joinedAt: serverTimestamp(),
       });

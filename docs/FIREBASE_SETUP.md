@@ -105,9 +105,14 @@ non-deletable rate-limit document is updated atomically with each contribution.
 Unmatched documents are denied.
 
 The app writes its account state into the private document. Firestore limits
-documents to 1 MiB; the app uses a lower client-side size cap. Shared groups,
-memberships, posts, and replies use the separate `studyGroups` collection.
-Device-only/demo groups remain local. Firebase Authentication sends a
+documents to 1 MiB; the app uses a lower client-side size cap. Shared group
+metadata, member counts, posts, and replies use the `studyGroups` collection.
+Each member's private record lives at
+`users/{uid}/studyGroupMemberships/{groupId}` and is written atomically with
+the matching group-count change. The user's exact private path supplies the
+live membership query and member authorization; no global `members`
+collection-group rule is needed. Device-only/demo groups remain local. Firebase
+Authentication sends a
 verification email at signup, and Firestore rules require the verified-email
 claim for shared study groups. Tutor listings, bookings, group chat, and direct
 messages are not shared with other students yet. Google sign-in, school-domain

@@ -61,9 +61,8 @@ function groupSnapshot(id, memberCount, updatedAt) {
 
 function membershipSnapshot(groupId, uid = 'student') {
   return {
-    id: uid,
-    ref: { parent: { parent: { id: groupId } } },
-    data: () => ({ uid, role: 'member' }),
+    id: groupId,
+    data: () => ({ uid, groupId, role: 'member' }),
   };
 }
 
@@ -217,7 +216,7 @@ test('a synced reply remains visible while the latest reply window is paused', (
   expect(updated.posts[0].repliesLive).toBe(false);
 });
 
-test('group directory merges live metadata and user-scoped membership updates without per-group reads', async () => {
+test('group directory listens to the owner-scoped membership path without per-group reads', async () => {
   const { firestore, subscriptions } = createFirestore();
   firebaseServicesForUser.mockReturnValue({ db: 'db', firestore });
   const onGroups = jest.fn();
@@ -226,10 +225,8 @@ test('group directory merges live metadata and user-scoped membership updates wi
   const directory = subscriptions.find(
     entry => entry.target.ref.path === 'db/studyGroups',
   );
-  const memberships = subscriptions.find(entry =>
-    entry.target.constraints.some(
-      constraint => constraint.field === 'uid',
-    ),
+  const memberships = subscriptions.find(
+    entry => entry.target.path === 'db/users/student/studyGroupMemberships',
   );
   const firstGroup = groupSnapshot('one', 2, '2026-10-11T10:00:00.000Z');
   const secondGroup = groupSnapshot('two', 3, '2026-10-11T09:00:00.000Z');
@@ -257,11 +254,9 @@ test('group directory merges live metadata and user-scoped membership updates wi
     type: 'limit',
     count: 20,
   });
-  expect(memberships.target.constraints).toContainEqual({
-    field: 'uid',
-    operator: '==',
-    value: 'student',
-  });
+  expect(memberships.target.path).toBe(
+    'db/users/student/studyGroupMemberships',
+  );
   expect(onGroups.mock.calls[0][0].map(group => group.joined)).toEqual([
     false,
     true,
@@ -293,7 +288,7 @@ test('group directory merges live metadata and user-scoped membership updates wi
     false,
   ]);
   expect(firestore.getDoc).not.toHaveBeenCalled();
-  expect(firestore.collection).toHaveBeenCalledTimes(1);
+  expect(firestore.collection).toHaveBeenCalledTimes(2);
   subscription.unsubscribe();
   expect(directory.unsubscribe).toHaveBeenCalledTimes(1);
   expect(memberships.unsubscribe).toHaveBeenCalledTimes(1);
@@ -332,10 +327,8 @@ test('shared group directory pages all groups and pauses live metadata while bro
   const directory = subscriptions.find(
     item => item.target.ref.path === 'db/studyGroups',
   );
-  const memberships = subscriptions.find(item =>
-    item.target.constraints.some(
-      constraint => constraint.field === 'uid',
-    ),
+  const memberships = subscriptions.find(
+    item => item.target.path === 'db/users/student/studyGroupMemberships',
   );
   directory.next({
     docs: firstPage,
