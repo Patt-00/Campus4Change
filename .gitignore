@@ -73,6 +73,7 @@ yarn-error.log
 /.tools/
 /artifacts/
 .firebaserc
+!.firebaserc
 .firebase/
 firebase-debug.log*
 firestore-debug.log*

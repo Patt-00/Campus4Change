@@ -29,6 +29,10 @@
   empty, live rules are deny-all, and Manual indexes are empty. The current
   checked-in index manifest has four composite indexes, one more than the prior
   deployment prompt described; no live rules/indexes were changed.
+- `.firebaserc` now sets `campus4change` as the default Firebase CLI target, and
+  its JSON parses correctly. `firebase use` still cannot run because the CLI is
+  unauthenticated; the Console session is available for the later approved
+  deployment. No live Firebase configuration was changed in this step.
 - Tutor-hook action errors are tied to the active Firebase UID and are cleared
   when the signed-in account changes. Five new hook tests cover subscriptions,
   loading, retry, stale callbacks, account switching, signed-out behavior, and
