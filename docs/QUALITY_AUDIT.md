@@ -111,6 +111,11 @@ production-ready claim.
 - The Firestore rules test now requires an explicit opt-in before clearing the
   selected emulator project's default database. CI supplies that flag for its
   fresh emulator; normal local invocations refuse to erase existing test data.
+- Messages and Chat now handle legacy conversation records with missing or
+  malformed message arrays. The list shows an empty-thread summary, and sending
+  a new message repairs the array; malformed timestamps no longer break sorting.
+  An app-level regression loads such a saved state, opens the thread, sends, and
+  verifies persistence.
 - Interactive list labels now include their visible context: session time,
   status, and tutor; group subject, membership, and sharing state; tutor
   subjects and rating; message preview; and notification body and read state.

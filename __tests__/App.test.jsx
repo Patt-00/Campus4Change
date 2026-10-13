@@ -292,6 +292,49 @@ test('a message is saved and remains after the app is remounted', async () => {
   await pressWithLabelStarting('Chat with Jamie Dela Cruz.');
   expect(hasText('Please help with algebra')).toBe(true);
 });
+
+test('a legacy conversation without a message array opens and recovers on send', async () => {
+  const savedState = initialState(demo);
+  const conversation = savedState.conversations.find(
+    item => item.tutorId === 'jamie',
+  );
+  const numericTimestampConversation = savedState.conversations.find(
+    item => item.tutorId === 'renzo',
+  );
+  delete conversation.messages;
+  numericTimestampConversation.messages[0].sentAt = Date.parse(
+    '2026-10-12T06:00:00.000Z',
+  );
+  mockSaved.demo = JSON.stringify(savedState);
+
+  await login();
+  await press('Messages');
+  const conversationCard = renderer.root
+    .findAllByType(TouchableOpacity)
+    .find(control => control.props.accessibilityLabel?.startsWith('Chat with Jamie Dela Cruz.'));
+  expect(conversationCard).toBeDefined();
+  expect(conversationCard.props.accessibilityLabel).toContain(
+    'Start a conversation',
+  );
+  const renzoCard = renderer.root
+    .findAllByType(TouchableOpacity)
+    .find(control => control.props.accessibilityLabel?.startsWith('Chat with Renzo Lim.'));
+  expect(renzoCard.props.accessibilityLabel).toContain('Latest message: Thanks!');
+
+  await pressWithLabelStarting('Chat with Jamie Dela Cruz.');
+  await fill('Type a message...', 'Recovered thread');
+  await press('SEND');
+  expect(hasText('Recovered thread')).toBe(true);
+  const savedConversation = JSON.parse(mockSaved.demo).conversations.find(
+    item => item.tutorId === 'jamie',
+  );
+  expect(savedConversation.messages.at(-1)).toMatchObject({
+    text: 'Recovered thread',
+    mine: true,
+  });
+  await ReactTestRenderer.act(async () => renderer.unmount());
+});
+
 test('creates a group, publishes a post, and saves a reply', async () => {
   await login();
   await press('Study Groups');

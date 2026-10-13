@@ -173,6 +173,7 @@ export function reducer(state, action) {
     case 'message': {
       const current = state.conversations.find(x => x.id === action.id);
       if (
+        typeof action.message?.text !== 'string' ||
         !action.message.text.trim() ||
         (current?.groupId &&
           !state.groups.some(g => g.id === current.groupId && g.joined))
@@ -183,7 +184,20 @@ export function reducer(state, action) {
         ...state,
         conversations: state.conversations.map(c =>
           c.id === action.id
-            ? { ...c, messages: [...c.messages, action.message] }
+            ? {
+                ...c,
+                messages: [
+                  ...(Array.isArray(c.messages)
+                    ? c.messages.filter(
+                        message =>
+                          message &&
+                          typeof message === 'object' &&
+                          !Array.isArray(message),
+                      )
+                    : []),
+                  action.message,
+                ],
+              }
             : c,
         ),
       };

@@ -3,23 +3,38 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Screen } from '../../../shared/components/Screen';
 import { Avatar, Empty, Field, Link } from '../../../shared/components/UI';
 import { timeLabel } from '../../../shared/data/demo';
+import {
+  conversationMessages,
+  messageText,
+  messageTimestamp,
+} from '../data/conversation';
 
 import { C } from '../../../shared/theme/colors';
 import { s } from '../../../shared/theme/styles';
 
-export function MessagesScreen({ go, conversations }) {
+export function MessagesScreen({ go, conversations = [] }) {
   const [query, setQuery] = useState('');
   const list = conversations
+    .filter(conversation => conversation && typeof conversation === 'object')
+    .map(conversation => ({
+      ...conversation,
+      name:
+        typeof conversation.name === 'string' && conversation.name.trim()
+          ? conversation.name
+          : 'Conversation',
+      messages: conversationMessages(conversation),
+    }))
+    .filter(conversation => typeof conversation.id === 'string' && conversation.id)
     .filter(c =>
-      (c.name + ' ' + c.messages.map(m => m.text).join(' '))
+      (c.name + ' ' + c.messages.map(messageText).join(' '))
         .toLowerCase()
         .includes(query.toLowerCase().trim()),
     )
-    .sort((a, b) =>
-      (b.messages.at(-1)?.sentAt ?? '').localeCompare(
-        a.messages.at(-1)?.sentAt ?? '',
-      ),
-    );
+    .sort((a, b) => {
+      const aTime = messageTimestamp(a.messages.at(-1)) ?? 0;
+      const bTime = messageTimestamp(b.messages.at(-1)) ?? 0;
+      return bTime - aTime;
+    });
   return (
     <Screen title="Messages" go={go} tab="Messages">
       <Field
@@ -32,7 +47,7 @@ export function MessagesScreen({ go, conversations }) {
       <View style={s.gap} />
       {list.map(c => {
         const last = c.messages.at(-1);
-        const latestMessage = last?.text?.trim() || 'Start a conversation';
+        const latestMessage = messageText(last).trim() || 'Start a conversation';
         const messagePreview =
           latestMessage.length > 120
             ? latestMessage.slice(0, 117).trimEnd() + '…'
@@ -56,7 +71,7 @@ export function MessagesScreen({ go, conversations }) {
             <View style={s.grow}>
               <Text style={s.name}>{c.name}</Text>
               <Text numberOfLines={1} style={s.muted}>
-                {last?.text ?? 'Start a conversation'}
+                {latestMessage}
               </Text>
             </View>
             <Text style={[s.muted, styles.fontSize9]}>

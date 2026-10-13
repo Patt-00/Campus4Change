@@ -4,6 +4,7 @@ import { AppButton } from '../../../shared/components/AppButton';
 import { Screen } from '../../../shared/components/Screen';
 import { Empty, Field } from '../../../shared/components/UI';
 import { timeLabel } from '../../../shared/data/demo';
+import { conversationMessages, messageText } from '../data/conversation';
 
 import { C } from '../../../shared/theme/colors';
 import { s } from '../../../shared/theme/styles';
@@ -11,6 +12,7 @@ import { s } from '../../../shared/theme/styles';
 export function ChatScreen({ back, conversation, send, canSend = true }) {
   const [text, setText] = useState('');
   const scroll = useRef(null);
+  const messages = conversationMessages(conversation);
   function submit() {
     if (canSend && text.trim()) {
       send(text.trim());
@@ -18,7 +20,7 @@ export function ChatScreen({ back, conversation, send, canSend = true }) {
     }
   }
   return (
-    <Screen title={conversation.name} back={back} scroll={false}>
+    <Screen title={conversation.name || 'Conversation'} back={back} scroll={false}>
       <Text style={[s.muted, styles.marginBottom12]}>
         Messages stay on this device and are not delivered.
       </Text>
@@ -34,19 +36,19 @@ export function ChatScreen({ back, conversation, send, canSend = true }) {
           })
         }
       >
-        {conversation.messages.map(m => (
+        {messages.map((m, index) => (
           <View
-            key={m.id}
+            key={typeof m.id === 'string' && m.id ? m.id : `message-${index}`}
             style={[styles.bubble, m.mine ? styles.mine : styles.theirs]}
           >
-            <Text style={s.text}>{m.text}</Text>
+            <Text style={s.text}>{messageText(m)}</Text>
             <Text style={styles.time}>
               {timeLabel(m.sentAt)}
               {m.mine ? ' • Not delivered' : ''}
             </Text>
           </View>
         ))}
-        {!conversation.messages.length && (
+        {!messages.length && (
           <Empty
             title="Start a conversation"
             body="Keep notes for this conversation here."
