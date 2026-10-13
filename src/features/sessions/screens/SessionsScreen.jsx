@@ -95,6 +95,16 @@ export function SessionsScreen({ go, back, sessions, list }) {
     filter === 'Upcoming'
       ? sessions.filter(x => sessionTimingStatus(x) === 'Needs review')
       : [];
+  const completedHistory =
+    filter === 'Upcoming'
+      ? sessions.filter(x => x.status === 'Completed')
+      : [];
+  const hasOtherSessions = [
+    inProgress,
+    pastDue,
+    needsReview,
+    completedHistory,
+  ].some(items => items.length > 0);
   return (
     <Screen title="My Sessions" back={back} go={go} tab="Sessions">
       <View style={s.wrap}>
@@ -109,6 +119,16 @@ export function SessionsScreen({ go, back, sessions, list }) {
       </View>
       <Text style={s.section}>{filter}</Text>
       {filtered.map(card)}
+      {filter === 'Upcoming' && !filtered.length && (
+        <Empty
+          title="No upcoming sessions"
+          body={
+            hasOtherSessions
+              ? 'Your other sessions are grouped below by status.'
+              : 'Find a tutor to book your next session.'
+          }
+        />
+      )}
       {inProgress.length > 0 && (
         <>
           <Text style={s.section}>In progress</Text>
@@ -127,24 +147,17 @@ export function SessionsScreen({ go, back, sessions, list }) {
           {needsReview.map(card)}
         </>
       )}
-      {!filtered.length &&
-        !inProgress.length &&
-        !pastDue.length &&
-        !needsReview.length && (
-          <Empty
-            title={'No ' + filter.toLowerCase() + ' sessions'}
-            body={
-              filter === 'Upcoming'
-                ? 'Find a tutor to book your next session.'
-                : 'Sessions will appear here when their status changes.'
-            }
-          />
+      {filter !== 'Upcoming' && !filtered.length && (
+        <Empty
+          title={'No ' + filter.toLowerCase() + ' sessions'}
+          body="Sessions will appear here when their status changes."
+        />
       )}
       {filter === 'Upcoming' &&
-        sessions.some(x => x.status === 'Completed') && (
+        completedHistory.length > 0 && (
           <>
             <Text style={s.section}>Past sessions</Text>
-            {sessions.filter(x => x.status === 'Completed').map(card)}
+            {completedHistory.map(card)}
           </>
         )}
       <Link label="Find a tutor" onPress={() => go('Tutor Search')} />

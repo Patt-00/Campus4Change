@@ -13,6 +13,32 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+test('an empty account sees one helpful upcoming-sessions message', async () => {
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(
+      <SafeAreaProvider initialMetrics={initialMetrics}>
+        <SessionsScreen
+          go={jest.fn()}
+          back={jest.fn()}
+          sessions={[]}
+          list={[]}
+        />
+      </SafeAreaProvider>,
+    );
+  });
+
+  const labels = renderer.root
+    .findAllByType(Text)
+    .map(node => node.props.children)
+    .flat(Infinity)
+    .filter(label => typeof label === 'string');
+  expect(labels.filter(label => label === 'No upcoming sessions')).toHaveLength(1);
+  expect(labels).toContain('Find a tutor to book your next session.');
+
+  await act(async () => renderer.unmount());
+});
+
 test('sessions with unrecognized saved statuses stay visible for review', async () => {
   const go = jest.fn();
   const sessions = [
@@ -101,6 +127,8 @@ test('past-due bookings are shown instead of disappearing from the upcoming tab'
   const labels = renderer.root
     .findAllByType(Text)
     .map(node => node.props.children);
+  expect(labels).toContain('No upcoming sessions');
+  expect(labels).toContain('Your other sessions are grouped below by status.');
   expect(labels).toContain('Past due • review these bookings');
   const card = renderer.root
     .findAllByType(TouchableOpacity)

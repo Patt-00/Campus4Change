@@ -80,6 +80,10 @@ production-ready claim.
   passes each session so JavaScript cannot substitute the array index for its
   optional clock argument. Home also surfaces past-due bookings with a direct
   route to their list.
+- The Sessions screen now explains when there are no future bookings while
+  keeping in-progress, past-due, needs-review, and completed sessions grouped
+  below. Tests cover this message with past-due data and for an empty account;
+  the updated screen was checked on the Redmi Turbo 4.
 - Booking confirmation and reminders describe a private schedule entry and
   state that the tutor has not been notified.
 - Focused tests now cover home navigation and search, tutor listing create and

@@ -15,7 +15,7 @@ Verified for this checkpoint:
 
 - `npm run lint`: passed without warnings.
 - `npm test -- --runInBand --coverage --coverageReporters=json --coverageReporters=json-summary`:
-  125 tests passed in 20 suites. Tests cover stale group callbacks and pending
+  126 tests passed in 20 suites. Tests cover stale group callbacks and pending
   shared writes across account changes, queued state persistence after a switch
   even when both accounts share the same `updatedAt`, unknown and past-due
   session statuses, malformed or missing session start times across Home,
@@ -31,8 +31,8 @@ Verified for this checkpoint:
   exercise home routes, tutor listing and search, booking validation, session
   reschedule gating, private group-room drafts versus explicit publishing,
   timer controls and cleanup, and shared-group retry paths.
-- The Jest coverage run for this checkpoint reports 83.75% line coverage,
-  76.01% branch coverage, and 84.11% function coverage. It covers all lines in
+- The Jest coverage run for this checkpoint reports 83.76% line coverage,
+  76.05% branch coverage, and 84.11% function coverage. It covers all lines in
   the home screen at 96.87%, session details at 100%, the group-room screen at
   100%, the local storage guard at 100%, tutor search at 96.77%, and booking
   screen at 94.44%. Coverage is
@@ -76,7 +76,7 @@ Verified for this checkpoint:
   port 8081 bound to `127.0.0.1`, ADB reverse loaded the bundle and a cold
   launch rendered the splash screen. This verifies the
   current Android bundle and splash only, not production Firebase access.
-- `npm test -- --runInBand` on 2026-10-13 passed all 125 tests in 20 suites.
+- `npm test -- --runInBand` on 2026-10-13 passed all 126 tests in 20 suites.
 - A partial version-one profile missing its name, interests, tutor subjects,
   and school fields restored from the account defaults, opened Home, and
   persisted the restored values without losing session/group data.
@@ -99,6 +99,11 @@ Verified for this checkpoint:
   session, group, tutor, message, notification, and group-post context in the
   list controls. This was checked while signed into the local demo account; no
   booking was submitted, and the app was signed out afterward.
+- The updated Sessions screen was served through loopback Metro to the Redmi
+  Turbo 4 and showed an explicit "No upcoming sessions" message above its
+  past-due and completed sections. The app was signed out afterward; the
+  existing demo data was preserved. Filtered logs showed no fatal Android or
+  React Native JavaScript error during this run.
 - A fresh disposable Auth-emulator probe remained unverified after signup and
   after requesting verification, became verified only after applying its
   generated code, and was then deleted. The earlier QA account's verified
