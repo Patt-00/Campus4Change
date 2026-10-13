@@ -120,7 +120,8 @@ production-ready claim.
   before feature screens render. A record missing name, interests, and tutor
   subjects previously crashed while the directory read `tutorSubjects.length`;
   the app-level restore test verifies Home renders and the defaults persist.
-  Personal accounts keep blank defaults and do not inherit demo content.
+  A Firebase-session test covers partial cloud state through the mocked cloud
+  adapter. Personal accounts keep blank defaults and do not inherit demo data.
 - Interactive list labels now include their visible context: session time,
   status, and tutor; group subject, membership, and sharing state; tutor
   subjects and rating; message preview; and notification body and read state.

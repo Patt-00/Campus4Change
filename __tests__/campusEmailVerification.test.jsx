@@ -114,6 +114,54 @@ test('the session keeps shared access closed until refreshed email verification 
   await act(async () => renderer.unmount());
 });
 
+test('Firebase cloud profiles missing optional fields restore account defaults', async () => {
+  const now = Date.now();
+  mockLoadCloudState.mockResolvedValueOnce({
+    version: 1,
+    updatedAt: now + 10_000,
+    profile: { id: 'firebase-student' },
+    sessions: [],
+    groups: [],
+    conversations: [],
+    notices: [],
+  });
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(<Harness />);
+  });
+
+  await act(async () => {
+    mockUserListener({
+      uid: 'firebase-student',
+      id: 'firebase-student',
+      name: 'Cloud Student',
+      email: 'student@school.test',
+      studentId: 'STU-1',
+      emailVerified: true,
+    });
+    await flushTasks();
+    await flushTasks();
+    await flushTasks();
+  });
+
+  expect(currentSession.state.profile).toMatchObject({
+    id: 'firebase-student',
+    name: 'Cloud Student',
+    email: 'student@school.test',
+    studentId: 'STU-1',
+    course: '',
+    year: '',
+    school: '',
+    interests: [],
+    tutorSubjects: [],
+    bio: '',
+  });
+  const savedCloudState = JSON.parse(mockStore.saveState.mock.calls.at(-1)[1]);
+  expect(savedCloudState.profile.interests).toEqual([]);
+  expect(savedCloudState.profile.tutorSubjects).toEqual([]);
+  await act(async () => renderer.unmount());
+});
+
 test('Firebase sign-out succeeds when cloud sync fails after local state is saved', async () => {
   let renderer;
   await act(async () => {
