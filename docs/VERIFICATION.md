@@ -118,10 +118,10 @@ Verified for this checkpoint:
   SHA-256: `710f02c7852fc662a0e62137fe67c8f2e656de7ca4f63fe26f2a51a70b4a3266`;
   size: 2,099,258 bytes. The bundle contains no service-account private-key
   marker or `braces`/`micromatch` strings.
-- `./gradlew assembleDebug` passed locally with `JAVA_HOME` and `PATH` set to
-  `/usr/lib/jvm/java-25-openjdk`, and built the debug APK. The latest [GitHub
-  Actions run 38333507403](https://github.com/Patt-00/Campus4Change/actions/runs/38333507403)
-  passed on commit `d687aba`: lint, all 125 unit tests, Auth/Firestore emulator
+- `./gradlew :app:assembleDebug --max-workers=4 --console=plain` passed locally
+  and built the debug APK. The latest [GitHub Actions run
+  38335649141](https://github.com/Patt-00/Campus4Change/actions/runs/38335649141)
+  passed on commit `7484d4d`: lint, all 126 unit tests, Auth/Firestore emulator
   tests, production bundling, Android debug build, and release-signing guard.
   The Redmi Turbo 4 reported model `24129RT7CC`, product `rodin`, and Android 16.
   `adb install -r` updated the existing debug app without clearing its data.
