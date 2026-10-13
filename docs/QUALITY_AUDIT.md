@@ -173,6 +173,11 @@ production-ready claim.
   Restore also filters null and primitive rows from sessions, groups,
   conversations, and notices while preserving valid records; a regression test
   reproduces the null-group crash in Home.
+- Legacy seeded-account cleanup now commits the account list, saved-state
+  deletion, and biometric-pointer deletion atomically. If an older partial
+  migration already removed the account row, recovery recognizes only the
+  matching legacy profile ID/email. Two Android local unit tests protect the
+  exact identity boundary, and CI runs `:app:testDebugUnitTest`.
 - Interactive list labels now include their visible context: session time,
   status, and tutor; group subject, membership, and sharing state; tutor
   subjects and rating; message preview; and notification body and read state.
@@ -183,8 +188,11 @@ production-ready claim.
   tests, production bundling, the Android debug build, and the release-signing
   guard. Gradle dependency and wrapper caching is enabled through the
   [`setup-java` cache option](https://github.com/actions/setup-java/blob/main/README.md).
-  The latest [remote run](https://github.com/Patt-00/Campus4Change/actions/runs/38346833304)
-  passed on commit `f973d71` without production Firebase credentials.
+  Remote run
+  [38454306951](https://github.com/Patt-00/Campus4Change/actions/runs/38454306951)
+  passed on commit `674b22e` without production Firebase credentials. The new
+  workflow also runs `:app:testDebugUnitTest`; its two migration tests pass
+  locally under JDK 25.
 
 ## Open issues
 
@@ -201,18 +209,18 @@ production-ready claim.
 | C4C-09 | Medium | Google-to-Firebase account exchange is not yet verified. | The Firebase Google provider and debug signing fingerprint are configured, and the native Credential Manager integration builds. On the POCO X4 GT, selecting the approved test account returned to Login with the explicit retry message; the credential provider reported a response error, so Firebase token exchange is still unverified. Do not select a different account or repeatedly retry the same canceled flow. A successful release also needs the release signing fingerprint. |
 ## Verification record
 
-Verification is recorded in [VERIFICATION.md](VERIFICATION.md). The Pad 7
-debug UI check and production-mode Android JavaScript bundle are verified from
-earlier checkpoints. The previous debug APK installed and ran on the Redmi Turbo
-4 (ADB model `24129RT7CC`, Android 16). The then-present seeded account completed
-sign-in, Profile, sign-out, and re-sign-in with its state preserved. Sessions
-and Session Details remained schedule-focused, while the group room retained
-its separate 25-minute timer. Profile counted three seeded sessions, all then
-visible in Sessions; Home warned about two past-due bookings and routed to that
-list. The 2026-10-14 update was installed over existing POCO app data; the old
-seeded account no longer authenticates after launch. No other local account was
-available to verify the preservation path on-device. This did not exercise a
-personal account or production Firebase. The Firebase emulator is not a substitute for deploying
-the reviewed rules or two-account testing against the course project. A
-nonfatal React Native focus soft exception was logged before the React context
-was ready; no app crash or JS error followed.
+Verification is recorded in [VERIFICATION.md](VERIFICATION.md). On commit
+`674b22e`, 169 Jest tests, lint, production bundling, and the Android debug build
+passed locally; GitHub Actions run
+[38454306951](https://github.com/Patt-00/Campus4Change/actions/runs/38454306951)
+passed all configured checks. The debug APK was installed over existing POCO
+X4 GT app data. The old seeded account no longer authenticates after launch;
+no other local account was available to test preservation on-device. This did
+not exercise a personal account or production Firebase. The Firebase emulator
+does not substitute for deploying rules or a real two-account workflow.
+
+Earlier Redmi Turbo 4 checks exercised the then-present seeded account,
+schedule-focused Sessions/Session Details, and the separate 25-minute group
+room timer. Those are historical UI checks, not current-runtime evidence for a
+personal account. A nonfatal focus soft exception was logged before the React
+context was ready; no app crash or JavaScript error followed.

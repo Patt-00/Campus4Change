@@ -64,11 +64,15 @@ class CampusStorageModule(private val context: ReactApplicationContext) : ReactC
         return String(cipher.doFinal(Base64.decode(parts[1], Base64.NO_WRAP)), Charsets.UTF_8)
     }
 
-    private fun write(name: String, value: String) {
+    private fun encrypt(value: String): String {
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, key())
-        val encrypted = Base64.encodeToString(cipher.iv, Base64.NO_WRAP) + ":" +
+        return Base64.encodeToString(cipher.iv, Base64.NO_WRAP) + ":" +
             Base64.encodeToString(cipher.doFinal(value.toByteArray(Charsets.UTF_8)), Base64.NO_WRAP)
+    }
+
+    private fun write(name: String, value: String) {
+        val encrypted = encrypt(value)
         check(prefs.edit().putString(name, encrypted).commit()) { "Could not save data on this device." }
     }
 
@@ -102,29 +106,47 @@ class CampusStorageModule(private val context: ReactApplicationContext) : ReactC
     }
 
     private fun isLegacySeedAccount(account: JSONObject): Boolean =
-        account.optString("id") == "demo"
-            && account.optString("email").equals("alex@campus.demo", ignoreCase = true)
-            && account.optString("studentId") == "DEMO"
+        LegacySeedIdentity.matchesAccount(
+            account.optString("id"),
+            account.optString("email"),
+            account.optString("studentId"),
+        )
 
     private fun removeLegacySeedAccount() {
         val serializedAccounts = read("accounts")
         val existing = serializedAccounts?.let { JSONArray(it) } ?: JSONArray()
         val retained = JSONArray()
-        var foundBundledDemo = false
+        var foundLegacyAccount = false
         for (index in 0 until existing.length()) {
             val account = existing.optJSONObject(index)
             if (account != null && isLegacySeedAccount(account)) {
-                foundBundledDemo = true
+                foundLegacyAccount = true
             } else if (account != null) {
                 retained.put(account)
             }
         }
-        if (!foundBundledDemo) return
-
-        if (serializedAccounts != null) {
-            write("accounts", retained.toString())
+        val legacyStateProfile = if (foundLegacyAccount) {
+            null
+        } else {
+            runCatching { read("state_demo") }
+                .getOrNull()
+                ?.let { runCatching { JSONObject(it).optJSONObject("profile") }.getOrNull() }
         }
-        val editor = prefs.edit().remove("state_demo")
+        val foundLegacyState = legacyStateProfile?.let { profile ->
+            LegacySeedIdentity.matchesState(
+                profile.optString("id"),
+                profile.optString("email"),
+            )
+        } == true
+        if (!foundLegacyAccount && !foundLegacyState) return
+
+        // Commit the account list, state, and biometric pointer together so a
+        // failed write cannot leave the removed seed's state orphaned.
+        val editor = prefs.edit()
+        if (foundLegacyAccount && serializedAccounts != null) {
+            editor.putString("accounts", encrypt(retained.toString()))
+        }
+        editor.remove("state_demo")
         if (read("biometric_user") == "demo") editor.remove("biometric_user")
         check(editor.commit()) { "Could not remove the legacy seeded account." }
         if (activeUser == "demo") activeUser = null

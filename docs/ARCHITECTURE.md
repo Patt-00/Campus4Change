@@ -141,7 +141,7 @@ moderation are not implemented.
 - Biometric setup requires a signed-in local account and a successful Android biometric prompt. Sign-in uses the enrolled device biometrics. Android 9 or newer is required.
 - Android backup is disabled. Clearing app data or uninstalling removes local accounts and data.
 
-An update from the older seeded build removes only the exact bundled account and its sample state; other device-only accounts and their saved state are preserved. This migration runs before local account sign-in and still needs an upgrade-install check on a device. Device-only accounts are not school identity verification. Configured Firebase accounts provide email/password authentication, account recovery, private state sync, and shared study groups, but the app has no institutional sign-in or complete campus data service. The iOS scaffold cannot use this Android module.
+An update from the older seeded build removes only the exact bundled account and its sample state; other device-only accounts and their saved state are preserved. The migration uses one SharedPreferences commit for the account list, state, and biometric pointer, and can recognize the legacy state left by a partially completed earlier migration. Installing the update over existing data on the POCO verified removal of the seeded account; a separate user-created account was unavailable to test the preservation path. Device-only accounts are not school identity verification. Configured Firebase accounts provide email/password authentication, account recovery, private state sync, and shared study groups, but the app has no institutional sign-in or complete campus data service. The iOS scaffold cannot use this Android module.
 
 ## UI and builds
 

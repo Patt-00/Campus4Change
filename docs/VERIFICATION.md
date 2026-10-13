@@ -12,17 +12,28 @@
 - The existing Figma prototype's 63 navigation links now have matching 220 ms
   ease-out transitions: 36 directional move-ins and 27 tab dissolves. The
   Plugin API readback confirmed all 63 saved transitions.
-- The Home quick actions and Study Groups cards were simplified in code and in
-  Figma while retaining the current dark palette, rounded cards, and cyan
-  accents. The login has no demo sign-in, and new account state has no seeded
-  tutors, groups, sessions, conversations, or notices. Android startup removes
-  only the exact old bundled account and its saved state/biometric pointer.
+- The Home quick actions, Study Groups cards, Profile actions, and Sessions row
+  affordance were simplified in code and in Figma while retaining the current
+  dark palette, rounded cards, and cyan accents. The login has no demo sign-in,
+  and new account state has no seeded tutors, groups, sessions, conversations,
+  or notices. Android startup removes only the exact old bundled account and
+  commits its state and biometric-pointer cleanup atomically. It also recognizes
+  the exact legacy profile state if an older partial migration removed the
+  account record but left its state behind.
 - `npm test -- --runInBand --coverage --testTimeout=15000`: 169 tests passed
   in 26 suites; statement coverage 82.60% and branch coverage 73.63%.
   `npm run lint` passed without warnings. `:app:createBundleReleaseJsAndAssets`
   and `:app:assembleDebug` passed. The production JavaScript bundle is
   2,633,772 bytes with SHA-256
   `a0594f04502a74b852bdcb690d1a7835f56e978d66ccc76effa7bbb3db7944a9`.
+- `:app:testDebugUnitTest` passed 2 native tests. They verify the account
+  migration requires the exact legacy account identity and that fallback
+  cleanup only recognizes its matching profile ID/email. Gradle tests and the
+  debug build passed under JDK 25, matching CI. The workstation's default JDK 27
+  failed while parsing the Gradle build script (`Unsupported class file major
+  version 71`); no repository-wide Java setting was changed. The JDK 25 build
+  was then installed over the existing POCO app data and cold-launched to the
+  logo without React Native or Android error logs.
 - On the POCO X4 GT (model `22041216G`, Android 14), the debug APK installed
   over the existing app without clearing app data. A cold launch showed the
   logo, then Login. The screen had no demo button; attempting the former seeded
@@ -33,9 +44,10 @@
   The stale Metro cache was restarted from this checkout; the current bundle
   loaded and filtered Android/React Native error logs were empty.
 - GitHub Actions run
-  [38445815680](https://github.com/Patt-00/Campus4Change/actions/runs/38445815680)
-  passed on `468d7ca`. It predates this uncommitted minimalist/demo-removal
-  update. The checked-in Firebase rules and indexes remain undeployed.
+  [38454306951](https://github.com/Patt-00/Campus4Change/actions/runs/38454306951)
+  passed on `674b22e`, including lint, unit tests, Auth/Firestore emulators,
+  production bundling, debug build, and the release-signing guard. The checked-in
+  Firebase rules and indexes remain undeployed.
 
 ## Current source work — 2026-10-13
 

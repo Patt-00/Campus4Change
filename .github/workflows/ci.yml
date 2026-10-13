@@ -53,6 +53,10 @@ jobs:
       - name: Unit tests
         run: npm test -- --runInBand
 
+      - name: Android local unit tests
+        working-directory: android
+        run: ./gradlew --no-daemon :app:testDebugUnitTest
+
       - name: Firestore rules and Auth emulator tests
         env:
           C4C_ALLOW_FIRESTORE_EMULATOR_RESET: '1'

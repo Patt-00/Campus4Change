@@ -8,7 +8,7 @@ The 63 existing screen-navigation links use 220 ms ease-out transitions. Forward
 
 The app follows the dark background, cyan actions, rounded cards, Inter typography, circle avatars, and five-tab layout. Scrolling, device insets, editable data, validation, and local-storage notices adapt the fixed 390-by-844 reference to Android. Exact 1:1 pixel matching has not been verified.
 
-The latest visual pass keeps the existing colors and card style while removing secondary copy from Home quick actions and shortening Study Groups rows to one metadata line with a trailing chevron. The Login design contains no demo sign-in.
+The latest visual pass keeps the existing colors and card style while removing secondary copy from Home quick actions, shortening Study Groups rows to one metadata line with a trailing chevron, grouping Profile actions in one divided card, and using a chevron on Session rows. The Login design contains no demo sign-in.
 
 | Figma node | Screen | Local behavior |
 | --- | --- | --- |
