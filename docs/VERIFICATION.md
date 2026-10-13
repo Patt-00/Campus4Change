@@ -66,6 +66,10 @@
 - GitHub Actions run
   [38475024257](https://github.com/Patt-00/Campus4Change/actions/runs/38475024257)
   passed on `9229f55` after the offline-safe local/cloud persistence refactor.
+- GitHub Actions run
+  [38475765952](https://github.com/Patt-00/Campus4Change/actions/runs/38475765952)
+  passed on `c3dcdb6`, including the offline Firestore local-visibility and
+  reconnect-acknowledgement regression.
 - `:app:testDebugUnitTest` passed 2 native tests. They verify the account
   migration requires the exact legacy account identity and that fallback
   cleanup only recognizes its matching profile ID/email. Gradle tests and the

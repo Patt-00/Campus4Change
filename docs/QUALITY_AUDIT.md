@@ -234,13 +234,13 @@ production-ready claim.
 ## Verification record
 
 Verification is recorded in [VERIFICATION.md](VERIFICATION.md). On commit
-`9229f55`, 191 Jest tests, lint, Auth/Firestore emulator tests, production
+`c3dcdb6`, 191 Jest tests, lint, Auth/Firestore emulator tests, production
 bundling, Android unit tests, and the debug build passed locally. GitHub Actions
 run
-[38475024257](https://github.com/Patt-00/Campus4Change/actions/runs/38475024257)
-passed all configured checks. The separate offline-write emulator assertion
-also passed locally: listeners saw the local mutation before acknowledgement,
-and the promise resolved after network access returned. The current APK was
+[38475765952](https://github.com/Patt-00/Campus4Change/actions/runs/38475765952)
+passed all configured checks, including the offline-write emulator assertion:
+listeners saw the local mutation before acknowledgement, and the write promise
+resolved after network access returned. The current APK was
 reinstalled and cold-launched on the POCO X4 GT; Login showed no demo account or
 prefilled demo credentials. The approved test-account retry ended in Credential
 Manager cancellation before Firebase received a token, so Google account
