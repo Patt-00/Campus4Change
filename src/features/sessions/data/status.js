@@ -1,6 +1,10 @@
 const SESSION_DURATION_MS = 60 * 60 * 1000;
 
 export function sessionTimingStatus(session, now = Date.now()) {
+  if (session.status === 'Pending') {
+    return 'Pending';
+  }
+
   if (session.status === 'Upcoming') {
     const startsAt =
       typeof session.startsAt === 'string'
@@ -16,7 +20,7 @@ export function sessionTimingStatus(session, now = Date.now()) {
   }
 
   if (
-    ['Completed', 'Cancelled', 'In progress', 'Past due'].includes(
+    ['Completed', 'Cancelled', 'Declined', 'In progress', 'Past due'].includes(
       session.status,
     )
   ) {

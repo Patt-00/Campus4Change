@@ -10,4 +10,8 @@ export const C = {
   yellow: '#f5b800',
   purple: '#8d7aff',
   danger: '#ff8391',
+  googleSurface: '#ffffff',
+  googleBorder: '#dadce0',
+  googleText: '#202124',
+  googleMark: '#4285f4',
 };

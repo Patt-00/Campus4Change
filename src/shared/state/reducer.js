@@ -281,7 +281,7 @@ export function hasConflict(state, startsAt, exceptId) {
   return state.sessions.some(
     s =>
       s.id !== exceptId &&
-      s.status === 'Upcoming' &&
+      ['Upcoming', 'Pending'].includes(s.status) &&
       start < new Date(s.startsAt).getTime() + 3600000 &&
       new Date(s.startsAt).getTime() < start + 3600000,
   );

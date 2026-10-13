@@ -33,6 +33,7 @@ import { Screen } from '../shared/components/Screen';
 import { uid } from '../shared/data/demo';
 import { useSharedGroups } from '../features/groups/hooks/useSharedGroups';
 import { useSharedGroupReports } from '../features/groups/hooks/useSharedGroupReports';
+import { useSharedTutors } from '../features/tutors/hooks/useSharedTutors';
 import {
   directoryTutors,
   knownTutors,
@@ -112,6 +113,11 @@ export function AppNavigator() {
     dispatch,
     activeGroupId,
     activePostId,
+  });
+  const sharedTutors = useSharedTutors({
+    uid: syncUid,
+    enabled: Boolean(syncUid),
+    profile: state?.profile,
   });
   const reportGroup = groupDirectory.find(group => group.id === route.groupId);
   const groupReports = useSharedGroupReports({
@@ -195,11 +201,29 @@ export function AppNavigator() {
     return <OnboardingScreen go={go} />;
   }
   const ownId = 'local-' + state.profile.id;
-  const list = knownTutors(state);
-  const directory = directoryTutors(state);
+  const list = syncUid ? sharedTutors.tutors : knownTutors(state);
+  const directory = syncUid ? sharedTutors.tutors : directoryTutors(state);
+  const sharedBookings = syncUid ? sharedTutors.bookings : [];
+  const sharedBookingIds = new Set(sharedBookings.map(item => item.id));
+  const sessions = [
+    ...sharedBookings,
+    ...state.sessions.filter(item => !sharedBookingIds.has(item.id)),
+  ];
+  const appState = { ...state, sessions };
   const tutor = list.find(t => t.id === route.tutorId);
-  const session = state.sessions.find(x => x.id === route.sessionId);
-  const sessionTutor = list.find(x => x.id === session?.tutorId);
+  const session = sessions.find(x => x.id === route.sessionId);
+  const sessionTutor =
+    list.find(x => x.id === session?.tutorId) ||
+    (session
+      ? {
+          id: session.tutorId,
+          name: session.tutorName || 'Campus tutor',
+          course: '',
+          subjects: [session.subject],
+          about: 'This tutor profile is no longer listed.',
+          shared: Boolean(session.shared),
+        }
+      : null);
   const group = reportGroup;
   const post = group?.posts.find(x => x.id === route.postId);
   const conversation = state.conversations.find(
@@ -237,7 +261,7 @@ export function AppNavigator() {
       break;
     case 'Home':
       screen = (
-        <HomeScreen go={go} state={state} directory={directory} tutors={list} />
+        <HomeScreen go={go} state={appState} directory={directory} tutors={list} />
       );
 
       break;
@@ -249,6 +273,11 @@ export function AppNavigator() {
           back={back}
           list={directory}
           initialQuery={route.query}
+          sharedAccount={sessionType === 'firebase'}
+          emailVerified={emailVerified}
+          loading={sharedTutors.loading}
+          error={sharedTutors.error}
+          retry={sharedTutors.retry}
         />
       );
 
@@ -260,7 +289,7 @@ export function AppNavigator() {
             go={go}
             back={back}
             tutor={tutor}
-            message={message}
+            message={tutor.shared ? undefined : message}
           />
         );
       }
@@ -281,8 +310,19 @@ export function AppNavigator() {
               if (session && !canRescheduleSession(session)) {
                 return 'Only upcoming sessions can be rescheduled.';
               }
-              if (hasConflict(state, startsAt, session?.id)) {
+              if (hasConflict({ sessions }, startsAt, session?.id)) {
                 return 'You already have a session during this time. Choose another slot.';
+              }
+              if (tutor.shared) {
+                return sharedTutors
+                  .requestSession(tutor, subject, startsAt, note)
+                  .then(result => {
+                    if (result?.error) {
+                      return result.error;
+                    }
+                    go({ page: 'Booking Confirmed', booking: result });
+                    return undefined;
+                  });
               }
               if (session) {
                 dispatch({
@@ -313,12 +353,19 @@ export function AppNavigator() {
       }
       break;
     case 'Booking Confirmed':
-      if (session && sessionTutor) {
+      if (session || route.booking) {
         screen = (
           <BookingConfirmedScreen
             go={go}
-            session={session}
-            tutor={sessionTutor}
+            session={session || route.booking}
+            tutor={
+              route.booking
+                ? list.find(item => item.id === route.booking.tutorId) || {
+                    id: route.booking.tutorId,
+                    name: route.booking.tutorName || 'Campus tutor',
+                  }
+                : sessionTutor
+            }
           />
         );
       }
@@ -328,7 +375,9 @@ export function AppNavigator() {
         <SessionsScreen
           go={go}
           back={back}
-          sessions={state.sessions}
+          key={route.filter || 'Upcoming'}
+          initialFilter={route.filter || 'Upcoming'}
+          sessions={sessions}
           list={list}
         />
       );
@@ -343,16 +392,33 @@ export function AppNavigator() {
             session={session}
             tutor={sessionTutor}
             cancel={() =>
-              dispatch({
-                type: 'session',
-                id: session.id,
-                changes: { status: 'Cancelled' },
-              })
+              session.shared
+                ? sharedTutors.updateRequest(session.id, 'cancel')
+                : dispatch({
+                    type: 'session',
+                    id: session.id,
+                    changes: { status: 'Cancelled' },
+                  })
             }
+            respond={action => {
+              if (
+                action === 'accept' &&
+                hasConflict({ sessions }, session.startsAt, session.id)
+              ) {
+                return {
+                  error:
+                    'This request overlaps another pending or accepted session. Resolve the other request first.',
+                };
+              }
+              return sharedTutors.updateRequest(session.id, action);
+            }}
+            privateNotes={state.roomNotes?.[session.id] ?? ''}
             rate={rating =>
               dispatch({ type: 'session', id: session.id, changes: { rating } })
             }
-            message={() => message(sessionTutor)}
+            message={
+              session.shared ? undefined : () => message(sessionTutor)
+            }
           />
         );
       }
@@ -551,7 +617,7 @@ export function AppNavigator() {
       screen = (
         <ProfileScreen
           go={go}
-          state={state}
+          state={appState}
           signOut={signOut}
           sessionType={sessionType}
           firebaseConfigured={auth.firebaseConfigured}
@@ -567,6 +633,7 @@ export function AppNavigator() {
           back={back}
           profile={state.profile}
           preferences={route.page === 'Preferences'}
+          firebaseAccount={sessionType === 'firebase'}
           save={profile => dispatch({ type: 'profile', profile })}
         />
       );
@@ -577,7 +644,27 @@ export function AppNavigator() {
         <BeTutorScreen
           back={back}
           profile={state.profile}
-          save={profile => dispatch({ type: 'profile', profile })}
+          sharedAccount={sessionType === 'firebase'}
+          canShare={emailVerified}
+          save={async profile => {
+            if (sessionType === 'firebase') {
+              if (!emailVerified) {
+                return 'Verify your email before publishing a tutor profile.';
+              }
+              const result = profile.tutorSubjects.length
+                ? await sharedTutors.publishProfile({
+                    ...state.profile,
+                    tutorSubjects: profile.tutorSubjects,
+                    bio: profile.bio,
+                  })
+                : await sharedTutors.unpublishProfile();
+              if (result?.error) {
+                return result.error;
+              }
+            }
+            dispatch({ type: 'profile', profile });
+            return undefined;
+          }}
         />
       );
 
@@ -593,28 +680,44 @@ export function AppNavigator() {
             back={back}
             session={session}
             tutor={sessionTutor}
-            message={() => message(sessionTutor)}
+            message={session.shared ? undefined : () => message(sessionTutor)}
             initialNotes={state.roomNotes?.[session.id] ?? session.note}
             onDraft={text =>
               dispatch({ type: 'roomDraft', id: session.id, text })
             }
             save={notes => {
-              dispatch({ type: 'roomDraft', id: session.id });
-              dispatch({
-                type: 'session',
-                id: session.id,
-                changes: { note: notes },
-              });
+              if (session.shared) {
+                dispatch({ type: 'roomDraft', id: session.id, text: notes });
+              } else {
+                dispatch({ type: 'roomDraft', id: session.id });
+                dispatch({
+                  type: 'session',
+                  id: session.id,
+                  changes: { note: notes },
+                });
+              }
               back();
             }}
-            complete={notes => {
-              dispatch({ type: 'roomDraft', id: session.id });
-              dispatch({
-                type: 'session',
-                id: session.id,
-                changes: { note: notes, status: 'Completed' },
-              });
+            complete={async notes => {
+              if (session.shared) {
+                dispatch({ type: 'roomDraft', id: session.id, text: notes });
+                const result = await sharedTutors.updateRequest(
+                  session.id,
+                  'complete',
+                );
+                if (result?.error) {
+                  return result;
+                }
+              } else {
+                dispatch({ type: 'roomDraft', id: session.id });
+                dispatch({
+                  type: 'session',
+                  id: session.id,
+                  changes: { note: notes, status: 'Completed' },
+                });
+              }
               back();
+              return undefined;
             }}
           />
         );
@@ -702,6 +805,21 @@ export function AppNavigator() {
         <View style={s.banner}>
           <Text style={s.error}>Group posts could not be loaded: {groupContentError}</Text>
           <Link label="Retry posts" onPress={retryGroupContent} />
+        </View>
+      )}
+      {sharedTutors.error && (
+        <View style={s.banner}>
+          <Text style={s.error}>
+            Tutor listings and session requests could not be refreshed: {sharedTutors.error}
+          </Text>
+          <Link label="Retry tutor data" onPress={sharedTutors.retry} />
+        </View>
+      )}
+      {sharedTutors.actionError && (
+        <View style={s.banner}>
+          <Text style={s.error}>
+            A tutor change was not saved: {sharedTutors.actionError}
+          </Text>
         </View>
       )}
       {saveError && (

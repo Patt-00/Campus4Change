@@ -34,7 +34,9 @@ test('Firebase About copy matches verified-email group access', async () => {
     .filter(value => typeof value === 'string')
     .join(' ');
 
-  expect(copy).toContain('Verified Firebase accounts share study-group details');
+  expect(copy).toContain('Verified Firebase accounts can share study-group details');
+  expect(copy).toContain('Google sign-in on Android');
+  expect(copy).toContain('add your Student ID privately in Edit Profile');
   expect(copy).toContain('verification emails');
   expect(copy).toContain('Verified email is required for shared study groups');
   expect(copy).toContain('does not check a school-domain allowlist');

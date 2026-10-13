@@ -52,6 +52,17 @@ test('booking conflicts include partial overlaps but allow adjacent sessions', (
   });
   expect(hasConflict(state, booking.startsAt)).toBe(false);
 });
+test('pending shared requests reserve the student time until the tutor responds', () => {
+  const startsAt = '2027-01-02T14:00:00.000Z';
+  const state = {
+    sessions: [
+      { id: 'request', status: 'Pending', startsAt },
+    ],
+  };
+  expect(hasConflict(state, '2027-01-02T14:30:00.000Z')).toBe(true);
+  expect(hasConflict(state, '2027-01-02T15:00:00.000Z')).toBe(false);
+  expect(hasConflict(state, startsAt, 'request')).toBe(false);
+});
 test('scheduled sessions switch to in-progress and past-due labels without rewriting saved status', () => {
   const session = {
     id: 'timed',
@@ -68,6 +79,9 @@ test('scheduled sessions switch to in-progress and past-due labels without rewri
     'Past due',
   );
   expect(session.status).toBe('Upcoming');
+  expect(sessionTimingStatus({ ...session, status: 'Pending' }, Date.now())).toBe(
+    'Pending',
+  );
   expect(
     sessionTimingStatus({ ...session, status: 'Completed' }, Date.now()),
   ).toBe('Completed');

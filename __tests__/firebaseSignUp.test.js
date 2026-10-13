@@ -13,6 +13,10 @@ let mockSendEmailVerification;
 let mockReload;
 let mockGetIdToken;
 let mockUpdateProfile;
+let mockGoogleSignIn;
+let mockGoogleCredential;
+let mockSignInWithCredential;
+let mockClearGoogleCredentialState;
 
 jest.mock('react-native', () => ({
   NativeModules: {
@@ -20,6 +24,10 @@ jest.mock('react-native', () => ({
       getFirebaseAuthValue: jest.fn(async () => null),
       setFirebaseAuthValue: jest.fn(async () => true),
       removeFirebaseAuthValue: jest.fn(async () => true),
+    },
+    CampusGoogleSignIn: {
+      signIn: (...args) => mockGoogleSignIn(...args),
+      clearCredentialState: (...args) => mockClearGoogleCredentialState(...args),
     },
   },
   Platform: { OS: 'android' },
@@ -32,6 +40,7 @@ jest.mock('../src/shared/backend/firebaseConfig', () => ({
     projectId: 'campus-test',
     appId: 'test-app',
   },
+  googleWebClientId: '722562628798-test.apps.googleusercontent.com',
   firebaseEmulatorHost: '',
   isFirebaseConfigured: () => true,
 }));
@@ -50,6 +59,10 @@ jest.mock('firebase/auth', () => ({
   }),
   createUserWithEmailAndPassword: (...args) => mockCreateUser(...args),
   signInWithEmailAndPassword: (...args) => mockSignIn(...args),
+  signInWithCredential: (...args) => mockSignInWithCredential(...args),
+  GoogleAuthProvider: {
+    credential: (...args) => mockGoogleCredential(...args),
+  },
   signOut: (...args) => mockSignOut(...args),
   sendPasswordResetEmail: (...args) => mockSendPasswordResetEmail(...args),
   sendEmailVerification: (...args) => mockSendEmailVerification(...args),
@@ -75,6 +88,23 @@ beforeEach(() => {
   mockSetDoc = jest.fn(async () => {});
   mockServerTimestamp = jest.fn(() => 'server-timestamp');
   mockSignIn = jest.fn();
+  mockGoogleSignIn = jest.fn(async () => 'google-id-token');
+  mockGoogleCredential = jest.fn(idToken => ({
+    providerId: 'google.com',
+    idToken,
+  }));
+  mockSignInWithCredential = jest.fn(async (auth, credential) => {
+    const user = {
+      uid: 'google-user',
+      email: 'google.student@gmail.com',
+      displayName: 'Google Student',
+      emailVerified: true,
+    };
+    auth.currentUser = user;
+    mockAuthObserver?.(user);
+    return { user, credential };
+  });
+  mockClearGoogleCredentialState = jest.fn(async () => true);
   mockSignOut = jest.fn(async auth => {
     auth.currentUser = null;
   });
@@ -186,6 +216,39 @@ test('sign-in reloads the user and refreshes the token before reporting verifica
   });
 });
 
+test('Google sign-in exchanges the Credential Manager ID token with Firebase', async () => {
+  const firebase = require('../src/shared/backend/firebase');
+
+  expect(firebase.firebaseGoogleSignInAvailable()).toBe(true);
+  const account = await firebase.firebaseGoogleSignIn();
+
+  expect(mockGoogleSignIn).toHaveBeenCalledWith(
+    '722562628798-test.apps.googleusercontent.com',
+  );
+  expect(mockGoogleCredential).toHaveBeenCalledWith('google-id-token');
+  expect(mockSignInWithCredential).toHaveBeenCalledWith(
+    mockAuth,
+    expect.objectContaining({ providerId: 'google.com' }),
+  );
+  expect(mockReload).toHaveBeenCalledWith(mockAuth.currentUser);
+  expect(mockGetIdToken).toHaveBeenCalledWith(mockAuth.currentUser, true);
+  expect(account).toMatchObject({
+    id: 'google-user',
+    name: 'Google Student',
+    email: 'google.student@gmail.com',
+    emailVerified: true,
+    studentId: '',
+  });
+});
+
+test('Google account-picker cancellation returns without signing into Firebase', async () => {
+  const firebase = require('../src/shared/backend/firebase');
+  mockGoogleSignIn.mockRejectedValue({ code: 'GOOGLE_SIGN_IN_CANCELED' });
+
+  await expect(firebase.firebaseGoogleSignIn()).resolves.toBeNull();
+  expect(mockSignInWithCredential).not.toHaveBeenCalled();
+});
+
 test.each([
   'auth/invalid-credential',
   'auth/user-disabled',
@@ -235,6 +298,7 @@ test('successful Firebase sign-out clears the transient Student ID cache', async
 
   await firebase.firebaseSignOut();
   expect(mockSignOut).toHaveBeenCalledWith(mockAuth);
+  expect(mockClearGoogleCredentialState).toHaveBeenCalledTimes(1);
 
   mockAuthObserver({
     uid: account.id,
@@ -253,7 +317,7 @@ test('shared Firestore services reject an unverified Firebase user', () => {
   };
 
   expect(() => firebase.firebaseServicesForUser('unverified-user')).toThrow(
-    'Verify your email to access shared study groups.',
+    'Verify your email to access shared campus features.',
   );
 
   mockAuth.currentUser.emailVerified = true;

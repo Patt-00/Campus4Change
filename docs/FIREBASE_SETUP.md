@@ -1,8 +1,9 @@
 # Firebase setup for Campus4Change
 
 Campus4Change uses the Firebase JavaScript SDK. Firebase Authentication handles
-email/password accounts. Firestore stores one private account-state document
-per user and a separate shared study-group directory. Authentication persists
+email/password and Google accounts on Android. Firestore stores one private account-state document
+per user, a shared study-group directory, public tutor listings, and
+participant-only session requests. Authentication persists
 across app restarts. The Firebase refresh token is stored through the Android
 native module and encrypted with Android Keystore-backed AES-GCM. A second
 encrypted copy of app state stays on the device for recovery when cloud sync
@@ -12,25 +13,49 @@ fails.
 
 This checkout is configured for Firebase project `campus4change` on the Spark
 plan. Its Web app is registered as **Campus4Change React Native**, Email/Password
-sign-in is enabled, and the Standard Firestore database is in
-`asia-southeast1` (Singapore). The database was initialized in production mode,
-so its current rules deny all client reads and writes. The checked-in
+and Google sign-in are enabled, and the Standard Firestore database is in
+`asia-southeast1` (Singapore). Google consent uses the support email
+`qpurbina@tip.edu.ph`. The Android app `com.campus4change` has its debug
+signing SHA-1 registered; a future release signing certificate must be added
+before Google sign-in can work in release builds. The database was initialized
+in production mode, so its current rules deny all client reads and writes. The checked-in
 `firestore.rules` file has passed the emulator suite but has not been deployed
 to this project; live app data access stays unavailable until that deployment.
 Firebase signup sends an email verification link. Verified email claims are
-required for shared study-group access; each user can still read and save only
-their own private account state before verification. This confirms control of
-the entered address, not that it belongs to a particular school domain.
+required for shared study groups, tutor listings, and session requests; each
+user can still read and save only their own private account state before
+verification. This confirms control of the entered address, not that it
+belongs to a particular school domain.
+
+Google sign-in is implemented with Android Credential Manager and Firebase
+Authentication. The Android app uses the public Firebase Web client ID from
+`firebaseConfig.js` to request a Google ID token, then exchanges that token with
+Firebase. The ID is public client configuration; never put a Web client secret
+in the app. A Google account supplies its name and email. The account holder
+can add a Student ID later in Edit Profile, where it stays in private account
+state. The screens and debug build are verified on the POCO X4 GT; an actual
+Google account sign-in has not yet been verified end-to-end.
+See [Android's Credential Manager Google sign-in guide](https://developer.android.com/identity/sign-in/credential-manager-siwg-implementation)
+and [Firebase's Google ID token sign-in guide](https://firebase.google.com/docs/auth/web/google-signin)
+for the platform flow and token exchange.
 
 ## Configure a Firebase project
 
 1. Open the Firebase Console and create or select your course project.
-2. In **Authentication > Sign-in method**, enable **Email/Password**.
+2. In **Authentication > Sign-in method**, enable **Email/Password** and
+   **Google**. Choose the support email shown to users on the Google consent
+   screen.
 3. In **Firestore Database**, create a database.
 4. In **Project settings > Your apps**, register a Web app for the JavaScript
    SDK and copy its Firebase configuration into
-   `src/shared/backend/firebaseConfig.js`.
-5. Sign in to the Firebase CLI, select the same project, and deploy the
+   `src/shared/backend/firebaseConfig.js`. Copy the public Web client ID from
+   the Google provider's Web SDK configuration into `googleWebClientId` in the
+   same file.
+5. Register the Android package `com.campus4change` in Project settings and add
+   the SHA-1 signing certificate for each build. The current debug certificate
+   is configured; a release certificate still needs its own SHA-1 before a
+   signed release can use Google sign-in.
+6. Sign in to the Firebase CLI, select the same project, and deploy the
    checked-in Firestore rules and indexes only after reviewing and authorizing
    that live change:
 
@@ -42,7 +67,7 @@ the entered address, not that it belongs to a particular school domain.
 
    If asked, choose the Firebase project you configured above. Check the
    selected project before deploying. Index creation may take several minutes.
-6. Build and run the Android app. Sign-up creates a Firebase account, and a
+7. Build and run the Android app. Sign-up creates a Firebase account, and a
    successful sign-in restores the account's Firestore state. The demo account
    remains local sample data.
 
@@ -78,9 +103,11 @@ Remove-Item Env:C4C_ALLOW_FIRESTORE_EMULATOR_RESET
 npm run test:firebase-auth
 ```
 
-The test checks private account ownership, authenticated group discovery,
-private membership records, safe membership-count updates, and member-only post
-and reply reads and writes. It also rejects unauthenticated access, membership
+The test checks private account ownership, listed tutor profiles, participant-
+only session requests, same-slot acceptance locks, authenticated group
+discovery, private membership records, safe membership-count updates, and
+member-only post and reply reads and writes. It also rejects unauthenticated
+access, third-party booking reads, duplicate slot acceptance, membership
 spoofing, nonmember posting, and unconfigured collections.
 The Auth emulator test creates a disposable demo account, sends and applies a
 verification code locally, confirms the refreshed email claim, and checks that
@@ -125,12 +152,19 @@ Each member's private record lives at
 the matching group-count change. The user's exact private path supplies the
 live membership query and member authorization; no global `members`
 collection-group rule is needed. Device-only/demo groups remain local. Firebase
-Authentication sends a
-verification email at signup, and Firestore rules require the verified-email
-claim for shared study groups. Tutor listings, bookings, group chat, and direct
-messages are not shared with other students yet. Google sign-in, school-domain
-eligibility, and wider social data sharing still need their own design and
-Firebase configuration.
+Authentication sends a verification email at signup, and Firestore rules
+require the verified-email claim for shared study groups, tutor listings, and
+session requests.
+
+Tutor profiles are owner-editable documents at `tutorProfiles/{uid}` and expose
+only the fields needed for a student listing. Session requests live at
+`tutorBookings/{bookingId}` and can be read only by the student and tutor.
+Request status changes are limited to tutor acceptance/decline, participant
+cancellation, or participant completion. Accepting a request creates a
+`tutorSlots/{tutorUid}/slots/{slotKey}` reservation in the same transaction;
+cancellation or completion removes that lock atomically. Direct messages and
+group chat are still private notes rather than delivered conversations. Google
+sign-in is configured as described above. There is no school-domain allowlist.
 
 When Firebase values are absent from `firebaseConfig.js`, local demo/prototype
 accounts continue to work. With the current project configuration, new

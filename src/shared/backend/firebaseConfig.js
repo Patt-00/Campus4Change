@@ -10,6 +10,11 @@ export const firebaseConfig = {
   appId: '1:722562628798:web:8670cd83eb25b3ca7132ef',
 };
 
+// Public OAuth audience used by Android Credential Manager. This is the
+// Firebase project's Web client ID, not its private client secret.
+export const googleWebClientId =
+  '722562628798-m5c0fbquq68a2ml7eabkukjq2putlkuv.apps.googleusercontent.com';
+
 // Set this only while using local Auth and Firestore emulators.
 export const firebaseEmulatorHost = '';
 

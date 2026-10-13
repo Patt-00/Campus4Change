@@ -2,7 +2,13 @@ import React, { useState } from 'react';
 import { Text, View, StyleSheet } from 'react-native';
 import { AppButton } from '../../../shared/components/AppButton';
 import { Screen } from '../../../shared/components/Screen';
-import { Avatar, Chip, Field, Link } from '../../../shared/components/UI';
+import {
+  Avatar,
+  Chip,
+  ErrorText,
+  Field,
+  Link,
+} from '../../../shared/components/UI';
 import { sessionTime } from '../../../shared/data/demo';
 import { sessionTimingStatus } from '../data/status';
 import { C } from '../../../shared/theme/colors';
@@ -19,7 +25,31 @@ export function SessionWorkspaceScreen({
   complete,
 }) {
   const [notes, setNotes] = useState(initialNotes);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
   const timingStatus = sessionTimingStatus(session);
+
+  async function finishSession() {
+    if (saving) {
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      const result = await complete(notes);
+      if (result?.error) {
+        setError(result.error);
+        setSaving(false);
+      }
+    } catch (finishError) {
+      setError(
+        finishError instanceof Error
+          ? finishError.message
+          : 'Could not complete the session. Try again.',
+      );
+      setSaving(false);
+    }
+  }
 
   return (
     <Screen title="Booked Session" back={back}>
@@ -43,24 +73,35 @@ export function SessionWorkspaceScreen({
         <View style={s.divider} />
         <Text style={s.section}>Scheduled time</Text>
         <Text style={s.text}>{sessionTime(session.startsAt)}</Text>
-        <Text style={s.section}>Tutor</Text>
+        <Text style={s.section}>{session.incoming ? 'Student' : 'Tutor'}</Text>
         <View style={s.row}>
-          <Avatar name={tutor.name} variant="tutor" size={44} />
+          <Avatar
+            name={session.incoming ? session.studentName : tutor.name}
+            variant={session.incoming ? 'avatar' : 'tutor'}
+            size={44}
+          />
           <View style={s.grow}>
-            <Text style={s.name}>{tutor.name}</Text>
-            <Text style={s.muted}>{tutor.course || 'Campus tutor'}</Text>
+            <Text style={s.name}>
+              {session.incoming ? session.studentName || 'Student' : tutor.name}
+            </Text>
+            <Text style={s.muted}>
+              {session.incoming ? 'Student participant' : tutor.course || 'Campus tutor'}
+            </Text>
           </View>
-          <Link label="Message tutor" onPress={message} />
+          {!session.shared && !session.incoming && (
+            <Link label="Message tutor" onPress={message} />
+          )}
         </View>
       </View>
 
       <Text style={s.section}>Session notes</Text>
       <Text style={[s.muted, styles.helper]}>
-        Keep the booking details and your notes together. Live calls are not
-        available in this version.
+        {session.shared
+          ? 'Your notes stay private in your account. Live chat and calls are not available yet.'
+          : 'Keep the booking details and your notes together. Live calls are not available in this version.'}
       </Text>
       <Field
-        label="Agenda and notes"
+        label={session.shared ? 'Private agenda and notes' : 'Agenda and notes'}
         placeholder="Write what you want to cover..."
         multiline
         value={notes}
@@ -70,15 +111,20 @@ export function SessionWorkspaceScreen({
         }}
       />
 
+      <ErrorText value={error} />
       <AppButton
-        title="SAVE NOTES AND RETURN"
+        title={session.shared ? 'SAVE PRIVATE NOTES' : 'SAVE NOTES AND RETURN'}
         outline
+        busy={saving}
+        disabled={saving}
         onPress={() => save(notes)}
       />
       {session.status === 'Upcoming' && (
         <AppButton
           title="MARK SESSION COMPLETE"
-          onPress={() => complete(notes)}
+          busy={saving}
+          disabled={saving}
+          onPress={finishSession}
         />
       )}
     </Screen>

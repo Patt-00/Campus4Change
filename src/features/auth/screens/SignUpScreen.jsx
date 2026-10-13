@@ -3,6 +3,7 @@ import { Keyboard, Text, View, StyleSheet } from 'react-native';
 import { AppButton } from '../../../shared/components/AppButton';
 import { Screen } from '../../../shared/components/Screen';
 import { ErrorText, Field, Link } from '../../../shared/components/UI';
+import { GoogleAuthButton } from '../components/GoogleAuthButton';
 import { s } from '../../../shared/theme/styles';
 
 export function SignUpScreen({ go, back, auth }) {
@@ -41,6 +42,23 @@ export function SignUpScreen({ go, back, auth }) {
       setBusy(false);
     }
   }
+
+  async function submitGoogle() {
+    if (busy || !auth.googleSignInAvailable) {
+      return;
+    }
+    setError('');
+    setBusy(true);
+    Keyboard.dismiss();
+    try {
+      await auth.signInWithGoogle();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <Screen title="Create account" back={back}>
       <Text style={[s.muted, styles.marginLeft28marginBottom20]}>
@@ -48,6 +66,28 @@ export function SignUpScreen({ go, back, auth }) {
           ? 'Create your Campus4Change account'
           : 'Create your account on this device'}
       </Text>
+      {auth.firebaseConfigured && (
+        <>
+          <GoogleAuthButton
+            title="Sign up with Google"
+            busy={busy}
+            disabled={!auth.googleSignInAvailable}
+            onPress={submitGoogle}
+          />
+          <Text style={[s.muted, s.center, styles.googleHelper]}>
+            Google supplies your name and email. Add your private Student ID in
+            Edit Profile after signing in.
+          </Text>
+          {!auth.googleSignInAvailable && (
+            <Text style={[s.muted, s.center, styles.googleHelper]}>
+              Google sign-in is not configured for this build yet.
+            </Text>
+          )}
+          <Text style={[s.muted, s.center, styles.googleDivider]}>
+            OR SIGN UP WITH EMAIL
+          </Text>
+        </>
+      )}
       <Field
         label="Full name"
         icon="N"
@@ -107,7 +147,7 @@ export function SignUpScreen({ go, back, auth }) {
       <AppButton title="CREATE ACCOUNT" busy={busy} onPress={submit} />
       <Text style={[s.muted, s.center, styles.marginTop16]}>
         {auth.firebaseConfigured
-          ? 'Firebase will send a verification link. Confirm your email before using shared study groups. Your private account data stays in your Firebase account.'
+          ? 'Email/password accounts receive a verification link. Google accounts use your verified Google email. Shared study groups, tutor listings, and session requests require a verified email.'
           : 'Your account and data stay on this device.'}
       </Text>
       <View style={styles.alignItemscentermarginTop24}>
@@ -127,6 +167,8 @@ const styles = StyleSheet.create({
   marginTop16: {
     marginTop: 16,
   },
+  googleHelper: { marginTop: 8 },
+  googleDivider: { marginTop: 16, marginBottom: 10 },
   alignItemscentermarginTop24: {
     alignItems: 'center',
     marginTop: 24,

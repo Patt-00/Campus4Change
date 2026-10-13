@@ -10,17 +10,19 @@ import { Icon } from '../../../shared/components/Icon';
 import { C } from '../../../shared/theme/colors';
 
 export function BookingConfirmedScreen({ go, session, tutor }) {
+  const request = session?.shared && session.status === 'Pending';
   return (
     <Screen title="">
       <View style={styles.success}>
         <Icon name="check" size={72} color={C.green} />
       </View>
       <Text style={[s.heading, s.center, styles.marginTop24]}>
-        Added to your schedule
+        {request ? 'Request sent' : 'Added to your schedule'}
       </Text>
       <Text style={[s.muted, s.center, styles.marginTop8]}>
-        Your {session.subject} session with {tutor.name.split(' ')[0]} is saved
-        in your private schedule.
+        {request
+          ? `${tutor.name} can review your ${session.subject} request in Sessions. It stays pending until they respond.`
+          : `Your ${session.subject} session with ${tutor.name.split(' ')[0]} is saved in your private schedule.`}
       </Text>
       <View style={[s.card, styles.marginTop36padding20]}>
         <Text style={s.name}>{session.subject}</Text>
@@ -29,21 +31,32 @@ export function BookingConfirmedScreen({ go, session, tutor }) {
           {dateLabel(session.startsAt)}, {timeRange(session.startsAt)}
         </Text>
         <Text style={s.muted}>
-          The tutor has not been notified.
+          {request
+            ? 'Waiting for tutor response'
+            : 'The tutor has not been notified.'}
         </Text>
       </View>
       <View style={s.bigGap} />
-      <AppButton title="BACK TO HOME" onPress={() => go('Home')} />
-      <AppButton
-        title="VIEW SESSION DETAILS"
-        outline
-        onPress={() =>
-          go({
-            page: 'Session Details',
-            sessionId: session.id,
-          })
-        }
-      />
+      {request ? (
+        <AppButton
+          title="VIEW MY REQUESTS"
+          onPress={() => go({ page: 'Sessions', filter: 'Requests' })}
+        />
+      ) : (
+        <>
+          <AppButton title="BACK TO HOME" onPress={() => go('Home')} />
+          <AppButton
+            title="VIEW SESSION DETAILS"
+            outline
+            onPress={() =>
+              go({
+                page: 'Session Details',
+                sessionId: session.id,
+              })
+            }
+          />
+        </>
+      )}
     </Screen>
   );
 }

@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { Screen } from '../../../shared/components/Screen';
 import {
   Avatar,
@@ -14,7 +20,17 @@ import { s } from '../../../shared/theme/styles';
 
 import { filterTutors } from '../data/search';
 
-export function TutorSearchScreen({ go, back, list, initialQuery = '' }) {
+export function TutorSearchScreen({
+  go,
+  back,
+  list,
+  initialQuery = '',
+  sharedAccount = false,
+  emailVerified = true,
+  loading = false,
+  error = '',
+  retry,
+}) {
   const [query, setQuery] = useState(initialQuery);
   const [subject, setSubject] = useState('');
   const [showSubjects, setShowSubjects] = useState(false);
@@ -59,12 +75,14 @@ export function TutorSearchScreen({ go, back, list, initialQuery = '' }) {
             onPress={() => setAvailable(!available)}
           />
 
-          <Chip
-            label="Top rated"
-            color={C.yellow}
-            selected={top}
-            onPress={() => setTop(!top)}
-          />
+          {!sharedAccount && (
+            <Chip
+              label="Top rated"
+              color={C.yellow}
+              selected={top}
+              onPress={() => setTop(!top)}
+            />
+          )}
         </View>
       )}
       {showSubjects && (
@@ -96,7 +114,9 @@ export function TutorSearchScreen({ go, back, list, initialQuery = '' }) {
           }}
         />
       )}
-      <Text style={s.section}>Tutor directory · {results.length}</Text>
+      <Text style={s.section}>
+        {sharedAccount ? 'Student tutors' : 'Tutor directory'} · {results.length}
+      </Text>
       {results.map(t => {
         const rating =
           Number.isFinite(t.rating) && t.rating > 0
@@ -106,7 +126,7 @@ export function TutorSearchScreen({ go, back, list, initialQuery = '' }) {
           ? 'Your listing'
           : t.sample
             ? 'Sample tutor'
-            : 'Tutor listing';
+            : 'Student tutor';
         return (
           <TouchableOpacity
             accessibilityRole="button"
@@ -131,18 +151,45 @@ export function TutorSearchScreen({ go, back, list, initialQuery = '' }) {
         );
       })}
       {!results.length && (
-        <Empty
-          title={list.length ? 'No tutors found' : 'Your directory is empty'}
-          body={
-            list.length
-              ? 'Try another subject or clear the filters.'
-              : 'Your tutor profile will appear here. The demo account contains sample tutors.'
-          }
-        />
+        loading ? (
+          <View style={styles.loading}>
+            <ActivityIndicator color={C.cyan} />
+            <Text style={s.muted}>Loading tutor listings…</Text>
+          </View>
+        ) : (
+          <Empty
+            title={
+              list.length
+                ? 'No tutors found'
+                : sharedAccount
+                  ? emailVerified
+                    ? 'No student tutors yet'
+                    : 'Verify your email to browse tutors'
+                  : 'Your directory is empty'
+            }
+            body={
+              list.length
+                ? 'Try another subject or clear the filters.'
+                : sharedAccount
+                  ? emailVerified
+                    ? 'Publish a tutor profile to help classmates find you, or check back later.'
+                    : 'Student tutor listings are available after your Firebase email is verified.'
+                  : 'Your personal tutor listing is stored on this device. The demo account includes sample tutors.'
+            }
+          />
+        )
+      )}
+      {!!error && retry && (
+        <Link label="Retry tutor directory" onPress={retry} />
       )}
       {!list.length && (
         <>
-          <Link label="Create tutor profile" onPress={() => go('Be a Tutor')} />
+          {(!sharedAccount || emailVerified) && (
+            <Link
+              label="Create tutor profile"
+              onPress={() => go('Be a Tutor')}
+            />
+          )}
           <Link label="About the tutor directory" onPress={() => go('About')} />
         </>
       )}
@@ -152,4 +199,5 @@ export function TutorSearchScreen({ go, back, list, initialQuery = '' }) {
 const styles = StyleSheet.create({
   space: { marginTop: 14 },
   profile: { textAlign: 'right', marginTop: 12 },
+  loading: { alignItems: 'center', gap: 12, paddingVertical: 28 },
 });

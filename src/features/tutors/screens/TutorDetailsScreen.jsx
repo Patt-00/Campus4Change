@@ -21,8 +21,12 @@ export function TutorDetailsScreen({ go, back, tutor, message }) {
             ★ {tutor.rating || 'New'} • {tutor.sessions} sessions •{' '}
             {tutor.response}% response
           </Text>
+        ) : tutor.shared ? (
+          <Text style={s.muted}>Student tutor · accepts session requests</Text>
         ) : (
-          <Text style={s.muted}>Your tutor listing</Text>
+          <Text style={s.muted}>
+            {tutor.own ? 'Your device-only listing' : 'Tutor listing'}
+          </Text>
         )}
         {tutor.sample && <Text style={s.muted}>Sample tutor · Demo data</Text>}
       </View>
@@ -38,7 +42,14 @@ export function TutorDetailsScreen({ go, back, tutor, message }) {
       <View style={s.gap} />
       {!tutor.own && (
         <>
-          <Text style={s.section}>Booking times</Text>
+          <Text style={s.section}>
+            {tutor.shared ? 'Request a time' : 'Booking times'}
+          </Text>
+          {tutor.shared && (
+            <Text style={s.muted}>
+              Times are requested from this tutor and need their acceptance.
+            </Text>
+          )}
           <View style={s.wrap}>
             {bookingSlots.map((time, slot) => (
               <Chip
@@ -56,7 +67,7 @@ export function TutorDetailsScreen({ go, back, tutor, message }) {
           </View>
           <View style={s.bigGap} />
           <AppButton
-            title="BOOK SESSION"
+            title={tutor.shared ? 'REQUEST A SESSION' : 'BOOK SESSION'}
             onPress={() =>
               go({
                 page: 'Book Session',
@@ -65,11 +76,18 @@ export function TutorDetailsScreen({ go, back, tutor, message }) {
             }
           />
 
-          <AppButton
-            title="MESSAGE TUTOR"
-            outline
-            onPress={() => message(tutor)}
-          />
+          {tutor.shared ? (
+            <Text style={s.muted}>
+              Private chat is not available yet. Session requests are shared
+              with both students.
+            </Text>
+          ) : (
+            <AppButton
+              title="OPEN PRIVATE CHAT NOTES"
+              outline
+              onPress={() => message(tutor)}
+            />
+          )}
         </>
       )}
       {tutor.own && (

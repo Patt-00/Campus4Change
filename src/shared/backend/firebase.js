@@ -2,6 +2,7 @@ import { NativeModules, Platform } from 'react-native';
 import {
   firebaseConfig,
   firebaseEmulatorHost,
+  googleWebClientId,
   isFirebaseConfigured,
 } from './firebaseConfig';
 
@@ -99,6 +100,46 @@ export async function firebaseSignIn(email, password) {
     return accountFromFirebaseUser(result.user);
   } catch (error) {
     throw readableAuthError(error);
+  }
+}
+
+export function firebaseGoogleSignInAvailable() {
+  return Boolean(
+    firebaseEnabled &&
+      Platform.OS === 'android' &&
+      typeof googleWebClientId === 'string' &&
+      googleWebClientId.trim() &&
+      NativeModules.CampusGoogleSignIn?.signIn,
+  );
+}
+
+export async function firebaseGoogleSignIn() {
+  ensureFirebaseEnabled();
+  if (!firebaseGoogleSignInAvailable()) {
+    throw new Error('Google sign-in is not configured on this Android build.');
+  }
+
+  try {
+    const idToken = await NativeModules.CampusGoogleSignIn.signIn(
+      googleWebClientId,
+    );
+    if (!idToken) {
+      return null;
+    }
+    const { GoogleAuthProvider, getIdToken, reload, signInWithCredential } =
+      firebaseSdk().auth;
+    const result = await signInWithCredential(
+      auth,
+      GoogleAuthProvider.credential(idToken),
+    );
+    await reload(result.user);
+    await getIdToken(result.user, true);
+    return accountFromFirebaseUser(result.user);
+  } catch (error) {
+    if (error?.code === 'GOOGLE_SIGN_IN_CANCELED') {
+      return null;
+    }
+    throw readableGoogleAuthError(error);
   }
 }
 
@@ -208,6 +249,12 @@ export async function firebaseSignOut() {
   if (uid) {
     pendingStudentIds.delete(uid);
   }
+  if (Platform.OS === 'android') {
+    const googleSignIn = NativeModules.CampusGoogleSignIn;
+    if (googleSignIn?.clearCredentialState) {
+      await googleSignIn.clearCredentialState().catch(() => {});
+    }
+  }
 }
 
 export function firestoreAvailable() {
@@ -219,7 +266,7 @@ export function firebaseServicesForUser(uid) {
     throw new Error('Sign in to use Firebase data.');
   }
   if (auth.currentUser.emailVerified !== true) {
-    throw new Error('Verify your email to access shared study groups.');
+    throw new Error('Verify your email to access shared campus features.');
   }
   return { db, firestore: firebaseSdk().firestore };
 }
@@ -298,4 +345,23 @@ function readableAuthError(error) {
   };
   const message = messages[error?.code];
   return new Error(message || 'Firebase could not complete sign-in. Try again.');
+}
+
+function readableGoogleAuthError(error) {
+  const messages = {
+    GOOGLE_SIGN_IN_CONFIG: 'Google sign-in is not configured for this app.',
+    GOOGLE_SIGN_IN_UNAVAILABLE: 'Open the app before signing in with Google.',
+    GOOGLE_SIGN_IN_NO_CREDENTIAL: 'No Google account is available on this device.',
+    GOOGLE_SIGN_IN_INVALID_RESPONSE: 'Google returned an invalid sign-in response.',
+    GOOGLE_SIGN_IN_FAILED: 'Could not complete Google sign-in. Try again.',
+    'auth/account-exists-with-different-credential':
+      'This email already uses a different sign-in method. Use that method instead.',
+    'auth/operation-not-allowed':
+      'Google sign-in is not enabled in Firebase Console yet.',
+    'auth/network-request-failed':
+      'Could not connect. Check your internet and try again.',
+  };
+  return new Error(
+    messages[error?.code] || 'Google sign-in failed. Try again or use email/password.',
+  );
 }

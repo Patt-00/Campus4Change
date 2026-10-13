@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Text, TextInput, TouchableOpacity } from 'react-native';
+import { Alert, Text, TextInput, TouchableOpacity } from 'react-native';
 import { CreateScreen } from '../src/features/create/screens/CreateScreen';
 import { BeTutorScreen } from '../src/features/profile/screens/BeTutorScreen';
 import { TutorSearchScreen } from '../src/features/tutors/screens/TutorSearchScreen';
@@ -113,6 +113,10 @@ test('tutor listing trims subjects and removes case-insensitive duplicates', asy
 test('tutor owner can remove an existing listing', async () => {
   const save = jest.fn();
   const back = jest.fn();
+  let confirmRemoval;
+  jest.spyOn(Alert, 'alert').mockImplementation((title, message, actions) => {
+    confirmRemoval = actions.find(action => action.style === 'destructive').onPress;
+  });
   let renderer;
   await act(async () => {
     renderer = renderScreen(
@@ -125,6 +129,8 @@ test('tutor owner can remove an existing listing', async () => {
   });
 
   await act(async () => button(renderer, 'Remove tutor listing').props.onPress());
+  expect(save).not.toHaveBeenCalled();
+  await act(async () => confirmRemoval());
   expect(save).toHaveBeenCalledWith({ tutorSubjects: [], bio: '' });
   expect(back).toHaveBeenCalledTimes(1);
   await act(async () => renderer.unmount());
@@ -169,6 +175,36 @@ test('tutor subject filters collapse spelling variants', async () => {
   expect(mikaLabel).toContain('Subjects: Physics');
   expect(mikaLabel).toContain('Rating 4.9 stars');
   expect(mikaLabel).toContain('Sample tutor');
+  await act(async () => renderer.unmount());
+});
+
+test('shared tutor directory gives a real empty state without demo listings', async () => {
+  const go = jest.fn();
+  let renderer;
+  await act(async () => {
+    renderer = renderScreen(
+      <TutorSearchScreen
+        go={go}
+        back={jest.fn()}
+        list={[]}
+        sharedAccount
+        emailVerified
+      />,
+    );
+  });
+
+  const labels = renderer.root
+    .findAllByType(Text)
+    .map(node => node.props.children)
+    .flat(Infinity)
+    .filter(label => typeof label === 'string');
+  expect(labels).toContain('No student tutors yet');
+  expect(labels).toContain(
+    'Publish a tutor profile to help classmates find you, or check back later.',
+  );
+  expect(labels).not.toContain('Sample tutor');
+  expect(button(renderer, 'Top rated')).toBeUndefined();
+  expect(button(renderer, 'Create tutor profile')).toBeDefined();
   await act(async () => renderer.unmount());
 });
 

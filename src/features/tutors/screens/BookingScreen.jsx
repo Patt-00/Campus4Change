@@ -48,8 +48,12 @@ export function BookingScreen({
   const [subject, setSubject] = useState(session?.subject ?? tutor.subjects[0]);
   const [note, setNote] = useState(session?.note ?? '');
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
   const offsets = [...new Set([0, 1, 2, offset])];
-  function save() {
+  async function save() {
+    if (saving) {
+      return;
+    }
     if (!slots[slot]) {
       setError('Choose a time to continue.');
       return;
@@ -59,7 +63,23 @@ export function BookingScreen({
       setError('Choose a future date and time.');
       return;
     }
-    setError(onSave(subject, start.toISOString(), note.trim()) ?? '');
+    setSaving(true);
+    try {
+      const result = await onSave(subject, start.toISOString(), note.trim());
+      setError(
+        typeof result === 'string'
+          ? result
+          : result?.error || '',
+      );
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : 'Could not save this session. Try again.',
+      );
+    } finally {
+      setSaving(false);
+    }
   }
   return (
     <Screen
@@ -86,7 +106,9 @@ export function BookingScreen({
           ))}
         </View>
       )}
-      <Text style={s.section}>Choose date</Text>
+      <Text style={s.section}>
+        {tutor.shared ? 'Request date' : 'Choose date'}
+      </Text>
       <View style={s.wrap}>
         {offsets.map(n => {
           const d = dayAt(n);
@@ -134,7 +156,9 @@ export function BookingScreen({
           );
         })}
       </View>
-      <Text style={s.section}>Choose time</Text>
+      <Text style={s.section}>
+        {tutor.shared ? 'Requested time' : 'Choose time'}
+      </Text>
       {session && !slots[slot] && (
         <Text style={s.muted}>
           This session&apos;s saved time is not a preset. Choose a new time to
@@ -151,9 +175,15 @@ export function BookingScreen({
           />
         ))}
       </View>
-      <Text style={s.section}>Session note</Text>
+      <Text style={s.section}>
+        {tutor.shared ? 'Note for the tutor' : 'Session note'}
+      </Text>
       <Field
-        placeholder="Example: I need help with integration by parts."
+        placeholder={
+          tutor.shared
+            ? 'This note is shared with the tutor.'
+            : 'Example: I need help with integration by parts.'
+        }
         multiline
         value={note}
         onChangeText={setNote}
@@ -162,13 +192,15 @@ export function BookingScreen({
       <ErrorText value={error} />
       <View style={s.bigGap} />
       <AppButton
-        title={session ? 'SAVE NEW SCHEDULE' : 'CONFIRM BOOKING'}
+        title={session ? 'SAVE NEW SCHEDULE' : tutor.shared ? 'SEND SESSION REQUEST' : 'CONFIRM BOOKING'}
+        busy={saving}
         onPress={save}
       />
 
       <Text style={[s.muted, s.center, styles.marginTop14]}>
-        One-hour session. Saved to your private schedule; the tutor is not
-        notified.
+        {tutor.shared
+          ? 'Your subject, requested time, and note are shared with the tutor. This is a request, not a confirmed booking; it is scheduled only after the tutor accepts.'
+          : 'One-hour session. Saved to your private schedule; the tutor is not notified.'}
       </Text>
     </Screen>
   );

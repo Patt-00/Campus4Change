@@ -3,6 +3,7 @@ import { Alert, Keyboard, Text, View, StyleSheet } from 'react-native';
 import { AppButton } from '../../../shared/components/AppButton';
 import { Screen } from '../../../shared/components/Screen';
 import { ErrorText, Field, Link } from '../../../shared/components/UI';
+import { GoogleAuthButton } from '../components/GoogleAuthButton';
 import { s } from '../../../shared/theme/styles';
 
 export function LoginScreen({ go, back, auth }) {
@@ -110,6 +111,22 @@ export function LoginScreen({ go, back, auth }) {
       )}
       <ErrorText value={error} />
       <AppButton title="SIGN IN" busy={busy} onPress={signIn} />
+      {auth.firebaseConfigured && !localOnly && (
+        <>
+          <Text style={[s.muted, s.center, styles.googleDivider]}>OR</Text>
+          <GoogleAuthButton
+            title="Continue with Google"
+            busy={busy}
+            disabled={!auth.googleSignInAvailable}
+            onPress={() => submit(auth.signInWithGoogle)}
+          />
+          {!auth.googleSignInAvailable && (
+            <Text style={[s.muted, s.center, styles.googleHelper]}>
+              Google sign-in is not configured for this build yet.
+            </Text>
+          )}
+        </>
+      )}
       {(!auth.firebaseConfigured || localOnly) && (
         <>
           <Text style={[s.muted, s.center, styles.marginVertical20]}>OR</Text>
@@ -167,4 +184,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   alignSelfcenter: { alignSelf: 'center' },
+  googleDivider: { marginTop: 14, marginBottom: 2 },
+  googleHelper: { marginTop: 8 },
 });

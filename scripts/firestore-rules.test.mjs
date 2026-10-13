@@ -19,6 +19,7 @@ import {
   setDoc,
   startAfter,
   Timestamp,
+  updateDoc,
   where,
   writeBatch,
 } from 'firebase/firestore';
@@ -71,6 +72,263 @@ try {
     setDoc(doc(alice, 'users/alice/private/state'), stateFor('bob')),
   );
   await assertFails(setDoc(doc(alice, 'tutors/mika'), { name: 'Mika' }));
+
+  const aliceTutorProfile = doc(alice, 'tutorProfiles/alice');
+  const tutorProfile = {
+    uid: 'alice',
+    name: 'Alice Student',
+    course: 'BS Mathematics',
+    year: '3rd Year',
+    subjects: ['Calculus', 'Statistics'],
+    bio: 'I explain problems step by step.',
+    visibility: 'listed',
+    updatedAt: serverTimestamp(),
+  };
+  await assertSucceeds(setDoc(aliceTutorProfile, tutorProfile));
+  const tutorDirectory = await assertSucceeds(
+    getDocs(
+      query(
+        collection(bob, 'tutorProfiles'),
+        where('visibility', '==', 'listed'),
+        orderBy('updatedAt', 'desc'),
+        limit(20),
+      ),
+    ),
+  );
+  assert.equal(tutorDirectory.size, 1);
+  assert.equal(tutorDirectory.docs[0].data().name, 'Alice Student');
+  await assertFails(
+    getDocs(
+      query(
+        collection(bob, 'tutorProfiles'),
+        orderBy('updatedAt', 'desc'),
+        limit(20),
+      ),
+    ),
+  );
+  await assertFails(
+    getDocs(
+      query(
+        collection(unverified, 'tutorProfiles'),
+        where('visibility', '==', 'listed'),
+        orderBy('updatedAt', 'desc'),
+        limit(20),
+      ),
+    ),
+  );
+  await assertFails(getDoc(doc(anonymous, 'tutorProfiles/alice')));
+  await assertFails(
+    setDoc(doc(bob, 'tutorProfiles/alice'), {
+      ...tutorProfile,
+      updatedAt: serverTimestamp(),
+    }),
+  );
+  await assertFails(
+    setDoc(doc(alice, 'tutorProfiles/alice'), {
+      ...tutorProfile,
+      email: 'private@example.test',
+    }),
+  );
+
+  const bookingData = (
+    studentUid,
+    studentName = 'Bob Student',
+    start = new Date(Date.now() + 86400000),
+  ) => ({
+    studentUid,
+    tutorUid: 'alice',
+    studentName,
+    tutorName: 'Alice Student',
+    subject: 'Calculus',
+    startsAt: Timestamp.fromDate(start),
+    slotKey: start.toISOString(),
+    note: 'Please review integration by parts.',
+    status: 'pending',
+    participantUids: [studentUid, 'alice'],
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  const bobBooking = doc(collection(bob, 'tutorBookings'));
+  const bobRequest = bookingData('bob');
+  await assertFails(
+    setDoc(doc(bob, 'tutorBookings/invalid-subject'), {
+      ...bookingData('bob'),
+      subject: 'Chemistry',
+    }),
+  );
+  await assertFails(
+    setDoc(doc(alice, 'tutorBookings/self-booking'), bookingData('alice')),
+  );
+  await assertSucceeds(setDoc(bobBooking, bobRequest));
+  const bobBookings = await assertSucceeds(
+    getDocs(
+      query(
+        collection(bob, 'tutorBookings'),
+        where('studentUid', '==', 'bob'),
+        limit(100),
+      ),
+    ),
+  );
+  assert.equal(bobBookings.size, 1);
+  await assertSucceeds(
+    getDocs(
+      query(
+        collection(alice, 'tutorBookings'),
+        where('tutorUid', '==', 'alice'),
+        limit(100),
+      ),
+    ),
+  );
+  await assertFails(getDoc(doc(carol, 'tutorBookings', bobBooking.id)));
+  await assertFails(
+    getDocs(
+      query(
+        collection(carol, 'tutorBookings'),
+        where('studentUid', '==', 'bob'),
+        limit(100),
+      ),
+    ),
+  );
+  await assertFails(
+    getDocs(
+      query(
+        collection(bob, 'tutorBookings'),
+        limit(100),
+      ),
+    ),
+  );
+  await assertFails(
+    updateDoc(bobBooking, {
+      status: 'accepted',
+      updatedAt: serverTimestamp(),
+    }),
+  );
+  const acceptBob = writeBatch(alice);
+  const bobSlot = doc(alice, 'tutorSlots', 'alice', 'slots', bobRequest.slotKey);
+  acceptBob.set(bobSlot, {
+    bookingId: bobBooking.id,
+    tutorUid: 'alice',
+    studentUid: 'bob',
+    slotKey: bobRequest.slotKey,
+    startsAt: bobRequest.startsAt,
+    createdAt: serverTimestamp(),
+  });
+  acceptBob.update(doc(alice, 'tutorBookings', bobBooking.id), {
+    status: 'accepted',
+    updatedAt: serverTimestamp(),
+  });
+  await assertSucceeds(acceptBob.commit());
+  await assertSucceeds(getDoc(doc(bob, 'tutorSlots', 'alice', 'slots', bobRequest.slotKey)));
+  await assertFails(getDoc(doc(carol, 'tutorSlots', 'alice', 'slots', bobRequest.slotKey)));
+  await assertFails(
+    updateDoc(bobBooking, {
+      status: 'completed',
+      updatedAt: serverTimestamp(),
+    }),
+  );
+
+  const duplicateBooking = doc(collection(carol, 'tutorBookings'));
+  const duplicateRequest = bookingData(
+    'carol',
+    'Carol Student',
+    new Date(bobRequest.slotKey),
+  );
+  await assertSucceeds(setDoc(duplicateBooking, duplicateRequest));
+  const acceptDuplicate = writeBatch(alice);
+  acceptDuplicate.set(bobSlot, {
+    bookingId: duplicateBooking.id,
+    tutorUid: 'alice',
+    studentUid: 'carol',
+    slotKey: duplicateRequest.slotKey,
+    startsAt: duplicateRequest.startsAt,
+    createdAt: serverTimestamp(),
+  });
+  acceptDuplicate.update(doc(alice, 'tutorBookings', duplicateBooking.id), {
+    status: 'accepted',
+    updatedAt: serverTimestamp(),
+  });
+  await assertFails(acceptDuplicate.commit());
+
+  const cancelBob = writeBatch(bob);
+  cancelBob.delete(doc(bob, 'tutorSlots', 'alice', 'slots', bobRequest.slotKey));
+  cancelBob.update(bobBooking, {
+    status: 'cancelled',
+    updatedAt: serverTimestamp(),
+  });
+  await assertSucceeds(cancelBob.commit());
+  await assertFails(
+    updateDoc(doc(carol, 'tutorBookings', bobBooking.id), {
+      status: 'cancelled',
+      updatedAt: serverTimestamp(),
+    }),
+  );
+
+  const completedBooking = doc(collection(bob, 'tutorBookings'));
+  const completedRequest = bookingData('bob', 'Robert Student');
+  await assertSucceeds(setDoc(completedBooking, completedRequest));
+  const acceptCompleted = writeBatch(alice);
+  const completedSlot = doc(
+    alice,
+    'tutorSlots',
+    'alice',
+    'slots',
+    completedRequest.slotKey,
+  );
+  acceptCompleted.set(completedSlot, {
+    bookingId: completedBooking.id,
+    tutorUid: 'alice',
+    studentUid: 'bob',
+    slotKey: completedRequest.slotKey,
+    startsAt: completedRequest.startsAt,
+    createdAt: serverTimestamp(),
+  });
+  acceptCompleted.update(doc(alice, 'tutorBookings', completedBooking.id), {
+    status: 'accepted',
+    updatedAt: serverTimestamp(),
+  });
+  await assertSucceeds(acceptCompleted.commit());
+  const completeBooking = writeBatch(bob);
+  completeBooking.delete(doc(
+    bob,
+    'tutorSlots',
+    'alice',
+    'slots',
+    completedRequest.slotKey,
+  ));
+  completeBooking.update(completedBooking, {
+    status: 'completed',
+    updatedAt: serverTimestamp(),
+  });
+  await assertSucceeds(completeBooking.commit());
+
+  const declinedBooking = doc(collection(bob, 'tutorBookings'));
+  await assertSucceeds(
+    setDoc(declinedBooking, bookingData('bob', 'Robert Student')),
+  );
+  await assertSucceeds(
+    updateDoc(doc(alice, 'tutorBookings', declinedBooking.id), {
+      status: 'declined',
+      updatedAt: serverTimestamp(),
+    }),
+  );
+  await assertFails(
+    updateDoc(declinedBooking, {
+      status: 'accepted',
+      updatedAt: serverTimestamp(),
+    }),
+  );
+
+  const unverifiedBooking = doc(collection(unverified, 'tutorBookings'));
+  await assertFails(setDoc(unverifiedBooking, bookingData('unverified')));
+  await assertFails(
+    getDocs(
+      query(
+        collection(unverified, 'tutorBookings'),
+        where('studentUid', '==', 'unverified'),
+        limit(100),
+      ),
+    ),
+  );
 
   const groupAlice = doc(alice, 'studyGroups/calculus');
   const ownerMember = doc(alice, 'users/alice/studyGroupMemberships/calculus');
@@ -756,7 +1014,7 @@ try {
     ),
   );
 
-  console.log('Firestore rules passed: private state, verified groups, bounded feeds, cooldowns, membership, and owner moderation are scoped.');
+  console.log('Firestore rules passed: private state, tutor listings and requests, verified groups, bounded feeds, cooldowns, membership, and owner moderation are scoped.');
 } finally {
   await environment.cleanup();
 }

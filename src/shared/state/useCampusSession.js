@@ -5,6 +5,8 @@ import {
   firebaseCheckEmailVerification,
   firebasePasswordReset,
   firebaseResendVerificationEmail,
+  firebaseGoogleSignIn,
+  firebaseGoogleSignInAvailable,
   firebaseSignIn,
   firebaseSignOut,
   firebaseSignUp,
@@ -346,6 +348,30 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
 
   const auth = {
     firebaseConfigured: firebaseEnabled,
+    googleSignInAvailable:
+      typeof firebaseGoogleSignInAvailable === 'function'
+        ? firebaseGoogleSignInAvailable()
+        : false,
+    signInWithGoogle: async () => {
+      if (typeof firebaseGoogleSignIn !== 'function') {
+        throw new Error('Google sign-in is not available in this build.');
+      }
+      const account = await firebaseGoogleSignIn();
+      if (!account) {
+        return false;
+      }
+      setEmailVerified(Boolean(account.emailVerified));
+      setEmailVerificationMessage(
+        account.emailVerified
+          ? ''
+          : 'Verify your school email to access shared study groups.',
+      );
+      await enterFirebaseAccount({
+        ...account,
+        uid: account.id,
+      });
+      return true;
+    },
     signIn: async (identifier, password) => {
       if (firebaseEnabled && !isDemoAccount(identifier)) {
         const account = await firebaseSignIn(identifier, password);

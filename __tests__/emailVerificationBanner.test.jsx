@@ -61,6 +61,23 @@ jest.mock('../src/features/groups/hooks/useSharedGroupReports', () => ({
   },
 }));
 
+jest.mock('../src/features/tutors/hooks/useSharedTutors', () => ({
+  useSharedTutors: () => ({
+    tutors: [],
+    bookings: [],
+    error: '',
+    actionError: '',
+    loading: false,
+    hasMoreTutors: false,
+    hasMoreBookings: false,
+    retry: jest.fn(),
+    publishProfile: jest.fn(),
+    unpublishProfile: jest.fn(),
+    requestSession: jest.fn(),
+    updateRequest: jest.fn(),
+  }),
+}));
+
 jest.mock('react-native-safe-area-context', () => {
   const R = require('react');
   return {

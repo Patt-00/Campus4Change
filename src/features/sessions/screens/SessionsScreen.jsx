@@ -9,12 +9,33 @@ import { s } from '../../../shared/theme/styles';
 
 import { IconBadge } from '../../../shared/components/Icon';
 
-export function SessionsScreen({ go, back, sessions, list }) {
-  const [filter, setFilter] = useState('Upcoming');
+export function SessionsScreen({
+  go,
+  back,
+  sessions,
+  list,
+  initialFilter = 'Upcoming',
+}) {
+  const [filter, setFilter] = useState(initialFilter);
+  const requests = sessions.filter(session => session.status === 'Pending');
   function card(session) {
     const timingStatus = sessionTimingStatus(session);
-    const tutorName =
+    const savedTutorName =
       list.find(t => t.id === session.tutorId)?.name ?? 'Saved tutor';
+    const contactName = session.incoming
+      ? session.studentName || 'Student'
+      : session.tutorName || savedTutorName;
+    const contactLabel = session.incoming
+      ? 'Request from ' + contactName
+      : session.status === 'Pending'
+        ? 'Waiting for ' + contactName
+        : contactName;
+    const statusLabel =
+      session.status === 'Pending'
+        ? session.incoming
+          ? 'Needs your response'
+          : 'Waiting for tutor'
+        : timingStatus;
     return (
       <TouchableOpacity
         key={session.id}
@@ -25,9 +46,9 @@ export function SessionsScreen({ go, back, sessions, list }) {
           ' details. Scheduled ' +
           sessionTime(session.startsAt) +
           '. Status: ' +
-          timingStatus.toLowerCase() +
-          '. Tutor: ' +
-          tutorName +
+          statusLabel.toLowerCase() +
+          '. ' +
+          contactLabel +
           '.'
         }
         onPress={() =>
@@ -48,25 +69,39 @@ export function SessionsScreen({ go, back, sessions, list }) {
           <View style={s.grow}>
             <Text style={s.name}>{session.subject}</Text>
             <Text style={s.muted}>
-              {sessionTime(session.startsAt)} • {sessionTimingStatus(session)}
+              {sessionTime(session.startsAt)} • {statusLabel}
             </Text>
             <Text style={s.muted}>
-              {tutorName}
+              {contactLabel}
             </Text>
           </View>
         </View>
         <Text style={[s.link, styles.textAlignrightmarginTop12]}>
-          {session.status === 'Completed'
+          {session.status === 'Completed' && !session.shared
             ? session.rating
               ? 'Rated ★ ' + session.rating
               : 'Rate tutor'
-            : 'View details'}
+            : session.status === 'Completed'
+              ? 'View details'
+            : session.status === 'Pending'
+              ? session.incoming
+                ? 'Review request'
+                : 'View request'
+              : 'View details'}
         </Text>
       </TouchableOpacity>
     );
   }
   const filtered = sessions
-    .filter(x => sessionTimingStatus(x) === filter)
+    .filter(session => {
+      if (filter === 'Requests') {
+        return session.status === 'Pending';
+      }
+      if (filter === 'Cancelled') {
+        return ['Cancelled', 'Declined'].includes(session.status);
+      }
+      return sessionTimingStatus(session) === filter;
+    })
     .sort((a, b) => {
       const aStartsAt = new Date(a.startsAt).getTime();
       const bStartsAt = new Date(b.startsAt).getTime();
@@ -79,7 +114,7 @@ export function SessionsScreen({ go, back, sessions, list }) {
             ? -1
             : 1;
       }
-      return filter === 'Upcoming'
+      return filter === 'Upcoming' || filter === 'Requests'
         ? aStartsAt - bStartsAt
         : bStartsAt - aStartsAt;
     });
@@ -108,10 +143,10 @@ export function SessionsScreen({ go, back, sessions, list }) {
   return (
     <Screen title="My Sessions" back={back} go={go} tab="Sessions">
       <View style={s.wrap}>
-        {['Upcoming', 'Completed', 'Cancelled'].map(x => (
+        {['Upcoming', 'Requests', 'Completed', 'Cancelled'].map(x => (
           <Chip
             key={x}
-            label={x}
+            label={x === 'Requests' && requests.length ? `Requests ${requests.length}` : x}
             selected={filter === x}
             onPress={() => setFilter(x)}
           />
@@ -127,6 +162,12 @@ export function SessionsScreen({ go, back, sessions, list }) {
               ? 'Your other sessions are grouped below by status.'
               : 'Find a tutor to book your next session.'
           }
+        />
+      )}
+      {filter === 'Requests' && !filtered.length && (
+        <Empty
+          title="No session requests"
+          body="Requests you send and requests waiting for your response will appear here."
         />
       )}
       {inProgress.length > 0 && (

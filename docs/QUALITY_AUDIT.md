@@ -10,6 +10,11 @@ production-ready claim.
 
 - Firebase email/password auth, encrypted Android auth persistence, and
   private per-user Firestore state are implemented.
+- Android Google sign-in/sign-up uses Credential Manager and Firebase token
+  exchange. The Firebase provider and debug certificate are configured; the
+  POCO X4 GT showed both auth screens and opened the approved account chooser.
+  Google requested a fresh account verification before the Firebase exchange,
+  so that end-to-end step remains open.
 - Shared Firebase study groups support signed-in discovery, membership, posts,
   and replies. Membership documents are private to their owners; posts/replies
   are readable only by members.
@@ -42,8 +47,14 @@ production-ready claim.
   discovery list from an empty directory, and prompts users to load older pages
   when more search results may exist.
 - Tutor subjects are trimmed and deduplicated without regard to case, including
-  the subject filter list for previously saved profiles. Tutor profile copy
-  clarifies that personal listings are not shared with other students.
+  the subject filter list for previously saved profiles. Firebase tutor
+  profiles publish to the verified-student directory without exposing email or
+  Student ID; device-only listings remain local.
+- Firebase students can send tutor session requests, see incoming/outgoing
+  requests live in Sessions, and accept, decline, cancel, or complete them.
+  Participant-only rules protect each request. Tutor/time locks are written
+  atomically with acceptance so the same exact slot cannot be accepted twice.
+  Shared session workspace notes stay private to each account.
 - Shared feeds cap live windows at 20 posts and 20 replies per post; members
   can load older cursor pages on demand. Feed snapshots are kept out of durable
   private account-state records. Paging pauses the current live window until
@@ -99,10 +110,12 @@ production-ready claim.
   every saved conversation and message. A repeatable renderer scenario reduced
   mounted message bodies from 1,200 to 18 and inbox cards from 120 to 12 while
   keeping full-message search and send behavior covered.
-- Booking confirmation and reminders describe a private schedule entry and
-  state that the tutor has not been notified.
-- Focused tests now cover home navigation and search, tutor listing create and
-  removal, private tutor filtering, group-room timer lifecycle and notes,
+- Firebase booking confirmation says the request is pending until the tutor
+  responds. Demo and device-only confirmation remains a private schedule entry
+  and explains that the tutor is not notified.
+- Focused tests now cover home navigation and search, local/shared tutor profile
+  behavior, participant request mapping and slot updates, private tutor
+  filtering, group-room timer lifecycle and notes,
   shared-group retry errors, storage compatibility, and session cancellation,
   rating, and reschedule timing. Shared-group tests guard against stale
   directory callbacks and pending writes crossing an account switch. Local
@@ -167,12 +180,13 @@ production-ready claim.
 | --- | --- | --- | --- |
 | C4C-01 | High | The checked-in Firestore rules and indexes have not been deployed. | The last live Console check found project `campus4change` on Spark, its Standard database in `asia-southeast1`, and initial production-mode deny-all rules. In this session, `firebase projects:list` failed because Firebase CLI is unauthenticated, and gcloud has no active credentials, so the live rule state cannot be rechecked. Before deployment, inspect for manually seeded legacy group-member documents and migrate any that exist to `users/{uid}/studyGroupMemberships/{groupId}`; add `moderationStatus: "visible"` to any legacy shared posts/replies; then deploy the reviewed rules and indexes with authorization and run live data tests. |
 | C4C-02 | High | No real-project, two-account shared-group workflow has been verified. | At the last live check, app access was denied by the initial production-mode rules. The current Firebase CLI is unauthenticated, so recheck that state after signing in. Then deploy the reviewed rules with authorization, verify two test email addresses, and test create/discover/join/post/reply/leave against the project. |
-| C4C-03 | High | The final-project acceptance rubric is not accessible in the current course. | The local `Canvas_Modules.md` index contains Modules 1-5 although its heading says nine modules. It lists a Module 1 project proposal, Module 3 prototype, Module 4 React prototype translation, and Module 5 React Native Environment/App/State/Props/Styling topics plus Firebase Integration and Firebase Authentication assignments. At the last browser check, the course Assignments page was disabled and the module link returned Access Denied. The outline confirms React Native/Firebase learning scope but does not define final-project acceptance. Keep Google sign-in, Hosting, cross-student bookings, chat, and instructor-wide moderation as unconfirmed scope until the teacher supplies the rubric. |
-| C4C-04 | Medium | Tutor listings, bookings, direct messages, and group chat are not shared between students. | Firebase accounts sync this data inside each user's private state; device-only accounts keep it local. Cross-student tutor, booking, and messaging workflows are not implemented. Confirm whether the final rubric requires those workflows before designing their schemas. |
+| C4C-03 | High | The final-project acceptance rubric is not accessible in the current course. | The local `Canvas_Modules.md` index contains Modules 1-5 although its heading says nine modules. It lists a Module 1 project proposal, Module 3 prototype, Module 4 React prototype translation, and Module 5 React Native Environment/App/State/Props/Styling topics plus Firebase Integration and Firebase Authentication assignments. At the last browser check, the course Assignments page was disabled and the module link returned Access Denied. The outline confirms React Native/Firebase learning scope but does not define final-project acceptance. Google sign-in is implemented and configured for Android; keep Hosting and instructor-wide moderation out until the teacher supplies the rubric. |
+| C4C-04 | Medium | Direct and group messages are not delivered between students. | Verified Firebase accounts now share published tutor profiles and participant-only session requests. The existing Messages/Chat screens still store private notes in each user's account, and no live delivery or push notification exists. Implement participant-scoped chat only if it fits the teacher's rubric, then verify a two-account workflow after rules are deployed. |
 | C4C-05 | Medium | Shared groups have no instructor-wide moderation path. | Group members can report another member's post or reply, and the group owner can dismiss the report or reversibly hide/restore the content. Reports omit reporter UID and share the five-second contribution cooldown. The course has not established an instructor role or broader moderation requirements; confirm that scope from the acceptance rubric. |
 | C4C-06 | Medium | The current audit reports 47 high, 5 moderate, and 0 critical findings. | On 2026-10-13, `npm audit --omit=dev` still reported 20 high paths; the affected packages are React Native/Metro build tooling rooted in `braces@3.0.3` through `micromatch@4.0.8`. The advisory affects `braces <=3.0.3` and has no patched release; the maintainer disputes the report. The production bundle has no `braces`/`micromatch` strings, so this is build-tooling exposure rather than shipped JavaScript. `npm audit fix --dry-run` made no changes and offered only major toolchain changes; no compatible fix is available for the direct `braces` or `sprintf-js` advisories. Metro binds to loopback by default, reducing LAN exposure without changing the finding. The five moderate findings are test-tooling paths rooted in `sprintf-js@1.0.3`, also with no patched version. Do not apply an unofficial override without a reviewed mitigation. See the [braces advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm), [braces maintainer discussion](https://github.com/micromatch/braces/issues/84), and [sprintf-js advisory](https://github.com/advisories/GHSA-hp3w-g68c-fv3c). |
 | C4C-07 | Medium | No dedicated production release key is configured. | Gradle release artifact tasks now fail closed without a dedicated keystore; a no-key release dry run was rejected before build tasks and the existing APK hash stayed unchanged. Debug builds still use the development key. No production keystore was created or used. Prior 1.2.0 APKs use the debug certificate, so a future dedicated release key will require a planned install/data transition. |
 | C4C-08 | Low | The iOS scaffold cannot use the Android storage module. | Current app support is Android-only; do not claim iOS parity until secure storage and biometrics are implemented and verified there. |
+| C4C-09 | Medium | Google-to-Firebase account exchange is not yet verified. | The Firebase Google provider and debug signing fingerprint are configured, the native Credential Manager integration builds, and both auth screens were checked on the POCO X4 GT. The approved account was selected in Credential Manager, but Google required a fresh “Verify it’s you” step before returning an ID token. The account owner must complete that device check; release signing fingerprints must also be added before release. |
 ## Verification record
 
 Verification is recorded in [VERIFICATION.md](VERIFICATION.md). The Pad 7

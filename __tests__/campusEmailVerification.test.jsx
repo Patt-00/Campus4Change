@@ -8,6 +8,7 @@ let mockResendVerificationEmail;
 let mockFirebaseSignOut;
 let mockLoadCloudState;
 let mockSaveCloudState;
+let mockGoogleSignIn;
 let currentSession;
 const mockStore = {
   biometricSignIn: jest.fn(),
@@ -25,6 +26,8 @@ jest.mock('../src/shared/backend/firebase', () => ({
   firebaseCheckEmailVerification: (...args) =>
     mockCheckEmailVerification(...args),
   firebasePasswordReset: jest.fn(),
+  firebaseGoogleSignIn: (...args) => mockGoogleSignIn(...args),
+  firebaseGoogleSignInAvailable: () => true,
   firebaseResendVerificationEmail: (...args) =>
     mockResendVerificationEmail(...args),
   firebaseSignIn: jest.fn(),
@@ -67,7 +70,43 @@ beforeEach(() => {
   mockFirebaseSignOut = jest.fn(async () => {});
   mockLoadCloudState = jest.fn(async () => null);
   mockSaveCloudState = jest.fn(async () => {});
+  mockGoogleSignIn = jest.fn(async () => ({
+    id: 'google-student',
+    name: 'Google Student',
+    email: 'google.student@gmail.com',
+    studentId: '',
+    emailVerified: true,
+  }));
   jest.clearAllMocks();
+});
+
+test('Google sign-in enters the verified Firebase account and starts with no demo data', async () => {
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(<Harness />);
+  });
+
+  let result;
+  await act(async () => {
+    result = await currentSession.auth.signInWithGoogle();
+    await flushTasks();
+    await flushTasks();
+  });
+
+  expect(result).toBe(true);
+  expect(mockGoogleSignIn).toHaveBeenCalledTimes(1);
+  expect(currentSession.sessionType).toBe('firebase');
+  expect(currentSession.emailVerified).toBe(true);
+  expect(currentSession.state.profile).toMatchObject({
+    id: 'google-student',
+    name: 'Google Student',
+    email: 'google.student@gmail.com',
+    studentId: '',
+    interests: [],
+    tutorSubjects: [],
+  });
+  expect(mockStore.setActiveUser).toHaveBeenCalledWith('google-student');
+  await act(async () => renderer.unmount());
 });
 
 test('the session keeps shared access closed until refreshed email verification succeeds', async () => {

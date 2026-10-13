@@ -12,11 +12,13 @@ export function EditProfileScreen({
   profile,
   save,
   preferences = false,
+  firebaseAccount = false,
 }) {
   const [name, setName] = useState(profile.name);
   const [course, setCourse] = useState(profile.course);
   const [year, setYear] = useState(profile.year);
   const [school, setSchool] = useState(profile.school);
+  const [studentId, setStudentId] = useState(profile.studentId || '');
   const [interests, setInterests] = useState(profile.interests);
   const [error, setError] = useState('');
   return (
@@ -55,6 +57,16 @@ export function EditProfileScreen({
             value={school}
             onChangeText={setSchool}
           />
+          {firebaseAccount && (
+            <Field
+              label="Student ID (private)"
+              placeholder="Your Student ID (optional)"
+              value={studentId}
+              onChangeText={setStudentId}
+              autoCapitalize="characters"
+              autoCorrect={false}
+            />
+          )}
         </>
       )}
       <Text style={s.section}>Learning interests</Text>
@@ -76,6 +88,7 @@ export function EditProfileScreen({
                   course: course.trim(),
                   year: year.trim(),
                   school: school.trim(),
+                  ...(firebaseAccount ? { studentId: studentId.trim() } : {}),
                   interests,
                 },
           );

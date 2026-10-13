@@ -53,6 +53,16 @@ Novice, Intermediate, and Expert introduction slides before login/signup. The
 slide artwork and copy belong to onboarding; the shared logo and theme remain
 under `shared/`.
 
+Google authentication uses Android Credential Manager in
+`CampusGoogleSignInModule.java`. `MainApplication.kt` registers the module;
+`firebase.js` exchanges the returned Google ID token with Firebase
+Authentication. The public Web client ID is configured in
+`shared/backend/firebaseConfig.js`. Google supplies a Firebase account name and
+email, while Student ID remains in the user's private profile state. Sign-out
+clears both Firebase's auth session and Credential Manager state. The native
+flow builds and opens the approved Google account chooser; the final Firebase
+account exchange still needs a completed re-authentication check.
+
 ## State and data flow
 
 State records are plain JavaScript objects for profiles, tutors, sessions, groups, conversations, and notices. A session has an ID, tutor ID, subject, ISO start time, note, status, and optional rating. Sessions last one hour. Booking and session history use this same record.
@@ -93,8 +103,28 @@ applies. Owners can dismiss a report or reversibly hide and restore its
 content. Post/reply feeds filter to visible content, with their compound
 queries defined in `firestore.indexes.json`. Instructor-wide moderation is
 not part of this group-owner workflow.
-The private account document remains scoped to its owner. Tutor listings,
-bookings, group chats, and direct messages are still local to one account.
+
+The tutor feature publishes only opted-in profiles under `tutorProfiles/{uid}`.
+Each listing contains a name, optional course/year, subjects, and a bio; it does
+not contain email or Student ID. Only verified Firebase students can discover
+these listings, and the owner can update or remove their profile.
+`features/tutors/data/firestore.js` writes `tutorBookings/{bookingId}` requests
+with a student, tutor, subject, requested time, note, and participant IDs.
+Firestore rules limit reads to the two participants and allow only the tutor
+to accept or decline. Student and tutor inboxes use separate UID-constrained
+queries so the rules can prove every returned record belongs to that user.
+The navigator merges those live requests into the existing Sessions menu;
+pending requests remain pending until accepted. Accepting a request uses a
+transaction to reserve a tutor/time document under `tutorSlots/{tutorUid}`.
+The booking status and slot lock are created atomically, and cancellation or
+completion releases the lock in the same transaction. Rules reject status
+changes that omit the matching lock update. Shared session workspace notes
+remain in each participant's private account state.
+
+Demo and device-only tutor profiles and bookings remain local. Direct messages
+and group chat still save private notes to the user's account; they are not
+delivered to another student. Push notifications, calls, and instructor-wide
+moderation are not implemented.
 
 ## Android local accounts
 

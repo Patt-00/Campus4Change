@@ -39,6 +39,74 @@ test('an empty account sees one helpful upcoming-sessions message', async () => 
   await act(async () => renderer.unmount());
 });
 
+test('the Requests filter separates incoming and outgoing tutor requests', async () => {
+  const go = jest.fn();
+  const sessions = [
+    {
+      id: 'incoming-request',
+      shared: true,
+      incoming: true,
+      studentName: 'Casey Student',
+      tutorId: 'me',
+      tutorName: 'Jordan Student',
+      subject: 'Physics',
+      startsAt: '2026-10-15T09:00:00.000Z',
+      status: 'Pending',
+    },
+    {
+      id: 'outgoing-request',
+      shared: true,
+      incoming: false,
+      studentName: 'Jordan Student',
+      tutorId: 'taylor',
+      tutorName: 'Taylor Student',
+      subject: 'Calculus',
+      startsAt: '2026-10-16T09:00:00.000Z',
+      status: 'Pending',
+    },
+  ];
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(
+      <SafeAreaProvider initialMetrics={initialMetrics}>
+        <SessionsScreen
+          go={go}
+          back={jest.fn()}
+          sessions={sessions}
+          list={[]}
+          initialFilter="Requests"
+        />
+      </SafeAreaProvider>,
+    );
+  });
+
+  const labels = renderer.root
+    .findAllByType(Text)
+    .map(node => node.props.children)
+    .flat(Infinity)
+    .filter(label => typeof label === 'string');
+  expect(labels).toContain('Requests');
+  expect(labels).toContain('Needs your response');
+  expect(labels).toContain('Waiting for tutor');
+  expect(labels).toContain('Request from Casey Student');
+  expect(labels).toContain('Waiting for Taylor Student');
+  const incoming = renderer.root
+    .findAllByType(TouchableOpacity)
+    .find(control => control.props.accessibilityLabel?.startsWith('View Physics details.'));
+  const outgoing = renderer.root
+    .findAllByType(TouchableOpacity)
+    .find(control => control.props.accessibilityLabel?.startsWith('View Calculus details.'));
+  expect(incoming).toBeDefined();
+  expect(outgoing).toBeDefined();
+
+  await act(async () => incoming.props.onPress());
+  expect(go).toHaveBeenCalledWith({
+    page: 'Session Details',
+    sessionId: 'incoming-request',
+  });
+  await act(async () => renderer.unmount());
+});
+
 test('sessions with unrecognized saved statuses stay visible for review', async () => {
   const go = jest.fn();
   const sessions = [

@@ -130,7 +130,7 @@ test('canceling an upcoming session requires choosing the destructive action', a
   await act(async () => button(renderer, 'Cancel session').props.onPress());
   expect(alert).toHaveBeenCalledWith(
     'Cancel session?',
-    'This will move the booking to Cancelled.',
+    'This will move the booking to Cancelled in your private schedule. The tutor is not notified.',
     expect.any(Array),
   );
   const actions = alert.mock.calls[0][2];
@@ -138,6 +138,53 @@ test('canceling an upcoming session requires choosing the destructive action', a
   expect(cancel).not.toHaveBeenCalled();
   await act(async () => actions.find(action => action.style === 'destructive').onPress());
   expect(cancel).toHaveBeenCalledTimes(1);
+  await act(async () => renderer.unmount());
+});
+
+test('incoming shared requests can be accepted or declined without rescheduling', async () => {
+  const respond = jest.fn(async () => undefined);
+  const session = {
+    id: 'incoming-request',
+    shared: true,
+    incoming: true,
+    studentName: 'Casey Student',
+    tutorId: 'me',
+    subject: 'Physics',
+    startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    status: 'Pending',
+    note: 'Review vectors.',
+  };
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(
+      <SafeAreaProvider initialMetrics={initialMetrics}>
+        <SessionDetailsScreen
+          go={jest.fn()}
+          back={jest.fn()}
+          session={session}
+          tutor={{ id: 'me', name: 'Jordan Student' }}
+          cancel={jest.fn()}
+          rate={jest.fn()}
+          message={jest.fn()}
+          respond={respond}
+          privateNotes="Prepare a worked example."
+        />
+      </SafeAreaProvider>,
+    );
+  });
+
+  expect(button(renderer, 'ACCEPT SESSION REQUEST')).toBeDefined();
+  expect(button(renderer, 'DECLINE REQUEST')).toBeDefined();
+  expect(button(renderer, 'RESCHEDULE')).toBeUndefined();
+  const visibleText = renderer.root
+    .findAllByType(Text)
+    .map(node => node.props.children)
+    .flat(Infinity);
+  expect(visibleText).toContain('Casey Student');
+  expect(visibleText).toContain('Your private notes');
+
+  await act(async () => button(renderer, 'ACCEPT SESSION REQUEST').props.onPress());
+  expect(respond).toHaveBeenCalledWith('accept');
   await act(async () => renderer.unmount());
 });
 
