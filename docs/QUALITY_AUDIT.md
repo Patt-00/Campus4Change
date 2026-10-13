@@ -209,7 +209,9 @@ production-ready claim.
   code the old identity is referenced only by the cleanup migration and tests.
   The migration now deletes `state_demo` only when its own profile matches that
   identity, even if the old account row is also present, protecting an unrelated
-  Firebase cache that happens to use the same storage key.
+  Firebase cache that happens to use the same storage key. It can also remove
+  the exact old biometric pointer when a partial migration left that pointer
+  after the account row and matching profile were already removed.
 - Interactive list labels now include their visible context: session time,
   status, and tutor; group subject, membership, and sharing state; tutor
   subjects and rating; message preview; and notification body and read state.
@@ -231,7 +233,7 @@ production-ready claim.
 | --- | --- | --- | --- |
 | C4C-01 | High | The checked-in Firestore rules and indexes have not been deployed. | The last live Console check found project `campus4change` on Spark, its Standard database in `asia-southeast1`, and initial production-mode deny-all rules. The global `firebase` and `gcloud` commands are absent; `npx firebase-tools projects:list` is available but failed because this CLI has no authenticated session. Before deployment, inspect for manually seeded legacy group-member documents and migrate any that exist to `users/{uid}/studyGroupMemberships/{groupId}`; add `moderationStatus: "visible"` to any legacy shared posts/replies; then deploy the reviewed rules and indexes with authorization and run live data tests. |
 | C4C-02 | High | No real-project, two-account shared-group workflow has been verified. | The current Firebase CLI has no authenticated session, so the last production deny-all state cannot be rechecked. After signing in, deploy the reviewed rules with authorization, verify two test email addresses, and test create/discover/join/post/reply/leave against the project. |
-| C4C-03 | High | The final-project acceptance rubric is not accessible in the current course. | The local `Canvas_Modules.md` index contains Modules 1-5 although its heading says nine modules. It lists a Module 1 project proposal, Module 3 prototype, Module 4 React prototype translation, and Module 5 React Native Environment/App/State/Props/Styling topics plus Firebase Integration and Firebase Authentication assignments. At the last browser check, the course Assignments page was disabled and the module link returned Access Denied. The outline confirms React Native/Firebase learning scope but does not define final-project acceptance. Google sign-in is implemented and configured for Android; keep Hosting and instructor-wide moderation out until the teacher supplies the rubric. |
+| C4C-03 | High | The final-project acceptance rubric is not present in the accessible course artifacts. | The local Canvas catalog lists the course orientation, numbered Modules 1-5, and two exam modules. The Drive assignment copies found for [Lab 4.1](https://docs.google.com/document/d/1j7UMiR8iUAi6lgwWccmj6C7s4e9RgDkbQaZ2b8mtbgE/edit) and [Seatwork 5.1](https://docs.google.com/document/d/1aaSgtjd0N9-74dTnR6e4ZFcs-bZTIpIuHv9HR7NmLEc/edit) document prototype translation plus Firebase Authentication, auth-driven screen state, owner-scoped Firestore CRUD/rules, and clean UI learning outcomes. They are assignment-specific, not a final Campus4Change acceptance checklist. At the last browser check, the course Assignments page was disabled and a module link returned Access Denied. Keep unrequested Hosting and instructor-wide moderation out until the final rubric confirms them. |
 | C4C-04 | Medium | Live chat lacks real-project two-account and push-notification verification. | Emulator rules now allow current shared-group members to exchange live chat messages and limit tutor-session chat to its two booking participants. Test coverage includes participant checks, message limits, cooldowns, cancellation state, group membership, and owner hide/restore. Production rules and indexes remain undeployed, so no real two-account flow is verified; OS push notifications are not implemented. |
 | C4C-05 | Medium | Shared groups have no instructor-wide moderation path. | Group members can report another member's post, reply, or chat message without storing reporter UID. The group owner can dismiss a report or reversibly hide and restore the target; chat-message moderation is included in emulator tests. The course has not established an instructor role or broader moderation requirements; confirm that scope from the acceptance rubric. |
 | C4C-06 | Medium | The current audit reports 47 high, 5 moderate, and 0 critical findings. | On 2026-10-14, `npm audit --omit=dev` still reported 20 high paths; the affected packages are React Native/Metro build tooling rooted in `braces@3.0.3` through `micromatch@4.0.8`. The advisory affects `braces <=3.0.3` and has no patched release; the maintainer disputes the report. The production bundle has no `braces`/`micromatch` strings, so this is build-tooling exposure rather than shipped JavaScript. `npm audit fix --dry-run` made no changes and offered only major toolchain changes; no compatible fix is available for the direct `braces` or `sprintf-js` advisories. The upstream depth-guard patch is closed without merging and changes existing `stringify` output, so a local override is not a verified compatible fix. Metro binds to loopback by default, reducing LAN exposure without changing the finding. The five moderate findings are test-tooling paths rooted in `sprintf-js@1.0.3`, also with no patched version. Do not apply an unofficial override without a reviewed mitigation. See the [braces advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm), [braces maintainer discussion](https://github.com/micromatch/braces/issues/84), [closed depth-guard PR](https://github.com/micromatch/braces/pull/72), and [sprintf-js advisory](https://github.com/advisories/GHSA-hp3w-g68c-fv3c). |
@@ -246,15 +248,19 @@ Verification is recorded in [VERIFICATION.md](VERIFICATION.md). On commit
 bundling, Android unit tests, and the debug build passed locally. GitHub Actions
 run
 [38478344342](https://github.com/Patt-00/Campus4Change/actions/runs/38478344342)
-passed all configured checks. The current local migration change separately
-passes the six native identity/cleanup-plan tests and Android debug build; its
-APK was installed and cold-launched on the POCO X4 GT, and Login showed no demo
-account or prefilled credentials. The cleanup collision case was not seeded on
-device. The approved test-account retry ended in Credential Manager cancellation
+passed all configured checks. Commit `94889c0` narrows legacy-state cleanup and
+run
+[38479904396](https://github.com/Patt-00/Campus4Change/actions/runs/38479904396)
+passed all configured checks. The follow-up local migration change also clears
+an orphaned legacy biometric pointer; seven native cleanup-plan tests and the
+Android debug build pass, and the APK was installed and cold-launched on the
+POCO X4 GT. Login showed no demo account or prefilled credentials, and empty
+signup validation behaved as expected. The cache-collision case was not seeded
+on device. The follow-up migration extension still needs its GitHub Actions
+result. The approved test-account retry ended in Credential Manager cancellation
 before Firebase received a token, so Google account creation and the production
 Firebase project or real two-account chat remain unverified. Emulator success
-does not substitute for deploying rules and indexes to Firebase. The current
-local migration change still needs its GitHub Actions result.
+does not substitute for deploying rules and indexes to Firebase.
 
 Earlier Redmi Turbo 4 checks exercised the then-present seeded account,
 schedule-focused Sessions/Session Details, and the separate 25-minute group

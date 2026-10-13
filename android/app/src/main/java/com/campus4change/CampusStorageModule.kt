@@ -125,6 +125,9 @@ class CampusStorageModule(private val context: ReactApplicationContext) : ReactC
                 retained.put(account)
             }
         }
+        val legacyBiometricPointerFound = runCatching {
+            read("biometric_user") == "demo"
+        }.getOrDefault(false)
         val legacyStateProfile = runCatching { read("state_demo") }
             .getOrNull()
             ?.let { runCatching { JSONObject(it).optJSONObject("profile") }.getOrNull() }
@@ -132,6 +135,7 @@ class CampusStorageModule(private val context: ReactApplicationContext) : ReactC
             legacyAccountFound = foundLegacyAccount,
             stateProfileId = legacyStateProfile?.optString("id"),
             stateEmail = legacyStateProfile?.optString("email"),
+            legacyBiometricPointerFound = legacyBiometricPointerFound,
         ) ?: return
 
         // Commit the account list, state, and biometric pointer together so a
@@ -141,9 +145,7 @@ class CampusStorageModule(private val context: ReactApplicationContext) : ReactC
             editor.putString("accounts", encrypt(retained.toString()))
         }
         if (cleanup.removeState) editor.remove("state_demo")
-        if (cleanup.removeAccount && read("biometric_user") == "demo") {
-            editor.remove("biometric_user")
-        }
+        if (cleanup.removeBiometricPointer) editor.remove("biometric_user")
         check(editor.commit()) { "Could not remove the legacy seeded account." }
         if (cleanup.removeAccount && activeUser == "demo") activeUser = null
     }

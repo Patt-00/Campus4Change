@@ -5,10 +5,15 @@
 - Legacy-account migration now checks the saved `state_demo` profile separately
   from the account row and removes the state only on the exact legacy profile
   ID/email. This prevents removing a different user's cached Firebase state if
-  its UID happens to be `demo`. `:app:testDebugUnitTest` and
+  its UID happens to be `demo`. It also removes the exact orphaned legacy
+  biometric pointer if a prior partial migration left it behind. Seven tests
+  cover the account, state, and pointer cleanup decisions. `:app:testDebugUnitTest` and
   `:app:assembleDebug` passed; the updated APK installed over the POCO app
   without clearing its data, cold-launched, and showed the login screen without
-  a demo account or startup errors. The collision case was not seeded on-device.
+  a demo account or startup errors. The cache-collision case was not seeded on-device.
+- On the POCO X4 GT, Sign Up showed Google and email/password options. Submitting
+  the empty form showed the expected validation message, and returning to Login
+  left the app signed out; no account was created during this check.
 - A fresh `npm audit --omit=dev` still reports 20 high dependency paths rooted
   in `braces@3.0.3`; the upstream depth-guard PR is closed without merging and
   changes existing output behavior. No dependency override was applied.
