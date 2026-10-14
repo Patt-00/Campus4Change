@@ -6,18 +6,18 @@
   the `asia-southeast1` Firestore database, no Firestore documents, deny-all
   live rules, no Manual composite indexes, and App Check still at **Get started**.
   Email/Password and Google providers are enabled and the Auth user list is
-  empty. Android app `com.campus4change` has one registered SHA-1 that does not
-  match the current debug APK signer, and no SHA-256 row. The local APK's
-  SHA-1/SHA-256 were verified with `apksigner` and match the fingerprints
-  recorded in [FIREBASE_SETUP.md](FIREBASE_SETUP.md). No live Firebase setting
-  was changed.
-- The current `:app:assembleDebug` build succeeded, and `apksigner` confirmed
-  its signer matches the documented debug SHA-1/SHA-256. The connected POCO
-  currently has no installed `com.campus4change` package. A fresh `adb install
-  -r` attempt returned `INSTALL_FAILED_USER_RESTRICTED: Install canceled by
-  user`; no app data was cleared, and this build has not been visually tested
-  on the device. Repeat the install when the device owner is ready to approve
-  Xiaomi's USB-install prompt.
+  empty. Android app `com.campus4change` has one registered SHA-1 matching this
+  workstation's private `~/.android/debug.keystore`; no SHA-256 row is present.
+  The repository's public `android/app/debug.keystore` is not registered. No
+  live Firebase setting was changed.
+- The current `:app:assembleDebug` build succeeded with
+  `C4C_DEBUG_STORE_FILE` set to the per-user Android debug keystore;
+  `apksigner` confirmed its SHA-1 matches Firebase's registered row. The default build
+  remains signed by the repo-tracked key. The connected POCO currently has no
+  installed `com.campus4change` package. Installing the private-key build
+  returned `INSTALL_FAILED_USER_RESTRICTED: Install canceled by user`; no app
+  data was cleared, and this build has not been visually tested on the device.
+  Retry when the device owner is ready to approve Xiaomi's USB-install prompt.
 - Commit `9a5fbc0` records introduction completion in device preferences. Jest
   covers first-run, returning-install, and unavailable-preference behavior; the
   updated APK cold-launched on the POCO X4 GT directly to Login after the
@@ -76,13 +76,12 @@
   Login, and Sign Up. Empty login and signup submissions showed validation
   messages. No credentials were entered and no account was created.
 - Firebase Console read-only checks confirmed Email/Password and Google providers
-  are enabled. The Android app registration still contains only an older SHA-1;
-  it lacks the current debug signer fingerprints. No Firebase setting was
-  changed. Live Firestore rules remain deny-all and indexes are undeployed per
-  the last database check. A current App Check read showed the Android and Web
-  apps as **Not registered**; Play Integrity registration requires a SHA-256
-  fingerprint and accepting Google APIs and Play Integrity API terms. No App
-  Check setting or terms were accepted, and token exchange remains unverified.
+  are enabled. The current private per-user debug key's SHA-1 is registered for
+  Google sign-in; its SHA-256 is not registered for Play Integrity. The public
+  repo-tracked debug key remains unregistered. Live Firestore rules remain
+  deny-all and indexes are undeployed per the last database check. App Check
+  registration and terms remain unaccepted, so valid token exchange and
+  enforcement are unverified.
 - Product policy clarified on 2026-10-14: any Firebase-verified email may use
   shared features; no `@tip.edu.ph` or `.edu` restriction is intended. The
   client and rules implement this policy, and the sign-up guidance now says so
@@ -147,12 +146,13 @@
   received an ID token. The app returned to Login. No password, verification
   code, or biometric was entered, and no account was created. The next retry
   needs the account holder present if Google requests additional authorization.
-- Comparing the installed debug APK with Firebase Project settings found that
-  the APK signer SHA-1 does not match Firebase's registered SHA-1, and its
-  SHA-256 is not registered. The current debug fingerprints are documented in
-  [FIREBASE_SETUP.md](FIREBASE_SETUP.md). No Firebase setting was saved during
-  this check; the current debug signer fingerprints remain unregistered.
-- On 2026-10-14, the current debug APK was installed over the existing POCO
+- At the time of that earlier Google sign-in check, comparing the installed
+  repo-key debug APK with Firebase Project settings found that the APK SHA-1
+  did not match the registered SHA-1, and its SHA-256 was not registered. The
+  current private-key build is documented in [FIREBASE_SETUP.md](FIREBASE_SETUP.md).
+  No Firebase setting was saved during that earlier
+  check; the then-current debug signer fingerprints remained unregistered.
+- An earlier debug APK was installed over the existing POCO
   installation without clearing its data and cold-launched. The branded start
   screen showed the logo, onboarding advanced to Login, and an empty sign-in
   showed the expected validation message. The live screen had no demo account

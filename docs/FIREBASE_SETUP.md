@@ -15,22 +15,25 @@ This checkout is configured for Firebase project `campus4change` on the Spark
 plan. Its Web app is registered as **Campus4Change React Native**, Email/Password
 and Google sign-in are enabled, and the Standard Firestore database is in
 `asia-southeast1` (Singapore). Google consent uses the support email
-`qpurbina@tip.edu.ph`. The current debug APK for Android app
-`com.campus4change` is signed with these fingerprints:
+`qpurbina@tip.edu.ph`. The `com.campus4change` APK can use a machine-local debug
+keystore through the `C4C_DEBUG_STORE_FILE` Gradle environment override. This
+workstation's local Android debug keystore has these fingerprints:
 
-- SHA-1: `5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25`
-- SHA-256: `FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C`
+- SHA-1: `60:CD:C5:DF:6D:2D:2A:DF:48:DC:E2:4B:72:98:8B:9C:34:A9:CE:4A`
+- SHA-256: `68:8F:33:2C:76:20:0B:C2:7D:09:7A:65:EF:4B:48:36:65:96:C7:90:E8:9E:08:A4:36:25:35:42:39:F3:70:82`
 
-The latest Firebase Console read for Android app `com.campus4change` showed one
-existing SHA-1 fingerprint, `60:CD:C5:DF:6D:2D:2A:DF:48:DC:E2:4B:72:98:8B:9C:34:A9:CE:4A`.
-It does not match the current debug APK signer above, and no SHA-256 fingerprint
-is registered. The current debug fingerprints are staged in the Console but
-still require action-time confirmation before saving. A future release signing
-certificate must also be added before release Google sign-in and Play Integrity
-can be verified. The database was initialized in production mode, so its current
-rules deny all client reads and writes. The checked-in `firestore.rules` file
-has passed the emulator suite but has not been deployed to this project; live
-app data access stays unavailable until that deployment.
+The Firebase Android app has this workstation's local SHA-1 registered for
+Google sign-in; its local SHA-256 is not registered for Play Integrity. The
+repository-tracked debug keystore is public and has different SHA-1/SHA-256
+fingerprints (`5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25` /
+`FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C`). Do not register that public certificate with Firebase. Other developers need to use their own local debug key and add its SHA-1 to Firebase after authorization.
+
+A future release signing certificate must also be added before release Google
+sign-in and Play Integrity can be verified. The database was initialized in
+production mode, so its current rules deny all client reads and writes. The
+checked-in `firestore.rules` file has passed the emulator suite but has not been
+deployed to this project; live app data access stays unavailable until that
+deployment.
 Firebase signup sends an email verification link. Verified email claims are
 required for shared study groups, tutor listings, and session requests; each
 user can still read and save only their own private account state before
@@ -62,13 +65,15 @@ for the platform flow and token exchange.
    `src/shared/backend/firebaseConfig.js`. Copy the public Web client ID from
    the Google provider's Web SDK configuration into `googleWebClientId` in the
    same file.
-5. Register the Android package `com.campus4change` in Project settings and add
-   the SHA-1 signing certificate for Google sign-in. App Check additionally
-   requires the SHA-256 signing certificate. Verify both fingerprints against
-   the actual APK that you build. This project's current Firebase SHA-1 does not
-   match the checked-in debug key; add the current debug SHA-1 and SHA-256 after
-   action-time confirmation for that Firebase settings change. Add both release
-   fingerprints after the dedicated release key is created.
+5. Register the Android package `com.campus4change` in Project settings. For
+   Google sign-in, build with a private per-machine debug key and register that
+   APK's SHA-1. On this workstation, `~/.android/debug.keystore` is selected
+   with `C4C_DEBUG_STORE_FILE` and its SHA-1 is already registered. Do not add
+   the public repo-tracked debug key to Firebase. Each additional developer's
+   private debug key needs its own authorized SHA-1 entry. App Check Play
+   Integrity uses SHA-256 and requires separate app registration plus terms
+   acceptance. Add both release fingerprints after the dedicated release key
+   is created.
 6. Sign in to the Firebase CLI, select the same project, and deploy the
    checked-in Firestore rules and indexes only after reviewing and authorizing
    that live change:

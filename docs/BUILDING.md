@@ -82,6 +82,34 @@ cd android
 
 The debug build needs no release secrets. Release artifact tasks such as `assembleRelease`, `bundleRelease`, and `installRelease` fail early unless a dedicated keystore and all four `C4C_RELEASE_*` variables are configured. If your prompt already ends in `android`, run `cd ..` before `npm ci`, then return to `android`. The Gradle wrapper downloads Gradle itself, but it does **not** install npm packages.
 
+The repository tracks `android/app/debug.keystore` for cross-clone debug APK
+compatibility. The repository is public, so do not register that shared
+certificate with Firebase Google sign-in. For Google sign-in testing, opt into
+your machine's private Android debug keystore with `C4C_DEBUG_STORE_FILE`:
+
+```sh
+C4C_DEBUG_STORE_FILE="$HOME/.android/debug.keystore" ./gradlew assembleDebug
+```
+
+On Windows PowerShell:
+
+```powershell
+$env:C4C_DEBUG_STORE_FILE = Join-Path $HOME '.android\debug.keystore'
+.\gradlew.bat assembleDebug
+```
+
+This setting applies only to that build; it is not stored in Git. The current
+Firebase project has this workstation's per-user SHA-1 registered. Other
+developers must use their own local key and authorize its SHA-1 separately
+before testing Google sign-in. Switching between different debug keys prevents
+an in-place APK update; uninstalling the old APK removes device-only app data.
+Back up or migrate local-only data before changing the signing key on a device
+that already has the app installed. Keep App Check registration and its
+SHA-256 fingerprints separate from this Google sign-in setup. If your local key
+uses nonstandard credentials, set `C4C_DEBUG_STORE_PASSWORD`,
+`C4C_DEBUG_KEY_ALIAS`, and `C4C_DEBUG_KEY_PASSWORD` in the build terminal; do
+not store those values in the repository.
+
 For development, run `npm start` at the root in one terminal and `npm run android` at the root in another. The npm script binds Metro to `127.0.0.1` so the development server is not exposed to the LAN; React Native CLI forwards port 8081 to a connected Android device. For a manually installed debug APK, run `adb reverse tcp:8081 tcp:8081` before launch. A debug APK needs Metro for the JavaScript code; building it alone does not start Metro. Android Studio can also run the debug app after project sync.
 
 Outputs are `app-debug.apk` in `android/app/build/outputs/apk/debug/` and `app-release.apk` in the equivalent `release/` folder.
