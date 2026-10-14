@@ -103,11 +103,15 @@
   overwrite the pending profile used by an early auth-state callback. A
   regression test delays account creation, submits a conflicting second
   attempt, and verifies that only the first profile reaches Firebase.
+- Focused Tutor Details and Booking Confirmed tests cover shared-request and
+  device-only paths, owner self-booking affordances, private notes, request
+  navigation, and invalid saved-date fallbacks. Both screens now reach 100%
+  statement/function coverage; `TutorDetailsScreen` branch coverage is 93.75%.
 - Jest is now `30.5.2`. The config excludes `scripts/`, whose standalone ESM
   emulator runners are invoked separately, and gives the cold first-run App
   test a 15-second timeout; the other tests retain Jest's default timeout.
-  `npm test -- --coverage --runInBand` passes all 221 tests in 32 suites with
-  83.10% statement and 73.46% branch coverage, and lint passes.
+  `npm test -- --coverage --runInBand` passes all 226 tests in 33 suites with
+  83.52% statement and 74.41% branch coverage, and lint passes.
 - With Firebase CLI `15.33.0`, both Firestore rules and Auth verification
   emulator suites passed against the updated lockfile. Gradle passed
   `:app:assembleDebug` and `:app:createBundleReleaseJsAndAssets`.
