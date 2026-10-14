@@ -233,6 +233,58 @@ test('signup listener receives the new student ID even when Auth notifies before
   );
 });
 
+test('concurrent sign-up attempts cannot overwrite pending Firebase profile data', async () => {
+  let finishCreateUser;
+  mockCreateUser.mockImplementationOnce((auth, email) =>
+    new Promise(resolve => {
+      finishCreateUser = () => {
+        const user = {
+          uid: 'new-firebase-user',
+          email,
+          displayName: null,
+          emailVerified: false,
+        };
+        auth.currentUser = user;
+        mockAuthObserver?.(user);
+        resolve({ user });
+      };
+    }),
+  );
+  const firebase = require('../src/shared/backend/firebase');
+  let observedAccount;
+  firebase.watchFirebaseUser(user => {
+    observedAccount = user;
+  });
+
+  const firstAttempt = firebase.firebaseSignUp(
+    'Jamie Student',
+    'jamie@school.edu',
+    'STU-2048',
+    'TestPassword123',
+  );
+  const conflictingAttempt = firebase.firebaseSignUp(
+    'Different Name',
+    'JAMIE@school.edu',
+    'STU-9999',
+    'TestPassword123',
+  );
+
+  await expect(conflictingAttempt).rejects.toThrow(
+    'A sign-up is already in progress for this email.',
+  );
+  expect(mockCreateUser).toHaveBeenCalledTimes(1);
+
+  finishCreateUser();
+  const account = await firstAttempt;
+
+  expect(observedAccount).toMatchObject({
+    uid: account.id,
+    name: 'Jamie Student',
+    studentId: 'STU-2048',
+  });
+  expect(mockCreateUser).toHaveBeenCalledTimes(1);
+});
+
 test('a verification-email delivery failure leaves a recoverable Firebase account', async () => {
   mockSendEmailVerification.mockRejectedValueOnce({
     code: 'auth/network-request-failed',

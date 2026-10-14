@@ -159,6 +159,9 @@ export async function firebaseSignUp(name, email, studentId, password) {
     name: name.trim(),
     studentId: studentId.trim(),
   };
+  if (pendingSignUpsByEmail.has(normalizedEmail)) {
+    throw new Error('A sign-up is already in progress for this email.');
+  }
   pendingSignUpsByEmail.set(normalizedEmail, pendingAccount);
   try {
     const {
@@ -200,7 +203,9 @@ export async function firebaseSignUp(name, email, studentId, password) {
   } catch (error) {
     throw readableAuthError(error);
   } finally {
-    pendingSignUpsByEmail.delete(normalizedEmail);
+    if (pendingSignUpsByEmail.get(normalizedEmail) === pendingAccount) {
+      pendingSignUpsByEmail.delete(normalizedEmail);
+    }
   }
 }
 
