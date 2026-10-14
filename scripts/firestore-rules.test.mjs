@@ -103,6 +103,9 @@ try {
     getDocs(collection(alice, 'users', 'alice', 'privateMessages')),
   );
   await assertFails(
+    getDocs(collection(bob, 'users', 'alice', 'privateMessages')),
+  );
+  await assertFails(
     getDoc(doc(bob, 'users/alice/privateMessages/10_chat-tutor__message-1')),
   );
   await assertFails(
