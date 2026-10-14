@@ -268,6 +268,8 @@ production-ready claim.
   Firebase verifies it. The owner decided against a TIP-only or `.edu` domain
   restriction on 2026-10-14. This confirms control of an address, not school
   affiliation; the current client and rules already implement the chosen policy.
+  Client and rules regression tests now exercise a verified `gmail.com` account
+  and continue to reject unverified access.
 
 ## Verification record
 

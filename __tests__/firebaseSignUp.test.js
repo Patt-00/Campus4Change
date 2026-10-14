@@ -452,10 +452,11 @@ test('failed Firebase sign-out keeps the account Student ID cache recoverable', 
   expect(mockClearGoogleCredentialState).not.toHaveBeenCalled();
 });
 
-test('shared Firestore services reject an unverified Firebase user', () => {
+test('shared Firestore services require verification but allow any email domain', () => {
   const firebase = require('../src/shared/backend/firebase');
   mockAuth.currentUser = {
     uid: 'unverified-user',
+    email: 'learner@gmail.com',
     emailVerified: false,
   };
 

@@ -20,7 +20,9 @@
   Check setting or terms were accepted, and token exchange remains unverified.
 - Product policy clarified on 2026-10-14: any Firebase-verified email may use
   shared features; no `@tip.edu.ph` or `.edu` restriction is intended. The
-  existing client and rules already implement this policy.
+  existing client and rules already implement this policy. A `gmail.com`
+  regression account is accepted by the client and Firestore emulator rules;
+  an unverified account remains denied.
 - `npm test -- --runInBand`: 207 tests passed in 31 suites; `npm run lint` and
   `git diff --check` passed. Gradle `:app:testDebugUnitTest`, `:app:assembleDebug`,
   and `:app:compileReleaseKotlin` passed using JDK 25. Release Kotlin compilation

@@ -56,7 +56,12 @@ try {
   await environment.clearFirestore();
   const verifiedClaims = { email_verified: true };
   const alice = environment.authenticatedContext('alice', verifiedClaims).firestore();
-  const bob = environment.authenticatedContext('bob', verifiedClaims).firestore();
+  const bob = environment
+    .authenticatedContext('bob', {
+      email: 'learner@gmail.com',
+      email_verified: true,
+    })
+    .firestore();
   const carol = environment.authenticatedContext('carol', verifiedClaims).firestore();
   const unverified = environment
     .authenticatedContext('unverified', { email_verified: false })
