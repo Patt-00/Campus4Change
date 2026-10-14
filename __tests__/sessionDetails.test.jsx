@@ -254,6 +254,58 @@ test('failed incoming request updates show an error and leave the action retryab
   await act(async () => renderer.unmount());
 });
 
+test('an in-flight incoming request prevents a second decision from being sent', async () => {
+  let finishResponse;
+  const respond = jest.fn(
+    () => new Promise(resolve => {
+      finishResponse = resolve;
+    }),
+  );
+  const session = {
+    id: 'incoming-request',
+    shared: true,
+    incoming: true,
+    studentName: 'Casey Student',
+    subject: 'Physics',
+    startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    status: 'Pending',
+  };
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(
+      <SafeAreaProvider initialMetrics={initialMetrics}>
+        <SessionDetailsScreen
+          go={jest.fn()}
+          back={jest.fn()}
+          session={session}
+          tutor={{ id: 'me', name: 'Jordan Student' }}
+          cancel={jest.fn()}
+          rate={jest.fn()}
+          message={jest.fn()}
+          respond={respond}
+        />
+      </SafeAreaProvider>,
+    );
+  });
+
+  let responsePromise;
+  await act(async () => {
+    responsePromise = button(renderer, 'ACCEPT SESSION REQUEST').props.onPress();
+  });
+  expect(respond).toHaveBeenCalledTimes(1);
+  expect(button(renderer, 'ACCEPT SESSION REQUEST').props.disabled).toBe(true);
+  expect(button(renderer, 'DECLINE REQUEST').props.disabled).toBe(true);
+
+  await act(async () => button(renderer, 'DECLINE REQUEST').props.onPress());
+  expect(respond).toHaveBeenCalledTimes(1);
+
+  await act(async () => {
+    finishResponse(undefined);
+    await responsePromise;
+  });
+  await act(async () => renderer.unmount());
+});
+
 test('an outgoing pending request requires confirmation before cancellation', async () => {
   const respond = jest.fn(async () => undefined);
   const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});

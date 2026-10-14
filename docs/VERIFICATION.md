@@ -109,13 +109,15 @@
   statement/function coverage; `TutorDetailsScreen` branch coverage is 93.75%.
 - Session Details and Workspace tests also cover decline and cancellation
   confirmation, returned and thrown request failures, note saves, and overdue
-  session completion behavior. Their current statement coverage is 96.15% and
-  95.45%, respectively.
+  session completion behavior, including duplicate action suppression while a
+  network operation is pending. Both screens now reach 100% statement/function
+  coverage; branch coverage is 98.46% for Session Details and 95.12% for the
+  Workspace.
 - Jest is now `30.5.2`. The config excludes `scripts/`, whose standalone ESM
   emulator runners are invoked separately, and gives the cold first-run App
   test a 15-second timeout; the other tests retain Jest's default timeout.
-  `npm test -- --coverage --runInBand` passes all 233 tests in 33 suites with
-  83.92% statement and 74.70% branch coverage, and lint passes.
+  `npm test -- --coverage --runInBand` passes all 235 tests in 33 suites with
+  83.99% statement and 74.89% branch coverage, and lint passes.
 - With Firebase CLI `15.33.0`, both Firestore rules and Auth verification
   emulator suites passed against the updated lockfile. Gradle passed
   `:app:assembleDebug` and `:app:createBundleReleaseJsAndAssets`.

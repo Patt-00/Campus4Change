@@ -185,6 +185,55 @@ test('a rejected completion request shows a recoverable error', async () => {
   await act(async () => renderer.unmount());
 });
 
+test('an in-flight completion cannot be submitted twice', async () => {
+  let finishComplete;
+  const complete = jest.fn(
+    () => new Promise(resolve => {
+      finishComplete = resolve;
+    }),
+  );
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(
+      <SafeAreaProvider initialMetrics={initialMetrics}>
+        <SessionWorkspaceScreen
+          session={{
+            id: 'started-session',
+            shared: false,
+            incoming: false,
+            subject: 'Calculus',
+            startsAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+            status: 'Upcoming',
+          }}
+          tutor={{ id: 'tutor', name: 'Jordan Student' }}
+          back={jest.fn()}
+          message={jest.fn()}
+          save={jest.fn()}
+          complete={complete}
+        />
+      </SafeAreaProvider>,
+    );
+  });
+
+  let completionPromise;
+  await act(async () => {
+    completionPromise = button(renderer, 'MARK SESSION COMPLETE').props.onPress();
+  });
+  expect(complete).toHaveBeenCalledTimes(1);
+  expect(button(renderer, 'MARK SESSION COMPLETE').props.disabled).toBe(true);
+
+  await act(async () =>
+    button(renderer, 'MARK SESSION COMPLETE').props.onPress(),
+  );
+  expect(complete).toHaveBeenCalledTimes(1);
+
+  await act(async () => {
+    finishComplete(undefined);
+    await completionPromise;
+  });
+  await act(async () => renderer.unmount());
+});
+
 test('saving workspace notes forwards the latest draft to the owner flow', async () => {
   const save = jest.fn();
   const onDraft = jest.fn();
