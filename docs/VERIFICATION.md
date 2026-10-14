@@ -11,6 +11,13 @@
   SHA-1/SHA-256 were verified with `apksigner` and match the fingerprints
   recorded in [FIREBASE_SETUP.md](FIREBASE_SETUP.md). No live Firebase setting
   was changed.
+- The current `:app:assembleDebug` build succeeded, and `apksigner` confirmed
+  its signer matches the documented debug SHA-1/SHA-256. The connected POCO
+  currently has no installed `com.campus4change` package. A fresh `adb install
+  -r` attempt returned `INSTALL_FAILED_USER_RESTRICTED: Install canceled by
+  user`; no app data was cleared, and this build has not been visually tested
+  on the device. Repeat the install when the device owner is ready to approve
+  Xiaomi's USB-install prompt.
 - Commit `9a5fbc0` records introduction completion in device preferences. Jest
   covers first-run, returning-install, and unavailable-preference behavior; the
   updated APK cold-launched on the POCO X4 GT directly to Login after the
