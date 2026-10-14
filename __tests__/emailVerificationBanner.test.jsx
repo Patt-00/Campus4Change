@@ -47,6 +47,11 @@ jest.mock('../src/shared/state/useCampusSession', () => ({
   },
 }));
 
+jest.mock('../src/shared/state/storage', () => ({
+  hasCompletedIntroduction: jest.fn(async () => true),
+  markIntroductionCompleted: jest.fn(async () => true),
+}));
+
 jest.mock('../src/features/groups/hooks/useSharedGroups', () => ({
   useSharedGroups: options => {
     mockSharedGroupOptions = options;

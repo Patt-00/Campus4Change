@@ -6,6 +6,15 @@ export function deviceStore() {
   }
   return NativeModules.CampusStorage;
 }
+
+export function hasCompletedIntroduction() {
+  return deviceStore().hasCompletedIntroduction();
+}
+
+export function markIntroductionCompleted() {
+  return deviceStore().markIntroductionCompleted();
+}
+
 export function parseAccount(value) {
   return JSON.parse(value);
 }

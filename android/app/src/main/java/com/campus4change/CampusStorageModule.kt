@@ -28,6 +28,7 @@ import javax.crypto.spec.PBEKeySpec
 class CampusStorageModule(private val context: ReactApplicationContext) : ReactContextBaseJavaModule(context) {
     private val worker = Executors.newSingleThreadExecutor()
     private val prefs = context.getSharedPreferences("campus_private", 0)
+    private val appPreferences = context.getSharedPreferences("campus_app_preferences", 0)
     @Volatile private var activeUser: String? = null
     private var biometricCancel: CancellationSignal? = null
 
@@ -206,6 +207,18 @@ class CampusStorageModule(private val context: ReactApplicationContext) : ReactC
     @ReactMethod fun signOut(expectedUserId: String, promise: Promise) = run(promise) {
         requireActiveUser(expectedUserId)
         activeUser = null
+        true
+    }
+
+    // This device-wide display preference is not part of any account's private data.
+    @ReactMethod fun hasCompletedIntroduction(promise: Promise) = run(promise) {
+        appPreferences.getBoolean("introduction_completed_v1", false)
+    }
+
+    @ReactMethod fun markIntroductionCompleted(promise: Promise) = run(promise) {
+        check(
+            appPreferences.edit().putBoolean("introduction_completed_v1", true).commit(),
+        ) { "Could not save the introduction preference on this device." }
         true
     }
 

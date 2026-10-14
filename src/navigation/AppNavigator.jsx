@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, BackHandler, StyleSheet, Text, View } from 'react-native';
 import { HomeScreen } from '../features/home/screens/HomeScreen';
 import { AboutScreen } from '../features/about/screens/AboutScreen';
@@ -46,6 +46,10 @@ import {
 } from '../shared/data/catalog';
 
 import { hasConflict } from '../shared/state/reducer';
+import {
+  hasCompletedIntroduction,
+  markIntroductionCompleted,
+} from '../shared/state/storage';
 import { useCampusSession } from '../shared/state/useCampusSession';
 import { s } from '../shared/theme/styles';
 
@@ -61,8 +65,10 @@ const restoreStyles = StyleSheet.create({
 
 export function AppNavigator() {
   const [route, setRoute] = useState({ page: 'Onboarding' });
+  const [introductionComplete, setIntroductionComplete] = useState(null);
   const [history, setHistory] = useState([]);
   const [transitionDirection, setTransitionDirection] = useState('forward');
+  const startupRouteInitialized = useRef(false);
   const routeKey = JSON.stringify(route);
   const renderTransition = children => (
     <RouteTransition key={routeKey} direction={transitionDirection}>
@@ -94,6 +100,42 @@ export function AppNavigator() {
         setRoute({ page: 'Login' });
       },
     });
+  const activeAccountId = state?.profile?.id;
+  useEffect(() => {
+    let active = true;
+    Promise.resolve()
+      .then(() => hasCompletedIntroduction())
+      .then(completed => {
+        if (active) {
+          setIntroductionComplete(Boolean(completed));
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setIntroductionComplete(false);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (
+      restoring ||
+      introductionComplete === null ||
+      startupRouteInitialized.current
+    ) {
+      return;
+    }
+    startupRouteInitialized.current = true;
+    setRoute(
+      activeAccountId
+        ? { page: 'Home' }
+        : { page: introductionComplete ? 'Login' : 'Onboarding' },
+    );
+  }, [activeAccountId, introductionComplete, restoring]);
+
   const syncUid =
     sessionType === 'firebase' && emailVerified ? state?.profile?.id : null;
   const activeGroupId =
@@ -182,6 +224,21 @@ export function AppNavigator() {
       setRoute({ page: state ? 'Home' : 'Onboarding' });
     }
   }, [history, state]);
+  const startFromOnboarding = useCallback(
+    () => go(introductionComplete ? 'Login' : 'Introduction'),
+    [go, introductionComplete],
+  );
+  const completeIntroduction = useCallback(async () => {
+    let completed = false;
+    try {
+      completed = await markIntroductionCompleted();
+    } catch {
+      // Continue to sign-in; the intro may be shown again if the preference
+      // could not be saved on this device.
+    }
+    setIntroductionComplete(Boolean(completed));
+    go('Login');
+  }, [go]);
   useEffect(() => {
     const listener = BackHandler.addEventListener('hardwareBackPress', () => {
       if (
@@ -195,23 +252,29 @@ export function AppNavigator() {
     });
     return () => listener.remove();
   }, [back, history.length, route.page]);
-  if (restoring) {
+  if (restoring || introductionComplete === null) {
     return (
       <Screen title="Campus4Change">
         <View style={restoreStyles.content}>
           <ActivityIndicator color="#52d6e8" size="large" />
           <Text style={[s.muted, s.center, restoreStyles.message]}>
-            Restoring your account...
+            {restoring ? 'Restoring your account...' : 'Preparing your app...'}
           </Text>
         </View>
       </Screen>
     );
   }
   if (route.page === 'Onboarding') {
-    return renderTransition(<OnboardingScreen go={go} />);
+    return renderTransition(<OnboardingScreen go={startFromOnboarding} />);
   }
   if (route.page === 'Introduction') {
-    return renderTransition(<IntroductionScreen go={go} back={back} />);
+    return renderTransition(
+      <IntroductionScreen
+        go={go}
+        back={back}
+        onComplete={completeIntroduction}
+      />,
+    );
   }
   if (route.page === 'Login') {
     return renderTransition(<LoginScreen go={go} back={back} auth={auth} />);
@@ -225,7 +288,7 @@ export function AppNavigator() {
     );
   }
   if (!state) {
-    return renderTransition(<OnboardingScreen go={go} />);
+    return renderTransition(<OnboardingScreen go={startFromOnboarding} />);
   }
   const ownId = 'local-' + state.profile.id;
   const list = syncUid ? sharedTutors.tutors : knownTutors(state);

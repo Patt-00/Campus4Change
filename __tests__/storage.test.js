@@ -6,6 +6,8 @@ jest.mock('react-native', () => ({
 import { NativeModules, Platform } from 'react-native';
 import {
   deviceStore,
+  hasCompletedIntroduction,
+  markIntroductionCompleted,
   parseAccount,
   parseState,
 } from '../src/shared/state/storage';
@@ -28,6 +30,20 @@ test('deviceStore requires Android and the native storage bridge', () => {
   const bridge = { saveState: jest.fn() };
   NativeModules.CampusStorage = bridge;
   expect(deviceStore()).toBe(bridge);
+});
+
+test('introduction completion uses the device-level native preference', async () => {
+  Platform.OS = 'android';
+  const bridge = {
+    hasCompletedIntroduction: jest.fn(async () => true),
+    markIntroductionCompleted: jest.fn(async () => true),
+  };
+  NativeModules.CampusStorage = bridge;
+
+  await expect(hasCompletedIntroduction()).resolves.toBe(true);
+  await expect(markIntroductionCompleted()).resolves.toBe(true);
+  expect(bridge.hasCompletedIntroduction).toHaveBeenCalledTimes(1);
+  expect(bridge.markIntroductionCompleted).toHaveBeenCalledTimes(1);
 });
 
 test('parseAccount returns the stored account record', () => {

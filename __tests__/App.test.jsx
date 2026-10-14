@@ -15,7 +15,13 @@ import { makeQaState, qaAccount } from '../test-support/qaState';
 let mockCurrent = qaAccount;
 let mockSaved = {};
 let mockActiveUser = null;
+let mockIntroductionComplete = false;
 const mockStore = {
+  hasCompletedIntroduction: jest.fn(async () => mockIntroductionComplete),
+  markIntroductionCompleted: jest.fn(async () => {
+    mockIntroductionComplete = true;
+    return true;
+  }),
   signIn: jest.fn(async () => {
     mockActiveUser = mockCurrent.id;
     return JSON.stringify(mockCurrent);
@@ -64,6 +70,8 @@ jest.mock('../src/shared/backend/firebase', () => ({
 jest.mock('../src/shared/state/storage', () => ({
   ...jest.requireActual('../src/shared/state/storage'),
   deviceStore: () => mockStore,
+  hasCompletedIntroduction: () => mockStore.hasCompletedIntroduction(),
+  markIntroductionCompleted: () => mockStore.markIntroductionCompleted(),
 }));
 jest.mock('react-native-safe-area-context', () => {
   const R = require('react');
@@ -78,6 +86,7 @@ let renderer;
 async function render() {
   await ReactTestRenderer.act(async () => {
     renderer = ReactTestRenderer.create(<App />);
+    await new Promise(resolve => setImmediate(resolve));
   });
 }
 function hasText(value) {
@@ -122,7 +131,9 @@ async function completeIntroduction() {
 }
 async function login() {
   await render();
-  await completeIntroduction();
+  if (!mockIntroductionComplete) {
+    await completeIntroduction();
+  }
   await signInCurrentAccount();
 }
 async function signInCurrentAccount() {
@@ -145,6 +156,7 @@ beforeEach(() => {
   mockCurrent = qaAccount;
   mockSaved = { [qaAccount.id]: JSON.stringify(makeQaState()) };
   mockActiveUser = null;
+  mockIntroductionComplete = false;
   jest.clearAllMocks();
 });
 afterEach(async () => {
@@ -180,6 +192,29 @@ test('can skip the introduction and open login', async () => {
   await press('GET STARTED');
   await press('Skip introduction');
   expect(hasText('Welcome back!')).toBe(true);
+  expect(mockIntroductionComplete).toBe(true);
+  expect(mockStore.markIntroductionCompleted).toHaveBeenCalledTimes(1);
+});
+test('completed introduction is skipped on the next cold start', async () => {
+  mockIntroductionComplete = true;
+  await render();
+  expect(hasText('Welcome back!')).toBe(true);
+  expect(hasText('GET STARTED')).toBe(false);
+  expect(mockStore.hasCompletedIntroduction).toHaveBeenCalledTimes(1);
+});
+test('an unavailable introduction preference falls back to first-run onboarding', async () => {
+  mockStore.hasCompletedIntroduction.mockRejectedValueOnce(
+    new Error('Preference unavailable.'),
+  );
+  await render();
+  expect(hasText('GET STARTED')).toBe(true);
+});
+test('a synchronously unavailable introduction bridge falls back to onboarding', async () => {
+  mockStore.hasCompletedIntroduction.mockImplementationOnce(() => {
+    throw new Error('Preference bridge unavailable.');
+  });
+  await render();
+  expect(hasText('GET STARTED')).toBe(true);
 });
 test('shows an authentication failure without opening the app', async () => {
   await render();
@@ -317,7 +352,8 @@ test('sign-out saves the latest profile and resets navigation to login', async (
   expect(hasText('SIGN IN')).toBe(true);
   await press('Back');
   expect(hasText('GET STARTED')).toBe(true);
-  await completeIntroduction();
+  await press('GET STARTED');
+  expect(hasText('Welcome back!')).toBe(true);
   await signInCurrentAccount();
   await press('Profile');
   expect(hasText('Saved Before Sign Out')).toBe(true);
@@ -518,7 +554,7 @@ test('custom interests can be added, deduplicated, removed, and reopened without
   expect(saved.profile.school).toBe('');
   await ReactTestRenderer.act(async () => renderer.unmount());
   await render();
-  await completeIntroduction();
+  expect(hasText('Welcome back!')).toBe(true);
   await fill('Email or Student ID', 'new@school.edu');
   await fill('Password', 'TestPass123');
   await press('SIGN IN');

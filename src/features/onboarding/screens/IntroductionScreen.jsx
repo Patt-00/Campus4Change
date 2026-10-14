@@ -7,10 +7,11 @@ import { s } from '../../../shared/theme/styles';
 import { introductionSlides } from '../data/slides';
 import { IntroSlide } from '../components/IntroSlide';
 
-export function IntroductionScreen({ go, back }) {
+export function IntroductionScreen({ go, back, onComplete }) {
   const [index, setIndex] = useState(0);
   const isLast = index === introductionSlides.length - 1;
   const slide = introductionSlides[index];
+  const finish = onComplete || (() => go('Login'));
 
   return (
     <Screen title="Introduction" back={back}>
@@ -41,11 +42,11 @@ export function IntroductionScreen({ go, back }) {
       </View>
       <AppButton
         title={isLast ? 'GET STARTED' : 'NEXT'}
-        onPress={() => (isLast ? go('Login') : setIndex(index + 1))}
+        onPress={() => (isLast ? finish() : setIndex(index + 1))}
       />
       {!isLast && (
         <View style={styles.skip}>
-          <Link label="Skip introduction" onPress={() => go('Login')} />
+          <Link label="Skip introduction" onPress={finish} />
         </View>
       )}
     </Screen>
