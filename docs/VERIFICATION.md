@@ -72,7 +72,7 @@
   release builds use Play Integrity. The live Android app still needs App Check
   registration, a SHA-256 fingerprint, and a registered debug token; no
   enforcement was enabled.
-- `npm test -- --runInBand`: 204 tests passed in 30 suites, and `npm run lint`
+- `npm test -- --runInBand`: 207 tests passed in 31 suites, and `npm run lint`
   passed. Gradle compiled debug and release Kotlin sources, passed
   `:app:testDebugUnitTest`, and assembled the debug APK using JDK 25. The APK
   installed over the POCO X4 GT app without clearing data. Cold launch reached

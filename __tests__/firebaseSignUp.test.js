@@ -44,6 +44,7 @@ jest.mock('../src/shared/backend/firebaseConfig', () => ({
     apiKey: 'test-api-key',
     authDomain: 'test.example',
     projectId: 'campus-test',
+    messagingSenderId: '123456789',
     appId: 'test-app',
     androidAppId: '1:123456789:android:test-app',
   },

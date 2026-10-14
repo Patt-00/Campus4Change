@@ -22,10 +22,10 @@ production-ready claim.
 - Android Firebase App Check now bridges the existing Firebase JavaScript SDK
   to the native Firebase App Check SDK. Debug builds select the native debug
   provider; release builds select Play Integrity. A JS regression test verifies
-  initialization before Auth and Firestore and delegates token retrieval to the
-  native module. Both Android variants compile. Live registration,
-  debug-token allowlisting, valid token exchange, and enforcement remain open in
-  the Firebase Console.
+  initialization before Auth and Firestore, native token delegation, and the
+  project-number/app-ID consistency check. Both Android variants compile. Live
+  registration, debug-token allowlisting, valid token exchange, and enforcement
+  remain open in the Firebase Console.
 - Shared Firebase study groups support signed-in discovery, membership, posts,
   and replies. Membership documents are private to their owners; posts/replies
   are readable only by members.
@@ -304,7 +304,7 @@ and empty-form validation were visually checked. No demo credentials appeared,
 and no account was created. The shared signed-in workspace remains untested on
 the device.
 
-The App Check client integration passes all 204 Jest tests in 30 suites and
+The App Check client integration passes all 207 Jest tests in 31 suites and
 lint. Gradle compiled both debug and release Kotlin variants, passed Android
 local unit tests, and assembled the debug APK. The POCO X4 GT update cold-launched
 through the branded start screen and onboarding to Login, and empty-form

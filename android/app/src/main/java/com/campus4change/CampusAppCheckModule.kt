@@ -61,7 +61,10 @@ class CampusAppCheckModule(
         val apiKey = requiredConfig(config, "apiKey")
         val projectId = requiredConfig(config, "projectId")
         val androidAppId = requiredConfig(config, "androidAppId")
-        val senderId = config.getString("messagingSenderId")
+        val senderId = requiredConfig(config, "messagingSenderId")
+        check(androidAppId.startsWith("1:$senderId:android:")) {
+            "Firebase Android app ID does not match its project number."
+        }
         val storageBucket = config.getString("storageBucket")
         val options = FirebaseOptions.Builder()
             .setApiKey(apiKey)

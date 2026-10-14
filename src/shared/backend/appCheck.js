@@ -15,8 +15,17 @@ export function initializeAndroidAppCheck(
   if (typeof nativeModule?.getAppCheckToken !== 'function') {
     throw new Error('Firebase App Check is unavailable in this Android build.');
   }
-  if (typeof config.androidAppId !== 'string' || !config.androidAppId.trim()) {
-    throw new Error('The Android Firebase app ID is missing.');
+  const androidAppId =
+    typeof config.androidAppId === 'string' ? config.androidAppId.trim() : '';
+  const senderId =
+    typeof config.messagingSenderId === 'string'
+      ? config.messagingSenderId.trim()
+      : '';
+  if (!androidAppId || !senderId) {
+    throw new Error('The Android Firebase app configuration is incomplete.');
+  }
+  if (!androidAppId.startsWith(`1:${senderId}:android:`)) {
+    throw new Error('The Android Firebase app ID does not match its project.');
   }
 
   const sdk = appCheckSdk ?? require('firebase/app-check');
