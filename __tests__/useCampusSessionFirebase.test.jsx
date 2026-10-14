@@ -153,6 +153,95 @@ test('Firebase restore selects the newer cloud copy and saves it locally', async
   expect(mockStore.signOut).not.toHaveBeenCalled();
 });
 
+test('an auth observer error does not strand the current account restore', async () => {
+  const account = firebaseUser('firebase-a');
+  let finishCloudLoad;
+  mockLoadCloudState.mockImplementationOnce(
+    () => new Promise(resolve => {
+      finishCloudLoad = resolve;
+    }),
+  );
+
+  await render();
+  await act(async () => {
+    mockFirebaseObserver.onUser(account);
+    await flush();
+  });
+  expect(currentSession.state.profile.id).toBe(account.uid);
+
+  await act(async () => {
+    mockFirebaseObserver.onError(new Error('Auth observer disconnected.'));
+    await flush();
+  });
+  expect(currentSession.saveError).toBe('Auth observer disconnected.');
+
+  await act(async () => {
+    finishCloudLoad(null);
+    await flush();
+  });
+  mockStore.saveState.mockClear();
+
+  await act(async () => {
+    currentSession.dispatch({
+      type: 'profile',
+      profile: { course: 'Observer recovery' },
+    });
+    await flush();
+  });
+
+  expect(mockStore.saveState).toHaveBeenCalledWith(
+    account.uid,
+    expect.stringContaining('Observer recovery'),
+  );
+});
+
+test('an auth observer error without a reported user ends initial restoration', async () => {
+  await render();
+  expect(currentSession.restoring).toBe(true);
+
+  await act(async () => {
+    mockFirebaseObserver.onError(new Error('Firebase auth is unavailable.'));
+    await flush();
+  });
+
+  expect(currentSession.restoring).toBe(false);
+  expect(currentSession.saveError).toBe('Firebase auth is unavailable.');
+  expect(currentSession.state).toBe(null);
+});
+
+test('an auth observer error does not reveal the sign-in screen during account setup', async () => {
+  let finishNativeSetup;
+  const nativeSetup = new Promise(resolve => {
+    finishNativeSetup = resolve;
+  });
+  mockStore.setActiveUser.mockImplementationOnce(async uid => {
+    await nativeSetup;
+    mockNativeActiveUser = uid;
+    return true;
+  });
+  const account = firebaseUser('firebase-a');
+
+  await render();
+  await act(async () => {
+    mockFirebaseObserver.onUser(account);
+    await flush();
+  });
+  expect(currentSession.restoring).toBe(true);
+
+  await act(async () => {
+    mockFirebaseObserver.onError(new Error('Auth observer disconnected.'));
+    await flush();
+  });
+  expect(currentSession.restoring).toBe(true);
+
+  await act(async () => {
+    finishNativeSetup();
+    await flush();
+  });
+  expect(currentSession.restoring).toBe(false);
+  expect(currentSession.state.profile.id).toBe(account.uid);
+});
+
 test('signup reports a recoverable Firebase display-name sync failure', async () => {
   const firebase = require('../src/shared/backend/firebase');
   firebase.firebaseSignUp.mockResolvedValueOnce({

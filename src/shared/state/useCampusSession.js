@@ -556,9 +556,12 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
         }
       },
       error => {
-        firebaseRestoreGeneration.current += 1;
-        cloudEntries.current.clear();
-        setRestoring(false);
+        // Keep a restore for the last reported Firebase user alive. Aborting
+        // it here would leave cloudHydrated false and disable local autosave.
+        // If no account has been reported or is restoring, stop the loading screen.
+        if (!activeSession.current && cloudEntries.current.size === 0) {
+          setRestoring(false);
+        }
         setSaveError(errorText(error));
       },
     );

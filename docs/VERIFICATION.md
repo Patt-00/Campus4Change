@@ -108,6 +108,13 @@
   duplicate-tap suppression while account creation is pending. `SignUpScreen`
   now has 84.61% statement and 85.18% branch coverage; verification of the email
   remains a Firebase Auth step before shared features are available.
+- Firebase auth-observer failure coverage verifies startup recovery with no
+  reported user, preserves a pending native account setup, and completes the
+  current account's pending cloud restore. The cloud-restore test caught a bug
+  where an observer error invalidated the restore generation and permanently
+  skipped later local autosaves. The fix keeps the last reported user's
+  hydration active; `useCampusSession` now has 81.02% statement, 67.50% branch,
+  and 75.40% function coverage.
 - Focused Tutor Details and Booking Confirmed tests cover shared-request and
   device-only paths, owner self-booking affordances, private notes, request
   navigation, and invalid saved-date fallbacks. Both screens now reach 100%
@@ -121,8 +128,8 @@
 - Jest is now `30.5.2`. The config excludes `scripts/`, whose standalone ESM
   emulator runners are invoked separately, and gives the cold first-run App
   test a 15-second timeout; the other tests retain Jest's default timeout.
-  `npm test -- --coverage --runInBand` passes all 239 tests in 33 suites with
-  84.06% statement and 75.03% branch coverage, and lint passes.
+  `npm test -- --coverage --runInBand` passes all 242 tests in 33 suites with
+  84.23% statement and 75.10% branch coverage, and lint passes.
 - With Firebase CLI `15.33.0`, both Firestore rules and Auth verification
   emulator suites passed against the updated lockfile. Gradle passed
   `:app:assembleDebug` and `:app:createBundleReleaseJsAndAssets`.
