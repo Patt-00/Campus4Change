@@ -89,8 +89,10 @@ account credentials or Admin SDK keys in the mobile app.
 The app initializes Firebase App Check before the Firebase JavaScript SDK
 creates Auth or Firestore services. A custom JavaScript provider forwards token
 requests to the Android native Firebase SDK. Debug builds use Firebase's debug
-provider; release builds use Play Integrity. The native app registration ID is
-stored in `firebaseConfig.js` separately from the Web app ID.
+provider; release builds use Play Integrity. The native app registration ID and
+Android API key are stored in `firebaseConfig.js` separately from the Web app ID
+and Web API key. The JavaScript Firebase app receives only the Web configuration;
+the native App Check bridge receives only the Android app configuration.
 
 The live project still needs App Check registration for the Android app and a
 SHA-256 signing fingerprint. For a debug build, install the app, obtain its

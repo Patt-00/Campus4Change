@@ -68,10 +68,12 @@
   URLs remain in historical public commit `51f0100`; history was not rewritten.
 - The same live Console session showed App Check at **Get started**. The Android
   client now initializes a native-backed Firebase App Check `CustomProvider`
-  before Firebase Auth and Firestore. Debug builds use Firebase's debug provider;
-  release builds use Play Integrity. The live Android app still needs App Check
-  registration, a SHA-256 fingerprint, and a registered debug token; no
-  enforcement was enabled.
+  before Firebase Auth and Firestore. It uses a separate Android API key and
+  checks the app ID's project number against `messagingSenderId`; Web Firebase
+  services receive only the Web configuration. Debug builds use Firebase's
+  debug provider; release builds use Play Integrity. The live Android app still
+  needs App Check registration, a SHA-256 fingerprint, and a registered debug
+  token; no enforcement was enabled.
 - `npm test -- --runInBand`: 207 tests passed in 31 suites, and `npm run lint`
   passed. Gradle compiled debug and release Kotlin sources, passed
   `:app:testDebugUnitTest`, and assembled the debug APK using JDK 25. The APK

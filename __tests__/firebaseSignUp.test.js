@@ -42,9 +42,11 @@ jest.mock('react-native', () => ({
 jest.mock('../src/shared/backend/firebaseConfig', () => ({
   firebaseConfig: {
     apiKey: 'test-api-key',
+    androidApiKey: 'test-android-api-key',
     authDomain: 'test.example',
     projectId: 'campus-test',
     messagingSenderId: '123456789',
+    storageBucket: 'campus-test.appspot.com',
     appId: 'test-app',
     androidAppId: '1:123456789:android:test-app',
   },
@@ -155,10 +157,19 @@ beforeEach(() => {
 test('Android Firebase initializes native-backed App Check before account services', async () => {
   const firebase = require('../src/shared/backend/firebase');
   const { firebaseConfig } = require('../src/shared/backend/firebaseConfig');
+  const { initializeApp } = require('firebase/app');
   const { initializeAuth } = require('firebase/auth');
   const { getFirestore } = require('firebase/firestore');
   const { CustomProvider } = require('firebase/app-check');
 
+  expect(initializeApp).toHaveBeenCalledWith({
+    apiKey: firebaseConfig.apiKey,
+    authDomain: firebaseConfig.authDomain,
+    projectId: firebaseConfig.projectId,
+    storageBucket: firebaseConfig.storageBucket,
+    messagingSenderId: firebaseConfig.messagingSenderId,
+    appId: firebaseConfig.appId,
+  });
   expect(mockInitializeAppCheck).toHaveBeenCalledWith(
     mockApp,
     expect.objectContaining({
@@ -177,7 +188,13 @@ test('Android Firebase initializes native-backed App Check before account servic
   await expect(provider.getToken()).resolves.toMatchObject({
     token: 'test-app-check-token',
   });
-  expect(mockNativeAppCheckToken).toHaveBeenCalledWith(firebaseConfig);
+  expect(mockNativeAppCheckToken).toHaveBeenCalledWith({
+    apiKey: firebaseConfig.androidApiKey,
+    projectId: firebaseConfig.projectId,
+    androidAppId: firebaseConfig.androidAppId,
+    messagingSenderId: firebaseConfig.messagingSenderId,
+    storageBucket: firebaseConfig.storageBucket,
+  });
   expect(firebase.firebaseEnabled).toBe(true);
 });
 

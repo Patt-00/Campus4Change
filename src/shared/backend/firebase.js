@@ -43,9 +43,12 @@ const pendingSignUpsByEmail = new Map();
 
 if (firebaseEnabled) {
   const { app: appSdk, auth: authSdk, firestore: firestoreSdk } = firebaseSdk();
+  const webFirebaseConfig = { ...firebaseConfig };
+  delete webFirebaseConfig.androidApiKey;
+  delete webFirebaseConfig.androidAppId;
   const app = appSdk.getApps().length
     ? appSdk.getApp()
-    : appSdk.initializeApp(firebaseConfig);
+    : appSdk.initializeApp(webFirebaseConfig);
   initializeAndroidAppCheck(app, firebaseConfig);
   try {
     auth = authSdk.initializeAuth(app, {

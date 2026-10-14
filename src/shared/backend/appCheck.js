@@ -15,13 +15,15 @@ export function initializeAndroidAppCheck(
   if (typeof nativeModule?.getAppCheckToken !== 'function') {
     throw new Error('Firebase App Check is unavailable in this Android build.');
   }
+  const androidApiKey =
+    typeof config.androidApiKey === 'string' ? config.androidApiKey.trim() : '';
   const androidAppId =
     typeof config.androidAppId === 'string' ? config.androidAppId.trim() : '';
   const senderId =
     typeof config.messagingSenderId === 'string'
       ? config.messagingSenderId.trim()
       : '';
-  if (!androidAppId || !senderId) {
+  if (!androidApiKey || !androidAppId || !senderId) {
     throw new Error('The Android Firebase app configuration is incomplete.');
   }
   if (!androidAppId.startsWith(`1:${senderId}:android:`)) {
@@ -29,8 +31,15 @@ export function initializeAndroidAppCheck(
   }
 
   const sdk = appCheckSdk ?? require('firebase/app-check');
+  const nativeConfig = {
+    apiKey: androidApiKey,
+    projectId: config.projectId,
+    androidAppId,
+    messagingSenderId: senderId,
+    storageBucket: config.storageBucket,
+  };
   const provider = new sdk.CustomProvider({
-    getToken: () => nativeModule.getAppCheckToken(config),
+    getToken: () => nativeModule.getAppCheckToken(nativeConfig),
   });
   return sdk.initializeAppCheck(app, {
     provider,

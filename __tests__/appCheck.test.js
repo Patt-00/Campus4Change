@@ -2,10 +2,12 @@ import { initializeAndroidAppCheck } from '../src/shared/backend/appCheck';
 
 const app = { name: 'campus-test' };
 const config = {
-  apiKey: 'public-test-key',
+  apiKey: 'public-web-test-key',
+  androidApiKey: 'public-android-test-key',
   projectId: 'campus-test',
   messagingSenderId: '123456789',
   androidAppId: '1:123456789:android:campus-android-app',
+  storageBucket: 'campus-test.appspot.com',
 };
 
 function appCheckSdk() {
@@ -44,7 +46,13 @@ test('Android App Check delegates tokens only for a matching Firebase project ap
   await expect(provider.getToken()).resolves.toMatchObject({
     token: 'synthetic-app-check-token',
   });
-  expect(nativeModule.getAppCheckToken).toHaveBeenCalledWith(config);
+  expect(nativeModule.getAppCheckToken).toHaveBeenCalledWith({
+    apiKey: config.androidApiKey,
+    projectId: config.projectId,
+    androidAppId: config.androidAppId,
+    messagingSenderId: config.messagingSenderId,
+    storageBucket: config.storageBucket,
+  });
 });
 
 test('Android App Check rejects an app ID from a different Firebase project', () => {

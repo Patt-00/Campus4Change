@@ -3,6 +3,7 @@
 // Firestore Security Rules instead of relying on these values as secrets.
 export const firebaseConfig = {
   apiKey: 'AIzaSyCAGFqPzSeJMMoem8mCV0xRUJIeIEwi5hI',
+  androidApiKey: 'AIzaSyDY6a9YEXMgiOy87Zk9IDHiconYXKY0u2o',
   authDomain: 'campus4change.firebaseapp.com',
   projectId: 'campus4change',
   storageBucket: 'campus4change.firebasestorage.app',
