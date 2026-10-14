@@ -170,7 +170,7 @@ Before deploying these rules, check for existing shared posts or replies that
 do not have `moderationStatus: "visible"` and backfill them. The member feed
 queries and rules now require that field, so older records without it will not
 appear to members. The checked-in `firestore.indexes.json` supplies the
-composite indexes for those filtered feeds.
+composite indexes for those filtered feeds and filtered shared-group chat.
 
 The app writes its account state into the private document. Firestore limits
 documents to 1 MiB; the app uses a lower client-side size cap. Shared group
