@@ -226,6 +226,7 @@ test('signup listener receives the new student ID even when Auth notifies before
     studentId: 'STU-2048',
     emailVerified: false,
     verificationEmailSent: true,
+    displayNameSaved: true,
   });
   expect(mockSendEmailVerification).toHaveBeenCalledWith(
     mockAuth.currentUser,
@@ -251,6 +252,38 @@ test('a verification-email delivery failure leaves a recoverable Firebase accoun
     verificationEmailError:
       'Could not connect. Check your internet and try again.',
   });
+});
+
+test('a profile metadata failure keeps the newly created account and submitted profile', async () => {
+  mockUpdateProfile.mockRejectedValueOnce(new Error('Profile metadata unavailable.'));
+  const firebase = require('../src/shared/backend/firebase');
+  const { deleteUser } = require('firebase/auth');
+  let observedAccount;
+  firebase.watchFirebaseUser(user => {
+    observedAccount = user;
+  });
+
+  const account = await firebase.firebaseSignUp(
+    'Jamie Student',
+    'jamie@gmail.com',
+    'STU-2048',
+    'TestPassword123',
+  );
+
+  expect(account).toMatchObject({
+    id: 'new-firebase-user',
+    name: 'Jamie Student',
+    email: 'jamie@gmail.com',
+    studentId: 'STU-2048',
+    displayNameSaved: false,
+  });
+  expect(observedAccount).toMatchObject({
+    uid: account.id,
+    name: 'Jamie Student',
+    studentId: 'STU-2048',
+  });
+  expect(mockAuth.currentUser.uid).toBe(account.id);
+  expect(deleteUser).not.toHaveBeenCalled();
 });
 
 test('sign-in reloads the user and refreshes the token before reporting verification', async () => {

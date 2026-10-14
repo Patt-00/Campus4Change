@@ -163,7 +163,6 @@ export async function firebaseSignUp(name, email, studentId, password) {
   try {
     const {
       createUserWithEmailAndPassword,
-      deleteUser,
       sendEmailVerification,
       updateProfile,
     } = firebaseSdk().auth;
@@ -173,12 +172,14 @@ export async function firebaseSignUp(name, email, studentId, password) {
       password,
     );
     pendingStudentIds.set(result.user.uid, pendingAccount.studentId);
+    let displayNameSaved = true;
     try {
       await updateProfile(result.user, { displayName: pendingAccount.name });
-    } catch (error) {
-      pendingStudentIds.delete(result.user.uid);
-      await deleteUser(result.user).catch(() => {});
-      throw error;
+    } catch {
+      // Auth account creation already succeeded. Treat display-name metadata
+      // as recoverable so signup cannot fail while leaving a live account
+      // signed in behind the signup screen.
+      displayNameSaved = false;
     }
     let verificationEmailSent = true;
     let verificationEmailError = '';
@@ -194,6 +195,7 @@ export async function firebaseSignUp(name, email, studentId, password) {
       studentId: pendingAccount.studentId,
       verificationEmailSent,
       verificationEmailError,
+      displayNameSaved,
     };
   } catch (error) {
     throw readableAuthError(error);

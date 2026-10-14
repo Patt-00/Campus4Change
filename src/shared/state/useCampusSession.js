@@ -613,12 +613,18 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
       if (firebaseEnabled) {
         const account = await firebaseSignUp(name, email, studentId, password);
         setEmailVerified(Boolean(account.emailVerified));
-        setEmailVerificationMessage(
+        const messages = [
           account.verificationEmailSent
             ? `Verification email sent to ${account.email}. Check your inbox and spam folder.`
             : account.verificationEmailError ||
                 'Your account was created, but the verification email could not be sent. Try resending it from this screen.',
-        );
+        ];
+        if (account.displayNameSaved === false) {
+          messages.push(
+            'Your account was created, but its sign-in name could not be saved. The name you entered is still in your app profile.',
+          );
+        }
+        setEmailVerificationMessage(messages.join(' '));
         await enterFirebaseAccount({
           ...account,
           uid: account.id,

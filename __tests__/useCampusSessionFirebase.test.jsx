@@ -153,6 +153,39 @@ test('Firebase restore selects the newer cloud copy and saves it locally', async
   expect(mockStore.signOut).not.toHaveBeenCalled();
 });
 
+test('signup reports a recoverable Firebase display-name sync failure', async () => {
+  const firebase = require('../src/shared/backend/firebase');
+  firebase.firebaseSignUp.mockResolvedValueOnce({
+    id: 'firebase-new',
+    name: 'Jamie Student',
+    email: 'jamie@gmail.com',
+    studentId: 'STU-2048',
+    emailVerified: false,
+    verificationEmailSent: true,
+    displayNameSaved: false,
+  });
+
+  await render();
+  await act(async () => {
+    await currentSession.auth.signUp(
+      'Jamie Student',
+      'jamie@gmail.com',
+      'STU-2048',
+      'TestPassword123',
+    );
+    await flush();
+  });
+
+  expect(currentSession.emailVerificationMessage).toBe(
+    'Verification email sent to jamie@gmail.com. Check your inbox and spam folder. Your account was created, but its sign-in name could not be saved. The name you entered is still in your app profile.',
+  );
+  expect(currentSession.state.profile).toMatchObject({
+    id: 'firebase-new',
+    name: 'Jamie Student',
+    studentId: 'STU-2048',
+  });
+});
+
 test('a delayed old Firebase cache load cannot replace the newer authenticated account', async () => {
   let releaseOldStorageOperation;
   const oldStorageOperation = new Promise(resolve => {

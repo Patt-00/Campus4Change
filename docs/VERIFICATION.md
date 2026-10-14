@@ -80,6 +80,15 @@
   existing client and rules already implement this policy. A `gmail.com`
   regression account is accepted by the client and Firestore emulator rules;
   an unverified account remains denied.
+- Signup now keeps a newly created Firebase account if the optional sign-in
+  display-name update fails. The submitted name and Student ID remain available
+  to the app session, and the signup notice explains that the Firebase
+  sign-in name was not saved. Two regression tests cover the recovered account
+  and user-facing message.
+- Current local verification: 220 Jest tests in 32 suites pass with 83.08%
+  statement and 73.46% branch coverage; lint and the Firestore rules emulator
+  pass. The Auth emulator script was not run in this pass because Firebase CLI
+  tooling is not installed in this checkout.
 - `npm test -- --runInBand`: 207 tests passed in 31 suites; `npm run lint` and
   `git diff --check` passed. Gradle `:app:testDebugUnitTest`, `:app:assembleDebug`,
   and `:app:compileReleaseKotlin` passed using JDK 25. Release Kotlin compilation
@@ -150,10 +159,10 @@
 - A fresh `npm audit --omit=dev` still reports 20 high dependency paths rooted
   in `braces@3.0.3`; the upstream depth-guard PR is closed without merging and
   changes existing output behavior. No dependency override was applied.
-- The campus identity policy remains unresolved: any verified email can use
-  shared Firebase features. A TIP-only `@tip.edu.ph` allowlist versus any
-  verified email has been raised for product direction; no access policy was
-  changed pending that decision.
+- The campus identity policy, which was unresolved during an earlier audit, was
+  clarified on 2026-10-14: any email-verified account may use shared Firebase
+  features. No `@tip.edu.ph` or `.edu` domain allowlist is intended; the client
+  and Firestore rules already enforce the chosen verified-email policy.
 - On 2026-10-14, the authenticated Firebase Console session verified project
   `campus4change` and its default `asia-southeast1` database. The Data tab is
   empty, live rules are deny-all, and Manual indexes are empty. The current
