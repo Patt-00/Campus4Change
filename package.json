@@ -6,6 +6,7 @@
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "lint": "eslint .",
+    "check:public-drive-links": "node scripts/check-public-drive-links.mjs",
     "start": "react-native start --host 127.0.0.1",
     "test": "jest",
     "test:firebase-auth": "node scripts/firebase-auth-verification.test.mjs",

@@ -50,6 +50,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Check for public Google Drive links
+        run: npm run check:public-drive-links
+
       - name: Unit tests
         run: npm test -- --runInBand
 

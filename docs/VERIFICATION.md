@@ -63,6 +63,9 @@
   empty, live rules are deny-all, and Manual indexes are empty. The current
   checked-in index manifest has four composite indexes, one more than the prior
   deployment prompt described; no live rules/indexes were changed.
+- `npm run check:public-drive-links` passes on the current tracked tree. CI now
+  rejects Google Drive document links before they can be added again. The old
+  URLs remain in historical public commit `51f0100`; history was not rewritten.
 - The same live Console session showed App Check at **Get started**. The Android
   client now initializes a native-backed Firebase App Check `CustomProvider`
   before Firebase Auth and Firestore. Debug builds use Firebase's debug provider;
