@@ -30,8 +30,9 @@ stays unavailable until that deployment.
 Firebase signup sends an email verification link. Verified email claims are
 required for shared study groups, tutor listings, and session requests; each
 user can still read and save only their own private account state before
-verification. This confirms control of the entered address, not that it
-belongs to a particular school domain.
+verification. Product policy allows any email address after Firebase verifies
+it. The app does not check for a school-domain suffix, and verified email does
+not establish that a user attends TIP or another particular school.
 
 Google sign-in is implemented with Android Credential Manager and Firebase
 Authentication. The Android app uses the public Firebase Web client ID from
@@ -197,7 +198,9 @@ group chat is available to current members, and tutor-session chat is limited
 to its two participants. These chat workflows are covered by emulator tests;
 real-project rules deployment and two-account delivery still need verification.
 Google
-sign-in is configured as described above. There is no school-domain allowlist.
+sign-in is configured as described above. Per the project owner's decision,
+there is no school-domain allowlist; any Firebase-verified email may use shared
+features.
 
 When Firebase values are absent from `firebaseConfig.js`, users can create and
 sign into device-only accounts. With the current project configuration, new

@@ -16,6 +16,9 @@
   changed. Live Firestore rules remain deny-all and indexes are undeployed per
   the last database check; the App Check registration/token exchange also remains
   unverified.
+- Product policy clarified on 2026-10-14: any Firebase-verified email may use
+  shared features; no `@tip.edu.ph` or `.edu` restriction is intended. The
+  existing client and rules already implement this policy.
 - `npm test -- --runInBand`: 207 tests passed in 31 suites; `npm run lint` and
   `git diff --check` passed. Gradle `:app:testDebugUnitTest`, `:app:assembleDebug`,
   and `:app:compileReleaseKotlin` passed using JDK 25. Release Kotlin compilation
