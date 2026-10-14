@@ -6,10 +6,11 @@
   the `asia-southeast1` Firestore database, no Firestore documents, deny-all
   live rules, no Manual composite indexes, and App Check still at **Get started**.
   Email/Password and Google providers are enabled and the Auth user list is
-  empty. Android app `com.campus4change` currently has no SHA certificate rows;
-  the local APK's SHA-1/SHA-256 were verified with `apksigner` and match the
-  fingerprints recorded in [FIREBASE_SETUP.md](FIREBASE_SETUP.md). No live
-  Firebase setting was changed.
+  empty. Android app `com.campus4change` has one registered SHA-1 that does not
+  match the current debug APK signer, and no SHA-256 row. The local APK's
+  SHA-1/SHA-256 were verified with `apksigner` and match the fingerprints
+  recorded in [FIREBASE_SETUP.md](FIREBASE_SETUP.md). No live Firebase setting
+  was changed.
 - Commit `9a5fbc0` records introduction completion in device preferences. Jest
   covers first-run, returning-install, and unavailable-preference behavior; the
   updated APK cold-launched on the POCO X4 GT directly to Login after the
@@ -133,7 +134,7 @@
 - Comparing the installed debug APK with Firebase Project settings found that
   the APK signer SHA-1 does not match Firebase's registered SHA-1, and its
   SHA-256 is not registered. The current debug fingerprints are documented in
-  [FIREBASE_SETUP.md](FIREBASE_SETUP.md). No Firebase setting was changed during
+  [FIREBASE_SETUP.md](FIREBASE_SETUP.md). No Firebase setting was saved during
   this check; the current debug signer fingerprints remain unregistered.
 - On 2026-10-14, the current debug APK was installed over the existing POCO
   installation without clearing its data and cold-launched. The branded start
