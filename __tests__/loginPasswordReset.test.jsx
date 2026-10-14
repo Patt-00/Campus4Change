@@ -56,3 +56,25 @@ test('password reset confirmation does not reveal whether the account exists', a
   await ReactTestRenderer.act(async () => renderer.unmount());
   jest.restoreAllMocks();
 });
+
+test('device-only password recovery explains that the original password is required', async () => {
+  const alert = jest.spyOn(Alert, 'alert');
+  let renderer;
+  await ReactTestRenderer.act(async () => {
+    renderer = ReactTestRenderer.create(
+      <LoginScreen auth={{ firebaseConfigured: false }} back={jest.fn()} go={jest.fn()} />,
+    );
+  });
+
+  const forgotPassword = renderer.root
+    .findAllByType(TouchableOpacity)
+    .find(control => control.props.accessibilityLabel === 'Forgot password?');
+  await ReactTestRenderer.act(async () => forgotPassword.props.onPress());
+
+  expect(alert).toHaveBeenCalledWith(
+    'Local account recovery',
+    'This device account needs its original password. Email recovery is not available for on-device accounts.',
+  );
+  await ReactTestRenderer.act(async () => renderer.unmount());
+  jest.restoreAllMocks();
+});

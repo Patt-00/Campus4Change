@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
-import { Text, TouchableOpacity } from 'react-native';
+import { Text, TextInput, TouchableOpacity } from 'react-native';
 import { LoginScreen } from '../src/features/auth/screens/LoginScreen';
 import { SignUpScreen } from '../src/features/auth/screens/SignUpScreen';
 
@@ -153,5 +153,59 @@ test('Google buttons remain disabled until the native and Firebase setup is pres
   const googleButton = button(renderer, 'Continue with Google');
   expect(googleButton.props.disabled).toBe(true);
   expect(googleButton.props.accessibilityState.disabled).toBe(true);
+  await ReactTestRenderer.act(async () => renderer.unmount());
+});
+
+test('Firebase login keeps existing device-only sign-in and biometrics available', async () => {
+  const signIn = jest.fn(async () => {});
+  const signInLocal = jest.fn(async () => {});
+  const biometrics = jest.fn(async () => {});
+  let renderer;
+  await ReactTestRenderer.act(async () => {
+    renderer = ReactTestRenderer.create(
+      <LoginScreen
+        auth={{
+          firebaseConfigured: true,
+          googleSignInAvailable: true,
+          signIn,
+          signInLocal,
+          biometrics,
+        }}
+        back={jest.fn()}
+        go={jest.fn()}
+      />,
+    );
+  });
+
+  await ReactTestRenderer.act(async () =>
+    button(renderer, 'More sign-in options').props.onPress(),
+  );
+  await ReactTestRenderer.act(async () =>
+    button(renderer, 'Use existing on-device account').props.onPress(),
+  );
+
+  expect(button(renderer, 'Continue with Google')).toBeUndefined();
+  expect(button(renderer, 'Forgot password?')).toBeUndefined();
+  expect(button(renderer, 'Back to Firebase sign-in')).toBeDefined();
+  const identifier = renderer.root
+    .findAllByType(TextInput)
+    .find(input => input.props.accessibilityLabel === 'Email or Student ID');
+  const password = renderer.root
+    .findAllByType(TextInput)
+    .find(input => input.props.accessibilityLabel === 'Password');
+  await ReactTestRenderer.act(async () => {
+    identifier.props.onChangeText('STU-1042');
+    password.props.onChangeText('LocalPass123');
+  });
+  await ReactTestRenderer.act(async () =>
+    button(renderer, 'SIGN IN').props.onPress(),
+  );
+
+  expect(signInLocal).toHaveBeenCalledWith('STU-1042', 'LocalPass123');
+  expect(signIn).not.toHaveBeenCalled();
+  await ReactTestRenderer.act(async () =>
+    button(renderer, 'SIGN IN WITH BIOMETRICS').props.onPress(),
+  );
+  expect(biometrics).toHaveBeenCalledTimes(1);
   await ReactTestRenderer.act(async () => renderer.unmount());
 });

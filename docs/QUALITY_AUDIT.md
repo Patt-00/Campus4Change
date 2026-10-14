@@ -18,6 +18,11 @@ production-ready claim.
   preference; later cold launches go directly to Login. Preference-read errors
   fall back to first-run onboarding. Jest covers first and later launch paths,
   and a POCO cold launch showed Login without replaying the introduction.
+- When Firebase is configured, existing device-only accounts remain reachable
+  through Login's **More sign-in options** path. Focused tests verify local
+  email/Student ID sign-in routes to the local auth action, local biometrics
+  stay available, Firebase controls are hidden in local-only mode, and local
+  password recovery clearly requires the original device-account password.
 - Android device-only account passwords now use versioned PBKDF2 parameters:
   HMAC-SHA256/600,000 iterations on API 26+, and HMAC-SHA1/1,400,000 on API
   24-25. Existing unversioned HMAC-SHA1/210,000 hashes remain valid and are

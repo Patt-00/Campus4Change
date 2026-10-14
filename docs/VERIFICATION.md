@@ -20,8 +20,8 @@
   unversioned HMAC-SHA1/210,000 hashes are verified then upgraded after login.
   `CampusPasswordHashTest` covers reference vectors and accepted metadata;
   after the Firebase restore-race tests were added,
-  `npm test -- --coverage --runInBand` passed 214 tests in 32 suites with
-  82.46% statement and 73.11% branch coverage. Lint passed, and Gradle passed
+  `npm test -- --coverage --runInBand` passed 216 tests in 32 suites with
+  82.71% statement and 73.37% branch coverage. Lint passed, and Gradle passed
   `:app:testDebugUnitTest`, `:app:assembleDebug`,
   `:app:assembleDebugAndroidTest`, `:app:createBundleReleaseJsAndAssets`, and
   `:app:compileReleaseKotlin` under JDK 25.
@@ -30,6 +30,9 @@
   generation guard keeps the previous account out of the visible state, saves
   its latest local snapshot before switching the native storage owner, and
   prevents stale cloud callbacks from changing the newer session.
+- Login-screen regressions also verify existing device-only account sign-in and
+  biometrics remain available after Firebase configuration, while local account
+  password recovery explains that the original password is required.
 - Firebase tutor-booking requests now write a private per-student cooldown permit
   in the same atomic batch as the booking. Rules emulator tests pass for valid
   first requests, missing permits, immediate retries, forged resets, private
