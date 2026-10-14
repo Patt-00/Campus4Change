@@ -15,18 +15,20 @@ This checkout is configured for Firebase project `campus4change` on the Spark
 plan. Its Web app is registered as **Campus4Change React Native**, Email/Password
 and Google sign-in are enabled, and the Standard Firestore database is in
 `asia-southeast1` (Singapore). Google consent uses the support email
-`qpurbina@tip.edu.ph`. The Firebase Console's SHA-1 for Android app
-`com.campus4change` does not match the current debug APK. Its fingerprints are:
+`qpurbina@tip.edu.ph`. The current debug APK for Android app
+`com.campus4change` is signed with these fingerprints:
 
 - SHA-1: `5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25`
 - SHA-256: `FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C`
 
-Neither current fingerprint is registered. A future release signing certificate
-must be added before release Google sign-in and Play Integrity can be verified. The
-database was initialized in production mode, so its current rules deny all
-client reads and writes. The checked-in `firestore.rules` file has passed the
-emulator suite but has not been deployed to this project; live app data access
-stays unavailable until that deployment.
+The latest read-only Firebase Console check showed no SHA certificate rows for
+the Android app, so neither debug fingerprint is registered. Add them only after
+the project owner confirms the change. A future release signing certificate
+must also be added before release Google sign-in and Play Integrity can be
+verified. The database was initialized in production mode, so its current rules
+deny all client reads and writes. The checked-in `firestore.rules` file has
+passed the emulator suite but has not been deployed to this project; live app
+data access stays unavailable until that deployment.
 Firebase signup sends an email verification link. Verified email claims are
 required for shared study groups, tutor listings, and session requests; each
 user can still read and save only their own private account state before
