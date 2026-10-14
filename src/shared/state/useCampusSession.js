@@ -126,6 +126,7 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
   const cloudHydrated = useRef(false);
   const firebaseSignOutInProgress = useRef(false);
   const cloudEntries = useRef(new Map());
+  const firebaseRestoreGeneration = useRef(0);
   // Keep only the newest unsent snapshot per Firebase UID while a write is in flight.
   const cloudWrites = useRef(new Map());
   // Device writes are quick and durable; never serialize them behind network acks.
@@ -337,11 +338,54 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
 
   const enterFirebaseAccount = useCallback(user => {
     setEmailVerified(Boolean(user.emailVerified));
-    if (cloudEntries.current.has(user.uid)) {
-      return cloudEntries.current.get(user.uid);
+    const pendingRestore = cloudEntries.current.get(user.uid);
+    if (pendingRestore?.generation === firebaseRestoreGeneration.current) {
+      return pendingRestore.task;
+    }
+
+    const generation = ++firebaseRestoreGeneration.current;
+    const previousSession = activeSession.current;
+    const previousState = snapshot.current;
+    const switchingAccounts = Boolean(
+      previousSession &&
+        (previousSession.kind !== 'firebase' || previousSession.uid !== user.uid),
+    );
+    if (switchingAccounts) {
+      // Hide the previous account as soon as Auth reports a different UID.
+      setRestoring(true);
+      setSessionType(null);
+      setState(null);
+      setSaveError('');
     }
 
     const task = (async () => {
+      if (switchingAccounts && previousSession) {
+        await saveQueue.current.catch(() => {});
+        if (generation !== firebaseRestoreGeneration.current) {
+          return;
+        }
+        if (previousState) {
+          try {
+            await saveLocalState(previousState, previousSession);
+          } catch (error) {
+            if (generation === firebaseRestoreGeneration.current) {
+              setSaveError(errorText(error));
+            }
+          }
+        }
+        if (generation !== firebaseRestoreGeneration.current) {
+          return;
+        }
+        if (activeSession.current === previousSession) {
+          activeSession.current = null;
+          cloudHydrated.current = false;
+          setPendingCloudUid(current =>
+            current === sessionAccountId(previousSession) ? null : current,
+          );
+        }
+        snapshot.current = null;
+      }
+
       if (
         activeSession.current?.kind === 'firebase' &&
         activeSession.current.uid === user.uid
@@ -358,6 +402,9 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
       };
       const storage = deviceStore();
       await storage.setActiveUser(user.uid);
+      if (generation !== firebaseRestoreGeneration.current) {
+        return;
+      }
       activeSession.current = { kind: 'firebase', uid: user.uid };
       cloudHydrated.current = false;
       setSessionType('firebase');
@@ -367,7 +414,13 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
       try {
         cached = asState(await storage.loadState(user.uid), account);
       } catch (error) {
+        if (generation !== firebaseRestoreGeneration.current) {
+          return;
+        }
         setSaveError(errorText(error));
+      }
+      if (generation !== firebaseRestoreGeneration.current) {
+        return;
       }
 
       const local = cached || initialState(account);
@@ -378,7 +431,11 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
 
       try {
         const cloudValue = await loadCloudState(user.uid);
-        if (activeSession.current?.uid !== user.uid) {
+        if (
+          generation !== firebaseRestoreGeneration.current ||
+          activeSession.current?.kind !== 'firebase' ||
+          activeSession.current.uid !== user.uid
+        ) {
           return;
         }
         const cloud = cloudValue
@@ -401,6 +458,13 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
           cloud &&
           JSON.stringify(stateForPersistence(cloud)) !== JSON.stringify(cloud);
         await storage.saveState(user.uid, JSON.stringify(saved));
+        if (
+          generation !== firebaseRestoreGeneration.current ||
+          activeSession.current?.kind !== 'firebase' ||
+          activeSession.current.uid !== user.uid
+        ) {
+          return;
+        }
         if (!cloud || selected === latestLocal || cloudHasTransientFeed) {
           const currentSession = activeSession.current;
           if (
@@ -418,11 +482,19 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
           setSaveError('');
         }
       } catch (error) {
-        if (activeSession.current?.uid === user.uid) {
+        if (
+          generation === firebaseRestoreGeneration.current &&
+          activeSession.current?.kind === 'firebase' &&
+          activeSession.current.uid === user.uid
+        ) {
           setSaveError(errorText(error));
         }
       } finally {
-        if (activeSession.current?.uid === user.uid) {
+        if (
+          generation === firebaseRestoreGeneration.current &&
+          activeSession.current?.kind === 'firebase' &&
+          activeSession.current.uid === user.uid
+        ) {
           cloudHydrated.current = true;
           const latest = snapshot.current;
           if (latest?.profile?.id === user.uid) {
@@ -434,13 +506,16 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
       }
     })();
 
-    cloudEntries.current.set(user.uid, task);
-    task.then(
-      () => cloudEntries.current.delete(user.uid),
-      () => cloudEntries.current.delete(user.uid),
-    );
+    const restoreEntry = { generation, task };
+    cloudEntries.current.set(user.uid, restoreEntry);
+    const clearRestoreEntry = () => {
+      if (cloudEntries.current.get(user.uid) === restoreEntry) {
+        cloudEntries.current.delete(user.uid);
+      }
+    };
+    task.then(clearRestoreEntry, clearRestoreEntry);
     return task;
-  }, [queueCloudSave]);
+  }, [queueCloudSave, saveLocalState]);
 
   useEffect(() => {
     if (!firebaseEnabled) {
@@ -464,6 +539,8 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
           return;
         }
 
+        firebaseRestoreGeneration.current += 1;
+        cloudEntries.current.clear();
         setRestoring(false);
         if (activeSession.current?.kind === 'firebase') {
           activeSession.current = null;
@@ -479,6 +556,8 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
         }
       },
       error => {
+        firebaseRestoreGeneration.current += 1;
+        cloudEntries.current.clear();
         setRestoring(false);
         setSaveError(errorText(error));
       },

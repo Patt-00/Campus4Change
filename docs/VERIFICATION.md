@@ -19,10 +19,17 @@
   on Android 8+ and the HMAC-SHA1/1,400,000 fallback on Android 7; old
   unversioned HMAC-SHA1/210,000 hashes are verified then upgraded after login.
   `CampusPasswordHashTest` covers reference vectors and accepted metadata;
-  `npm test -- --runInBand` passed 211 tests in 31 suites, lint passed, and
-  Gradle passed `:app:testDebugUnitTest`, `:app:assembleDebug`,
+  after the Firebase restore-race tests were added,
+  `npm test -- --coverage --runInBand` passed 214 tests in 32 suites with
+  82.46% statement and 73.11% branch coverage. Lint passed, and Gradle passed
+  `:app:testDebugUnitTest`, `:app:assembleDebug`,
   `:app:assembleDebugAndroidTest`, `:app:createBundleReleaseJsAndAssets`, and
   `:app:compileReleaseKotlin` under JDK 25.
+- New Firebase-session hook tests reproduce an old account's delayed native
+  restore completing after a different Firebase UID becomes active. The new
+  generation guard keeps the previous account out of the visible state, saves
+  its latest local snapshot before switching the native storage owner, and
+  prevents stale cloud callbacks from changing the newer session.
 - Firebase tutor-booking requests now write a private per-student cooldown permit
   in the same atomic batch as the booking. Rules emulator tests pass for valid
   first requests, missing permits, immediate retries, forged resets, private
