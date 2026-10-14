@@ -14,7 +14,7 @@ The latest visual pass keeps the existing colors and card style while removing s
 | --- | --- | --- |
 | 1:2 | Onboarding | Open login. |
 | 1:15 | Login | Firebase email/password or Android Google sign-in, existing local credentials, password reset, and biometrics for local accounts. No demo sign-in is included. |
-| 1:39 | Sign-up | Create an email/password Firebase or device account; Google sign-up uses the Google name/email and adds Student ID privately after sign-in. |
+| 1:39 | Sign-up | Create an email/password Firebase or device account; any verified email may use shared features. Google sign-up uses the Google name/email and adds Student ID privately after sign-in. |
 | 1:69 | Home | Search, quick actions, next session, menu, notifications, tabs; shows pending cloud sync when device state is waiting for Firebase acknowledgement. |
 | 1:133 | Tutor Search | The account's own device-only listing or live Firebase student listings, subject filters, and a real empty state. |
 | 1:187 | Tutor Details | Selected tutor profile, public subjects, and request-a-session action. A tutor chat opens from the resulting session request. |

@@ -77,9 +77,12 @@
   Check setting or terms were accepted, and token exchange remains unverified.
 - Product policy clarified on 2026-10-14: any Firebase-verified email may use
   shared features; no `@tip.edu.ph` or `.edu` restriction is intended. The
-  existing client and rules already implement this policy. A `gmail.com`
-  regression account is accepted by the client and Firestore emulator rules;
-  an unverified account remains denied.
+  client and rules implement this policy, and the sign-up guidance now says so
+  directly. A `gmail.com` regression account is accepted by the client and
+  Firestore emulator rules; an unverified account remains denied.
+- Figma Sign-up guidance node `1:67` now uses the same any-verified-email
+  policy; the 390-by-844 frame was rendered and visually checked with the
+  longer copy fully visible.
 - Signup now keeps a newly created Firebase account if the optional sign-in
   display-name update fails. The submitted name and Student ID remain available
   to the app session, and the signup notice explains that the Firebase

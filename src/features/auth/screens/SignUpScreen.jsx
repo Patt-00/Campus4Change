@@ -154,7 +154,7 @@ export function SignUpScreen({ go, back, auth }) {
       <AppButton title="CREATE ACCOUNT" busy={busy} onPress={submit} />
       <Text style={[s.muted, s.center, styles.marginTop16]}>
         {auth.firebaseConfigured
-          ? 'Email/password accounts receive a verification link. Google accounts use your verified Google email. Shared study groups, tutor listings, and session requests require a verified email.'
+          ? 'Email/password accounts receive a verification link. Any verified email can use shared study groups, tutor listings, and session requests. Google accounts use your verified Google email.'
           : 'Your account and data stay on this device.'}
       </Text>
       <View style={styles.alignItemscentermarginTop24}>

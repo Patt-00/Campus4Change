@@ -98,6 +98,9 @@ test('sign-up offers Google and explains how to add the private Student ID later
   expect(visibleText).toContain(
     'Google supplies your name and email. Add your private Student ID in Edit Profile after signing in.',
   );
+  expect(visibleText).toContain(
+    'Email/password accounts receive a verification link. Any verified email can use shared study groups, tutor listings, and session requests. Google accounts use your verified Google email.',
+  );
   await ReactTestRenderer.act(async () =>
     button(renderer, 'Sign up with Google').props.onPress(),
   );
