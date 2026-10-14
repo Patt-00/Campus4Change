@@ -479,7 +479,7 @@ test('sign-up validates fields and creates a separate local account', async () =
   await press('CREATE ACCOUNT');
   expect(mockStore.signUp).not.toHaveBeenCalled();
   await fill('Full name', 'New Student');
-  await fill('School email', 'new@school.edu');
+  await fill('Email', 'new@school.edu');
   await fill('Student ID', '123456');
   await fill('Password', 'TestPass123');
   await press('CREATE ACCOUNT');

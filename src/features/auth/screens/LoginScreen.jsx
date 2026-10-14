@@ -46,7 +46,7 @@ export function LoginScreen({ go, back, auth }) {
     if (!identifier.trim() || !password) {
       setError(
         auth.firebaseConfigured && !localOnly
-          ? 'Enter your school email and password.'
+          ? 'Enter your email and password.'
           : 'Enter your email or Student ID and password.',
       );
       return;
@@ -66,7 +66,7 @@ export function LoginScreen({ go, back, auth }) {
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier.trim())) {
-      setError('Enter your school email first so Firebase can send a reset link.');
+      setError('Enter your email first so Firebase can send a reset link.');
       return;
     }
     submit(async () => {
@@ -88,11 +88,11 @@ export function LoginScreen({ go, back, auth }) {
         </Text>
       )}
       <Field
-        label={auth.firebaseConfigured && !localOnly ? 'School email' : 'Email or Student ID'}
+        label={auth.firebaseConfigured && !localOnly ? 'Email' : 'Email or Student ID'}
         icon="@"
         placeholder={
           auth.firebaseConfigured && !localOnly
-            ? 'name@school.edu'
+            ? 'name@example.com'
             : 'Enter your email or student ID'
         }
         value={identifier}

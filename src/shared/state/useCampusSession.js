@@ -503,7 +503,7 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
       setEmailVerificationMessage(
         account.emailVerified
           ? ''
-          : 'Verify your school email to access shared study groups.',
+          : 'Verify your email address to access shared study groups.',
       );
       await enterFirebaseAccount({
         ...account,
@@ -518,7 +518,7 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
         setEmailVerificationMessage(
           account.emailVerified
             ? ''
-            : 'Verify your school email to access shared study groups.',
+            : 'Verify your email address to access shared study groups.',
         );
         await enterFirebaseAccount({
           ...account,

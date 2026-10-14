@@ -107,10 +107,10 @@ export function SignUpScreen({ go, back, auth }) {
       />
 
       <Field
-        label="School email"
+        label="Email"
         inputRef={emailInput}
         icon="@"
-        placeholder="name@school.edu"
+        placeholder="name@example.com"
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"

@@ -883,7 +883,7 @@ export function AppNavigator() {
           <View style={s.banner}>
             <Text style={emailVerified ? s.muted : s.error}>
               {emailVerificationMessage ||
-                `Verify ${state?.profile?.email || 'your school email'} to access shared study groups.`}
+                `Verify ${state?.profile?.email || 'your email address'} to access shared study groups.`}
             </Text>
             {!emailVerified && (
               <>

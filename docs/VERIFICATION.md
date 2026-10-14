@@ -2,6 +2,12 @@
 
 ## Current source update — 2026-10-14
 
+- Login and Sign Up now label the address field **Email** and use the neutral
+  `name@example.com` example, matching the accepted any-verified-email policy.
+  Figma nodes `1:21`, `1:25`, `1:50`, and `1:54` were updated in frames 02 Login
+  and 03 Sign Up and read back from the design file. On the POCO, the Metro-served
+  app showed the updated labels and examples on both screens; no account was
+  created or signed in.
 - The latest App Check configuration fix was pushed as `760678f`. The JavaScript
   Firebase app receives the Web API key only; the native App Check bridge uses
   the Android API key from the project config, and tests validate the project

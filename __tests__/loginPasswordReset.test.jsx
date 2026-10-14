@@ -32,7 +32,7 @@ test('password reset confirmation does not reveal whether the account exists', a
 
   const email = renderer.root
     .findAllByType(TextInput)
-    .find(input => input.props.accessibilityLabel === 'School email');
+    .find(input => input.props.accessibilityLabel === 'Email');
   await ReactTestRenderer.act(async () => {
     email.props.onChangeText('student@example.test');
   });
