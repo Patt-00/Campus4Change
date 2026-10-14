@@ -132,7 +132,13 @@ The 2026-10-02 APK's signature verified. This build result does not establish th
 
 ## Release signing and platform limits
 
-The debug variant uses `android/app/debug.keystore` for development only. The release variant never falls back to that key: release artifact tasks fail before execution unless a dedicated keystore file and all four environment variables are supplied:
+The debug variant uses the tracked `android/app/debug.keystore` for development
+only. This key is present in the public repository, so treat its signing identity
+as public; never use it for release builds or as a production trust anchor.
+Rotating it will prevent in-place updates to APKs signed with the current debug
+key unless a signing-key migration is planned. The release variant never falls
+back to that key: release artifact tasks fail before execution unless a
+dedicated keystore file and all four environment variables are supplied:
 
 - `C4C_RELEASE_STORE_FILE`: absolute path to the private keystore file.
 - `C4C_RELEASE_STORE_PASSWORD`: keystore password.
