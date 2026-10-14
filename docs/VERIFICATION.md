@@ -17,6 +17,11 @@
 - On the POCO X4 GT, Sign Up showed Google and email/password options. Submitting
   the empty form showed the expected validation message, and returning to Login
   left the app signed out; no account was created during this check.
+- On 2026-10-14, the current debug APK was installed over the existing POCO
+  installation without clearing its data and cold-launched. The branded start
+  screen showed the logo, onboarding advanced to Login, and an empty sign-in
+  showed the expected validation message. The live screen had no demo account
+  or prefilled credentials; no account was created or signed into.
 - Firebase tutor-session chat is now available from the Booked Session Workspace
   for both participants. The screen copy distinguishes private notes from chat,
   and the Figma file has an editable workspace frame linked from Session Details
@@ -48,10 +53,19 @@
   empty, live rules are deny-all, and Manual indexes are empty. The current
   checked-in index manifest has four composite indexes, one more than the prior
   deployment prompt described; no live rules/indexes were changed.
-- The same live Console session showed App Check at **Get started**. The current
-  React Native source has no App Check initializer or native Android provider;
-  enforcement remains disabled pending a supported Android provider and signing
-  registration.
+- The same live Console session showed App Check at **Get started**. The Android
+  client now initializes a native-backed Firebase App Check `CustomProvider`
+  before Firebase Auth and Firestore. Debug builds use Firebase's debug provider;
+  release builds use Play Integrity. The live Android app still needs App Check
+  registration, a SHA-256 fingerprint, and a registered debug token; no
+  enforcement was enabled.
+- `npm test -- --runInBand`: 204 tests passed in 30 suites, and `npm run lint`
+  passed. Gradle compiled debug and release Kotlin sources, passed
+  `:app:testDebugUnitTest`, and assembled the debug APK using JDK 25. The APK
+  installed over the POCO X4 GT app without clearing data. Cold launch reached
+  Login; empty sign-in showed validation, with no demo credentials or account
+  creation. A redacted App Check log scan found no warning/error-tagged lines;
+  it did not verify valid token exchange.
 - `.firebaserc` now sets `campus4change` as the default Firebase CLI target, and
   its JSON parses correctly. `firebase use` still cannot run because the CLI is
   unauthenticated; the Console session is available for the later approved

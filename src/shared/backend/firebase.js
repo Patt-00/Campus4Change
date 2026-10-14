@@ -1,4 +1,5 @@
 import { NativeModules, Platform } from 'react-native';
+import { initializeAndroidAppCheck } from './appCheck';
 import {
   firebaseConfig,
   firebaseEmulatorHost,
@@ -45,6 +46,7 @@ if (firebaseEnabled) {
   const app = appSdk.getApps().length
     ? appSdk.getApp()
     : appSdk.initializeApp(firebaseConfig);
+  initializeAndroidAppCheck(app, firebaseConfig);
   try {
     auth = authSdk.initializeAuth(app, {
       persistence: authSdk.getReactNativePersistence(secureAuthStorage()),

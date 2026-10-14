@@ -18,6 +18,8 @@ let mockGoogleSignIn;
 let mockGoogleCredential;
 let mockSignInWithCredential;
 let mockClearGoogleCredentialState;
+let mockInitializeAppCheck;
+let mockNativeAppCheckToken;
 
 jest.mock('react-native', () => ({
   NativeModules: {
@@ -30,6 +32,9 @@ jest.mock('react-native', () => ({
       signIn: (...args) => mockGoogleSignIn(...args),
       clearCredentialState: (...args) => mockClearGoogleCredentialState(...args),
     },
+    CampusAppCheck: {
+      getAppCheckToken: (...args) => mockNativeAppCheckToken(...args),
+    },
   },
   Platform: { OS: 'android' },
 }));
@@ -40,6 +45,7 @@ jest.mock('../src/shared/backend/firebaseConfig', () => ({
     authDomain: 'test.example',
     projectId: 'campus-test',
     appId: 'test-app',
+    androidAppId: '1:123456789:android:test-app',
   },
   googleWebClientId: '722562628798-test.apps.googleusercontent.com',
   firebaseEmulatorHost: '',
@@ -81,9 +87,21 @@ jest.mock('firebase/firestore', () => ({
   serverTimestamp: (...args) => mockServerTimestamp(...args),
 }));
 
+jest.mock('firebase/app-check', () => ({
+  CustomProvider: jest.fn(function CustomProvider(options) {
+    this.getToken = options.getToken;
+  }),
+  initializeAppCheck: (...args) => mockInitializeAppCheck(...args),
+}));
+
 beforeEach(() => {
   mockAuthObserver = null;
   mockApp = {};
+  mockInitializeAppCheck = jest.fn(() => ({ app: mockApp }));
+  mockNativeAppCheckToken = jest.fn(async () => ({
+    token: 'test-app-check-token',
+    expireTimeMillis: Date.now() + 60 * 60 * 1000,
+  }));
   mockDb = {};
   mockAuth = { currentUser: null };
   mockDoc = jest.fn((db, ...path) => ({ db, path: path.join('/') }));
@@ -131,6 +149,35 @@ beforeEach(() => {
     Object.assign(user, profile);
   });
   jest.resetModules();
+});
+
+test('Android Firebase initializes native-backed App Check before account services', async () => {
+  const firebase = require('../src/shared/backend/firebase');
+  const { firebaseConfig } = require('../src/shared/backend/firebaseConfig');
+  const { initializeAuth } = require('firebase/auth');
+  const { getFirestore } = require('firebase/firestore');
+  const { CustomProvider } = require('firebase/app-check');
+
+  expect(mockInitializeAppCheck).toHaveBeenCalledWith(
+    mockApp,
+    expect.objectContaining({
+      isTokenAutoRefreshEnabled: true,
+      provider: expect.any(CustomProvider),
+    }),
+  );
+  expect(mockInitializeAppCheck.mock.invocationCallOrder[0]).toBeLessThan(
+    initializeAuth.mock.invocationCallOrder[0],
+  );
+  expect(mockInitializeAppCheck.mock.invocationCallOrder[0]).toBeLessThan(
+    getFirestore.mock.invocationCallOrder[0],
+  );
+
+  const provider = mockInitializeAppCheck.mock.calls[0][1].provider;
+  await expect(provider.getToken()).resolves.toMatchObject({
+    token: 'test-app-check-token',
+  });
+  expect(mockNativeAppCheckToken).toHaveBeenCalledWith(firebaseConfig);
+  expect(firebase.firebaseEnabled).toBe(true);
 });
 
 test('signup listener receives the new student ID even when Auth notifies before signup resolves', async () => {

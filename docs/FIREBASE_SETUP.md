@@ -16,11 +16,13 @@ plan. Its Web app is registered as **Campus4Change React Native**, Email/Passwor
 and Google sign-in are enabled, and the Standard Firestore database is in
 `asia-southeast1` (Singapore). Google consent uses the support email
 `qpurbina@tip.edu.ph`. The Android app `com.campus4change` has its debug
-signing SHA-1 registered; a future release signing certificate must be added
-before Google sign-in can work in release builds. The database was initialized
-in production mode, so its current rules deny all client reads and writes. The checked-in
-`firestore.rules` file has passed the emulator suite but has not been deployed
-to this project; live app data access stays unavailable until that deployment.
+signing SHA-1 registered. App Check additionally requires a SHA-256 fingerprint,
+which is not registered yet. A future release signing certificate must be
+added before release Google sign-in and Play Integrity can be verified. The
+database was initialized in production mode, so its current rules deny all
+client reads and writes. The checked-in `firestore.rules` file has passed the
+emulator suite but has not been deployed to this project; live app data access
+stays unavailable until that deployment.
 Firebase signup sends an email verification link. Verified email claims are
 required for shared study groups, tutor listings, and session requests; each
 user can still read and save only their own private account state before
@@ -52,9 +54,10 @@ for the platform flow and token exchange.
    the Google provider's Web SDK configuration into `googleWebClientId` in the
    same file.
 5. Register the Android package `com.campus4change` in Project settings and add
-   the SHA-1 signing certificate for each build. The current debug certificate
-   is configured; a release certificate still needs its own SHA-1 before a
-   signed release can use Google sign-in.
+   the SHA-1 signing certificate for Google sign-in. App Check additionally
+   requires the SHA-256 signing certificate. The current debug SHA-1 is
+   configured; register the debug SHA-256 and add both release fingerprints
+   after the dedicated release key is created.
 6. Sign in to the Firebase CLI, select the same project, and deploy the
    checked-in Firestore rules and indexes only after reviewing and authorizing
    that live change:
@@ -74,6 +77,24 @@ for the platform flow and token exchange.
 Firebase client settings identify the project; the API key is not an access
 control mechanism. Keep Firestore rules restrictive and never put service
 account credentials or Admin SDK keys in the mobile app.
+
+## Android App Check
+
+The app initializes Firebase App Check before the Firebase JavaScript SDK
+creates Auth or Firestore services. A custom JavaScript provider forwards token
+requests to the Android native Firebase SDK. Debug builds use Firebase's debug
+provider; release builds use Play Integrity. The native app registration ID is
+stored in `firebaseConfig.js` separately from the Web app ID.
+
+The live project still needs App Check registration for the Android app and a
+SHA-256 signing fingerprint. For a debug build, install the app, obtain its
+debug token from local Android logs, and allowlist that token under Firebase
+Console **Security > App Check > Manage debug tokens**. Treat the token as a
+credential: never commit it or include it in screenshots, reports, or CI logs.
+The signed release build needs its own SHA-256 fingerprint and Play Integrity
+registration. Monitor request metrics before enabling enforcement. The current
+project has no App Check registration or enforcement, so valid live token
+exchange has not yet been verified.
 
 ## Verify the Firestore rules locally
 
