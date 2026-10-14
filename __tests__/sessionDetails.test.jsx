@@ -185,6 +185,163 @@ test('incoming shared requests can be accepted or declined without rescheduling'
 
   await act(async () => button(renderer, 'ACCEPT SESSION REQUEST').props.onPress());
   expect(respond).toHaveBeenCalledWith('accept');
+  await act(async () => button(renderer, 'DECLINE REQUEST').props.onPress());
+  expect(respond).toHaveBeenNthCalledWith(2, 'decline');
+  await act(async () => renderer.unmount());
+});
+
+test('failed incoming request updates show an error and leave the action retryable', async () => {
+  const respond = jest
+    .fn()
+    .mockResolvedValueOnce({ error: 'The request is no longer available.' })
+    .mockRejectedValueOnce(new Error('Firebase is offline.'))
+    .mockRejectedValueOnce('offline');
+  const session = {
+    id: 'incoming-request',
+    shared: true,
+    incoming: true,
+    studentName: 'Casey Student',
+    subject: 'Physics',
+    startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    status: 'Pending',
+  };
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(
+      <SafeAreaProvider initialMetrics={initialMetrics}>
+        <SessionDetailsScreen
+          go={jest.fn()}
+          back={jest.fn()}
+          session={session}
+          tutor={{ id: 'me', name: 'Jordan Student' }}
+          cancel={jest.fn()}
+          rate={jest.fn()}
+          message={jest.fn()}
+          respond={respond}
+        />
+      </SafeAreaProvider>,
+    );
+  });
+
+  await act(async () =>
+    button(renderer, 'ACCEPT SESSION REQUEST').props.onPress(),
+  );
+  expect(
+    renderer.root.findAllByType(Text).map(node => node.props.children),
+  ).toContain('The request is no longer available.');
+  expect(button(renderer, 'ACCEPT SESSION REQUEST').props.disabled).not.toBe(
+    true,
+  );
+
+  await act(async () =>
+    button(renderer, 'ACCEPT SESSION REQUEST').props.onPress(),
+  );
+  expect(
+    renderer.root.findAllByType(Text).map(node => node.props.children),
+  ).toContain('Firebase is offline.');
+  expect(button(renderer, 'ACCEPT SESSION REQUEST').props.disabled).not.toBe(
+    true,
+  );
+  await act(async () =>
+    button(renderer, 'ACCEPT SESSION REQUEST').props.onPress(),
+  );
+  expect(
+    renderer.root.findAllByType(Text).map(node => node.props.children),
+  ).toContain('Could not update this request.');
+  expect(button(renderer, 'ACCEPT SESSION REQUEST').props.disabled).not.toBe(
+    true,
+  );
+  await act(async () => renderer.unmount());
+});
+
+test('an outgoing pending request requires confirmation before cancellation', async () => {
+  const respond = jest.fn(async () => undefined);
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  const session = {
+    id: 'outgoing-request',
+    shared: true,
+    incoming: false,
+    tutorId: 'mika',
+    subject: 'Calculus',
+    startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    status: 'Pending',
+  };
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(
+      <SafeAreaProvider initialMetrics={initialMetrics}>
+        <SessionDetailsScreen
+          go={jest.fn()}
+          back={jest.fn()}
+          session={session}
+          tutor={{ id: 'mika', name: 'Mika Santos' }}
+          cancel={jest.fn()}
+          rate={jest.fn()}
+          message={jest.fn()}
+          respond={respond}
+        />
+      </SafeAreaProvider>,
+    );
+  });
+
+  await act(async () => button(renderer, 'Cancel request').props.onPress());
+  expect(alert).toHaveBeenCalledWith(
+    'Cancel this request?',
+    'The tutor will see that you withdrew the request.',
+    expect.any(Array),
+  );
+  const actions = alert.mock.calls[0][2];
+  await act(async () =>
+    actions.find(action => action.text === 'Keep request').onPress?.(),
+  );
+  expect(respond).not.toHaveBeenCalled();
+  await act(async () =>
+    actions.find(action => action.style === 'destructive').onPress(),
+  );
+  expect(respond).toHaveBeenCalledWith('cancel');
+  await act(async () => renderer.unmount());
+});
+
+test('a shared upcoming session confirms cancellation through the shared request action', async () => {
+  const respond = jest.fn(async () => undefined);
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  const session = {
+    id: 'shared-upcoming-session',
+    shared: true,
+    incoming: false,
+    tutorId: 'mika',
+    subject: 'Calculus',
+    startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    status: 'Upcoming',
+  };
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(
+      <SafeAreaProvider initialMetrics={initialMetrics}>
+        <SessionDetailsScreen
+          go={jest.fn()}
+          back={jest.fn()}
+          session={session}
+          tutor={{ id: 'mika', name: 'Mika Santos' }}
+          cancel={jest.fn()}
+          rate={jest.fn()}
+          message={jest.fn()}
+          respond={respond}
+        />
+      </SafeAreaProvider>,
+    );
+  });
+
+  await act(async () => button(renderer, 'Cancel session').props.onPress());
+  expect(alert.mock.calls[0][1]).toBe(
+    'The other student will see that the session was cancelled.',
+  );
+  await act(async () =>
+    alert.mock.calls[0][2]
+      .find(action => action.style === 'destructive')
+      .onPress(),
+  );
+  expect(respond).toHaveBeenCalledWith('cancel');
   await act(async () => renderer.unmount());
 });
 
