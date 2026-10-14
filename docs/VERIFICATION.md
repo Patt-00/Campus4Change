@@ -25,10 +25,10 @@
   legacy equivalent on Android 10. `MainActivity` now uses the current React
   Native delegate constructor; debug and release Kotlin compilation passed.
 - GitHub Actions run
-  [38498004708](https://github.com/Patt-00/Campus4Change/actions/runs/38498004708)
-  passed on `760678f` with the prior workflow. This update adds release Kotlin
-  compilation to CI; its next run will verify the new step before the existing
-  release-signing guard.
+  [38499652101](https://github.com/Patt-00/Campus4Change/actions/runs/38499652101)
+  passed on `c74890d`. CI now builds the production Android bundle, compiles
+  release Kotlin sources, builds the debug APK, and verifies that release
+  packaging still fails closed without a dedicated keystore.
 - A fresh full `npm audit` reports 47 high, 5 moderate, and 0 critical findings;
   `npm audit --omit=dev` reports 20 high dependency paths through the React
   Native toolchain. The only production-only advisory is `braces@3.0.3`, for
