@@ -93,7 +93,7 @@ export function CreateGroupScreen({ back, create, sharingEnabled }) {
 
       <Text style={[s.muted, styles.marginTop16]}>
         {sharingEnabled
-          ? 'This group, its membership, posts, and replies will sync with Firebase for signed-in students.'
+          ? 'This group, its membership, posts, and replies will sync with Firebase for email-verified accounts.'
           : 'This group and its changes are saved on this device only.'}
       </Text>
     </Screen>

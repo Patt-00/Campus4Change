@@ -600,7 +600,7 @@ test('About explains device-only behavior before sign-in and returns to login', 
   await press('GET STARTED');
   await press('Skip introduction');
   await press('About Campus4Change');
-  expect(hasText('Connecting with other students')).toBe(true);
+  expect(hasText('Connecting with the community')).toBe(true);
   await press('Back');
   expect(hasText('SIGN IN')).toBe(true);
 });

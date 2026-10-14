@@ -179,7 +179,7 @@ export async function createTutorBooking(uid, studentName, tutor, subject, start
   const { db, firestore } = firebaseServicesForUser(uid);
   const { Timestamp, collection, doc, serverTimestamp, writeBatch } = firestore;
   if (!tutor?.shared || !tutor.id || tutor.id === uid) {
-    throw new Error('Choose a listed student tutor.');
+    throw new Error('Choose a listed tutor.');
   }
   const start = new Date(startsAt);
   if (!Number.isFinite(start.getTime()) || start.getTime() <= Date.now()) {

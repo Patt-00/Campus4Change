@@ -49,7 +49,7 @@ export function BeTutorScreen({
     <Screen title="Be a Tutor" back={back}>
       <Text style={[s.muted, styles.marginBottom24]}>
         {sharedAccount
-          ? 'Add subjects you can help with. Your profile will be visible in the student tutor directory. Keep private contact details out of your introduction.'
+          ? 'Add subjects you can help with. Your profile will be visible in the shared directory to Firebase users with verified emails. Keep private contact details out of your introduction.'
           : 'Add subjects or skills you can help with. This device-only listing is visible only in your local directory.'}
       </Text>
       {sharedAccount && !canShare && (
@@ -67,7 +67,7 @@ export function BeTutorScreen({
       <Field
         label="About you"
         multiline
-        placeholder="How do you help other students?"
+        placeholder="How do you help others learn?"
         value={bio}
         onChangeText={setBio}
       />

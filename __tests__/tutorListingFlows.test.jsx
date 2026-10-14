@@ -174,7 +174,7 @@ test('tutor subject filters collapse spelling variants', async () => {
   const tutorLabel = labels.find(label => label?.startsWith('Taylor Student.'));
   expect(tutorLabel).toContain('Subjects: Physics');
   expect(tutorLabel).toContain('Rating 4.9 stars');
-  expect(tutorLabel).toContain('Student tutor');
+  expect(tutorLabel).toContain('Community tutor');
   await act(async () => renderer.unmount());
 });
 
@@ -198,9 +198,9 @@ test('shared tutor directory gives a real empty state without bundled listings',
     .map(node => node.props.children)
     .flat(Infinity)
     .filter(label => typeof label === 'string');
-  expect(labels).toContain('No student tutors yet');
+  expect(labels).toContain('No community tutors yet');
   expect(labels).toContain(
-    'Publish a tutor profile to help classmates find you, or check back later.',
+    'Publish a tutor profile to help other learners find you, or check back later.',
   );
   expect(labels).not.toContain('Sample tutor');
   expect(button(renderer, 'Top rated')).toBeUndefined();

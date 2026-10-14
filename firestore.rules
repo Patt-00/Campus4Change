@@ -49,7 +49,7 @@ service cloud.firestore {
         && getAfter(groupPath()).data.updatedAt == request.time;
     }
 
-    // Version 1 keeps each student's private account state under their UID.
+    // Version 1 keeps each user's private account state under their UID.
     match /users/{userId}/private/state {
       function ownsDocument() {
         return ownsUserData(userId);
@@ -66,7 +66,7 @@ service cloud.firestore {
         && request.resource.data.updatedAt is timestamp;
     }
 
-    // Study group metadata is visible to signed-in students. Membership IDs
+    // Study group metadata is visible to users with a verified email. Membership IDs
     // are private to their owners; a public count lives on the group document.
     match /studyGroups/{groupId} {
       function userMembershipPath(userId) {
@@ -493,7 +493,7 @@ service cloud.firestore {
       }
     }
 
-    // A tutor listing exposes only the fields students need to choose a peer
+    // A tutor listing exposes only the fields users need to choose a tutor
     // tutor. Contact details and Student IDs stay in the owner's private data.
     match /tutorProfiles/{tutorUid} {
       function validListing() {
@@ -534,7 +534,7 @@ service cloud.firestore {
       allow delete: if signedIn() && request.auth.uid == tutorUid;
     }
 
-    // A request is visible only to the two participating students. One-hour
+    // A request is visible only to its two participants. One-hour
     // sessions reserve two half-hour buckets so overlapping start times cannot
     // both be accepted.
     match /tutorBookings/{bookingId} {
@@ -764,7 +764,7 @@ service cloud.firestore {
       }
     }
 
-    // Private, non-deletable per-student permit for tutor-session requests.
+    // Private, non-deletable per-requester permit for tutor-session requests.
     // The permit and matching booking must commit together, with a five-second
     // server-enforced cooldown between requests.
     match /tutorBookingLimits/{studentUid} {

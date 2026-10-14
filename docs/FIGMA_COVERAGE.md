@@ -16,8 +16,8 @@ The latest visual pass keeps the existing colors and card style while removing s
 | 1:15 | Login | Firebase email/password or Android Google sign-in, existing local credentials, password reset, and biometrics for local accounts. No demo sign-in is included. |
 | 1:39 | Sign-up | Create an email/password Firebase or device account; any verified email may use shared features. Google sign-up uses the Google name/email and adds Student ID privately after sign-in. |
 | 1:69 | Home | Search, quick actions, next session, menu, notifications, tabs; shows pending cloud sync when device state is waiting for Firebase acknowledgement. |
-| 1:133 | Tutor Search | The account's own device-only listing or live Firebase student listings, subject filters, and a real empty state. |
-| 1:187 | Tutor Details | Selected tutor profile, public subjects, and request-a-session action. A tutor chat opens from the resulting session request. |
+| 1:133 | Tutor Search | The account's own device-only listing or live Firebase tutor listings for email-verified accounts, subject filters, and a real empty state. |
+| 1:187 | Tutor Details | Selected community tutor profile, public subjects, and request-a-session action. A tutor chat opens from the resulting session request. |
 | 1:218 | Book Session | Subject/date/time/note selection; Firebase accounts send a pending request. Future and overlap checks apply. |
 | 1:251 | Booking Confirmed | Local schedule confirmation or shared request status and link to Requests. |
 | 1:263 | Study Groups | Joined/discover views, search, creation, membership. |
@@ -44,7 +44,7 @@ The Booked Session Workspace is a supporting screen for tutor requests. Session 
 
 ## Limits
 
-Device-only data stays in the account's state. With Firebase configured, verified students share the study-group directory, memberships, posts, replies, published tutor profiles, and participant-only session requests. The code now includes a Requests filter and response actions that extend the original flow.
+Device-only data stays in the account's state. With Firebase configured, accounts with verified email addresses share the study-group directory, memberships, posts, replies, published tutor profiles, and participant-only session requests. Email verification confirms control of an address; the app does not verify school affiliation. The code now includes a Requests filter and response actions that extend the original flow.
 
 The checked-in Firestore rules and indexes have not been deployed to the project, so real-project sharing and two-account chat are not verified. Rooms have no live participants, voice, or video. Notifications have no OS push delivery. Firebase password reset is available to configured Firebase accounts; device-only accounts must use their original password.
 

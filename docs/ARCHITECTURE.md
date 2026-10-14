@@ -114,8 +114,9 @@ not part of this group-owner workflow.
 
 The tutor feature publishes only opted-in profiles under `tutorProfiles/{uid}`.
 Each listing contains a name, optional course/year, subjects, and a bio; it does
-not contain email or Student ID. Only verified Firebase students can discover
-these listings, and the owner can update or remove their profile.
+not contain email or Student ID. Only Firebase accounts with verified email
+addresses can discover these listings, and the owner can update or remove their
+profile. Email verification does not confirm school affiliation.
 `features/tutors/data/firestore.js` writes `tutorBookings/{bookingId}` requests
 with a student, tutor, subject, requested time, note, and participant IDs.
 Firestore rules limit reads to the two participants and allow only the tutor

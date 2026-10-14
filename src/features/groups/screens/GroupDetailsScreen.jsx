@@ -38,7 +38,7 @@ export function GroupDetailsScreen({
       <Text style={styles.sharingStatus}>
         {group.shared
           ? 'Shared group • Posts and replies are visible to members.'
-          : 'Saved on this device • Other students cannot see this group.'}
+          : 'Saved on this device • Other users cannot see this group.'}
       </Text>
       {group.shared && group.isOwner && (
         <AppButton

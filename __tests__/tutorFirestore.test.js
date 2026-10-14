@@ -196,7 +196,7 @@ test('creates a pending request only for a listed tutor and one of their subject
 
   await expect(
     createTutorBooking('student-1', 'Jordan', { ...tutor, shared: false }, 'Calculus', startsAt, ''),
-  ).rejects.toThrow('Choose a listed student tutor.');
+  ).rejects.toThrow('Choose a listed tutor.');
   await expect(
     createTutorBooking('student-1', 'Jordan', tutor, 'Physics', startsAt, ''),
   ).rejects.toThrow('Choose one of this tutor’s listed subjects.');

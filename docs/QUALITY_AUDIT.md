@@ -88,8 +88,8 @@ production-ready claim.
   when more search results may exist.
 - Tutor subjects are trimmed and deduplicated without regard to case, including
   the subject filter list for previously saved profiles. Firebase tutor
-  profiles publish to the verified-student directory without exposing email or
-  Student ID; device-only listings remain local.
+  profiles publish to the email-verified community directory without exposing
+  email or Student ID; device-only listings remain local.
 - Shared tutor subscription state now scopes action errors to the active
   Firebase UID. Five focused hook tests cover the two-query loading barrier,
   retry and unsubscribe behavior, stale callbacks, account switches, signed-out
@@ -310,7 +310,10 @@ production-ready claim.
   restriction on 2026-10-14. This confirms control of an address, not school
   affiliation; the current client and rules already implement the chosen policy.
   Client and rules regression tests now exercise a verified `gmail.com` account
-  and continue to reject unverified access.
+  and continue to reject unverified access. Sign-up, About, group creation, and
+  tutor-directory copy now describes email verification rather than verified
+  student identity; the existing Figma tutor frames already use generic tutor
+  labels.
 
 ## Verification record
 

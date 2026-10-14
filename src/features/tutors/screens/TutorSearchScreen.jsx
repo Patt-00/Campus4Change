@@ -115,14 +115,14 @@ export function TutorSearchScreen({
         />
       )}
       <Text style={s.section}>
-        {sharedAccount ? 'Student tutors' : 'Tutor directory'} · {results.length}
+        {sharedAccount ? 'Community tutors' : 'Tutor directory'} · {results.length}
       </Text>
       {results.map(t => {
         const rating =
           Number.isFinite(t.rating) && t.rating > 0
             ? `Rating ${t.rating.toFixed(1)} stars`
             : 'No rating yet';
-        const listing = t.own ? 'Your listing' : 'Student tutor';
+        const listing = t.own ? 'Your listing' : 'Community tutor';
         return (
           <TouchableOpacity
             accessibilityRole="button"
@@ -159,7 +159,7 @@ export function TutorSearchScreen({
                 ? 'No tutors found'
                 : sharedAccount
                   ? emailVerified
-                    ? 'No student tutors yet'
+                    ? 'No community tutors yet'
                     : 'Verify your email to browse tutors'
                   : 'Your directory is empty'
             }
@@ -168,9 +168,9 @@ export function TutorSearchScreen({
                 ? 'Try another subject or clear the filters.'
                 : sharedAccount
                   ? emailVerified
-                    ? 'Publish a tutor profile to help classmates find you, or check back later.'
-                    : 'Student tutor listings are available after your Firebase email is verified.'
-                  : 'Create a device-only tutor profile or sign in with Firebase to browse verified student listings.'
+                    ? 'Publish a tutor profile to help other learners find you, or check back later.'
+                    : 'Tutor listings are available after your Firebase email is verified.'
+                  : 'Create a device-only tutor profile or sign in with Firebase to browse shared tutor listings.'
             }
           />
         )

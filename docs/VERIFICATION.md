@@ -87,6 +87,10 @@
   client and rules implement this policy, and the sign-up guidance now says so
   directly. A `gmail.com` regression account is accepted by the client and
   Firestore emulator rules; an unverified account remains denied.
+- About, group creation, tutor search, and tutor profiles now describe access
+  by verified email and avoid implying that the app verifies school or student
+  identity. Existing Figma Tutor Search and Tutor Profile frames already use
+  generic tutor labels; the coverage map records the email-verification rule.
 - Figma Sign-up guidance node `1:67` now uses the same any-verified-email
   policy; the 390-by-844 frame was rendered and visually checked with the
   longer copy fully visible.
@@ -254,7 +258,7 @@
   Figma now has a token-bound pending-sync component and a Home instance of the
   same state; its editable text, Inter font, color bindings, and spacing binding
   were read back and visually checked.
-- Verified Firebase students now share live group chat with current group
+- Email-verified Firebase accounts now share live group chat with current group
   members and tutor-session chat with the booking's two participants. The
   active chat reads a bounded latest-50 window and loads older pages on demand;
   group messages can be reported to the owner and hidden or restored. Device-only
@@ -693,11 +697,11 @@ Complete these manual checks on the exact release APK before demonstrating it.
 9. Open notifications and check their read state.
 10. Add a custom interest, reject a duplicate with different letter case, remove an interest, and save. Check the home interest and tutor count.
 11. Create a separate account and confirm that interests and school fields start blank, with an empty tutor directory and groups. Save preferences without entering school details.
-12. Enter your course, year, and school. Create and edit a tutor listing. With two verified Firebase accounts, confirm the listing appears to the other student and can be removed by its owner.
+12. Enter your course, year, and school. Create and edit a tutor listing. With two email-verified Firebase accounts, confirm the listing appears to the other account and can be removed by its owner.
 13. Use a dedicated test Google account on the Android debug build. Verify Firebase creates or restores the account, keeps the supplied name/email, and allows the Student ID to be added privately in Edit Profile. Cancel the Google sheet once and confirm the auth screen stays usable. Repeat with the exact release signing certificate before distribution. This account-level flow has not yet been completed.
 14. Sign out and sign in again to check saved data. Check biometrics on a personal account if enrolled on the phone.
 
-Verified Firebase students share tutor profiles, session requests, current-member group chats, and tutor-session chats limited to their two participants. Device-only conversations remain private notes. Signed-in Firebase users share group details, memberships, posts, replies, and chat. About explains the remaining limits.
+Email-verified Firebase accounts share tutor profiles, session requests, current-member group chats, and tutor-session chats limited to their two participants. Device-only conversations remain private notes. Signed-in Firebase users share group details, memberships, posts, replies, and chat. About explains that email verification does not establish school affiliation.
 
 ## Historical 1.1.0 device checks
 

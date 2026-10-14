@@ -17,7 +17,7 @@ export function TutorDetailsScreen({ go, back, tutor, message }) {
           {[tutor.course, tutor.year].filter(Boolean).join(' • ')}
         </Text>
         {tutor.shared ? (
-          <Text style={s.muted}>Student tutor · accepts session requests</Text>
+          <Text style={s.muted}>Community tutor · accepts session requests</Text>
         ) : (
           <Text style={s.muted}>
             {tutor.own ? 'Your device-only listing' : 'Tutor listing'}
