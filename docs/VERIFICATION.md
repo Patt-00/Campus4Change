@@ -103,6 +103,11 @@
   overwrite the pending profile used by an early auth-state callback. A
   regression test delays account creation, submits a conflicting second
   attempt, and verifies that only the first profile reaches Firebase.
+- Direct Sign Up screen tests cover invalid email and short-password rejection,
+  submission of a valid `gmail.com` address, Firebase error recovery, and
+  duplicate-tap suppression while account creation is pending. `SignUpScreen`
+  now has 84.61% statement and 85.18% branch coverage; verification of the email
+  remains a Firebase Auth step before shared features are available.
 - Focused Tutor Details and Booking Confirmed tests cover shared-request and
   device-only paths, owner self-booking affordances, private notes, request
   navigation, and invalid saved-date fallbacks. Both screens now reach 100%
@@ -116,8 +121,8 @@
 - Jest is now `30.5.2`. The config excludes `scripts/`, whose standalone ESM
   emulator runners are invoked separately, and gives the cold first-run App
   test a 15-second timeout; the other tests retain Jest's default timeout.
-  `npm test -- --coverage --runInBand` passes all 235 tests in 33 suites with
-  83.99% statement and 74.89% branch coverage, and lint passes.
+  `npm test -- --coverage --runInBand` passes all 239 tests in 33 suites with
+  84.06% statement and 75.03% branch coverage, and lint passes.
 - With Firebase CLI `15.33.0`, both Firestore rules and Auth verification
   emulator suites passed against the updated lockfile. Gradle passed
   `:app:assembleDebug` and `:app:createBundleReleaseJsAndAssets`.
