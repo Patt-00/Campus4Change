@@ -517,6 +517,14 @@ test('sign-up validates fields and creates a separate local account', async () =
   await fill('Full name', 'New Student');
   await fill('Email', 'new@school.edu');
   await fill('Student ID', '123456');
+  await fill('Password', 'x'.repeat(1025));
+  await press('CREATE ACCOUNT');
+  expect(
+    hasText(
+      'Complete all fields with a valid email. Use 8–1024 characters for the password.',
+    ),
+  ).toBe(true);
+  expect(mockStore.signUp).not.toHaveBeenCalled();
   await fill('Password', 'TestPass123');
   await press('CREATE ACCOUNT');
   expect(mockStore.signUp).toHaveBeenCalledWith(

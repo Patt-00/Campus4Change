@@ -60,6 +60,10 @@ jobs:
         working-directory: android
         run: ./gradlew --no-daemon :app:testDebugUnitTest
 
+      - name: Compile Android instrumentation tests
+        working-directory: android
+        run: ./gradlew --no-daemon :app:assembleDebugAndroidTest
+
       - name: Firestore rules and Auth emulator tests
         env:
           C4C_ALLOW_FIRESTORE_EMULATOR_RESET: '1'

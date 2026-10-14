@@ -14,6 +14,20 @@ production-ready claim.
   document reference and remain available to the owner before email
   verification. Regression tests cover missing documents, cross-UID denial,
   and preservation of the transient Student ID when Firebase sign-out fails.
+- Completing or skipping the introduction now records a device-level
+  preference; later cold launches go directly to Login. Preference-read errors
+  fall back to first-run onboarding. Jest covers first and later launch paths,
+  and a POCO cold launch showed Login without replaying the introduction.
+- Android device-only account passwords now use versioned PBKDF2 parameters:
+  HMAC-SHA256/600,000 iterations on API 26+, and HMAC-SHA1/1,400,000 on API
+  24-25. Existing unversioned HMAC-SHA1/210,000 hashes remain valid and are
+  rehashed after a successful login. Metadata is allowlisted, comparisons use
+  `MessageDigest.isEqual`, and local sign-up caps passwords at 1,024 characters.
+  JVM tests verify both old and new derivation vectors, metadata validation,
+  migration decisions, and the length bound. The instrumentation APK compiles;
+  device-provider timing is still unverified because Xiaomi rejected installing
+  the test APK, and the configured headless API 36 AVD exited with code 139
+  before boot completed.
 - Android Google sign-in/sign-up uses Credential Manager and Firebase token
   exchange. The Firebase Google provider is enabled. On 2026-10-14, Project
   settings showed only the previous Android SHA-1 and no SHA-256; it does not
@@ -261,6 +275,7 @@ production-ready claim.
 | C4C-09 | Medium | Google-to-Firebase account exchange is not yet verified. | Two POCO X4 GT attempts have returned `GetCredentialCancellationException`; the latest followed selection of the previously approved account and returned to Login before Firebase received an ID token. On 2026-10-14, Project settings showed only the previous Android SHA-1; it differs from the current debug signer, and no SHA-256 is registered. The certificate mismatch is a plausible configuration blocker, not yet a confirmed cause. Adding current debug fingerprints still needs confirmation at the time of the Firebase Console change. No password, verification code, or biometric was entered, and the app did not automatically retry. Android documents that the exception can mean authorization was not obtained because of cancellation or technical constraints; see the [official Credential Manager troubleshooting guide](https://developer.android.com/identity/sign-in/credential-manager-troubleshooting-guide). The release certificate needs its own SHA-1 and SHA-256 fingerprints. |
 | C4C-11 | Medium | Firebase App Check is not registered or enforced. | A read-only Console check on 2026-10-14 showed the Android and Web apps as **Not registered**. The Android app details offer Play Integrity and require a SHA-256 fingerprint plus acceptance of Google APIs and Play Integrity API terms before saving. The native bridge uses the Android API key from `google-services.json`-derived config and checks that the Android app ID uses the same project number; the JavaScript Firebase app receives only Web config. Debug uses the debug provider, while release uses Play Integrity. Both variants compile, but valid token exchange has not been verified because no Android App Check registration or debug-token allowlist entry exists. Register the Android app, allowlist the debug token, verify real request metrics, then configure release attestation with the dedicated release certificate before considering enforcement. The [official Android setup](https://firebase.google.com/docs/app-check/android/play-integrity-provider) requires app registration and a SHA-256 signing fingerprint. App Check supplements, but does not replace, Firestore rules. No App Check settings or terms were accepted during this check. |
 | C4C-12 | High | Public Git history retains links to Google Docs, including a document with anyone-writer access. | A value-redacted scan of all 152 reachable commits found the links only in historical commit `51f0100`; the current tree has none. Read-only Drive metadata confirmed the linked Lab 4.1 instructions document has an `anyone:writer` permission, while the Seatwork 5.1 document is owner-only. CI now rejects new Google Drive file links in tracked files. Removing the links from current files did not remove the public history or change Drive access. Sharing changes and Git history rewriting have not been authorized. After the user's sharing decision, restrict the Lab 4.1 document to its intended audience, verify metadata, and consider an approved history rewrite with collaborator resynchronization. |
+| C4C-13 | Medium | Device-only password-hash performance and the migration path are not yet exercised on Android. | JVM tests verify the legacy SHA-1/210,000 and current SHA-256/600,000 vectors, and `:app:assembleDebugAndroidTest` compiles two provider tests. The POCO’s Xiaomi security layer rejected installation of the test APK with `INSTALL_FAILED_USER_RESTRICTED`; its on-screen “Install this app via USB?” confirmation must be approved manually before repeating the test. The headless API 36 AVD also exited with code 139 before boot. Do not treat the host JVM result as Android provider or device-timing proof. |
 
 ## Accepted policy decisions
 

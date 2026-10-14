@@ -13,16 +13,13 @@ import com.facebook.react.uimanager.ViewManager
 import org.json.JSONArray
 import org.json.JSONObject
 import java.security.KeyStore
-import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.UUID
 import java.util.concurrent.Executors
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
-import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.GCMParameterSpec
-import javax.crypto.spec.PBEKeySpec
 
 /** Android-only local accounts and encrypted, per-account app state. */
 class CampusStorageModule(private val context: ReactApplicationContext) : ReactContextBaseJavaModule(context) {
@@ -93,17 +90,14 @@ class CampusStorageModule(private val context: ReactApplicationContext) : ReactC
         check(activeUser == expectedUserId) { "The active account changed. Please try again." }
     }
 
-    private fun hash(password: String, salt: ByteArray): ByteArray {
-        val spec = PBEKeySpec(password.toCharArray(), salt, 210000, 256)
-        return try { SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1").generateSecret(spec).encoded }
-        finally { spec.clearPassword() }
-    }
-
     private fun account(name: String, email: String, studentId: String, password: String, id: String = UUID.randomUUID().toString()): JSONObject {
         val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
+        val hashParameters = CampusPasswordHash.currentParameters(Build.VERSION.SDK_INT)
         return JSONObject().put("id", id).put("name", name).put("email", email).put("studentId", studentId)
             .put("salt", Base64.encodeToString(salt, Base64.NO_WRAP))
-            .put("hash", Base64.encodeToString(hash(password, salt), Base64.NO_WRAP))
+            .put("hash", Base64.encodeToString(CampusPasswordHash.derive(password, salt, hashParameters), Base64.NO_WRAP))
+            .put("passwordHashAlgorithm", hashParameters.algorithm)
+            .put("passwordHashIterations", hashParameters.iterations)
     }
 
     private fun isLegacySeedAccount(account: JSONObject): Boolean =
@@ -166,7 +160,7 @@ class CampusStorageModule(private val context: ReactApplicationContext) : ReactC
     }
 
     @ReactMethod fun signUp(name: String, email: String, studentId: String, password: String, promise: Promise) = run(promise) {
-        require(name.trim().length >= 2 && email.matches(Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) && studentId.trim().isNotEmpty() && password.length >= 8) { "Complete all fields. Use a password with at least 8 characters." }
+        require(name.trim().length >= 2 && email.matches(Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) && studentId.trim().isNotEmpty() && password.length in 8..CampusPasswordHash.MAX_PASSWORD_LENGTH) { "Complete all fields. Use a password between 8 and ${CampusPasswordHash.MAX_PASSWORD_LENGTH} characters." }
         val list = accounts()
         for (i in 0 until list.length()) {
             val item = list.getJSONObject(i)
@@ -180,12 +174,51 @@ class CampusStorageModule(private val context: ReactApplicationContext) : ReactC
     @ReactMethod fun signIn(identifier: String, password: String, promise: Promise) = run(promise) {
         val list = accounts()
         var match: JSONObject? = null
+        var matchIndex = -1
         for (i in 0 until list.length()) {
             val a = list.getJSONObject(i)
-            if (a.getString("email").equals(identifier.trim(), true) || a.getString("studentId").equals(identifier.trim(), true)) match = a
+            if (a.getString("email").equals(identifier.trim(), true) || a.getString("studentId").equals(identifier.trim(), true)) {
+                match = a
+                matchIndex = i
+            }
         }
         val a = match ?: throw IllegalArgumentException("Email/Student ID or password is incorrect.")
-        require(MessageDigest.isEqual(hash(password, Base64.decode(a.getString("salt"), Base64.NO_WRAP)), Base64.decode(a.getString("hash"), Base64.NO_WRAP))) { "Email/Student ID or password is incorrect." }
+        require(password.isNotEmpty() && password.length <= CampusPasswordHash.MAX_PASSWORD_LENGTH) { "Enter a password no longer than ${CampusPasswordHash.MAX_PASSWORD_LENGTH} characters." }
+        val storedParameters = CampusPasswordHash.fromStoredMetadata(
+            if (a.has("passwordHashAlgorithm")) a.getString("passwordHashAlgorithm") else null,
+            if (a.has("passwordHashIterations")) a.getInt("passwordHashIterations") else null,
+        )
+        val salt = Base64.decode(a.getString("salt"), Base64.NO_WRAP)
+        require(
+            CampusPasswordHash.matches(
+                password,
+                salt,
+                storedParameters,
+                Base64.decode(a.getString("hash"), Base64.NO_WRAP),
+            ),
+        ) { "Email/Student ID or password is incorrect." }
+        val currentParameters = CampusPasswordHash.currentParameters(Build.VERSION.SDK_INT)
+        if (CampusPasswordHash.needsUpgrade(storedParameters, currentParameters)) {
+            try {
+                list.put(
+                    matchIndex,
+                    account(
+                        a.getString("name"),
+                        a.getString("email"),
+                        a.getString("studentId"),
+                        password,
+                        a.getString("id"),
+                    ),
+                )
+                write("accounts", list.toString())
+            } catch (error: Exception) {
+                // Keep a verified local sign-in available if rehash persistence fails.
+                Log.w(
+                    "CampusStorage",
+                    "Local password hash upgrade failed: ${error.javaClass.simpleName}",
+                )
+            }
+        }
         activeUser = a.getString("id"); publicAccount(a)
     }
 

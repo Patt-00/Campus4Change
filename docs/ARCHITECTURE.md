@@ -142,7 +142,13 @@ moderation are not implemented.
 
 - Private SharedPreferences hold encrypted account, per-account JSON, and Firebase Auth persistence records.
 - AES-GCM uses an Android Keystore key and a new IV per write.
-- Salted PBKDF2 hashes verify passwords. Real passwords are not saved as plain text.
+- Local passwords use salted PBKDF2-HMAC-SHA256 with 600,000 iterations on
+  Android 8 and newer. Android 7 uses PBKDF2-HMAC-SHA1 with 1,400,000
+  iterations because SHA-256 PBKDF2 is unavailable on API 24-25. Existing
+  unversioned SHA-1/210,000 hashes stay valid until a successful password login
+  upgrades them. The stored algorithm and work factor are allowlisted, password
+  comparisons use `MessageDigest.isEqual`, and passwords are capped at 1,024
+  characters. Real passwords are not saved as plain text.
 - A single background executor orders account and storage operations.
 - Loading and saving requires an active account.
 - Biometric setup requires a signed-in local account and a successful Android biometric prompt. Sign-in uses the enrolled device biometrics. Android 9 or newer is required.

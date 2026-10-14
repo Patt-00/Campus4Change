@@ -111,6 +111,7 @@ export function LoginScreen({ go, back, auth }) {
         placeholder="Enter your password"
         value={password}
         onChangeText={setPassword}
+        maxLength={1024}
         secureTextEntry
         autoCapitalize="none"
         autoCorrect={false}

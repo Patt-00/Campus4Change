@@ -28,10 +28,10 @@ export function SignUpScreen({ go, back, auth }) {
       name.trim().length < 2 ||
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ||
       !studentId.trim() ||
-      password.length < 8
+      password.length < 8 || password.length > 1024
     ) {
       setError(
-        'Complete all fields with a valid email. Use at least 8 characters for the password.',
+        'Complete all fields with a valid email. Use 8–1024 characters for the password.',
       );
       return;
     }
@@ -141,6 +141,7 @@ export function SignUpScreen({ go, back, auth }) {
         placeholder="Create a password"
         value={password}
         onChangeText={setPassword}
+        maxLength={1024}
         secureTextEntry
         autoCapitalize="none"
         autoCorrect={false}

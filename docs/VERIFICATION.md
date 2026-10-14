@@ -2,6 +2,32 @@
 
 ## Current source update — 2026-10-14
 
+- Commit `9a5fbc0` records introduction completion in device preferences. Jest
+  covers first-run, returning-install, and unavailable-preference behavior; the
+  updated APK cold-launched on the POCO X4 GT directly to Login after the
+  introduction had been completed. The screen design did not change.
+- Local device-only account password hashes now carry an explicit PBKDF2
+  algorithm and iteration count. New hashes use HMAC-SHA256/600,000 iterations
+  on Android 8+ and the HMAC-SHA1/1,400,000 fallback on Android 7; old
+  unversioned HMAC-SHA1/210,000 hashes are verified then upgraded after login.
+  `CampusPasswordHashTest` covers reference vectors and accepted metadata;
+  `npm test -- --runInBand` passed 211 tests in 31 suites, lint passed, and
+  Gradle passed `:app:testDebugUnitTest`, `:app:assembleDebug`,
+  `:app:assembleDebugAndroidTest`, `:app:createBundleReleaseJsAndAssets`, and
+  `:app:compileReleaseKotlin` under JDK 25.
+- `connectedDebugAndroidTest` compiled but did not run: Xiaomi rejected the
+  instrumentation APK installation with `INSTALL_FAILED_USER_RESTRICTED` after
+  the “Install this app via USB?” prompt expired. A later check found the
+  Campus4Change package absent from the POCO; Android uninstall removes its
+  app-private local data. No `pm clear` was issued. The current debug APK could
+  not be restored automatically because the same confirmation was rejected;
+  the POCO needs an on-screen Install tap before another ADB install. No Firebase
+  project setting, Firestore data, or live account was changed in this step. A
+  headless API 36 emulator attempt also exited with code 139 before completing
+  boot, so it did not run the instrumentation tests either.
+- The AndroidX instrumentation source is compiled by a new CI build step, but
+  the Android provider and timing checks remain pending until a device accepts
+  the test APK.
 - Login and Sign Up now label the address field **Email** and use the neutral
   `name@example.com` example, matching the accepted any-verified-email policy.
   Figma nodes `1:21`, `1:25`, `1:50`, and `1:54` were updated in frames 02 Login
