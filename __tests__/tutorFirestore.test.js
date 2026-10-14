@@ -15,20 +15,33 @@ jest.mock('../src/shared/backend/firebase', () => ({
 function createFirestore() {
   const subscriptions = [];
   const transactions = [];
+  const batches = [];
   const firestore = {
     collection: jest.fn((parent, ...segments) => ({
       path: [parent.name ?? parent.path ?? parent, ...segments].join('/'),
     })),
-    doc: jest.fn((parent, ...segments) => ({
-      path: [parent.path ?? parent.name ?? parent, ...segments].join('/'),
-    })),
+    doc: jest.fn((parent, ...segments) => {
+      const parentPath = parent.path ?? parent.name ?? parent;
+      const path =
+        segments.length === 0 && parentPath === 'db/tutorBookings'
+          ? `${parentPath}/booking-1`
+          : [parentPath, ...segments].join('/');
+      return { path, id: path.split('/').at(-1) };
+    }),
     Timestamp: {
       fromDate: jest.fn(date => ({ toDate: () => date })),
     },
     serverTimestamp: jest.fn(() => ({ serverTimestamp: true })),
     setDoc: jest.fn(async () => {}),
     deleteDoc: jest.fn(async () => {}),
-    addDoc: jest.fn(async () => ({ id: 'booking-1' })),
+    writeBatch: jest.fn(() => {
+      const batch = {
+        set: jest.fn(),
+        commit: jest.fn(async () => {}),
+      };
+      batches.push(batch);
+      return batch;
+    }),
     updateDoc: jest.fn(async () => {}),
     runTransaction: jest.fn(async (db, operation) => {
       const transaction = {
@@ -77,7 +90,7 @@ function createFirestore() {
       return subscription.unsubscribe;
     }),
   };
-  return { db: { name: 'db' }, firestore, subscriptions, transactions };
+  return { db: { name: 'db' }, firestore, subscriptions, transactions, batches };
 }
 
 function documentSnapshot(id, data) {
@@ -152,7 +165,21 @@ test('creates a pending request only for a listed tutor and one of their subject
     tutorId: 'tutor-1',
     studentUid: 'student-1',
   });
-  const written = services.firestore.addDoc.mock.calls[0][1];
+  const requestBatch = services.batches[0];
+  expect(requestBatch.set).toHaveBeenCalledTimes(2);
+  expect(requestBatch.commit).toHaveBeenCalledTimes(1);
+  const [bookingRef, written] = requestBatch.set.mock.calls[0];
+  const [limitRef, limitRecord] = requestBatch.set.mock.calls[1];
+  expect(bookingRef).toMatchObject({
+    path: 'db/tutorBookings/booking-1',
+    id: 'booking-1',
+  });
+  expect(limitRef.path).toBe('db/tutorBookingLimits/student-1');
+  expect(limitRecord).toEqual({
+    uid: 'student-1',
+    lastRequestAt: { serverTimestamp: true },
+    bookingId: 'booking-1',
+  });
   expect(written).toMatchObject({
     studentUid: 'student-1',
     tutorUid: 'tutor-1',
@@ -183,7 +210,7 @@ test('creates a pending request only for a listed tutor and one of their subject
       '',
     ),
   ).rejects.toThrow('Choose a time on the hour or half-hour.');
-  expect(services.firestore.addDoc).toHaveBeenCalledTimes(1);
+  expect(services.firestore.writeBatch).toHaveBeenCalledTimes(1);
 });
 
 test('subscribes to each participant role with UID-constrained booking queries', () => {

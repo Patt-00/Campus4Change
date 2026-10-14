@@ -95,6 +95,12 @@ production-ready claim.
   locks are written atomically for each one-hour acceptance, preventing both
   duplicate and overlapping reservations. Rules reject forged bucket IDs and
   mismatched lock paths. Shared workspace notes stay private to each account.
+- Tutor-session requests now require a private, non-deletable per-student
+  `tutorBookingLimits/{uid}` permit in the same batch as the booking. Firestore
+  rules enforce a five-second cooldown. Emulator tests cover the first request,
+  missing permits, too-soon retries, forged cooldown reset, owner-only reads,
+  denied deletion, and two concurrent request batches where only one can
+  consume the student's permit.
 - Shared feeds cap live windows at 20 posts and 20 replies per post; members
   can load older cursor pages on demand. Feed snapshots are kept out of durable
   private account-state records. Paging pauses the current live window until

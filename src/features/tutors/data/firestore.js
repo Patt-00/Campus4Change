@@ -177,7 +177,7 @@ export async function removeTutorProfile(uid) {
 
 export async function createTutorBooking(uid, studentName, tutor, subject, startsAt, note) {
   const { db, firestore } = firebaseServicesForUser(uid);
-  const { Timestamp, addDoc, collection, serverTimestamp } = firestore;
+  const { Timestamp, collection, doc, serverTimestamp, writeBatch } = firestore;
   if (!tutor?.shared || !tutor.id || tutor.id === uid) {
     throw new Error('Choose a listed student tutor.');
   }
@@ -207,9 +207,17 @@ export async function createTutorBooking(uid, studentName, tutor, subject, start
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
-  const result = await addDoc(collection(db, 'tutorBookings'), booking);
+  const bookingRef = doc(collection(db, 'tutorBookings'));
+  const batch = writeBatch(db);
+  batch.set(bookingRef, booking);
+  batch.set(doc(db, 'tutorBookingLimits', uid), {
+    uid,
+    lastRequestAt: serverTimestamp(),
+    bookingId: bookingRef.id,
+  });
+  await batch.commit();
   return {
-    id: result.id,
+    id: bookingRef.id,
     shared: true,
     incoming: false,
     tutorId: tutor.id,

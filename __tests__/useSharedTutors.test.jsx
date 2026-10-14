@@ -146,6 +146,7 @@ test('does not carry an action error into another Firebase account', async () =>
     await currentResult.publishProfile({ subjects: ['Calculus'] });
   });
   expect(currentResult.actionError).toContain('Verify your email');
+  expect(currentResult.actionError).toContain('wait a few seconds');
 
   await act(async () => {
     renderer.update(

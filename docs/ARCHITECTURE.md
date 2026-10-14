@@ -129,8 +129,11 @@ timestamp and validated by the rules. This covers the one-hour duration, so
 requests starting 30 minutes apart cannot both be accepted. Booking status and
 both locks are created atomically, and cancellation or completion releases both
 locks in the same transaction. Rules reject forged bucket IDs and status
-changes that omit the matching locks. Shared session workspace notes remain
-in each participant's private account state.
+changes that omit the matching locks. Creating a request also atomically writes
+the student's private, non-deletable `tutorBookingLimits/{uid}` permit; rules
+allow one request every five seconds and reject a booking without its matching
+permit. Shared session workspace notes remain in each participant's private
+account state.
 
 Device-only tutor profiles and bookings remain local. Private notes are not
 delivered to another student. Push notifications, calls, and instructor-wide

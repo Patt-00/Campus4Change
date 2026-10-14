@@ -554,6 +554,27 @@ service cloud.firestore {
         return /databases/$(database)/documents/tutorProfiles/$(tutorUid);
       }
 
+      function bookingRequestLimitPath(studentUid) {
+        return /databases/$(database)/documents/tutorBookingLimits/$(studentUid);
+      }
+
+      function canCreateBookingRequest(studentUid) {
+        let limitPath = bookingRequestLimitPath(studentUid);
+        return !exists(limitPath)
+          || (get(limitPath).data.uid == studentUid
+            && get(limitPath).data.lastRequestAt is timestamp
+            && request.time >= get(limitPath).data.lastRequestAt
+              + duration.value(5, 's'));
+      }
+
+      function hasBookingRequestPermit(bookingId, data) {
+        let limitPath = bookingRequestLimitPath(data.studentUid);
+        return existsAfter(limitPath)
+          && getAfter(limitPath).data.uid == data.studentUid
+          && getAfter(limitPath).data.bookingId == bookingId
+          && getAfter(limitPath).data.lastRequestAt == request.time;
+      }
+
       function slotPath(tutorUid, slotBucket) {
         return /databases/$(database)/documents/tutorSlots/$(tutorUid)/slots/$(slotBucket);
       }
@@ -602,7 +623,7 @@ service cloud.firestore {
           && permit.messageId == messageId;
       }
 
-      function validNewRequest() {
+      function validNewRequest(bookingId) {
         let data = request.resource.data;
         return data.keys().hasAll([
             'studentUid', 'tutorUid', 'studentName', 'tutorName',
@@ -647,7 +668,9 @@ service cloud.firestore {
           && exists(tutorProfilePath(data.tutorUid))
           && get(tutorProfilePath(data.tutorUid)).data.visibility == 'listed'
           && get(tutorProfilePath(data.tutorUid)).data.name == data.tutorName
-          && data.subject in get(tutorProfilePath(data.tutorUid)).data.subjects;
+          && data.subject in get(tutorProfilePath(data.tutorUid)).data.subjects
+          && canCreateBookingRequest(data.studentUid)
+          && hasBookingRequestPermit(bookingId, data);
       }
 
       function changesStatusOnly() {
@@ -662,7 +685,7 @@ service cloud.firestore {
           || resource.data.tutorUid == request.auth.uid)
         && request.query.limit is int
         && request.query.limit <= 100;
-      allow create: if signedIn() && validNewRequest();
+      allow create: if signedIn() && validNewRequest(bookingId);
       allow update: if isParticipant()
         && changesStatusOnly()
         && ((resource.data.status == 'pending'
@@ -739,6 +762,45 @@ service cloud.firestore {
           && request.time >= resource.data.lastSentAt + duration.value(1, 's');
         allow delete: if false;
       }
+    }
+
+    // Private, non-deletable per-student permit for tutor-session requests.
+    // The permit and matching booking must commit together, with a five-second
+    // server-enforced cooldown between requests.
+    match /tutorBookingLimits/{studentUid} {
+      function bookingPath(bookingId) {
+        return /databases/$(database)/documents/tutorBookings/$(bookingId);
+      }
+
+      function matchesNewBooking() {
+        let data = request.resource.data;
+        let path = bookingPath(data.bookingId);
+        return data.keys().hasAll(['uid', 'lastRequestAt', 'bookingId'])
+          && data.keys().hasOnly(['uid', 'lastRequestAt', 'bookingId'])
+          && data.uid == studentUid
+          && data.bookingId is string
+          && data.bookingId.size() > 0
+          && data.bookingId.size() <= 128
+          && data.lastRequestAt == request.time
+          && existsAfter(path)
+          && getAfter(path).data.studentUid == studentUid
+          && getAfter(path).data.status == 'pending'
+          && getAfter(path).data.createdAt == request.time;
+      }
+
+      allow get: if signedIn() && request.auth.uid == studentUid;
+      allow list: if false;
+      allow create: if signedIn()
+        && request.auth.uid == studentUid
+        && !exists(/databases/$(database)/documents/tutorBookingLimits/$(studentUid))
+        && matchesNewBooking();
+      allow update: if signedIn()
+        && request.auth.uid == studentUid
+        && resource.data.uid == studentUid
+        && resource.data.lastRequestAt is timestamp
+        && request.time >= resource.data.lastRequestAt + duration.value(5, 's')
+        && matchesNewBooking();
+      allow delete: if false;
     }
 
     // The lock path is derived from the request's numeric UTC half-hour bucket.

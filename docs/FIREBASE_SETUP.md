@@ -135,7 +135,9 @@ npm run test:firebase-auth
 ```
 
 The test checks private account ownership, listed tutor profiles, participant-
-only session requests, overlapping-session reservation locks, authenticated
+only session requests, the five-second per-student request permit (including
+concurrent submissions and forged cooldown resets), overlapping-session
+reservation locks, authenticated
 group discovery, private membership records, safe membership-count updates, and
 member-only post and reply reads and writes. It also rejects unauthenticated
 access, third-party booking reads, duplicate and overlapping slot acceptance,
@@ -198,6 +200,10 @@ transaction; cancellation or completion removes both locks atomically. Current
 group chat is available to current members, and tutor-session chat is limited
 to its two participants. These chat workflows are covered by emulator tests;
 real-project rules deployment and two-account delivery still need verification.
+Creating a tutor-session request also updates the student's private,
+non-deletable `tutorBookingLimits/{uid}` record in the same atomic batch. The
+rules permit one request every five seconds and reject a limit record that is
+not paired with its matching pending request.
 Google
 sign-in is configured as described above. Per the project owner's decision,
 there is no school-domain allowlist; any Firebase-verified email may use shared

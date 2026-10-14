@@ -165,6 +165,25 @@ try {
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
+  const seedExpiredBookingRequestLimit = async studentUid =>
+    environment.withSecurityRulesDisabled(async context => {
+      const adminDb = context.firestore();
+      await setDoc(doc(adminDb, 'tutorBookingLimits', studentUid), {
+        uid: studentUid,
+        lastRequestAt: Timestamp.fromMillis(Date.now() - 10_000),
+        bookingId: 'expired-test-permit',
+      });
+    });
+  const writeBookingRequest = (db, bookingRef, booking) => {
+    const batch = writeBatch(db);
+    batch.set(bookingRef, booking);
+    batch.set(doc(db, 'tutorBookingLimits', booking.studentUid), {
+      uid: booking.studentUid,
+      lastRequestAt: serverTimestamp(),
+      bookingId: bookingRef.id,
+    });
+    return batch.commit();
+  };
   const addSlotLocks = (batch, db, bookingId, booking) => {
     booking.slotBuckets.forEach(slotBucket => {
       batch.set(
@@ -246,17 +265,29 @@ try {
   const bobBooking = doc(collection(bob, 'tutorBookings'));
   const bobRequest = bookingData('bob');
   await assertFails(
-    setDoc(doc(bob, 'tutorBookings/invalid-subject'), {
-      ...bookingData('bob'),
-      subject: 'Chemistry',
-    }),
+    setDoc(doc(bob, 'tutorBookings/booking-without-permit'), bobRequest),
   );
+  await seedExpiredBookingRequestLimit('bob');
   await assertFails(
-    setDoc(doc(alice, 'tutorBookings/self-booking'), bookingData('alice')),
+    writeBookingRequest(
+      bob,
+      doc(bob, 'tutorBookings/invalid-subject'),
+      { ...bookingData('bob'), subject: 'Chemistry' },
+    ),
+  );
+  await seedExpiredBookingRequestLimit('alice');
+  await assertFails(
+    writeBookingRequest(
+      alice,
+      doc(alice, 'tutorBookings/self-booking'),
+      bookingData('alice'),
+    ),
   );
   const misalignedStart = nextFutureHalfHour();
+  await seedExpiredBookingRequestLimit('bob');
   await assertFails(
-    setDoc(
+    writeBookingRequest(
+      bob,
       doc(bob, 'tutorBookings/misaligned-start'),
       bookingData(
         'bob',
@@ -270,10 +301,56 @@ try {
     forgedBuckets.slotBuckets[0] + 10,
     forgedBuckets.slotBuckets[1] + 10,
   ];
+  await seedExpiredBookingRequestLimit('bob');
   await assertFails(
-    setDoc(doc(bob, 'tutorBookings/forged-buckets'), forgedBuckets),
+    writeBookingRequest(
+      bob,
+      doc(bob, 'tutorBookings/forged-buckets'),
+      forgedBuckets,
+    ),
   );
-  await assertSucceeds(setDoc(bobBooking, bobRequest));
+  await seedExpiredBookingRequestLimit('bob');
+  await assertSucceeds(writeBookingRequest(bob, bobBooking, bobRequest));
+  const bobBookingLimit = doc(bob, 'tutorBookingLimits', 'bob');
+  await assertSucceeds(getDoc(bobBookingLimit));
+  await assertFails(getDoc(doc(alice, 'tutorBookingLimits', 'bob')));
+  await assertFails(getDocs(collection(bob, 'tutorBookingLimits')));
+  const tooSoonBooking = doc(collection(bob, 'tutorBookings'));
+  await assertFails(
+    writeBookingRequest(bob, tooSoonBooking, bookingData('bob')),
+  );
+  const forgedBookingLimit = writeBatch(bob);
+  forgedBookingLimit.update(bobBookingLimit, {
+    uid: 'bob',
+    lastRequestAt: Timestamp.fromMillis(Date.now() - 10_000),
+    bookingId: 'forged-reset',
+  });
+  await assertFails(forgedBookingLimit.commit());
+  const deletedBookingLimit = writeBatch(bob);
+  deletedBookingLimit.delete(bobBookingLimit);
+  await assertFails(deletedBookingLimit.commit());
+
+  await seedExpiredBookingRequestLimit('carol');
+  const concurrentBookingA = doc(collection(carol, 'tutorBookings'));
+  const concurrentBookingB = doc(collection(carol, 'tutorBookings'));
+  const concurrentRequests = await Promise.allSettled([
+    writeBookingRequest(
+      carol,
+      concurrentBookingA,
+      bookingData('carol', 'Carol Student'),
+    ),
+    writeBookingRequest(
+      carol,
+      concurrentBookingB,
+      bookingData('carol', 'Carol Student'),
+    ),
+  ]);
+  assert.equal(
+    concurrentRequests.filter(result => result.status === 'fulfilled').length,
+    1,
+    'only one concurrent request should consume the student permit',
+  );
+
   const bobBookings = await assertSucceeds(
     getDocs(
       query(
@@ -456,7 +533,10 @@ try {
     'Carol Student',
     bobRequest.startsAt.toDate(),
   );
-  await assertSucceeds(setDoc(duplicateBooking, duplicateRequest));
+  await seedExpiredBookingRequestLimit('carol');
+  await assertSucceeds(
+    writeBookingRequest(carol, duplicateBooking, duplicateRequest),
+  );
   const acceptDuplicate = writeBatch(alice);
   addSlotLocks(acceptDuplicate, alice, duplicateBooking.id, duplicateRequest);
   acceptDuplicate.update(doc(alice, 'tutorBookings', duplicateBooking.id), {
@@ -471,7 +551,10 @@ try {
     'Carol Student',
     new Date(bobRequest.startsAt.toDate().getTime() + 30 * 60 * 1000),
   );
-  await assertSucceeds(setDoc(overlappingBooking, overlappingRequest));
+  await seedExpiredBookingRequestLimit('carol');
+  await assertSucceeds(
+    writeBookingRequest(carol, overlappingBooking, overlappingRequest),
+  );
   const acceptOverlap = writeBatch(alice);
   addSlotLocks(acceptOverlap, alice, overlappingBooking.id, overlappingRequest);
   acceptOverlap.update(doc(alice, 'tutorBookings', overlappingBooking.id), {
@@ -510,8 +593,9 @@ try {
 
   const futureCompletionBooking = doc(collection(bob, 'tutorBookings'));
   const futureCompletionRequest = bookingData('bob', 'Robert Student');
+  await seedExpiredBookingRequestLimit('bob');
   await assertSucceeds(
-    setDoc(futureCompletionBooking, futureCompletionRequest),
+    writeBookingRequest(bob, futureCompletionBooking, futureCompletionRequest),
   );
   const acceptFutureCompletion = writeBatch(alice);
   addSlotLocks(
@@ -599,8 +683,13 @@ try {
   );
 
   const declinedBooking = doc(collection(bob, 'tutorBookings'));
+  await seedExpiredBookingRequestLimit('bob');
   await assertSucceeds(
-    setDoc(declinedBooking, bookingData('bob', 'Robert Student')),
+    writeBookingRequest(
+      bob,
+      declinedBooking,
+      bookingData('bob', 'Robert Student'),
+    ),
   );
   await assertSucceeds(
     updateDoc(doc(alice, 'tutorBookings', declinedBooking.id), {
@@ -616,7 +705,13 @@ try {
   );
 
   const unverifiedBooking = doc(collection(unverified, 'tutorBookings'));
-  await assertFails(setDoc(unverifiedBooking, bookingData('unverified')));
+  await assertFails(
+    writeBookingRequest(
+      unverified,
+      unverifiedBooking,
+      bookingData('unverified'),
+    ),
+  );
   await assertFails(
     getDocs(
       query(

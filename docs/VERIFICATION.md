@@ -15,6 +15,11 @@
   Gradle passed `:app:testDebugUnitTest`, `:app:assembleDebug`,
   `:app:assembleDebugAndroidTest`, `:app:createBundleReleaseJsAndAssets`, and
   `:app:compileReleaseKotlin` under JDK 25.
+- Firebase tutor-booking requests now write a private per-student cooldown permit
+  in the same atomic batch as the booking. Rules emulator tests pass for valid
+  first requests, missing permits, immediate retries, forged resets, private
+  limiter reads, denied deletion, and competing simultaneous batches. The
+  focused tutor UI/data tests, full 211-test Jest suite, and lint pass.
 - `connectedDebugAndroidTest` compiled but did not run: Xiaomi rejected the
   instrumentation APK installation with `INSTALL_FAILED_USER_RESTRICTED` after
   the “Install this app via USB?” prompt expired. A later check found the

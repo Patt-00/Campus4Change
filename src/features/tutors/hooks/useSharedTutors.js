@@ -12,7 +12,7 @@ const EMPTY = [];
 
 function errorText(error) {
   if (error?.code === 'permission-denied') {
-    return 'Firebase denied this change. Verify your email and confirm the latest Firestore rules are deployed.';
+    return 'Firebase denied this change. Verify your email and current Firestore rules, or wait a few seconds if you just sent a session request.';
   }
   return error instanceof Error ? error.message : String(error);
 }
