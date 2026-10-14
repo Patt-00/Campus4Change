@@ -96,10 +96,19 @@
   to the app session, and the signup notice explains that the Firebase
   sign-in name was not saved. Two regression tests cover the recovered account
   and user-facing message.
-- Current local verification: 220 Jest tests in 32 suites pass with 83.08%
-  statement and 73.46% branch coverage; lint and the Firestore rules emulator
-  pass. The Auth emulator script was not run in this pass because Firebase CLI
-  tooling is not installed in this checkout.
+- Jest is now `30.5.2`. The config excludes `scripts/`, whose standalone ESM
+  emulator runners are invoked separately, and gives the cold first-run App
+  test a 15-second timeout; the other tests retain Jest's default timeout.
+  `npm test -- --coverage --runInBand` passes all 220 tests in 32 suites with
+  83.08% statement and 73.46% branch coverage, and lint passes.
+- With Firebase CLI `15.33.0`, both Firestore rules and Auth verification
+  emulator suites passed against the updated lockfile. Gradle passed
+  `:app:assembleDebug` and `:app:createBundleReleaseJsAndAssets`.
+- The full dependency audit now reports 28 high and 17 moderate findings,
+  down from 47 high and 5 moderate before Jest 30; `npm audit --omit=dev` still
+  reports 20 high paths. The production bundle remains free of `braces`,
+  `micromatch`, and `fast-glob`; the CLI/Metro dependency paths still need an
+  upstream fix or a separately tested toolchain migration.
 - `npm test -- --runInBand`: 207 tests passed in 31 suites; `npm run lint` and
   `git diff --check` passed. Gradle `:app:testDebugUnitTest`, `:app:assembleDebug`,
   and `:app:compileReleaseKotlin` passed using JDK 25. Release Kotlin compilation

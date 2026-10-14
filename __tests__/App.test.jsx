@@ -175,7 +175,7 @@ test('renders onboarding and rejects an empty sign-in form', async () => {
   await press('SIGN IN');
   expect(hasText('Enter your email or Student ID and password.')).toBe(true);
   expect(mockStore.signIn).not.toHaveBeenCalled();
-});
+}, 15000);
 test('introduces novice, intermediate, and expert learners before account access', async () => {
   await render();
   await press('GET STARTED');
