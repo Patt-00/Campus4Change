@@ -17,6 +17,11 @@
 - On the POCO X4 GT, Sign Up showed Google and email/password options. Submitting
   the empty form showed the expected validation message, and returning to Login
   left the app signed out; no account was created during this check.
+- On the App Check-enabled build, selecting the previously approved Google
+  account again returned `GetCredentialCancellationException` before Firebase
+  received an ID token. The app returned to Login. No password, verification
+  code, or biometric was entered, and no account was created. The next retry
+  needs the account holder present if Google requests additional authorization.
 - On 2026-10-14, the current debug APK was installed over the existing POCO
   installation without clearing its data and cold-launched. The branded start
   screen showed the logo, onboarding advanced to Login, and an empty sign-in
