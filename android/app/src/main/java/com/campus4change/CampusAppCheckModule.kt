@@ -1,5 +1,6 @@
 package com.campus4change
 
+import android.util.Log
 import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.NativeModule
@@ -18,6 +19,11 @@ class CampusAppCheckModule(
 ) : ReactContextBaseJavaModule(context) {
     private val lock = Any()
 
+    companion object {
+        private const val APP_CHECK_APP_NAME = "Campus4ChangeAppCheck"
+        private const val TAG = "CampusAppCheck"
+    }
+
     @Volatile
     private var appCheck: FirebaseAppCheck? = null
 
@@ -27,7 +33,8 @@ class CampusAppCheckModule(
     fun getAppCheckToken(config: ReadableMap, promise: Promise) {
         val provider = try {
             getOrCreateAppCheck(config)
-        } catch (_: Exception) {
+        } catch (error: Exception) {
+            Log.w(TAG, "App Check setup failed (${error.javaClass.simpleName}).")
             promise.reject("APPCHECK_SETUP", "Firebase App Check could not be initialized.")
             return
         }
@@ -41,8 +48,9 @@ class CampusAppCheckModule(
                     },
                 )
             }
-            .addOnFailureListener {
+            .addOnFailureListener { error ->
                 // Do not forward native provider messages or token data to the JS error path.
+                Log.w(TAG, "App Check token request failed (${error.javaClass.simpleName}).")
                 promise.reject("APPCHECK_TOKEN", "Firebase App Check could not obtain a token.")
             }
     }
@@ -84,10 +92,6 @@ class CampusAppCheckModule(
     private fun requiredConfig(config: ReadableMap, key: String): String =
         config.getString(key)?.trim()?.takeIf { it.isNotEmpty() && it.length <= 512 }
             ?: throw IllegalArgumentException("Invalid Firebase App Check configuration.")
-
-    companion object {
-        private const val APP_CHECK_APP_NAME = "Campus4ChangeAppCheck"
-    }
 }
 
 class CampusAppCheckPackage : ReactPackage {
