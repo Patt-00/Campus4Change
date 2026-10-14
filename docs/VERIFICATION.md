@@ -22,6 +22,11 @@
   received an ID token. The app returned to Login. No password, verification
   code, or biometric was entered, and no account was created. The next retry
   needs the account holder present if Google requests additional authorization.
+- Comparing the installed debug APK with Firebase Project settings found that
+  the APK signer SHA-1 does not match Firebase's registered SHA-1, and its
+  SHA-256 is not registered. The current debug fingerprints are documented in
+  [FIREBASE_SETUP.md](FIREBASE_SETUP.md); adding them to the Firebase Android
+  app is awaiting user approval.
 - On 2026-10-14, the current debug APK was installed over the existing POCO
   installation without clearing its data and cold-launched. The branded start
   screen showed the logo, onboarding advanced to Login, and an empty sign-in

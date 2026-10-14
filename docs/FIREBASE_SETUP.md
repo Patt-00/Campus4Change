@@ -15,10 +15,14 @@ This checkout is configured for Firebase project `campus4change` on the Spark
 plan. Its Web app is registered as **Campus4Change React Native**, Email/Password
 and Google sign-in are enabled, and the Standard Firestore database is in
 `asia-southeast1` (Singapore). Google consent uses the support email
-`qpurbina@tip.edu.ph`. The Android app `com.campus4change` has its debug
-signing SHA-1 registered. App Check additionally requires a SHA-256 fingerprint,
-which is not registered yet. A future release signing certificate must be
-added before release Google sign-in and Play Integrity can be verified. The
+`qpurbina@tip.edu.ph`. The Firebase Console's SHA-1 for Android app
+`com.campus4change` does not match the current debug APK. Its fingerprints are:
+
+- SHA-1: `5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25`
+- SHA-256: `FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C`
+
+Neither current fingerprint is registered. A future release signing certificate
+must be added before release Google sign-in and Play Integrity can be verified. The
 database was initialized in production mode, so its current rules deny all
 client reads and writes. The checked-in `firestore.rules` file has passed the
 emulator suite but has not been deployed to this project; live app data access
@@ -55,8 +59,10 @@ for the platform flow and token exchange.
    same file.
 5. Register the Android package `com.campus4change` in Project settings and add
    the SHA-1 signing certificate for Google sign-in. App Check additionally
-   requires the SHA-256 signing certificate. The current debug SHA-1 is
-   configured; register the debug SHA-256 and add both release fingerprints
+   requires the SHA-256 signing certificate. Verify both fingerprints against
+   the actual APK that you build. This project's current Firebase SHA-1 does not
+   match the checked-in debug key; add the current debug SHA-1 and SHA-256 after
+   authorizing that Firebase settings change. Add both release fingerprints
    after the dedicated release key is created.
 6. Sign in to the Firebase CLI, select the same project, and deploy the
    checked-in Firestore rules and indexes only after reviewing and authorizing
