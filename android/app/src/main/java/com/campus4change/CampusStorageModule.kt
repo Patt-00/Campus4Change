@@ -257,33 +257,62 @@ class CampusStorageModule(private val context: ReactApplicationContext) : ReactC
             try {
                 if (Build.VERSION.SDK_INT >= 29) {
                     val manager = activity.getSystemService(android.hardware.biometrics.BiometricManager::class.java)
-                    require(manager.canAuthenticate() == android.hardware.biometrics.BiometricManager.BIOMETRIC_SUCCESS) {
+                    val authenticationStatus = if (Build.VERSION.SDK_INT >= 30) {
+                        manager.canAuthenticate(
+                            android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_WEAK,
+                        )
+                    } else {
+                        canAuthenticateLegacy(manager)
+                    }
+                    require(authenticationStatus == android.hardware.biometrics.BiometricManager.BIOMETRIC_SUCCESS) {
                         "Enroll biometrics in Android Settings before using this feature."
                     }
                 }
-                    biometricCancel?.cancel()
-                    val cancel = CancellationSignal().also { biometricCancel = it }
-                    BiometricPrompt.Builder(activity).setTitle("Sign in to Campus4Change")
-                        .setSubtitle("Use the biometrics enrolled on this device")
-                        .setNegativeButton("Cancel", activity.mainExecutor) { _, _ -> cancel.cancel() }
-                        .build().authenticate(cancel, activity.mainExecutor, object : BiometricPrompt.AuthenticationCallback() {
+                biometricCancel?.cancel()
+                val cancel = CancellationSignal().also { biometricCancel = it }
+                val promptBuilder = BiometricPrompt.Builder(activity)
+                    .setTitle("Sign in to Campus4Change")
+                    .setSubtitle("Use the biometrics enrolled on this device")
+                if (Build.VERSION.SDK_INT >= 30) {
+                    promptBuilder.setAllowedAuthenticators(
+                        android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_WEAK,
+                    )
+                }
+                promptBuilder
+                    .setNegativeButton("Cancel", activity.mainExecutor) { _, _ -> cancel.cancel() }
+                    .build()
+                    .authenticate(
+                        cancel,
+                        activity.mainExecutor,
+                        object : BiometricPrompt.AuthenticationCallback() {
                             override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                                 if (biometricCancel === cancel) biometricCancel = null
                                 run(promise, success)
                             }
+
                             override fun onAuthenticationError(code: Int, message: CharSequence) {
                                 if (biometricCancel === cancel) biometricCancel = null
                                 promise.reject("BIOMETRIC", message.toString())
                             }
-                        })
-            } catch(e: Exception) { promise.reject("BIOMETRIC", e.message ?: "Biometrics are unavailable.") }
+                        },
+                    )
+            } catch (error: Exception) {
+                promise.reject("BIOMETRIC", error.message ?: "Biometrics are unavailable.")
+            }
         }
     }
+
+    @Suppress("DEPRECATION")
+    private fun canAuthenticateLegacy(manager: android.hardware.biometrics.BiometricManager): Int =
+        manager.canAuthenticate()
 
     override fun invalidate() { biometricCancel?.cancel(); worker.shutdown(); super.invalidate() }
 }
 
 class CampusStoragePackage : ReactPackage {
-    override fun createNativeModules(context: ReactApplicationContext): List<NativeModule> = listOf(CampusStorageModule(context))
-    override fun createViewManagers(context: ReactApplicationContext): List<ViewManager<*, *>> = emptyList()
+    override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> =
+        listOf(CampusStorageModule(reactContext))
+
+    override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> =
+        emptyList()
 }

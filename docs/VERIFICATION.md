@@ -2,6 +2,38 @@
 
 ## Current source update — 2026-10-14
 
+- The latest App Check configuration fix was pushed as `760678f`. The JavaScript
+  Firebase app receives the Web API key only; the native App Check bridge uses
+  the Android API key from the project config, and tests validate the project
+  identity before requesting a token. The Android App Check key was verified
+  against the local Firebase Android config without printing it.
+- On the POCO X4 GT, the current build showed the branded start screen, onboarding,
+  Login, and Sign Up. Empty login and signup submissions showed validation
+  messages. No credentials were entered and no account was created.
+- Firebase Console read-only checks confirmed Email/Password and Google providers
+  are enabled. The Android app registration still contains only an older SHA-1;
+  it lacks the current debug signer fingerprints. No Firebase setting was
+  changed. Live Firestore rules remain deny-all and indexes are undeployed per
+  the last database check; the App Check registration/token exchange also remains
+  unverified.
+- `npm test -- --runInBand`: 207 tests passed in 31 suites; `npm run lint` and
+  `git diff --check` passed. Gradle `:app:testDebugUnitTest`, `:app:assembleDebug`,
+  and `:app:compileReleaseKotlin` passed using JDK 25. Release Kotlin compilation
+  and production JS bundling do not create a signed release APK.
+- Android biometric preflight now explicitly requests the same weak-biometric
+  policy previously implied by the deprecated API on Android 11+, and uses the
+  legacy equivalent on Android 10. `MainActivity` now uses the current React
+  Native delegate constructor; debug and release Kotlin compilation passed.
+- GitHub Actions run
+  [38498004708](https://github.com/Patt-00/Campus4Change/actions/runs/38498004708)
+  passed on `760678f` with the prior workflow. This update adds release Kotlin
+  compilation to CI; its next run will verify the new step before the existing
+  release-signing guard.
+- A fresh full `npm audit` reports 47 high, 5 moderate, and 0 critical findings;
+  `npm audit --omit=dev` reports 20 high dependency paths through the React
+  Native toolchain. The only production-only advisory is `braces@3.0.3`, for
+  which npm offers no compatible patch; its suggested fix downgrades React
+  Native. No dependency override was applied.
 - Legacy-account migration now checks the saved `state_demo` profile separately
   from the account row and removes the state only on the exact legacy profile
   ID/email. This prevents removing a different user's cached Firebase state if
@@ -25,8 +57,8 @@
 - Comparing the installed debug APK with Firebase Project settings found that
   the APK signer SHA-1 does not match Firebase's registered SHA-1, and its
   SHA-256 is not registered. The current debug fingerprints are documented in
-  [FIREBASE_SETUP.md](FIREBASE_SETUP.md); adding them to the Firebase Android
-  app is awaiting user approval.
+  [FIREBASE_SETUP.md](FIREBASE_SETUP.md). No Firebase setting was changed during
+  this check; the current debug signer fingerprints remain unregistered.
 - On 2026-10-14, the current debug APK was installed over the existing POCO
   installation without clearing its data and cold-launched. The branded start
   screen showed the logo, onboarding advanced to Login, and an empty sign-in

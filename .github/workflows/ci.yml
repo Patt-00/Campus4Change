@@ -69,12 +69,12 @@ jobs:
           --project demo-campus4change-rules
           "npm run test:firestore-rules && npm run test:firebase-auth"
 
-      - name: Production Android JavaScript bundle
+      - name: Production Android bundle and release Kotlin compile
+        working-directory: android
         run: >-
-          npx react-native bundle --platform android --dev false
-          --entry-file index.js
-          --bundle-output "$RUNNER_TEMP/campus4change.android.bundle"
-          --assets-dest "$RUNNER_TEMP/campus4change-assets"
+          ./gradlew --no-daemon
+          :app:createBundleReleaseJsAndAssets
+          :app:compileReleaseKotlin
 
       - name: Android debug build
         working-directory: android
