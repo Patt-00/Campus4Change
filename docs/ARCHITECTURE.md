@@ -78,10 +78,24 @@ group and tutor-session chat under its booking. `useSharedMessages` watches only
 the active chat, loads a bounded latest-message window, and keeps chat snapshots
 out of private account state. Firestore rules require current group membership
 or booking participation; group owners can report-hide and restore reported
-chat messages. Device-only conversations and older saved conversations remain
-private notes in the account-state record.
+chat messages. Device-only conversations remain private notes. For Firebase
+accounts, note bodies sync as immutable owner-only records in
+`users/{uid}/privateMessages`; the account-state record retains conversation
+metadata without growing with message history. Restore merges those records
+with legacy message arrays embedded in version-1 state, and the next account
+save migrates the legacy messages.
 
-The account hook saves changed state to encrypted Android storage. With Firebase configured, it also saves the complete state under `users/{uid}/private/state` and restores the user's Firebase session at app launch. If a newer encrypted local copy exists than the cloud copy, it is synced up. Save failures appear in the navigator's banner with a retry action. Sign-out first requires the encrypted local save; if only the cloud write fails, the user can still sign out and receives a warning so the next sign-in can retry the local copy. A failed local save keeps the account open. Loaded state must belong to the account that signed in. Saved JSON remains version 1.
+The account hook saves changed state to encrypted Android storage. With Firebase
+configured, it stores the non-message account state under
+`users/{uid}/private/state` and private notes in per-message documents. Writes
+are batched and retried idempotently, so notes from another device are not
+replaced by a local snapshot. If a newer encrypted local copy exists than the
+cloud copy, it is synced up. Save failures appear in the navigator's banner
+with a retry action. Sign-out first requires the encrypted local save; if only
+the cloud write fails, the user can still sign out and receives a warning so
+the next sign-in can retry the local copy. A failed local save keeps the
+account open. Loaded state must belong to the account that signed in. Saved
+JSON remains version 1.
 
 `features/groups/data/firestore.js` maps the group feature model to
 `studyGroups/{groupId}`, the owner's private

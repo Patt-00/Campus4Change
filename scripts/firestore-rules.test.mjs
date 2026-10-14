@@ -8,6 +8,7 @@ import {
 import {
   collection,
   collectionGroup,
+  deleteDoc,
   doc,
   disableNetwork,
   enableNetwork,
@@ -80,6 +81,86 @@ try {
     setDoc(doc(alice, 'users/alice/private/state'), stateFor('bob')),
   );
   await assertFails(setDoc(doc(alice, 'tutors/mika'), { name: 'Mika' }));
+
+  const privateNoteMessage = {
+    conversationId: 'chat-tutor',
+    id: 'message-1',
+    text: 'Private note',
+    mine: true,
+    sentAt: Timestamp.now().toDate().toISOString(),
+  };
+  const alicePrivateNote = doc(
+    alice,
+    'users/alice/privateMessages/10_chat-tutor__message-1',
+  );
+  await assertSucceeds(setDoc(alicePrivateNote, privateNoteMessage));
+  await assertSucceeds(getDoc(alicePrivateNote));
+  await assertSucceeds(setDoc(alicePrivateNote, privateNoteMessage));
+  await assertFails(
+    setDoc(alicePrivateNote, { ...privateNoteMessage, text: 'Edited note' }),
+  );
+  await assertSucceeds(
+    getDocs(collection(alice, 'users', 'alice', 'privateMessages')),
+  );
+  await assertFails(
+    getDoc(doc(bob, 'users/alice/privateMessages/10_chat-tutor__message-1')),
+  );
+  await assertFails(
+    setDoc(
+      doc(bob, 'users/alice/privateMessages/10_chat-tutor__message-2'),
+      privateNoteMessage,
+    ),
+  );
+  await assertFails(
+    getDoc(
+      doc(anonymous, 'users/alice/privateMessages/10_chat-tutor__message-1'),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(alice, 'users/alice/privateMessages/10_chat-tutor__message-too-long'),
+      {
+        ...privateNoteMessage,
+        id: 'message-too-long',
+        text: 'x'.repeat(2001),
+      },
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(alice, 'users/alice/privateMessages/10_chat-tutor__message-long-id'),
+      { ...privateNoteMessage, id: 'x'.repeat(81) },
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(alice, 'users/alice/privateMessages/long-conversation__message-1'),
+      { ...privateNoteMessage, conversationId: 'x'.repeat(81) },
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(alice, 'users/alice/privateMessages/10_chat-tutor__message-extra'),
+      { ...privateNoteMessage, id: 'message-extra', additionalField: 'not allowed' },
+    ),
+  );
+  const unverifiedPrivateNote = doc(
+    unverified,
+    'users/unverified/privateMessages/10_chat-tutor__message-1',
+  );
+  await assertSucceeds(setDoc(unverifiedPrivateNote, privateNoteMessage));
+  await assertSucceeds(getDoc(unverifiedPrivateNote));
+  const alicePrivateNoteForDeletion = doc(
+    alice,
+    'users/alice/privateMessages/10_chat-tutor__message-delete-check',
+  );
+  await assertSucceeds(
+    setDoc(alicePrivateNoteForDeletion, {
+      ...privateNoteMessage,
+      id: 'message-delete-check',
+    }),
+  );
+  await assertFails(deleteDoc(alicePrivateNoteForDeletion));
 
   const aliceTutorProfile = doc(alice, 'tutorProfiles/alice');
   const tutorProfile = {
@@ -1589,7 +1670,7 @@ try {
   await offlineWrite;
   assert.equal(writeState, 'acknowledged');
 
-  console.log('Firestore rules and offline persistence passed: private state, tutor listings and session chat, verified group membership/chat, bounded feeds, cooldowns, owner moderation, and locally visible pending writes are covered.');
+  console.log('Firestore rules and offline persistence passed: private account state and note messages, tutor listings and session chat, verified group membership/chat, bounded feeds, cooldowns, owner moderation, and locally visible pending writes are covered.');
 } finally {
   await environment.cleanup();
 }

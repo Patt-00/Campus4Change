@@ -175,6 +175,7 @@ export function reducer(state, action) {
       if (
         typeof action.message?.text !== 'string' ||
         !action.message.text.trim() ||
+        action.message.text.trim().length > 2000 ||
         (current?.groupId &&
           !state.groups.some(g => g.id === current.groupId && g.joined))
       ) {

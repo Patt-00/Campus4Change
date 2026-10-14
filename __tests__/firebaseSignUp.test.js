@@ -3,8 +3,12 @@ let mockAuth;
 let mockApp;
 let mockDb;
 let mockDoc;
+let mockCollection;
 let mockGetDoc;
+let mockGetDocs;
 let mockSetDoc;
+let mockWriteBatch;
+let mockBatches;
 let mockServerTimestamp;
 let mockCreateUser;
 let mockSignIn;
@@ -85,8 +89,11 @@ jest.mock('firebase/auth', () => ({
 jest.mock('firebase/firestore', () => ({
   getFirestore: jest.fn(() => mockDb),
   doc: (...args) => mockDoc(...args),
+  collection: (...args) => mockCollection(...args),
   getDoc: (...args) => mockGetDoc(...args),
+  getDocs: (...args) => mockGetDocs(...args),
   setDoc: (...args) => mockSetDoc(...args),
+  writeBatch: (...args) => mockWriteBatch(...args),
   serverTimestamp: (...args) => mockServerTimestamp(...args),
 }));
 
@@ -108,8 +115,20 @@ beforeEach(() => {
   mockDb = {};
   mockAuth = { currentUser: null };
   mockDoc = jest.fn((db, ...path) => ({ db, path: path.join('/') }));
+  mockCollection = jest.fn((db, ...path) => ({ db, path: path.join('/') }));
   mockGetDoc = jest.fn();
+  mockGetDocs = jest.fn(async () => ({ docs: [] }));
   mockSetDoc = jest.fn(async () => {});
+  mockBatches = [];
+  mockWriteBatch = jest.fn(() => {
+    const batch = {
+      set: jest.fn(),
+      delete: jest.fn(),
+      commit: jest.fn(async () => {}),
+    };
+    mockBatches.push(batch);
+    return batch;
+  });
   mockServerTimestamp = jest.fn(() => 'server-timestamp');
   mockSignIn = jest.fn();
   mockGoogleSignIn = jest.fn(async () => 'google-id-token');
@@ -621,6 +640,234 @@ test('cloud state saves target the authenticated user document', async () => {
   });
 });
 
+test('private notes move to bounded owner-scoped documents instead of the state document', async () => {
+  const firebase = require('../src/shared/backend/firebase');
+  mockAuth.currentUser = { uid: 'cloud-user', emailVerified: false };
+  let state = {
+    version: 1,
+    updatedAt: 123,
+    profile: { id: 'cloud-user' },
+    sessions: [],
+    groups: [],
+    conversations: [
+      {
+        id: 'chat-tutor-1',
+        name: 'Tutor',
+        tutorId: 'tutor-1',
+        messages: Array.from({ length: 401 }, (_, index) => ({
+          id: `message-${index}`,
+          text: 'x'.repeat(2000),
+          mine: true,
+          sentAt: new Date(1_800_000_000_000 + index).toISOString(),
+        })),
+      },
+    ],
+    notices: [],
+  };
+
+  await firebase.saveCloudState('cloud-user', state);
+
+  expect(mockSetDoc).toHaveBeenCalledWith(
+    {
+      db: mockDb,
+      path: 'users/cloud-user/private/state',
+    },
+    expect.objectContaining({
+      state: expect.objectContaining({
+        conversations: [
+          expect.objectContaining({
+            id: 'chat-tutor-1',
+            messages: [],
+          }),
+        ],
+      }),
+    }),
+  );
+  const writes = mockBatches.flatMap(batch => batch.set.mock.calls);
+  expect(writes).toHaveLength(401);
+  expect(mockBatches.map(batch => batch.set.mock.calls.length)).toEqual([
+    400,
+    1,
+  ]);
+  expect(writes[0]).toEqual([
+    {
+      db: mockDb,
+      path: 'users/cloud-user/privateMessages/12_chat-tutor-1__message-0',
+    },
+    expect.objectContaining({
+      conversationId: 'chat-tutor-1',
+      id: 'message-0',
+      text: 'x'.repeat(2000),
+    }),
+  ]);
+  for (const [, data] of writes) {
+    expect(data.text.length).toBeLessThanOrEqual(2000);
+  }
+
+  await firebase.saveCloudState('cloud-user', state);
+  expect(mockWriteBatch).toHaveBeenCalledTimes(2);
+
+  state = {
+    ...state,
+    conversations: state.conversations.map(conversation => ({
+      ...conversation,
+      messages: [
+        ...conversation.messages,
+        {
+          id: 'message-401',
+          text: 'new note',
+          mine: true,
+          sentAt: new Date(1_800_000_000_151).toISOString(),
+        },
+      ],
+    })),
+  };
+  await firebase.saveCloudState('cloud-user', state);
+  expect(mockWriteBatch).toHaveBeenCalledTimes(3);
+  expect(mockBatches[2].set).toHaveBeenCalledTimes(1);
+});
+
+test('private note documents merge with legacy messages embedded in account state', async () => {
+  const firebase = require('../src/shared/backend/firebase');
+  mockAuth.currentUser = { uid: 'cloud-user', emailVerified: false };
+  const state = {
+    version: 1,
+    profile: { id: 'cloud-user' },
+    sessions: [],
+    groups: [],
+    conversations: [
+      {
+        id: 'chat-tutor-1',
+        name: 'Tutor',
+        tutorId: 'tutor-1',
+        messages: [
+          {
+            id: 'legacy-message',
+            text: 'Saved before message-document migration',
+            mine: true,
+            sentAt: '2026-10-01T10:00:00.000Z',
+          },
+        ],
+      },
+    ],
+    notices: [],
+  };
+  mockGetDoc.mockResolvedValue({
+    exists: () => true,
+    data: () => ({ state, updatedAt: 'server-time' }),
+  });
+  mockGetDocs.mockResolvedValue({
+    docs: [
+      {
+        id: '12_chat-tutor-1__remote-message',
+        data: () => ({
+          conversationId: 'chat-tutor-1',
+          id: 'remote-message',
+          text: 'Saved in a private message document',
+          mine: true,
+          sentAt: '2026-10-01T11:00:00.000Z',
+        }),
+      },
+    ],
+  });
+
+  const restored = await firebase.loadCloudState('cloud-user');
+  expect(restored).toMatchObject({
+    conversations: [
+      {
+        id: 'chat-tutor-1',
+        messages: [
+          { id: 'legacy-message' },
+          { id: 'remote-message' },
+        ],
+      },
+    ],
+  });
+  await firebase.saveCloudState('cloud-user', restored);
+  const migratedMessages = mockBatches.flatMap(batch => batch.set.mock.calls);
+  expect(migratedMessages).toHaveLength(1);
+  expect(migratedMessages[0][1].id).toBe('legacy-message');
+  expect(mockSetDoc.mock.calls.at(-1)[1].state.conversations[0].messages).toEqual(
+    [],
+  );
+  expect(mockCollection).toHaveBeenCalledWith(
+    mockDb,
+    'users',
+    'cloud-user',
+    'privateMessages',
+  );
+});
+
+test('duplicate legacy message IDs produce one private Firestore write', async () => {
+  const firebase = require('../src/shared/backend/firebase');
+  mockAuth.currentUser = { uid: 'cloud-user', emailVerified: false };
+  await firebase.saveCloudState('cloud-user', {
+    version: 1,
+    profile: { id: 'cloud-user' },
+    sessions: [],
+    groups: [],
+    conversations: [
+      {
+        id: 'chat-tutor-1',
+        name: 'Tutor',
+        messages: [
+          {
+            id: 'duplicate',
+            text: 'Old copy',
+            mine: true,
+            sentAt: '2026-10-01T10:00:00.000Z',
+          },
+          {
+            id: 'duplicate',
+            text: 'Latest copy',
+            mine: true,
+            sentAt: '2026-10-01T10:01:00.000Z',
+          },
+        ],
+      },
+    ],
+    notices: [],
+  });
+
+  const writes = mockBatches.flatMap(batch => batch.set.mock.calls);
+  expect(writes).toHaveLength(1);
+  expect(writes[0][1].text).toBe('Latest copy');
+});
+
+test.each([null, 'invalid/'.repeat(10), 'x'.repeat(81)])(
+  'cloud saves refuse to strip private notes when a conversation ID is invalid: %s',
+  async conversationId => {
+    const firebase = require('../src/shared/backend/firebase');
+    mockAuth.currentUser = { uid: 'cloud-user', emailVerified: false };
+
+    await expect(
+      firebase.saveCloudState('cloud-user', {
+        version: 1,
+        profile: { id: 'cloud-user' },
+        sessions: [],
+        groups: [],
+        conversations: [
+          {
+            id: conversationId,
+            name: 'Tutor',
+            messages: [
+              {
+                id: 'message-1',
+                text: 'Keep this private note intact.',
+                mine: true,
+                sentAt: '2026-10-01T10:00:00.000Z',
+              },
+            ],
+          },
+        ],
+        notices: [],
+      }),
+    ).rejects.toThrow('conversation has an invalid ID');
+    expect(mockSetDoc).not.toHaveBeenCalled();
+    expect(mockWriteBatch).not.toHaveBeenCalled();
+  },
+);
+
 test('private cloud state loads only from the authenticated UID and works before email verification', async () => {
   const firebase = require('../src/shared/backend/firebase');
   mockAuth.currentUser = {
@@ -630,6 +877,7 @@ test('private cloud state loads only from the authenticated UID and works before
   const state = {
     version: 1,
     profile: { id: 'cloud-user', studentId: 'STU-2048' },
+    conversations: [],
   };
   mockGetDoc.mockResolvedValue({
     exists: () => true,
@@ -693,6 +941,20 @@ test('cloud state rejects oversized documents before calling Firestore', async (
       profile: { id: 'cloud-user' },
       note: 'x'.repeat(250_001),
     }),
-  ).rejects.toThrow('too much saved data for the current cloud record');
+  ).rejects.toThrow('too much non-message data for the current cloud record');
   expect(mockSetDoc).not.toHaveBeenCalled();
+});
+
+test('cloud state size checks count UTF-8 bytes for non-ASCII text', async () => {
+  const firebase = require('../src/shared/backend/firebase');
+  mockAuth.currentUser = { uid: 'cloud-user', emailVerified: true };
+  await expect(
+    firebase.saveCloudState('cloud-user', {
+      version: 1,
+      profile: { id: 'cloud-user' },
+      note: '😀'.repeat(70_000),
+    }),
+  ).rejects.toThrow('too much non-message data for the current cloud record');
+  expect(mockSetDoc).not.toHaveBeenCalled();
+  expect(mockWriteBatch).not.toHaveBeenCalled();
 });

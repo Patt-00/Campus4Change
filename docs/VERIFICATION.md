@@ -10,14 +10,17 @@
   workstation's private `~/.android/debug.keystore`; no SHA-256 row is present.
   The repository's public `android/app/debug.keystore` is not registered. No
   live Firebase setting was changed.
-- The current `:app:assembleDebug` build succeeded with
+- The latest per-device QA artifact is the ARM64-only debug build at
+  `android/app/build/outputs/apk/debug/app-debug.apk` (41,304,558 bytes;
+  SHA-256 `582efe9ff0c2a17b97932d2c6c51da8d6dd121edff90d47d09b3397c98858f36`).
+  It was built with `-PreactNativeArchitectures=arm64-v8a` and
   `C4C_DEBUG_STORE_FILE` set to the per-user Android debug keystore;
-  `apksigner` confirmed its SHA-1 matches Firebase's registered row. The default build
-  remains signed by the repo-tracked key. The connected POCO currently has no
-  installed `com.campus4change` package. Installing the private-key build
-  returned `INSTALL_FAILED_USER_RESTRICTED: Install canceled by user`; no app
-  data was cleared, and this build has not been visually tested on the device.
-  Retry when the device owner is ready to approve Xiaomi's USB-install prompt.
+  `apksigner` confirmed its SHA-1 matches Firebase's registered row. The
+  repository default remains signed by the repo-tracked key. The connected
+  POCO currently has no installed `com.campus4change` package; the earlier
+  universal private-key APK attempt returned `INSTALL_FAILED_USER_RESTRICTED`.
+  The ARM64 artifact has not been installed or visually tested yet, and no app
+  data was cleared. Xiaomi's USB-install prompt must be approved before retrying.
 - Commit `9a5fbc0` records introduction completion in device preferences. Jest
   covers first-run, returning-install, and unavailable-preference behavior; the
   updated APK cold-launched on the POCO X4 GT directly to Login after the
@@ -115,6 +118,15 @@
   skipped later local autosaves. The fix keeps the last reported user's
   hydration active; `useCampusSession` now has 81.02% statement, 67.50% branch,
   and 75.40% function coverage.
+- Private note messages now sync to separate owner-only documents under
+  `users/{uid}/privateMessages`; the private account-state document keeps only
+  conversation metadata. Existing messages embedded in a version-one state are
+  merged and migrated on the next save. Idempotent per-message writes preserve
+  concurrent additions from another device, while content updates and deletes
+  are denied by the rules. Tests cover 401 maximum-length messages in two
+  batches, legacy migration, duplicate IDs, unsafe conversation IDs,
+  byte-accurate state-size rejection, cross-account and anonymous denial, and
+  owner access before email verification.
 - Focused Tutor Details and Booking Confirmed tests cover shared-request and
   device-only paths, owner self-booking affordances, private notes, request
   navigation, and invalid saved-date fallbacks. Both screens now reach 100%
@@ -128,11 +140,11 @@
 - Jest is now `30.5.2`. The config excludes `scripts/`, whose standalone ESM
   emulator runners are invoked separately, and gives the cold first-run App
   test a 15-second timeout; the other tests retain Jest's default timeout.
-  `npm test -- --coverage --runInBand` passes all 242 tests in 33 suites with
-  84.23% statement and 75.10% branch coverage, and lint passes.
+  `npm test -- --coverage --runInBand` passes all 250 tests in 33 suites with
+  84.45% statement and 75.17% branch coverage, and lint passes.
 - With Firebase CLI `15.33.0`, both Firestore rules and Auth verification
-  emulator suites passed against the updated lockfile. Gradle passed
-  `:app:assembleDebug` and `:app:createBundleReleaseJsAndAssets`.
+  emulator suites passed against the updated lockfile. The latest release JS
+  bundle and ARM64-only debug APK build also passed locally.
 - The full dependency audit now reports 28 high and 17 moderate findings,
   down from 47 high and 5 moderate before Jest 30; `npm audit --omit=dev` still
   reports 20 high paths. The production bundle remains free of `braces`,

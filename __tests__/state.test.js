@@ -258,6 +258,33 @@ test('membership changes are idempotent and nonmembers cannot post or send group
   });
   expect(state.conversations[0].messages).toHaveLength(0);
 });
+test('private notes reject empty or overlong messages at the state boundary', () => {
+  let state = initialState(account);
+  state = reducer(state, {
+    type: 'conversation',
+    conversation: { id: 'chat-tutor', name: 'Tutor', messages: [] },
+  });
+  state = reducer(state, {
+    type: 'message',
+    id: 'chat-tutor',
+    message: { id: 'empty', text: '   ', mine: true },
+  });
+  state = reducer(state, {
+    type: 'message',
+    id: 'chat-tutor',
+    message: { id: 'too-long', text: 'x'.repeat(2001), mine: true },
+  });
+  expect(state.conversations[0].messages).toHaveLength(0);
+
+  state = reducer(state, {
+    type: 'message',
+    id: 'chat-tutor',
+    message: { id: 'allowed', text: 'x'.repeat(2000), mine: true },
+  });
+  expect(state.conversations[0].messages).toEqual([
+    { id: 'allowed', text: 'x'.repeat(2000), mine: true },
+  ]);
+});
 test('shared group updates retain device groups and replay queued offline changes', () => {
   const deviceGroup = {
     id: 'device-group',

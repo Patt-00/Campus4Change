@@ -40,6 +40,10 @@ let auth = null;
 let db = null;
 const pendingStudentIds = new Map();
 const pendingSignUpsByEmail = new Map();
+const privateMessageDocumentCacheByUid = new Map();
+const privateConversationMessageRefsByUid = new Map();
+const FIRESTORE_WRITE_BATCH_SIZE = 400;
+const MAX_PRIVATE_MESSAGE_ID_LENGTH = 80;
 
 if (firebaseEnabled) {
   const { app: appSdk, auth: authSdk, firestore: firestoreSdk } = firebaseSdk();
@@ -264,6 +268,8 @@ export async function firebaseSignOut() {
   await firebaseSdk().auth.signOut(auth);
   if (uid) {
     pendingStudentIds.delete(uid);
+    privateMessageDocumentCacheByUid.delete(uid);
+    privateConversationMessageRefsByUid.delete(uid);
   }
   if (Platform.OS === 'android') {
     const googleSignIn = NativeModules.CampusGoogleSignIn;
@@ -287,13 +293,213 @@ export function firebaseServicesForUser(uid) {
   return { db, firestore: firebaseSdk().firestore };
 }
 
+function utf8ByteLength(value) {
+  let bytes = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code <= 0x7f) {
+      bytes += 1;
+    } else if (code <= 0x7ff) {
+      bytes += 2;
+    } else if (
+      code >= 0xd800 &&
+      code <= 0xdbff &&
+      index + 1 < value.length &&
+      value.charCodeAt(index + 1) >= 0xdc00 &&
+      value.charCodeAt(index + 1) <= 0xdfff
+    ) {
+      bytes += 4;
+      index += 1;
+    } else {
+      bytes += 3;
+    }
+  }
+  return bytes;
+}
+
+function privateMessageDocumentId(conversationId, messageId) {
+  return `${conversationId.length}_${encodeURIComponent(conversationId)}__${encodeURIComponent(messageId)}`;
+}
+
+function privateConversationMessages(conversations = []) {
+  const messages = new Map();
+  for (const conversation of conversations) {
+    if (!conversation || typeof conversation !== 'object') {
+      continue;
+    }
+    const conversationMessages = Array.isArray(conversation.messages)
+      ? conversation.messages
+      : [];
+    if (
+      typeof conversation.id !== 'string' ||
+      !conversation.id.trim() ||
+      conversation.id.length > MAX_PRIVATE_MESSAGE_ID_LENGTH ||
+      conversation.id.includes('/')
+    ) {
+      if (conversationMessages.length > 0) {
+        throw new Error(
+          'Private notes cannot sync because a saved conversation has an invalid ID.',
+        );
+      }
+      continue;
+    }
+    conversationMessages.forEach((message, index) => {
+      if (
+        !message ||
+        typeof message !== 'object' ||
+        Array.isArray(message) ||
+        typeof message.text !== 'string' ||
+        !message.text.trim()
+      ) {
+        return;
+      }
+      const id =
+        typeof message.id === 'string' && message.id.trim()
+          ? message.id.trim()
+          : `legacy-${index}`;
+      const text = message.text.trim();
+      if (id.length > MAX_PRIVATE_MESSAGE_ID_LENGTH || text.length > 2000) {
+        throw new Error(
+          'Private notes must have IDs up to 80 characters and text up to 2,000 characters.',
+        );
+      }
+      const documentId = privateMessageDocumentId(conversation.id, id);
+      messages.set(documentId, {
+        documentId,
+        data: {
+          conversationId: conversation.id,
+          id,
+          text,
+          mine: message.mine !== false,
+          sentAt:
+            typeof message.sentAt === 'string' && message.sentAt
+              ? message.sentAt.slice(0, 40)
+              : new Date().toISOString(),
+        },
+      });
+    });
+  }
+  return [...messages.values()];
+}
+
+function mergePrivateMessages(state, messageSnapshots, documentCache, messageRefCache) {
+  const conversations = new Map(
+    (Array.isArray(state?.conversations) ? state.conversations : [])
+      .filter(conversation => conversation && typeof conversation.id === 'string')
+      .map(conversation => [conversation.id, conversation]),
+  );
+  const messagesByConversation = new Map();
+  const persistedMessageIdsByConversation = new Map();
+  const sortedMessages = [...messageSnapshots].sort((left, right) => {
+    const leftData = left.data();
+    const rightData = right.data();
+    return (
+      String(leftData.conversationId).localeCompare(String(rightData.conversationId)) ||
+      String(leftData.sentAt).localeCompare(String(rightData.sentAt)) ||
+      String(leftData.id).localeCompare(String(rightData.id))
+    );
+  });
+  for (const snapshot of sortedMessages) {
+    const data = snapshot.data();
+    if (
+      typeof data.conversationId !== 'string' ||
+      data.conversationId.length > MAX_PRIVATE_MESSAGE_ID_LENGTH ||
+      data.conversationId.includes('/') ||
+      typeof data.id !== 'string' ||
+      data.id.length > MAX_PRIVATE_MESSAGE_ID_LENGTH ||
+      typeof data.text !== 'string' ||
+      !data.text.trim() ||
+      data.text.length > 2000 ||
+      typeof data.mine !== 'boolean' ||
+      typeof data.sentAt !== 'string' ||
+      data.sentAt.length > 40
+    ) {
+      continue;
+    }
+    documentCache.add(snapshot.id);
+    let messages = messagesByConversation.get(data.conversationId);
+    if (!messages) {
+      const existing = conversations.get(data.conversationId)?.messages;
+      messages = new Map(
+        (Array.isArray(existing) ? existing : [])
+          .filter(message => message && typeof message.id === 'string')
+          .map(message => [message.id, message]),
+      );
+      messagesByConversation.set(data.conversationId, messages);
+    }
+    let persistedIds = persistedMessageIdsByConversation.get(data.conversationId);
+    if (!persistedIds) {
+      persistedIds = new Set();
+      persistedMessageIdsByConversation.set(data.conversationId, persistedIds);
+    }
+    if (!messages.has(data.id)) {
+      messages.set(data.id, {
+        id: data.id,
+        text: data.text,
+        mine: data.mine,
+        sentAt: data.sentAt,
+      });
+    }
+    persistedIds.add(data.id);
+  }
+  for (const [conversationId, messages] of messagesByConversation) {
+    const current = conversations.get(conversationId) || {
+      id: conversationId,
+      name: 'Conversation',
+    };
+    conversations.set(conversationId, {
+      ...current,
+      messages: [...messages.values()],
+    });
+  }
+  for (const conversation of conversations.values()) {
+    const messages = Array.isArray(conversation.messages)
+      ? conversation.messages
+      : [];
+    const persistedIds = persistedMessageIdsByConversation.get(conversation.id);
+    if (
+      messages.length === 0 ||
+      (persistedIds &&
+        messages.every(message => persistedIds.has(message.id)))
+    ) {
+      messageRefCache.set(conversation.id, conversation.messages);
+    }
+  }
+  return [...conversations.values()];
+}
+
 export async function loadCloudState(uid) {
   if (!db || auth?.currentUser?.uid !== uid) {
     throw new Error('Sign in to load your Firebase account data.');
   }
-  const { doc, getDoc } = firebaseSdk().firestore;
-  const snapshot = await getDoc(doc(db, 'users', uid, 'private', 'state'));
-  return snapshot.exists() ? snapshot.data().state : null;
+  const firestore = firebaseSdk().firestore;
+  const { collection, doc, getDoc, getDocs } = firestore;
+  const documentCache = new Set();
+  const messageRefCache = new Map();
+  const [snapshot, messageSnapshot] = await Promise.all([
+    getDoc(doc(db, 'users', uid, 'private', 'state')),
+    getDocs(collection(db, 'users', uid, 'privateMessages')),
+  ]);
+  privateMessageDocumentCacheByUid.set(uid, documentCache);
+  privateConversationMessageRefsByUid.set(uid, messageRefCache);
+  const data = snapshot.exists() ? snapshot.data().state : null;
+  const conversations = mergePrivateMessages(
+    data,
+    messageSnapshot.docs || [],
+    documentCache,
+    messageRefCache,
+  );
+  if (!data && conversations.length === 0) {
+    return null;
+  }
+  const base = data || {
+    version: 1,
+    profile: { id: uid },
+    sessions: [],
+    groups: [],
+    notices: [],
+  };
+  return { ...base, conversations };
 }
 
 export async function saveCloudState(uid, state) {
@@ -304,20 +510,79 @@ export async function saveCloudState(uid, state) {
     throw new Error('The account data is not valid for this Firebase user.');
   }
 
-  const serialized = JSON.stringify(state);
+  const cloudState = {
+    ...state,
+    conversations: Array.isArray(state.conversations)
+      ? state.conversations.map(conversation => ({ ...conversation, messages: [] }))
+      : [],
+  };
+  const serialized = JSON.stringify(cloudState);
   // Firestore documents are limited to 1 MiB. This conservative cap leaves
   // room for field names and Firestore's document encoding overhead.
-  if (serialized.length > 250_000) {
+  if (utf8ByteLength(serialized) > 250_000) {
     throw new Error(
-      'This account has too much saved data for the current cloud record.',
+      'This account has too much non-message data for the current cloud record.',
     );
   }
 
-  const { doc, serverTimestamp, setDoc } = firebaseSdk().firestore;
-  await setDoc(doc(db, 'users', uid, 'private', 'state'), {
-    state,
-    updatedAt: serverTimestamp(),
-  });
+  const firestore = firebaseSdk().firestore;
+  const documentCache = privateMessageDocumentCacheByUid.get(uid) || new Set();
+  privateMessageDocumentCacheByUid.set(uid, documentCache);
+  const conversations = Array.isArray(state.conversations)
+    ? state.conversations
+    : [];
+  const messageRefCache =
+    privateConversationMessageRefsByUid.get(uid) || new Map();
+  privateConversationMessageRefsByUid.set(uid, messageRefCache);
+  const changedConversations = conversations.filter(
+    conversation =>
+      conversation &&
+      typeof conversation === 'object' &&
+      messageRefCache.get(conversation.id) !== conversation.messages,
+  );
+  const desiredMessages = privateConversationMessages(changedConversations);
+  const pendingMessages = desiredMessages
+    .filter(message => !documentCache.has(message.documentId))
+    .map(message => ({
+      documentId: message.documentId,
+      data: message.data,
+    }));
+  for (
+    let offset = 0;
+    offset < pendingMessages.length;
+    offset += FIRESTORE_WRITE_BATCH_SIZE
+  ) {
+    const currentBatch = pendingMessages.slice(
+      offset,
+      offset + FIRESTORE_WRITE_BATCH_SIZE,
+    );
+    const batch = firestore.writeBatch(db);
+    currentBatch.forEach(message => {
+      batch.set(
+        firestore.doc(
+          db,
+          'users',
+          uid,
+          'privateMessages',
+          message.documentId,
+        ),
+        message.data,
+      );
+    });
+    await batch.commit();
+    currentBatch.forEach(message => documentCache.add(message.documentId));
+  }
+  changedConversations.forEach(conversation =>
+    messageRefCache.set(conversation.id, conversation.messages),
+  );
+
+  await firestore.setDoc(
+    firestore.doc(db, 'users', uid, 'private', 'state'),
+    {
+      state: cloudState,
+      updatedAt: firestore.serverTimestamp(),
+    },
+  );
 }
 
 export function ensureFirebaseEnabled() {

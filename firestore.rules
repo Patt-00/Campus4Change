@@ -66,6 +66,47 @@ service cloud.firestore {
         && request.resource.data.updatedAt is timestamp;
     }
 
+    // Private note messages live in small owner-only documents.
+    match /users/{userId}/privateMessages/{messageDocumentId} {
+      function ownsUser() {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      function validPrivateMessage() {
+        let data = request.resource.data;
+        return data.keys().hasAll([
+            'conversationId', 'id', 'text', 'mine', 'sentAt'
+          ])
+          && data.keys().hasOnly([
+            'conversationId', 'id', 'text', 'mine', 'sentAt'
+          ])
+          && data.conversationId is string
+          && data.conversationId.size() > 0
+          && data.conversationId.size() <= 80
+          && data.id is string
+          && data.id.size() > 0
+          && data.id.size() <= 80
+          && data.text is string
+          && data.text.size() > 0
+          && data.text.size() <= 2000
+          && data.mine is bool
+          && data.sentAt is string
+          && data.sentAt.size() > 0
+          && data.sentAt.size() <= 40;
+      }
+
+      allow get, list: if ownsUser();
+      allow create: if ownsUser() && validPrivateMessage();
+      allow update: if ownsUser()
+        && validPrivateMessage()
+        && request.resource.data.conversationId == resource.data.conversationId
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.text == resource.data.text
+        && request.resource.data.mine == resource.data.mine
+        && request.resource.data.sentAt == resource.data.sentAt;
+      allow delete: if false;
+    }
+
     // Study group metadata is visible to users with a verified email. Membership IDs
     // are private to their owners; a public count lives on the group document.
     match /studyGroups/{groupId} {
