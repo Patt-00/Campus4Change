@@ -14,8 +14,10 @@
   are enabled. The Android app registration still contains only an older SHA-1;
   it lacks the current debug signer fingerprints. No Firebase setting was
   changed. Live Firestore rules remain deny-all and indexes are undeployed per
-  the last database check; the App Check registration/token exchange also remains
-  unverified.
+  the last database check. A current App Check read showed the Android and Web
+  apps as **Not registered**; Play Integrity registration requires a SHA-256
+  fingerprint and accepting Google APIs and Play Integrity API terms. No App
+  Check setting or terms were accepted, and token exchange remains unverified.
 - Product policy clarified on 2026-10-14: any Firebase-verified email may use
   shared features; no `@tip.edu.ph` or `.edu` restriction is intended. The
   existing client and rules already implement this policy.

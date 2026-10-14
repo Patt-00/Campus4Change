@@ -95,15 +95,16 @@ Android API key are stored in `firebaseConfig.js` separately from the Web app ID
 and Web API key. The JavaScript Firebase app receives only the Web configuration;
 the native App Check bridge receives only the Android app configuration.
 
-The live project still needs App Check registration for the Android app and a
-SHA-256 signing fingerprint. For a debug build, install the app, obtain its
-debug token from local Android logs, and allowlist that token under Firebase
-Console **Security > App Check > Manage debug tokens**. Treat the token as a
-credential: never commit it or include it in screenshots, reports, or CI logs.
-The signed release build needs its own SHA-256 fingerprint and Play Integrity
-registration. Monitor request metrics before enabling enforcement. The current
-project has no App Check registration or enforcement, so valid live token
-exchange has not yet been verified.
+The Android app must be registered for App Check with Play Integrity and a
+SHA-256 signing fingerprint. Firebase Console also requires accepting the
+Google APIs and Play Integrity API terms during registration. For a debug
+build, install the app, obtain its debug token from local Android logs, and
+allowlist that token under Firebase Console **Security > App Check > Manage
+debug tokens**. Treat the token as a credential: never commit it or include it
+in screenshots, reports, or CI logs. The signed release build needs its own
+SHA-256 fingerprint. Monitor request metrics before enabling enforcement. The
+current project has no App Check registration or enforcement, so valid live
+token exchange has not yet been verified.
 
 ## Verify the Firestore rules locally
 
