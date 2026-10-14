@@ -20,6 +20,7 @@ const mockStore = {
 };
 const mockLoadCloudState = jest.fn();
 const mockSaveCloudState = jest.fn();
+const mockFirebaseSignOut = jest.fn();
 
 jest.mock('../src/shared/backend/firebase', () => ({
   firebaseEnabled: true,
@@ -29,7 +30,7 @@ jest.mock('../src/shared/backend/firebase', () => ({
   firebasePasswordReset: jest.fn(),
   firebaseResendVerificationEmail: jest.fn(),
   firebaseSignIn: jest.fn(),
-  firebaseSignOut: jest.fn(),
+  firebaseSignOut: (...args) => mockFirebaseSignOut(...args),
   firebaseSignUp: jest.fn(),
   loadCloudState: (...args) => mockLoadCloudState(...args),
   saveCloudState: (...args) => mockSaveCloudState(...args),
@@ -114,6 +115,7 @@ beforeEach(() => {
     mockCloudStateForUser.get(uid) ?? null,
   );
   mockSaveCloudState.mockResolvedValue(true);
+  mockFirebaseSignOut.mockResolvedValue(true);
   mockUnsubscribe.mockClear();
   jest.clearAllMocks();
 });
@@ -248,4 +250,71 @@ test('hides the prior Firebase account and saves it locally before switching UID
   expect(currentSession.state.profile.id).toBe(accountB.uid);
   expect(currentSession.state.profile.name).toBe('Current account B');
   expect(currentSession.restoring).toBe(false);
+});
+
+test('cloud save failure still signs Firebase out after the local snapshot is saved', async () => {
+  const account = firebaseUser('firebase-a');
+  const local = makeQaState(account);
+  local.updatedAt = 10;
+  const cloud = makeQaState(account);
+  cloud.updatedAt = 20;
+  cloud.profile.name = 'Cloud copy';
+  mockLocalStateForUser.set(account.uid, JSON.stringify(local));
+  mockCloudStateForUser.set(account.uid, cloud);
+
+  await render();
+  await act(async () => {
+    mockFirebaseObserver.onUser(account);
+    await flush();
+  });
+  await act(async () => flush());
+  mockSaveCloudState.mockRejectedValueOnce(new Error('Cloud is offline.'));
+
+  let result;
+  await act(async () => {
+    result = await currentSession.signOut();
+    await flush();
+  });
+
+  expect(result).toEqual({ signedOut: true, cloudSaved: false });
+  expect(mockFirebaseSignOut).toHaveBeenCalledTimes(1);
+  expect(mockStore.signOut).toHaveBeenCalledWith(account.uid);
+  expect(mockNativeActiveUser).toBe(null);
+  expect(currentSession.state).toBe(null);
+  expect(JSON.parse(mockLocalStateForUser.get(account.uid)).profile.name).toBe(
+    'Cloud copy',
+  );
+});
+
+test('a Firebase sign-out failure leaves the current account and local session intact', async () => {
+  const account = firebaseUser('firebase-a');
+  const local = makeQaState(account);
+  local.updatedAt = 10;
+  const cloud = makeQaState(account);
+  cloud.updatedAt = 20;
+  mockLocalStateForUser.set(account.uid, JSON.stringify(local));
+  mockCloudStateForUser.set(account.uid, cloud);
+
+  await render();
+  await act(async () => {
+    mockFirebaseObserver.onUser(account);
+    await flush();
+  });
+  await act(async () => flush());
+  mockFirebaseSignOut.mockRejectedValueOnce(
+    new Error('Firebase sign-out unavailable.'),
+  );
+
+  let result;
+  await act(async () => {
+    result = await currentSession.signOut();
+    await flush();
+  });
+
+  expect(result.signedOut).toBe(false);
+  expect(currentSession.state.profile.id).toBe(account.uid);
+  expect(currentSession.sessionType).toBe('firebase');
+  expect(currentSession.saveError).toBe('Firebase sign-out unavailable.');
+  expect(mockStore.signOut).not.toHaveBeenCalled();
+  expect(mockNativeActiveUser).toBe(account.uid);
 });

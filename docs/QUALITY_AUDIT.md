@@ -36,8 +36,10 @@ production-ready claim.
 - Firebase account restoration now uses a generation guard so late local or
   cloud reads cannot replace the state for a newer authenticated UID. During a
   direct UID switch, the old screen is hidden while its local snapshot is saved
-  before storage changes accounts. New hook tests reproduce delayed native
-  storage completion and verify that the previous profile never returns.
+  before storage changes accounts. Five hook tests cover cloud-newer restore,
+  delayed native account-switch completion, hiding/saving the old profile,
+  signing out after a cloud-save failure, and retaining the session if Firebase
+  sign-out itself fails.
 - Android Google sign-in/sign-up uses Credential Manager and Firebase token
   exchange. The Firebase Google provider is enabled. On 2026-10-14, Project
   settings showed only the previous Android SHA-1 and no SHA-256; it does not
