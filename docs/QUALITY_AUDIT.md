@@ -55,6 +55,12 @@ production-ready claim.
   Kotlin variants compile; release packaging still requires a dedicated key.
   Live registration, debug-token allowlisting, valid token exchange, and
   enforcement remain open in the Firebase Console.
+- The Android release manifest disables cleartext traffic. The React Native
+  Gradle plugin sets `usesCleartextTraffic` to `true` for debug builds and
+  `false` for release builds; the merged manifests were inspected locally.
+  The only app-source `http://` endpoint is the optional Firebase Auth emulator,
+  and runtime configuration rejects it in release builds. The checked-in
+  emulator host is empty.
 - Shared Firebase study groups support signed-in discovery, membership, posts,
   and replies. Membership documents are private to their owners; posts/replies
   are readable only by members.

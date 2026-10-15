@@ -756,3 +756,13 @@ Email-verified Firebase accounts share tutor profiles, session requests, current
 The previous APK was tested on one Android 16 phone: update over v1.0.0, cold launch, empty-login validation, the then-present seeded sign-in, tutor search/profile selection, past-time rejection, and future Physics booking with confirmation/details. That seeded account and its sample flows have since been removed; these are historical checks only. No crash was observed in those checks. Testing then stopped at the user's request.
 
 Those checks apply to 1.1.0, not this APK. The prior release retains its [device verification record](https://github.com/Patt-00/Campus4Change/releases/tag/v1.1.0).
+
+## Android network security spot-check — 2026-10-15
+
+The locally merged debug manifest sets `android:usesCleartextTraffic` to
+`true`, as configured by the React Native Gradle plugin for Metro development.
+The merged release manifest sets it to `false`. The checked-in
+`firebaseEmulatorHost` is empty, and `src/shared/backend/firebase.js` rejects
+emulator configuration when `__DEV__` is false. A source search found no other
+application `http://` endpoints. No network-security configuration change was
+needed.
