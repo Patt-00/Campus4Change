@@ -44,6 +44,7 @@ The existing v1.2.0 APK is signed with the repository's debug key. New release b
 - [Architecture and feature ownership](docs/ARCHITECTURE.md)
 - [Firebase setup and data boundary](docs/FIREBASE_SETUP.md)
 - [Ongoing quality audit and open issues](docs/QUALITY_AUDIT.md)
+- [Final sprint completion gates](docs/FINAL_SPRINT.md)
 - [PC and Termux builds](docs/BUILDING.md)
 - [Figma coverage and limits](docs/FIGMA_COVERAGE.md)
 - [Verification and teacher walkthrough](docs/VERIFICATION.md)

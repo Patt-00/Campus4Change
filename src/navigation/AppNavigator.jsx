@@ -23,6 +23,8 @@ import { SessionsScreen } from '../features/sessions/screens/SessionsScreen';
 import { ChatScreen } from '../features/messages/screens/ChatScreen';
 import { MessagesScreen } from '../features/messages/screens/MessagesScreen';
 import { NotificationsScreen } from '../features/notifications/screens/NotificationsScreen';
+import { bookingNotices } from '../features/notifications/data/bookingNotices';
+import { groupNotices } from '../features/notifications/data/groupNotices';
 import { BeTutorScreen } from '../features/profile/screens/BeTutorScreen';
 import { EditProfileScreen } from '../features/profile/screens/EditProfileScreen';
 import { ProfileScreen } from '../features/profile/screens/ProfileScreen';
@@ -198,6 +200,18 @@ export function AppNavigator() {
     enabled: Boolean(syncUid),
     profile: state?.profile,
   });
+  useEffect(() => {
+    if (!syncUid || restoring) {
+      return;
+    }
+    const notices = [
+      ...bookingNotices(sharedTutors.bookings, syncUid),
+      ...groupNotices(groupDirectory),
+    ];
+    if (notices.length) {
+      dispatch({ type: 'syncNotices', accountId: syncUid, notices });
+    }
+  }, [dispatch, groupDirectory, restoring, sharedTutors.bookings, syncUid]);
   const sharedMessages = useSharedMessages({
     uid: syncUid,
     groups: groupDirectory,

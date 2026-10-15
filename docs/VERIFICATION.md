@@ -779,3 +779,23 @@ tutor warnings above Profile. The tutor-hook tests also confirm that a denied
 read does not recommend waiting after a session request, while a denied write
 retains the request-limit guidance. The revised listener wording has automated
 coverage; it has not been visually rechecked on device.
+
+## Final sprint: real in-app notifications — 2026-10-15
+
+The POCO's Home screen visibly showed the revised tutor read-denial wording at
+the start of this sprint, completing the earlier wording spot-check. The live
+backend still denied shared data and state sync.
+
+Added in-app notices for participant booking requests/status changes and joined
+shared-group activity. One current notice per item persists in private account
+state. Repeated or restored snapshots preserve read state, a newer event marks
+the notice unread, and an older event cannot replace a newer one. Notices retain
+the session/group destination and the newest 200 are kept. Pending timestamps
+do not generate notices before server acknowledgement.
+
+The full Jest suite passes 258 tests across 34 suites; lint and the public-link
+check pass. With JDK 25, `:app:createBundleReleaseJsAndAssets` and
+`:app:compileReleaseKotlin` pass on this implementation. This is source/build
+evidence; two-account live event delivery and the final signed artifact still
+need verification. The sprint completion gates are tracked in
+[FINAL_SPRINT.md](FINAL_SPRINT.md).

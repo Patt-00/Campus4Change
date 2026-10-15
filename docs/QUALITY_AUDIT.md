@@ -29,10 +29,9 @@ production-ready claim.
   rehashed after a successful login. Metadata is allowlisted, comparisons use
   `MessageDigest.isEqual`, and local sign-up caps passwords at 1,024 characters.
   JVM tests verify both old and new derivation vectors, metadata validation,
-  migration decisions, and the length bound. The instrumentation APK compiles;
-  device-provider timing is still unverified because Xiaomi rejected installing
-  the test APK, and the configured headless API 36 AVD exited with code 139
-  before boot completed.
+  migration decisions, and the length bound. Both instrumentation vectors pass
+  on the POCO's Android 14 runtime; one debug current-hash sample took 2,572 ms.
+  The minimum API 24 provider and a repeatable timing baseline remain unverified.
 - Firebase account restoration now uses a generation guard so late local or
   cloud reads cannot replace the state for a newer authenticated UID. During a
   direct UID switch, the old screen is hidden while its local snapshot is saved
@@ -41,11 +40,10 @@ production-ready claim.
   signing out after a cloud-save failure, and retaining the session if Firebase
   sign-out itself fails.
 - Android Google sign-in/sign-up uses Credential Manager and Firebase token
-  exchange. The Firebase Google provider is enabled. On 2026-10-14, Project
-  settings showed only the previous Android SHA-1 and no SHA-256; it does not
-  match the local debug signer. The POCO X4 GT showed both auth screens and
-  opened the account chooser, but Google requested fresh account verification
-  before Firebase received a token, so this end-to-end step remains open.
+  exchange. The Firebase Google provider is enabled, and the private workstation
+  debug signer is registered. On 2026-10-15, the POCO completed the approved
+  Google flow and entered Firebase-backed Home/Profile. Release signing and
+  its separate certificate registration remain open.
 - Android Firebase App Check now bridges the existing Firebase JavaScript SDK
   to the native Firebase App Check SDK. Debug builds select the native debug
   provider; release builds select Play Integrity. A JS regression test verifies
@@ -68,6 +66,11 @@ production-ready claim.
   its actionable private-state sync warning remains visible. Tutor read denials
   now give read-specific email-verification and Firestore guidance; write
   denials retain request-limit guidance, covered separately by hook tests.
+- In-app notifications now reflect participant booking requests/status changes
+  and activity in joined shared groups. Notices retain read state across repeat
+  snapshots and restoration, reject older events, link to the session/group,
+  and keep the latest 200 items. The 258-test suite covers these state behaviors;
+  live event delivery still needs the production rules and two-account check.
 - Shared Firebase study groups support signed-in discovery, membership, posts,
   and replies. Membership documents are private to their owners; posts/replies
   are readable only by members.

@@ -111,7 +111,7 @@ function mapGroup(uid, groupSnapshot, memberGroupIds) {
     joined,
     meetup: data.meetup || '',
     meetupAt: data.meetupAt || undefined,
-    updatedAt: isoTime(data.updatedAt),
+    updatedAt: data.updatedAt ? isoTime(data.updatedAt) : '',
     room: data.room,
     posts: [],
     postsLoaded: !joined,

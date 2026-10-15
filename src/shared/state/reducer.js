@@ -215,6 +215,32 @@ export function reducer(state, action) {
         roomNotes: notes,
       };
     }
+    case 'syncNotices': {
+      if (action.accountId !== state.profile.id) {
+        return state;
+      }
+      const byId = new Map(state.notices.map(notice => [notice.id, notice]));
+      for (const notice of action.notices) {
+        const previous = byId.get(notice.id);
+        if (
+          previous?.eventKey === notice.eventKey ||
+          previous?.occurredAt > notice.occurredAt
+        ) {
+          continue;
+        }
+        byId.set(notice.id, { ...notice, read: false });
+      }
+      const notices = [...byId.values()]
+        .sort((a, b) => (b.occurredAt || 0) - (a.occurredAt || 0))
+        .slice(0, 200);
+      if (
+        notices.length === state.notices.length &&
+        notices.every((notice, index) => notice === state.notices[index])
+      ) {
+        return state;
+      }
+      return { ...state, notices };
+    }
     case 'read':
       return {
         ...state,
