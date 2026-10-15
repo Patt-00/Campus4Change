@@ -1,5 +1,14 @@
 # Verification for 1.2.0
 
+## Follow-up verification — 2026-10-15
+
+- GitHub Actions run [38557321484](https://github.com/Patt-00/Campus4Change/actions/runs/38557321484) passed every configured check for commit `0a0c477`: lint, 250 Jest tests, Android local unit tests, instrumentation-test compilation, Auth/Firestore emulator tests, production JS bundling, release Kotlin compilation, debug APK assembly, and the release-signing guard.
+- A fresh universal debug APK was built using the private per-user debug keystore. `apksigner` verified its SHA-1 matches the fingerprint registered for Firebase Google sign-in. Its SHA-256 is `4d838e0dae6e874fbcdc375b2e86d25462c5060db4a139bc991b0003d08383f7`.
+- The fresh APK install was attempted twice using only the POCO X4 GT (`Z9GMOVDMHQV8X84D`). Both attempts returned `INSTALL_FAILED_USER_RESTRICTED`; no new app launch or UI result was obtained. The phone must allow **Install via USB** and accept Xiaomi's install confirmation before this check can continue.
+- Emulator fallback is also unavailable at this checkpoint: the API 36 AVD exited with code 139 before boot, and the Pixel 8a AVD references a missing Android 37.1 system image. No emulator interaction test ran.
+- `firebase projects:list` still fails because the Firebase CLI has no authenticated session. No production Firestore rules, indexes, Auth settings, App Check settings, or data were changed. The current rules and four-index manifest continue to pass the emulator checks in CI.
+- Current npm registry metadata shows React Native `0.87.1`, CLI `20.2.0`, and Jest `30.5.2` are latest. The published `braces`, `micromatch`, and `fast-glob` versions have no newer release that resolves their current findings; npm's React Native downgrade suggestion is incompatible with the app's toolchain.
+
 ## Current source update — 2026-10-14
 
 - A fresh read-only Firebase Console pass confirmed project `campus4change`,
