@@ -71,7 +71,7 @@ jobs:
           npx --yes firebase-tools@15.33.0 emulators:exec
           --only auth,firestore
           --project demo-campus4change-rules
-          "npm run test:firestore-rules && npm run test:firebase-auth"
+          "npm run test:firestore-rules && npm run test:booking-overlap && npm run test:firebase-auth"
 
       - name: Production Android bundle and release Kotlin compile
         working-directory: android

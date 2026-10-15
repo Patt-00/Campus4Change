@@ -267,21 +267,21 @@ test('subscribes to each participant role with UID-constrained booking queries',
   expect(asTutor.unsubscribe).toHaveBeenCalledTimes(1);
 });
 
-test('acceptance reserves both half-hour buckets and maps Firestore status safely', async () => {
+test('acceptance reserves both half-hour buckets for each participant and maps status safely', async () => {
   const services = createFirestore();
   firebaseServicesForUser.mockReturnValue(services);
   services.firestore.bookingStart = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
   await updateTutorBookingStatus('tutor-1', 'booking-1', 'accept');
   const transaction = services.transactions[0];
-  expect(transaction.set).toHaveBeenCalledTimes(2);
+  expect(transaction.set).toHaveBeenCalledTimes(4);
   const firstBucket = Math.floor(
     services.firestore.bookingStart.getTime() / (30 * 60 * 1000),
   );
   expect(transaction.set.mock.calls).toEqual(
     expect.arrayContaining([
       [
-        expect.objectContaining({ path: `db/tutorSlots/tutor-1/slots/${firstBucket}` }),
+        expect.objectContaining({ path: `db/sessionSlots/tutor-1/slots/${firstBucket}` }),
         expect.objectContaining({
           bookingId: 'booking-1',
           tutorUid: 'tutor-1',
@@ -290,11 +290,19 @@ test('acceptance reserves both half-hour buckets and maps Firestore status safel
         }),
       ],
       [
-        expect.objectContaining({ path: `db/tutorSlots/tutor-1/slots/${firstBucket + 1}` }),
+        expect.objectContaining({ path: `db/sessionSlots/tutor-1/slots/${firstBucket + 1}` }),
         expect.objectContaining({
           bookingId: 'booking-1',
           slotBucket: firstBucket + 1,
         }),
+      ],
+      [
+        expect.objectContaining({ path: `db/sessionSlots/student-1/slots/${firstBucket}` }),
+        expect.objectContaining({ bookingId: 'booking-1', slotBucket: firstBucket }),
+      ],
+      [
+        expect.objectContaining({ path: `db/sessionSlots/student-1/slots/${firstBucket + 1}` }),
+        expect.objectContaining({ bookingId: 'booking-1', slotBucket: firstBucket + 1 }),
       ],
     ]),
   );
@@ -335,11 +343,13 @@ test('declines an overlapping acceptance and releases both locks on cancellation
   services.firestore.bookingStatus = 'accepted';
   await updateTutorBookingStatus('tutor-1', 'booking-1', 'cancel');
   const cancellation = services.transactions[1];
-  expect(cancellation.delete).toHaveBeenCalledTimes(2);
+  expect(cancellation.delete).toHaveBeenCalledTimes(4);
   expect(cancellation.delete.mock.calls.map(([ref]) => ref.path)).toEqual(
     expect.arrayContaining([
-      expect.stringMatching(/^db\/tutorSlots\/tutor-1\/slots\/\d+$/),
-      expect.stringMatching(/^db\/tutorSlots\/tutor-1\/slots\/\d+$/),
+      expect.stringMatching(/^db\/sessionSlots\/tutor-1\/slots\/\d+$/),
+      expect.stringMatching(/^db\/sessionSlots\/tutor-1\/slots\/\d+$/),
+      expect.stringMatching(/^db\/sessionSlots\/student-1\/slots\/\d+$/),
+      expect.stringMatching(/^db\/sessionSlots\/student-1\/slots\/\d+$/),
     ]),
   );
   expect(cancellation.update).toHaveBeenCalledWith(
@@ -371,7 +381,7 @@ test('allows an accepted booking to complete after its scheduled start', async (
 
   await updateTutorBookingStatus('student-1', 'booking-1', 'complete');
 
-  expect(services.transactions[0].delete).toHaveBeenCalledTimes(2);
+  expect(services.transactions[0].delete).toHaveBeenCalledTimes(4);
   expect(services.transactions[0].update).toHaveBeenCalledWith(
     expect.objectContaining({ path: 'db/tutorBookings/booking-1' }),
     { status: 'completed', updatedAt: { serverTimestamp: true } },

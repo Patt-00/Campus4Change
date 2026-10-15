@@ -240,3 +240,22 @@ test('keeps shared data empty and subscriptions disabled when signed out', async
 
   await act(async () => renderer.unmount());
 });
+
+test('a denied acceptance explains participant conflicts and asks for a refresh', async () => {
+  subscriptionsForCurrentUser();
+  updateTutorBookingStatus.mockRejectedValueOnce({ code: 'permission-denied' });
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(
+      <Harness options={{ uid: 'tutor-1', enabled: true, profile: {} }} />,
+    );
+  });
+  let result;
+  await act(async () => {
+    result = await currentResult.updateRequest('booking-1', 'accept');
+  });
+  expect(result.error).toContain('participant may already be booked');
+  expect(result.error).toContain('Refresh session data');
+  expect(result.error).not.toContain('wait a few seconds');
+  await act(async () => renderer.unmount());
+});

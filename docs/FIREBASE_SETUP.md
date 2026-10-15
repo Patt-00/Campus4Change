@@ -203,9 +203,12 @@ Tutor profiles are owner-editable documents at `tutorProfiles/{uid}` and expose
 only the fields needed for a student listing. Session requests live at
 `tutorBookings/{bookingId}` and can be read only by the student and tutor.
 Request status changes are limited to tutor acceptance/decline, participant
-cancellation, or participant completion. Accepting a request creates a
-two `tutorSlots/{tutorUid}/slots/{slotBucket}` reservations in the same
-transaction; cancellation or completion removes both locks atomically. Current
+cancellation, or participant completion. Accepting a request creates two
+`sessionSlots/{participantUid}/slots/{slotBucket}` reservations per participant,
+four in total, in the same transaction. The shared namespace prevents student
+conflicts across tutors and role changes; cancellation or completion removes all
+four locks atomically. Pending requests remain cancellable without removing any
+other booking's locks. Current
 group chat is available to current members, and tutor-session chat is limited
 to its two participants. These chat workflows are covered by emulator tests;
 real-project rules deployment and two-account delivery still need verification.

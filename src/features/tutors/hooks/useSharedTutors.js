@@ -130,14 +130,16 @@ export function useSharedTutors({ uid, enabled, profile }) {
     };
   }, [enabled, retryKey, uid]);
 
-  const runAction = useCallback(async action => {
+  const runAction = useCallback(async (action, permissionMessage) => {
     if (activeUid.current === uid) {
       setActionError({ uid, message: '' });
     }
     try {
       return await action();
     } catch (error) {
-      const message = actionErrorText(error);
+      const message = error?.code === 'permission-denied' && permissionMessage
+        ? permissionMessage
+        : actionErrorText(error);
       if (activeUid.current === uid) {
         setActionError({ uid, message });
       }
@@ -168,7 +170,12 @@ export function useSharedTutors({ uid, enabled, profile }) {
   );
   const updateRequest = useCallback(
     (bookingId, status) =>
-      runAction(() => updateTutorBookingStatus(uid, bookingId, status)),
+      runAction(
+        () => updateTutorBookingStatus(uid, bookingId, status),
+        status === 'accept'
+          ? 'Could not accept this request. A participant may already be booked, or your access may have changed. Refresh session data before trying again.'
+          : undefined,
+      ),
     [runAction, uid],
   );
 

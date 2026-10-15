@@ -269,18 +269,27 @@ try {
     return batch.commit();
   };
   const addSlotLocks = (batch, db, bookingId, booking) => {
-    booking.slotBuckets.forEach(slotBucket => {
-      batch.set(
-        doc(db, 'tutorSlots', booking.tutorUid, 'slots', String(slotBucket)),
-        {
-          bookingId,
-          tutorUid: booking.tutorUid,
-          studentUid: booking.studentUid,
-          slotBucket,
-          startsAt: booking.startsAt,
-          createdAt: serverTimestamp(),
-        },
-      );
+    [booking.tutorUid, booking.studentUid].forEach(participantUid => {
+      booking.slotBuckets.forEach(slotBucket => {
+        batch.set(
+          doc(db, 'sessionSlots', participantUid, 'slots', String(slotBucket)),
+          {
+            bookingId,
+            tutorUid: booking.tutorUid,
+            studentUid: booking.studentUid,
+            slotBucket,
+            startsAt: booking.startsAt,
+            createdAt: serverTimestamp(),
+          },
+        );
+      });
+    });
+  };
+  const removeSlotLocks = (batch, db, booking) => {
+    [booking.tutorUid, booking.studentUid].forEach(participantUid => {
+      booking.slotBuckets.forEach(slotBucket => batch.delete(
+        doc(db, 'sessionSlots', participantUid, 'slots', String(slotBucket)),
+      ));
     });
   };
   const writeBookingChat = (
@@ -479,26 +488,15 @@ try {
     }),
   );
   const forgedSlotPath = writeBatch(alice);
+  addSlotLocks(forgedSlotPath, alice, bobBooking.id, bobRequest);
   const firstBucket = bobRequest.slotBuckets[0];
-  const secondBucket = bobRequest.slotBuckets[1];
   forgedSlotPath.set(
-    doc(alice, 'tutorSlots', 'alice', 'slots', String(firstBucket + 10)),
+    doc(alice, 'sessionSlots', 'alice', 'slots', String(firstBucket + 10)),
     {
       bookingId: bobBooking.id,
       tutorUid: 'alice',
       studentUid: 'bob',
       slotBucket: firstBucket,
-      startsAt: bobRequest.startsAt,
-      createdAt: serverTimestamp(),
-    },
-  );
-  forgedSlotPath.set(
-    doc(alice, 'tutorSlots', 'alice', 'slots', String(secondBucket)),
-    {
-      bookingId: bobBooking.id,
-      tutorUid: 'alice',
-      studentUid: 'bob',
-      slotBucket: secondBucket,
       startsAt: bobRequest.startsAt,
       createdAt: serverTimestamp(),
     },
@@ -518,10 +516,10 @@ try {
   await assertSucceeds(acceptBob.commit());
   for (const bucket of bobRequest.slotBuckets) {
     await assertSucceeds(
-      getDoc(doc(bob, 'tutorSlots', 'alice', 'slots', String(bucket))),
+      getDoc(doc(bob, 'sessionSlots', 'alice', 'slots', String(bucket))),
     );
     await assertFails(
-      getDoc(doc(carol, 'tutorSlots', 'alice', 'slots', String(bucket))),
+      getDoc(doc(carol, 'sessionSlots', 'alice', 'slots', String(bucket))),
     );
   }
   await assertSucceeds(
@@ -648,11 +646,7 @@ try {
   await assertFails(acceptOverlap.commit());
 
   const cancelBob = writeBatch(bob);
-  bobRequest.slotBuckets.forEach(slotBucket =>
-    cancelBob.delete(
-      doc(bob, 'tutorSlots', 'alice', 'slots', String(slotBucket)),
-    ),
-  );
+  removeSlotLocks(cancelBob, bob, bobRequest);
   cancelBob.update(bobBooking, {
     status: 'cancelled',
     updatedAt: serverTimestamp(),
@@ -697,11 +691,7 @@ try {
   );
   await assertSucceeds(acceptFutureCompletion.commit());
   const prematureCompletion = writeBatch(bob);
-  futureCompletionRequest.slotBuckets.forEach(slotBucket =>
-    prematureCompletion.delete(
-      doc(bob, 'tutorSlots', 'alice', 'slots', String(slotBucket)),
-    ),
-  );
+  removeSlotLocks(prematureCompletion, bob, futureCompletionRequest);
   prematureCompletion.update(futureCompletionBooking, {
     status: 'completed',
     updatedAt: serverTimestamp(),
@@ -729,27 +719,25 @@ try {
       updatedAt: seededAt,
     });
     await Promise.all(
-      pastCompletionRequest.slotBuckets.map(slotBucket =>
-        setDoc(
-          doc(adminDb, 'tutorSlots', 'alice', 'slots', String(slotBucket)),
-          {
-            bookingId: completedBooking.id,
-            tutorUid: 'alice',
-            studentUid: 'bob',
-            slotBucket,
-            startsAt: pastCompletionRequest.startsAt,
-            createdAt: seededAt,
-          },
+      ['alice', 'bob'].flatMap(participantUid =>
+        pastCompletionRequest.slotBuckets.map(slotBucket =>
+          setDoc(
+            doc(adminDb, 'sessionSlots', participantUid, 'slots', String(slotBucket)),
+            {
+              bookingId: completedBooking.id,
+              tutorUid: 'alice',
+              studentUid: 'bob',
+              slotBucket,
+              startsAt: pastCompletionRequest.startsAt,
+              createdAt: seededAt,
+            },
+          ),
         ),
       ),
     );
   });
   const completePastBooking = writeBatch(bob);
-  pastCompletionRequest.slotBuckets.forEach(slotBucket =>
-    completePastBooking.delete(
-      doc(bob, 'tutorSlots', 'alice', 'slots', String(slotBucket)),
-    ),
-  );
+  removeSlotLocks(completePastBooking, bob, pastCompletionRequest);
   completePastBooking.update(completedBooking, {
     status: 'completed',
     updatedAt: serverTimestamp(),

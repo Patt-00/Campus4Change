@@ -616,8 +616,8 @@ service cloud.firestore {
           && getAfter(limitPath).data.lastRequestAt == request.time;
       }
 
-      function slotPath(tutorUid, slotBucket) {
-        return /databases/$(database)/documents/tutorSlots/$(tutorUid)/slots/$(slotBucket);
+      function slotPath(participantUid, slotBucket) {
+        return /databases/$(database)/documents/sessionSlots/$(participantUid)/slots/$(slotBucket);
       }
 
       function slotBucketsFor(startsAt) {
@@ -625,18 +625,19 @@ service cloud.firestore {
         return [firstBucket, firstBucket + 1];
       }
 
-      function hasMatchingSlotAfter(data, bookingId, index) {
+      function hasMatchingSlotAfter(data, bookingId, participantUid, index) {
         let bucket = data.slotBuckets[index];
-        return existsAfter(slotPath(data.tutorUid, bucket))
-          && getAfter(slotPath(data.tutorUid, bucket)).data.bookingId == bookingId
-          && getAfter(slotPath(data.tutorUid, bucket)).data.tutorUid == data.tutorUid
-          && getAfter(slotPath(data.tutorUid, bucket)).data.studentUid == data.studentUid
-          && getAfter(slotPath(data.tutorUid, bucket)).data.slotBucket == bucket
-          && getAfter(slotPath(data.tutorUid, bucket)).data.startsAt == data.startsAt;
+        return existsAfter(slotPath(participantUid, bucket))
+          && getAfter(slotPath(participantUid, bucket)).data.bookingId == bookingId
+          && getAfter(slotPath(participantUid, bucket)).data.tutorUid == data.tutorUid
+          && getAfter(slotPath(participantUid, bucket)).data.studentUid == data.studentUid
+          && getAfter(slotPath(participantUid, bucket)).data.slotBucket == bucket
+          && getAfter(slotPath(participantUid, bucket)).data.startsAt == data.startsAt;
       }
 
       function slotRemovedAfter(data, index) {
-        return !existsAfter(slotPath(data.tutorUid, data.slotBuckets[index]));
+        return !existsAfter(slotPath(data.tutorUid, data.slotBuckets[index]))
+          && !existsAfter(slotPath(data.studentUid, data.slotBuckets[index]));
       }
 
       function isParticipant() {
@@ -732,13 +733,16 @@ service cloud.firestore {
         && ((resource.data.status == 'pending'
               && request.auth.uid == resource.data.tutorUid
               && ((request.resource.data.status == 'accepted'
-                  && hasMatchingSlotAfter(resource.data, bookingId, 0)
-                  && hasMatchingSlotAfter(resource.data, bookingId, 1))
+                  && hasMatchingSlotAfter(resource.data, bookingId, resource.data.tutorUid, 0)
+                  && hasMatchingSlotAfter(resource.data, bookingId, resource.data.tutorUid, 1)
+                  && hasMatchingSlotAfter(resource.data, bookingId, resource.data.studentUid, 0)
+                  && hasMatchingSlotAfter(resource.data, bookingId, resource.data.studentUid, 1))
                 || request.resource.data.status == 'declined'))
           || (resource.data.status in ['pending', 'accepted']
               && request.resource.data.status == 'cancelled'
-              && slotRemovedAfter(resource.data, 0)
-              && slotRemovedAfter(resource.data, 1))
+              && (resource.data.status == 'pending'
+                || (slotRemovedAfter(resource.data, 0)
+                  && slotRemovedAfter(resource.data, 1))))
           || (resource.data.status == 'accepted'
               && request.resource.data.status == 'completed'
               && request.time >= resource.data.startsAt
@@ -845,23 +849,25 @@ service cloud.firestore {
     }
 
     // The lock path is derived from the request's numeric UTC half-hour bucket.
-    // Each accepted one-hour request owns two adjacent locks, preventing both
-    // exact-time duplicates and overlapping starts.
-    match /tutorSlots/{tutorUid}/slots/{slotId} {
+    // Each participant owns two adjacent locks for an accepted one-hour session.
+    // One namespace also prevents conflicts when a learner is tutoring elsewhere.
+    match /sessionSlots/{participantUid}/slots/{slotId} {
       function bookingPath(bookingId) {
         return /databases/$(database)/documents/tutorBookings/$(bookingId);
       }
 
       function canonicalSlotPath(slotBucket) {
-        return /databases/$(database)/documents/tutorSlots/$(tutorUid)/slots/$(slotBucket);
+        return /databases/$(database)/documents/sessionSlots/$(participantUid)/slots/$(slotBucket);
       }
 
       allow get: if signedIn()
-        && (request.auth.uid == tutorUid
+        && (request.auth.uid == participantUid
+          || request.auth.uid == resource.data.tutorUid
           || request.auth.uid == resource.data.studentUid);
       allow list: if false;
       allow create: if signedIn()
-        && request.auth.uid == tutorUid
+        && request.auth.uid == request.resource.data.tutorUid
+        && participantUid in [request.resource.data.tutorUid, request.resource.data.studentUid]
         && request.resource.data.keys().hasAll([
           'bookingId', 'tutorUid', 'studentUid', 'slotBucket', 'startsAt', 'createdAt'
         ])
@@ -870,12 +876,11 @@ service cloud.firestore {
         ])
         && request.resource.data.bookingId is string
         && request.resource.data.bookingId.size() > 0
-        && request.resource.data.tutorUid == tutorUid
         && request.resource.data.slotBucket is int
         && request.path == canonicalSlotPath(request.resource.data.slotBucket)
         && request.resource.data.createdAt == request.time
         && existsAfter(bookingPath(request.resource.data.bookingId))
-        && getAfter(bookingPath(request.resource.data.bookingId)).data.tutorUid == tutorUid
+        && getAfter(bookingPath(request.resource.data.bookingId)).data.tutorUid == request.resource.data.tutorUid
         && getAfter(bookingPath(request.resource.data.bookingId)).data.studentUid == request.resource.data.studentUid
         && getAfter(bookingPath(request.resource.data.bookingId)).data.slotBuckets.size() == 2
         && (getAfter(bookingPath(request.resource.data.bookingId)).data.slotBuckets[0]
@@ -886,12 +891,14 @@ service cloud.firestore {
         && getAfter(bookingPath(request.resource.data.bookingId)).data.status == 'accepted';
       allow update: if false;
       allow delete: if signedIn()
-        && (request.auth.uid == tutorUid
+        && (request.auth.uid == resource.data.tutorUid
           || request.auth.uid == resource.data.studentUid)
+        && participantUid in [resource.data.tutorUid, resource.data.studentUid]
         && resource.data.slotBucket is int
         && request.path == canonicalSlotPath(resource.data.slotBucket)
         && existsAfter(bookingPath(resource.data.bookingId))
-        && getAfter(bookingPath(resource.data.bookingId)).data.tutorUid == tutorUid
+        && getAfter(bookingPath(resource.data.bookingId)).data.tutorUid == resource.data.tutorUid
+        && getAfter(bookingPath(resource.data.bookingId)).data.studentUid == resource.data.studentUid
         && getAfter(bookingPath(resource.data.bookingId)).data.slotBuckets.size() == 2
         && (getAfter(bookingPath(resource.data.bookingId)).data.slotBuckets[0]
               == resource.data.slotBucket

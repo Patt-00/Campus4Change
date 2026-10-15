@@ -138,12 +138,15 @@ to accept or decline. Student and tutor inboxes use separate UID-constrained
 queries so the rules can prove every returned record belongs to that user.
 The navigator merges those live requests into the existing Sessions menu;
 pending requests remain pending until accepted. Accepting a request uses a
-transaction to reserve two adjacent UTC half-hour documents under
-`tutorSlots/{tutorUid}/slots`; numeric bucket IDs are derived from the request
-timestamp and validated by the rules. This covers the one-hour duration, so
-requests starting 30 minutes apart cannot both be accepted. Booking status and
-both locks are created atomically, and cancellation or completion releases both
-locks in the same transaction. Rules reject forged bucket IDs and status
+transaction to reserve two adjacent UTC half-hour documents for each participant
+under `sessionSlots/{participantUid}/slots`; numeric bucket IDs are derived from
+the request timestamp and validated by the rules. The shared namespace prevents
+overlap across different tutors and across student/tutor roles. Booking status
+and all four locks are created atomically. The tutor reads only their own slot
+records; student locks are blind creates protected by rules, so another tutor
+cannot inspect that student's schedule. Cancellation or completion releases all
+four locks in the same transaction. Pending requests have no locks and remain
+cancellable while another booking occupies the time. Rules reject forged bucket IDs and status
 changes that omit the matching locks. Creating a request also atomically writes
 the student's private, non-deletable `tutorBookingLimits/{uid}` permit; rules
 allow one request every five seconds and reject a booking without its matching

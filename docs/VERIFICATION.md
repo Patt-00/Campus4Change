@@ -799,3 +799,23 @@ check pass. With JDK 25, `:app:createBundleReleaseJsAndAssets` and
 evidence; two-account live event delivery and the final signed artifact still
 need verification. The sprint completion gates are tracked in
 [FINAL_SPRINT.md](FINAL_SPRINT.md).
+
+## Final sprint: both-participant booking conflicts — 2026-10-16
+
+A direct emulator probe against the earlier tutor-only locks accepted two
+overlapping sessions for one student with different tutors; the regression's
+expected denial failed because the second acceptance succeeded. The adapter and
+rules now reserve two half-hour buckets for each participant in the common
+`sessionSlots` namespace. All four locks must match the accepted booking.
+Student slots are written without reading another student's private schedule;
+rules reject overwrites. Accepted cancellation/completion removes all four
+locks atomically. A pending cancellation does not remove or depend on locks
+belonging to another booking.
+
+The new emulator regression verifies exact and half-hour overlaps across tutors,
+student/tutor role conflicts, concurrent acceptance with one winner, adjacent
+sessions, outsider read denial, missing-lock rejection, pending cancellation,
+and rejection of partial release. The complete Firestore rules, this regression,
+and Firebase Auth verification tests pass together. The 259 Jest tests in 34
+suites, lint, and whitespace checks also pass. CI now runs the new regression.
+Real-project deployment and POCO workflow verification remain separate gates.

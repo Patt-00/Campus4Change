@@ -260,26 +260,32 @@ export async function updateTutorBookingStatus(uid, bookingId, status) {
     ) {
       throw new Error('The reserved session time is invalid. Refresh and retry.');
     }
-    const slotRefs = booking.slotBuckets.map(bucket =>
-      doc(db, 'tutorSlots', booking.tutorUid, 'slots', String(bucket)),
+    const tutorSlotRefs = booking.slotBuckets.map(bucket =>
+      doc(db, 'sessionSlots', booking.tutorUid, 'slots', String(bucket)),
     );
+    const studentSlotRefs = booking.slotBuckets.map(bucket =>
+      doc(db, 'sessionSlots', booking.studentUid, 'slots', String(bucket)),
+    );
+    const slotRefs = [...tutorSlotRefs, ...studentSlotRefs];
 
     if (status === 'accept') {
       if (booking.status !== 'pending') {
         throw new Error('This request has already been answered.');
       }
       const occupiedSlots = await Promise.all(
-        slotRefs.map(slotRef => transaction.get(slotRef)),
+        tutorSlotRefs.map(slotRef => transaction.get(slotRef)),
       );
       if (occupiedSlots.some(slot => slot.exists())) {
         throw new Error('This time was just accepted for another request.');
       }
+      // Student slots are blind writes: another tutor cannot read that schedule.
+      // Rules permit creates only and require all four matching locks atomically.
       for (let index = 0; index < slotRefs.length; index += 1) {
         transaction.set(slotRefs[index], {
           bookingId,
           tutorUid: booking.tutorUid,
           studentUid: booking.studentUid,
-          slotBucket: booking.slotBuckets[index],
+          slotBucket: booking.slotBuckets[index % booking.slotBuckets.length],
           startsAt: booking.startsAt,
           createdAt: serverTimestamp(),
         });
@@ -298,7 +304,7 @@ export async function updateTutorBookingStatus(uid, bookingId, status) {
         }
       }
       const occupiedSlots = await Promise.all(
-        slotRefs.map(slotRef => transaction.get(slotRef)),
+        tutorSlotRefs.map(slotRef => transaction.get(slotRef)),
       );
       if (
         occupiedSlots.some(
