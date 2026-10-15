@@ -105,6 +105,15 @@ test('shows listener errors, retries both queries, and ignores callbacks from th
   expect(currentResult.error).not.toContain('wait a few seconds');
   expect(currentResult.loading).toBe(false);
 
+  await act(async () => {
+    subscriptions.tutors[0].onError({
+      code: 'failed-precondition',
+      message: 'The query requires an index. See https://console.firebase.google.com/example',
+    });
+  });
+  expect(currentResult.error).toContain('temporarily unavailable');
+  expect(currentResult.error).not.toContain('https://');
+
   await act(async () => currentResult.retry());
   expect(watchTutorDirectory).toHaveBeenCalledTimes(2);
   expect(watchTutorBookings).toHaveBeenCalledTimes(2);

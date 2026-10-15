@@ -216,3 +216,18 @@ test('shared-data errors only appear on screens that use that data', async () =>
   mockSharedGroupState.error = '';
   mockTutorError = '';
 });
+
+test('pending cloud sync announces updates with native-safe accessibility props', async () => {
+  mockSession = { ...makeSession(true), cloudSyncPending: true };
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(<App />);
+  });
+  const notice = renderer.root.findAllByType(Text).find(node =>
+    String(node.props.children).includes('Waiting to sync with Firebase'),
+  );
+  expect(notice).toBeDefined();
+  expect(notice.props.accessibilityLiveRegion).toBe('polite');
+  expect(notice.props.accessibilityRole).toBeUndefined();
+  await act(async () => renderer.unmount());
+});

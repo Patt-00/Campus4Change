@@ -819,3 +819,29 @@ and rejection of partial release. The complete Firestore rules, this regression,
 and Firebase Auth verification tests pass together. The 259 Jest tests in 34
 suites, lint, and whitespace checks also pass. CI now runs the new regression.
 Real-project deployment and POCO workflow verification remain separate gates.
+
+## Live Firebase deployment and native sync fix — 2026-10-16
+
+Deployed the rules and four indexes from `009a62a` to `campus4change`. An
+authenticated API readback matched the local rules byte for byte, SHA-256
+`8989c8d6924fffbcbbeba43677997ccc92657c8a34ef571902fcbb3cea5e018e`;
+all four composite indexes reached `READY`.
+
+The POCO then exposed a native crash: `accessibilityRole="status"` is rejected
+by Android's `RCTText` accessibility delegate. The cloud-sync and two report
+status notices now use `accessibilityLiveRegion="polite"`. Their component
+tests check the native-safe properties. After a cold launch the POCO showed
+Home with no sync or query errors and no fatal Android/JS error in the filtered
+log. Index-preparation errors now use a readable retry message rather than
+displaying a Firebase Console URL. All 260 Jest tests in 34 suites, lint,
+public-link checks, and whitespace checks pass.
+
+Two temporary mailbox-alias accounts received real Firebase verification emails
+and completed their verification links in the browser. Before verification,
+both accounts could write/read their own private state; shared reads and
+cross-account private reads were denied. A fresh sign-in confirms both verified
+claims. Actual client adapters publish the tutor listing and create a shared
+group. Posting currently fails at the adapter's missing-document preflight
+read; the final sprint is correcting that retry path without opening report
+contents to members. The temporary accounts are test fixtures and are not
+bundled into the app.

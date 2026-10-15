@@ -191,6 +191,11 @@ test('shared group chat announces delivery and lets members report another membe
     .map(node => node.props.children)
     .flat(Infinity);
   expect(updatedText).toContain('Report queued for group-owner review.');
+  const reportNotice = renderer.root.findAllByType(Text).find(node =>
+    node.props.children === 'Report queued for group-owner review.',
+  );
+  expect(reportNotice.props.accessibilityLiveRegion).toBe('polite');
+  expect(reportNotice.props.accessibilityRole).toBeUndefined();
   await act(async () => renderer.unmount());
 });
 

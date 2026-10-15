@@ -187,6 +187,12 @@ test('members can report other members posts and replies without identifying the
       ),
   ).toBe(true);
 
+  const reportNotice = renderer.root.findAllByType(Text).find(node =>
+    String(node.props.children).includes('Report queued for group-owner review.'),
+  );
+  expect(reportNotice.props.accessibilityLiveRegion).toBe('polite');
+  expect(reportNotice.props.accessibilityRole).toBeUndefined();
+
   const reportReply = renderer.root.findByProps({
     accessibilityLabel: 'Report reply by Other Member',
   });

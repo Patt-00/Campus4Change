@@ -12,14 +12,17 @@ const EMPTY = [];
 
 function listenerErrorText(error) {
   if (error?.code === 'permission-denied') {
-    return 'Firebase blocked access. Verify your email and Firestore rules, then retry.';
+    return 'Shared data is not accessible right now. Verify your email and try again. If this continues, contact the project team.';
+  }
+  if (error?.code === 'failed-precondition' && /index/i.test(error.message || '')) {
+    return 'Shared data is temporarily unavailable. Please try again shortly.';
   }
   return error instanceof Error ? error.message : String(error);
 }
 
 function actionErrorText(error) {
   if (error?.code === 'permission-denied') {
-    return 'Firebase denied this change. Verify your email and current Firestore rules, or wait a few seconds if you just sent a session request.';
+    return 'This change could not be saved. Verify your email and try again, or wait a few seconds if you just sent a session request.';
   }
   return error instanceof Error ? error.message : String(error);
 }

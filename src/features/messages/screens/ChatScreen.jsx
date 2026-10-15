@@ -105,7 +105,7 @@ export function ChatScreen({
       </Text>
       <ErrorText value={loadError || sendError} />
       {!!reportStatus && (
-        <Text accessibilityRole="status" style={s.muted}>
+        <Text accessibilityLiveRegion="polite" style={s.muted}>
           {reportStatus}
         </Text>
       )}

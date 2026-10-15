@@ -69,7 +69,7 @@ export function GroupPostScreen({
         )}
       </View>
       {reportQueued && (
-        <Text accessibilityRole="status" style={s.muted}>
+        <Text accessibilityLiveRegion="polite" style={s.muted}>
           Report queued for group-owner review. It will sync when connected.
         </Text>
       )}

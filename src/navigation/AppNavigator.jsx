@@ -1036,7 +1036,7 @@ export function AppNavigator() {
       )}
       {cloudSyncPending && !saveError && (
         <View style={s.banner}>
-          <Text accessibilityRole="status" style={s.muted}>
+          <Text accessibilityLiveRegion="polite" style={s.muted}>
             Saved on this device. Waiting to sync with Firebase.
           </Text>
         </View>
