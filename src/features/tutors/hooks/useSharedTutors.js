@@ -10,7 +10,14 @@ import {
 
 const EMPTY = [];
 
-function errorText(error) {
+function listenerErrorText(error) {
+  if (error?.code === 'permission-denied') {
+    return 'Firebase blocked access. Verify your email and Firestore rules, then retry.';
+  }
+  return error instanceof Error ? error.message : String(error);
+}
+
+function actionErrorText(error) {
   if (error?.code === 'permission-denied') {
     return 'Firebase denied this change. Verify your email and current Firestore rules, or wait a few seconds if you just sent a session request.';
   }
@@ -76,7 +83,7 @@ export function useSharedTutors({ uid, enabled, profile }) {
         setResult(current => ({
           ...current,
           uid,
-          error: errorText(error),
+          error: listenerErrorText(error),
         }));
       }
     };
@@ -130,7 +137,7 @@ export function useSharedTutors({ uid, enabled, profile }) {
     try {
       return await action();
     } catch (error) {
-      const message = errorText(error);
+      const message = actionErrorText(error);
       if (activeUid.current === uid) {
         setActionError({ uid, message });
       }

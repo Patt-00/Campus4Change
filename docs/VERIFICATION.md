@@ -775,4 +775,7 @@ full Jest suite passes 251 tests in 33 suites, and `npm run lint` passes. On the
 POCO X4 GT, the live Metro app showed the tutor error with its retry action on
 Home, then showed only the pending state-sync error on Profile. The live
 Firestore denial remains visible; the UI no longer places unrelated group and
-tutor warnings above Profile.
+tutor warnings above Profile. The tutor-hook tests also confirm that a denied
+read does not recommend waiting after a session request, while a denied write
+retains the request-limit guidance. The revised listener wording has automated
+coverage; it has not been visually rechecked on device.

@@ -102,6 +102,7 @@ test('shows listener errors, retries both queries, and ignores callbacks from th
     subscriptions.tutors[0].onError({ code: 'permission-denied' });
   });
   expect(currentResult.error).toContain('Verify your email');
+  expect(currentResult.error).not.toContain('wait a few seconds');
   expect(currentResult.loading).toBe(false);
 
   await act(async () => currentResult.retry());

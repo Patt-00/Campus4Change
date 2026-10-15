@@ -65,7 +65,9 @@ production-ready claim.
   group-directory errors appear in Study Groups, group action/content errors on
   group pages, and tutor/session errors on tutor or session pages. A route test
   verifies that Profile no longer carries unrelated group and tutor warnings;
-  its actionable private-state sync warning remains visible.
+  its actionable private-state sync warning remains visible. Tutor read denials
+  now give read-specific email-verification and Firestore guidance; write
+  denials retain request-limit guidance, covered separately by hook tests.
 - Shared Firebase study groups support signed-in discovery, membership, posts,
   and replies. Membership documents are private to their owners; posts/replies
   are readable only by members.
