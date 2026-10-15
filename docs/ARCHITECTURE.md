@@ -118,6 +118,12 @@ record to its owner, and permits post/reply reads and writes only for members.
 Each post/reply must update a private per-member write-limit record in the same
 batch; rules enforce a five-second cooldown that leaving and rejoining cannot
 reset.
+Post, reply, and report batches also create an immutable owner-only receipt in
+`users/{uid}/groupActionReceipts`. The receipt must match the batch's validated
+write permit. Retry checks this private acknowledgement instead of reading a
+missing or hidden contribution, or attempting to read an owner-only report.
+Receipts contain action metadata, not report content or a public reporter UID,
+and remain private and idempotent after moderation or leaving a group.
 `useSharedGroupReports` and `GroupReportsScreen` provide a paged, owner-only
 review queue for shared groups. Members can report another member's visible
 post or reply; report records omit reporter UID, and the same write cooldown

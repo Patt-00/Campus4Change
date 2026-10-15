@@ -11,7 +11,8 @@
     "test": "jest",
     "test:firebase-auth": "node scripts/firebase-auth-verification.test.mjs",
     "test:firestore-rules": "node scripts/firestore-rules.test.mjs",
-    "test:booking-overlap": "node scripts/booking-overlap.test.mjs"
+    "test:booking-overlap": "node scripts/booking-overlap.test.mjs",
+    "test:group-client-rules": "node scripts/group-client-rules.test.mjs"
   },
   "dependencies": {
     "firebase": "^13.0.0",

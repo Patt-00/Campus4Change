@@ -731,6 +731,29 @@ export async function syncSharedGroupAction(uid, profile, action) {
   );
   const writeLimitRef = doc(groupRefForAction, 'writeLimits', uid);
 
+  async function contributionReceipt(kind, writeId, postId = null) {
+    const receiptId = encodeURIComponent(
+      JSON.stringify([groupId, kind, postId, writeId]),
+    );
+    const ref = doc(db, 'users', uid, 'groupActionReceipts', receiptId);
+    const existing = await getDoc(ref);
+    if (existing.exists()) {
+      const data = existing.data();
+      if (
+        data.groupId !== groupId || data.kind !== kind ||
+        data.writeId !== writeId || data.postId !== postId
+      ) {
+        throw new Error('This contribution could not be restored. Refresh the group and try again.');
+      }
+      return { ref, done: true };
+    }
+    return {
+      ref,
+      done: false,
+      data: { groupId, kind, writeId, postId, createdAt: serverTimestamp() },
+    };
+  }
+
   if (action.type === 'membership') {
     const membership = await getDoc(memberRef);
     if (membership.exists() === action.joined) {
@@ -760,14 +783,11 @@ export async function syncSharedGroupAction(uid, profile, action) {
 
   if (action.type === 'post') {
     const post = action.post;
-    const postRef = doc(groupRefForAction, 'posts', post.id);
-    const existing = await getDoc(postRef);
-    if (existing.exists()) {
-      if (existing.data().authorUid === uid) {
-        return;
-      }
-      throw new Error('That post ID is already in use.');
+    const receipt = await contributionReceipt('post', post.id);
+    if (receipt.done) {
+      return;
     }
+    const postRef = doc(groupRefForAction, 'posts', post.id);
     const batch = writeBatch(db);
     batch.set(postRef, {
       authorUid: uid,
@@ -788,12 +808,17 @@ export async function syncSharedGroupAction(uid, profile, action) {
       { merge: true },
     );
     batch.update(groupRefForAction, { updatedAt: serverTimestamp() });
+    batch.set(receipt.ref, receipt.data);
     await batch.commit();
     return;
   }
 
   if (action.type === 'reply') {
     const reply = action.reply;
+    const receipt = await contributionReceipt('reply', reply.id, action.postId);
+    if (receipt.done) {
+      return;
+    }
     const replyRef = doc(
       groupRefForAction,
       'posts',
@@ -801,13 +826,6 @@ export async function syncSharedGroupAction(uid, profile, action) {
       'replies',
       reply.id,
     );
-    const existing = await getDoc(replyRef);
-    if (existing.exists()) {
-      if (existing.data().authorUid === uid) {
-        return;
-      }
-      throw new Error('That reply ID is already in use.');
-    }
     const batch = writeBatch(db);
     batch.set(replyRef, {
       authorUid: uid,
@@ -828,6 +846,7 @@ export async function syncSharedGroupAction(uid, profile, action) {
       { merge: true },
     );
     batch.update(groupRefForAction, { updatedAt: serverTimestamp() });
+    batch.set(receipt.ref, receipt.data);
     await batch.commit();
     return;
   }
@@ -837,15 +856,15 @@ export async function syncSharedGroupAction(uid, profile, action) {
     if (!report || typeof report.id !== 'string' || !report.id) {
       throw new Error('The report has no ID.');
     }
+    const receipt = await contributionReceipt('report', report.id, report.postId ?? null);
+    if (receipt.done) {
+      return;
+    }
     const reportRef = doc(
       groupRefForAction,
       'moderationReports',
       report.id,
     );
-    const existing = await getDoc(reportRef);
-    if (existing.exists()) {
-      return;
-    }
 
     const batch = writeBatch(db);
     batch.set(reportRef, {
@@ -870,6 +889,7 @@ export async function syncSharedGroupAction(uid, profile, action) {
       },
       { merge: true },
     );
+    batch.set(receipt.ref, receipt.data);
     await batch.commit();
     return;
   }

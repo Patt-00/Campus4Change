@@ -107,6 +107,29 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Private immutable acknowledgements make queued contributions safe to retry
+    // without reading missing/hidden posts or exposing the owner-only report queue.
+    match /users/{userId}/groupActionReceipts/{receiptId} {
+      function matchesContribution() {
+        let data = request.resource.data;
+        let permit = getAfter(/databases/$(database)/documents/studyGroups/$(data.groupId)/writeLimits/$(userId)).data;
+        return data.keys().hasAll(['groupId', 'kind', 'writeId', 'postId', 'createdAt'])
+          && data.keys().hasOnly(['groupId', 'kind', 'writeId', 'postId', 'createdAt'])
+          && data.groupId is string && data.groupId.size() > 0 && data.groupId.size() <= 128
+          && data.kind in ['post', 'reply', 'report']
+          && data.writeId is string && data.writeId.size() > 0 && data.writeId.size() <= 128
+          && (data.postId == null || (data.postId is string && data.postId.size() > 0 && data.postId.size() <= 128))
+          && data.createdAt == request.time
+          && permit.uid == userId && permit.lastWriteAt == request.time
+          && permit.kind == data.kind && permit.writeId == data.writeId
+          && permit.postId == data.postId;
+      }
+
+      allow get, list: if ownsUserData(userId);
+      allow create: if signedIn() && request.auth.uid == userId && matchesContribution();
+      allow update, delete: if false;
+    }
+
     // Study group metadata is visible to users with a verified email. Membership IDs
     // are private to their owners; a public count lives on the group document.
     match /studyGroups/{groupId} {
@@ -214,6 +237,7 @@ service cloud.firestore {
         && request.query.limit is int
         && request.query.limit <= 20;
       allow create: if signedIn()
+        && groupId.size() <= 128
         && request.resource.data.keys().hasAll([
           'ownerUid', 'name', 'subject', 'meetup', 'meetupAt', 'room',
           'memberCount', 'createdAt', 'updatedAt'

@@ -845,3 +845,22 @@ group. Posting currently fails at the adapter's missing-document preflight
 read; the final sprint is correcting that retry path without opening report
 contents to members. The temporary accounts are test fixtures and are not
 bundled into the app.
+
+## Group contribution adapter/rules regression — 2026-10-16
+
+The live client published a tutor profile and created a group, then failed while
+checking a new post before writing it. The exact adapter reproduced that failure
+against the emulator rules: missing post reads are denied. The same preflight
+pattern also affected replies and member reports, whose report documents are
+intentionally readable only by the owner.
+
+Contributions now atomically create an immutable private action receipt linked
+to the validated per-member write permit. The client checks that receipt to
+make retries idempotent, without reading missing/hidden content or opening the
+report queue. The new `test:group-client-rules` command executes the actual app
+adapter against the emulator. It verifies creation, retries after moderation
+and leaving, owner-only reports, private receipt reads, and denial of forged,
+edited, or deleted receipts. This test, the complete rules suite, participant
+overlap regression, and Auth verification suite pass together. All 260 Jest
+tests, lint, public-link checks, and whitespace checks pass. CI includes the
+adapter/rules regression. Live redeployment and POCO collaboration checks follow.
