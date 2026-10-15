@@ -61,6 +61,11 @@ production-ready claim.
   The only app-source `http://` endpoint is the optional Firebase Auth emulator,
   and runtime configuration rejects it in release builds. The checked-in
   emulator host is empty.
+- Cloud error banners are now scoped to the screens that use the affected data:
+  group-directory errors appear in Study Groups, group action/content errors on
+  group pages, and tutor/session errors on tutor or session pages. A route test
+  verifies that Profile no longer carries unrelated group and tutor warnings;
+  its actionable private-state sync warning remains visible.
 - Shared Firebase study groups support signed-in discovery, membership, posts,
   and replies. Membership documents are private to their owners; posts/replies
   are readable only by members.

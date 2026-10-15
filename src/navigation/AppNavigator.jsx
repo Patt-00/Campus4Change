@@ -54,6 +54,28 @@ import { useCampusSession } from '../shared/state/useCampusSession';
 import { s } from '../shared/theme/styles';
 
 const tabs = new Set(['Home', 'Sessions', 'Create', 'Messages', 'Profile']);
+const groupStatusPages = new Set([
+  'Study Groups',
+  'Create Group',
+  'Group Details',
+  'Group Post',
+  'Group Reports',
+  'Group Session',
+]);
+const groupContentStatusPages = new Set(['Group Details', 'Group Post']);
+const tutorStatusPages = new Set([
+  'Home',
+  'Tutor Search',
+  'Tutor Details',
+  'Book Session',
+  'Booking Confirmed',
+  'Sessions',
+  'Session Details',
+  'Session Workspace',
+  'Messages',
+  'Chat',
+  'Be a Tutor',
+]);
 const restoreStyles = StyleSheet.create({
   content: {
     flex: 1,
@@ -962,13 +984,13 @@ export function AppNavigator() {
             )}
           </View>
         )}
-      {sharedGroupsError && (
+      {route.page === 'Study Groups' && sharedGroupsError && (
         <View style={s.banner}>
           <Text style={s.error}>Study groups could not be refreshed: {sharedGroupsError}</Text>
           <Link label="Retry groups" onPress={retrySharedGroups} />
         </View>
       )}
-      {groupActionError && (
+      {groupStatusPages.has(route.page) && groupActionError && (
         <View style={s.banner}>
           <Text style={s.error}>A group change has not synced: {groupActionError}</Text>
           <Link
@@ -977,13 +999,13 @@ export function AppNavigator() {
           />
         </View>
       )}
-      {groupContentError && (
+      {groupContentStatusPages.has(route.page) && groupContentError && (
         <View style={s.banner}>
           <Text style={s.error}>Group posts could not be loaded: {groupContentError}</Text>
           <Link label="Retry posts" onPress={retryGroupContent} />
         </View>
       )}
-      {sharedTutors.error && (
+      {tutorStatusPages.has(route.page) && sharedTutors.error && (
         <View style={s.banner}>
           <Text style={s.error}>
             Tutor listings and session requests could not be refreshed: {sharedTutors.error}
@@ -991,7 +1013,7 @@ export function AppNavigator() {
           <Link label="Retry tutor data" onPress={sharedTutors.retry} />
         </View>
       )}
-      {sharedTutors.actionError && (
+      {tutorStatusPages.has(route.page) && sharedTutors.actionError && (
         <View style={s.banner}>
           <Text style={s.error}>
             A tutor change was not saved: {sharedTutors.actionError}

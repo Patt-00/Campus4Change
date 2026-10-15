@@ -5,6 +5,7 @@ import App from '../App';
 import { initialState } from '../src/shared/data/utils';
 
 let mockSession;
+let mockTutorError = '';
 let mockSharedGroupOptions;
 let mockGroupReportOptions;
 const mockSharedGroupState = {
@@ -70,7 +71,7 @@ jest.mock('../src/features/tutors/hooks/useSharedTutors', () => ({
   useSharedTutors: () => ({
     tutors: [],
     bookings: [],
-    error: '',
+    error: mockTutorError,
     actionError: '',
     loading: false,
     hasMoreTutors: false,
@@ -169,4 +170,49 @@ test('unverified Firebase accounts see recovery actions and cannot sync shared g
   ).toHaveLength(0);
 
   await act(async () => renderer.unmount());
+});
+
+test('shared-data errors only appear on screens that use that data', async () => {
+  mockSession = makeSession(true);
+  mockSharedGroupState.error = 'Group permissions are unavailable.';
+  mockTutorError = 'Tutor permissions are unavailable.';
+
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(<App />);
+  });
+
+  const copy = () =>
+    renderer.root
+      .findAllByType(Text)
+      .map(node => node.props.children)
+      .join(' ');
+  expect(copy()).toContain(
+    'Tutor listings and session requests could not be refreshed',
+  );
+  expect(copy()).not.toContain('Study groups could not be refreshed');
+
+  const profileTab = renderer.root.findByProps({
+    accessibilityLabel: 'Profile',
+  });
+  await act(async () => profileTab.props.onPress());
+  expect(copy()).not.toContain(
+    'Tutor listings and session requests could not be refreshed',
+  );
+  expect(copy()).not.toContain('Study groups could not be refreshed');
+
+  const homeTab = renderer.root.findByProps({ accessibilityLabel: 'Home' });
+  await act(async () => homeTab.props.onPress());
+  const studyGroupsAction = renderer.root.findByProps({
+    accessibilityLabel: 'Study Groups',
+  });
+  await act(async () => studyGroupsAction.props.onPress());
+  expect(copy()).toContain('Study groups could not be refreshed');
+  expect(copy()).not.toContain(
+    'Tutor listings and session requests could not be refreshed',
+  );
+
+  await act(async () => renderer.unmount());
+  mockSharedGroupState.error = '';
+  mockTutorError = '';
 });

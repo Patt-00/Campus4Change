@@ -766,3 +766,13 @@ The merged release manifest sets it to `false`. The checked-in
 emulator configuration when `__DEV__` is false. A source search found no other
 application `http://` endpoints. No network-security configuration change was
 needed.
+
+## Contextual cloud-status UI — 2026-10-15
+
+The `emailVerificationBanner` route test supplies simultaneous group and tutor
+permission errors and confirms they appear only on the relevant screens. The
+full Jest suite passes 251 tests in 33 suites, and `npm run lint` passes. On the
+POCO X4 GT, the live Metro app showed the tutor error with its retry action on
+Home, then showed only the pending state-sync error on Profile. The live
+Firestore denial remains visible; the UI no longer places unrelated group and
+tutor warnings above Profile.
