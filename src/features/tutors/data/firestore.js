@@ -68,8 +68,35 @@ export function mapTutorBooking(snapshot, uid) {
 
 export function watchTutorDirectory(uid, onTutors, onError) {
   const { db, firestore } = firebaseServicesForUser(uid);
-  const { collection, limit, onSnapshot, orderBy, query, where } = firestore;
-  return onSnapshot(
+  const { collection, getDocs, limit, onSnapshot, orderBy, query, startAfter, where } = firestore;
+  let active = true;
+  let live = true;
+  let loadingMore = false;
+  let hasMore = false;
+  let cursor = null;
+  let liveDocs = [];
+  const olderDocs = new Map();
+  let stopLive = () => {};
+
+  function publish() {
+    if (!active) return;
+    const docs = new Map(olderDocs);
+    liveDocs.forEach(snapshot => docs.set(snapshot.id, snapshot));
+    const tutors = [...docs.values()]
+      .map(snapshot => mapTutor(snapshot, uid))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    onTutors(tutors, { hasMore, loadingMore, live });
+  }
+
+  function pauseLive() {
+    if (live) {
+      live = false;
+      stopLive();
+      stopLive = () => {};
+    }
+  }
+
+  stopLive = onSnapshot(
     query(
       collection(db, 'tutorProfiles'),
       where('visibility', '==', 'listed'),
@@ -77,66 +104,152 @@ export function watchTutorDirectory(uid, onTutors, onError) {
       limit(PROFILE_PAGE_SIZE),
     ),
     snapshot => {
-      const tutors = snapshot.docs
-        .map(docSnapshot => mapTutor(docSnapshot, uid))
-        .sort((a, b) => a.name.localeCompare(b.name));
-      onTutors(tutors, { hasMore: snapshot.size === PROFILE_PAGE_SIZE });
+      if (!active || !live) return;
+      liveDocs = snapshot.docs;
+      cursor = snapshot.docs.at(-1) ?? cursor;
+      hasMore = snapshot.docs.length === PROFILE_PAGE_SIZE;
+      publish();
     },
-    onError,
+    error => active && onError(error),
   );
+
+  return {
+    unsubscribe: () => {
+      active = false;
+      stopLive();
+    },
+    loadMore: async () => {
+      if (!active || !hasMore || loadingMore) return;
+      loadingMore = true;
+      pauseLive();
+      publish();
+      try {
+        const page = await getDocs(query(
+          collection(db, 'tutorProfiles'),
+          where('visibility', '==', 'listed'),
+          orderBy('updatedAt', 'desc'),
+          startAfter(cursor),
+          limit(PROFILE_PAGE_SIZE),
+        ));
+        if (!active) return;
+        page.docs.forEach(snapshot => olderDocs.set(snapshot.id, snapshot));
+        cursor = page.docs.at(-1) ?? cursor;
+        hasMore = page.docs.length === PROFILE_PAGE_SIZE;
+      } catch (error) {
+        if (active) onError(error);
+      } finally {
+        loadingMore = false;
+        publish();
+      }
+    },
+  };
 }
 
 export function watchTutorBookings(uid, onBookings, onError) {
   const { db, firestore } = firebaseServicesForUser(uid);
-  const { collection, limit, onSnapshot, query, where } = firestore;
-  const studentSnapshots = new Map();
-  const tutorSnapshots = new Map();
-  let studentLoaded = false;
-  let tutorLoaded = false;
+  const { collection, getDocs, limit, onSnapshot, orderBy, query, startAfter, where } = firestore;
+  let active = true;
+  const bookings = collection(db, 'tutorBookings');
+  let studentPage;
+  let tutorPage;
 
   function publish() {
-    if (!studentLoaded || !tutorLoaded) {
+    if (!active || !studentPage?.loaded || !tutorPage?.loaded) {
       return;
     }
-    const snapshots = new Map([...studentSnapshots, ...tutorSnapshots]);
-    const bookings = [...snapshots.values()]
+    const snapshots = new Map([
+      ...studentPage.docs().map(snapshot => [snapshot.id, snapshot]),
+      ...tutorPage.docs().map(snapshot => [snapshot.id, snapshot]),
+    ]);
+    const mergedBookings = [...snapshots.values()]
       .map(docSnapshot => mapTutorBooking(docSnapshot, uid))
       .sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt));
-    onBookings(bookings, {
-      hasMore:
-        studentSnapshots.size === BOOKING_PAGE_SIZE ||
-        tutorSnapshots.size === BOOKING_PAGE_SIZE,
+    onBookings(mergedBookings, {
+      hasMore: studentPage.hasMore || tutorPage.hasMore,
+      loadingMore: studentPage.loadingMore || tutorPage.loadingMore,
+      live: studentPage.live && tutorPage.live,
     });
   }
 
-  const bookings = collection(db, 'tutorBookings');
-  const stopAsStudent = onSnapshot(
-    query(bookings, where('studentUid', '==', uid), limit(BOOKING_PAGE_SIZE)),
-    snapshot => {
-      studentSnapshots.clear();
-      snapshot.docs.forEach(docSnapshot =>
-        studentSnapshots.set(docSnapshot.id, docSnapshot),
-      );
-      studentLoaded = true;
-      publish();
+  function watchParticipant(field) {
+    let live = true;
+    let loadingMore = false;
+    let hasMore = false;
+    let loaded = false;
+    let cursor = null;
+    let liveDocs = [];
+    const olderDocs = new Map();
+    let stopLive = () => {};
+    const page = {
+      get hasMore() { return hasMore; },
+      get loadingMore() { return loadingMore; },
+      get live() { return live; },
+      get loaded() { return loaded; },
+      docs: () => [...new Map([
+        ...olderDocs,
+        ...liveDocs.map(snapshot => [snapshot.id, snapshot]),
+      ]).values()],
+      pause: () => {
+        if (!live) return;
+        live = false;
+        stopLive();
+        stopLive = () => {};
+      },
+      unsubscribe: () => {
+        live = false;
+        stopLive();
+      },
+      loadMore: async () => {
+        if (!active || !hasMore || loadingMore) return;
+        loadingMore = true;
+        page.pause();
+        publish();
+        try {
+          const nextPage = await getDocs(query(
+            bookings,
+            where(field, '==', uid),
+            orderBy('createdAt', 'desc'),
+            startAfter(cursor),
+            limit(BOOKING_PAGE_SIZE),
+          ));
+          if (!active) return;
+          nextPage.docs.forEach(snapshot => olderDocs.set(snapshot.id, snapshot));
+          cursor = nextPage.docs.at(-1) ?? cursor;
+          hasMore = nextPage.docs.length === BOOKING_PAGE_SIZE;
+        } catch (error) {
+          if (active) onError(error);
+        } finally {
+          loadingMore = false;
+          publish();
+        }
+      },
+    };
+    stopLive = onSnapshot(
+      query(bookings, where(field, '==', uid), orderBy('createdAt', 'desc'), limit(BOOKING_PAGE_SIZE)),
+      snapshot => {
+        if (!active || !live) return;
+        liveDocs = snapshot.docs;
+        cursor = snapshot.docs.at(-1) ?? cursor;
+        hasMore = snapshot.docs.length === BOOKING_PAGE_SIZE;
+        loaded = true;
+        publish();
+      },
+      error => active && onError(error),
+    );
+    return page;
+  }
+
+  studentPage = watchParticipant('studentUid');
+  tutorPage = watchParticipant('tutorUid');
+  return {
+    unsubscribe: () => {
+      active = false;
+      studentPage.unsubscribe();
+      tutorPage.unsubscribe();
     },
-    onError,
-  );
-  const stopAsTutor = onSnapshot(
-    query(bookings, where('tutorUid', '==', uid), limit(BOOKING_PAGE_SIZE)),
-    snapshot => {
-      tutorSnapshots.clear();
-      snapshot.docs.forEach(docSnapshot =>
-        tutorSnapshots.set(docSnapshot.id, docSnapshot),
-      );
-      tutorLoaded = true;
-      publish();
+    loadMore: async () => {
+      await Promise.all([studentPage.loadMore(), tutorPage.loadMore()]);
     },
-    onError,
-  );
-  return () => {
-    stopAsStudent();
-    stopAsTutor();
   };
 }
 

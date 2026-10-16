@@ -656,6 +656,24 @@ test('future booked sessions cannot be completed before their scheduled start', 
   expect(hasText('MARK SESSION COMPLETE')).toBe(false);
 });
 
+test('a shared request note is not prefilled into private session notes', async () => {
+  const state = makeQaState();
+  state.sessions[0].shared = true;
+  state.sessions[0].note = 'Visible request detail';
+  mockSaved[qaAccount.id] = JSON.stringify(state);
+  await login();
+  await press('View all');
+  await pressWithLabelStarting('View Calculus I details.');
+  expect(hasText('Request note (shared)')).toBe(true);
+  expect(hasText('Visible request detail')).toBe(true);
+  await press('OPEN SESSION WORKSPACE');
+  const privateNotes = renderer.root
+    .findAllByType(TextInput)
+    .find(input => input.props.accessibilityLabel === 'Private agenda and notes');
+  expect(privateNotes).toBeDefined();
+  expect(privateNotes.props.value).toBe('');
+});
+
 test('failed local saves show a retry action that saves the current account data', async () => {
   mockStore.saveState.mockRejectedValueOnce(new Error('Storage is full.'));
   await login();

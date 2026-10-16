@@ -107,6 +107,43 @@ test('the Requests filter separates incoming and outgoing tutor requests', async
   await act(async () => renderer.unmount());
 });
 
+test('sessions offer older pages and explain refresh while browsing a snapshot', async () => {
+  const loadMoreSessions = jest.fn(async () => {});
+  const refreshSessions = jest.fn();
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(
+      <SafeAreaProvider initialMetrics={initialMetrics}>
+        <SessionsScreen
+          go={jest.fn()}
+          back={jest.fn()}
+          sessions={[]}
+          list={[]}
+          initialFilter="Requests"
+          hasMoreSessions
+          loadMoreSessions={loadMoreSessions}
+          sessionsLive={false}
+          refreshSessions={refreshSessions}
+        />
+      </SafeAreaProvider>,
+    );
+  });
+
+  const controls = () => renderer.root.findAllByType(TouchableOpacity);
+  const load = controls().find(node => node.props.accessibilityLabel === 'LOAD MORE SESSIONS');
+  const refresh = controls().find(node => node.props.accessibilityLabel === 'REFRESH LATEST SESSIONS');
+  expect(load).toBeDefined();
+  expect(refresh).toBeDefined();
+  await act(async () => load.props.onPress());
+  await act(async () => refresh.props.onPress());
+  expect(loadMoreSessions).toHaveBeenCalledTimes(1);
+  expect(refreshSessions).toHaveBeenCalledTimes(1);
+  const copy = renderer.root.findAllByType(Text).map(node => node.props.children).join(' ');
+  expect(copy).toContain('Older sessions are a snapshot. Refresh to check for changes.');
+  expect(copy).toContain('Load more sessions to check older requests.');
+  await act(async () => renderer.unmount());
+});
+
 test('sessions with unrecognized saved statuses stay visible for review', async () => {
   const go = jest.fn();
   const sessions = [

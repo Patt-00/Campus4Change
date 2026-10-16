@@ -32,12 +32,18 @@ function subscriptionsForCurrentUser() {
   watchTutorDirectory.mockImplementation((uid, onTutors, onError) => {
     const subscription = { uid, onTutors, onError, stop: jest.fn() };
     tutors.push(subscription);
-    return subscription.stop;
+    return {
+      unsubscribe: subscription.stop,
+      loadMore: jest.fn(async () => {}),
+    };
   });
   watchTutorBookings.mockImplementation((uid, onBookings, onError) => {
     const subscription = { uid, onBookings, onError, stop: jest.fn() };
     bookings.push(subscription);
-    return subscription.stop;
+    return {
+      unsubscribe: subscription.stop,
+      loadMore: jest.fn(async () => {}),
+    };
   });
   return { tutors, bookings };
 }

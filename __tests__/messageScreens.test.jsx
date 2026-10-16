@@ -55,6 +55,35 @@ test('chat virtualizes long threads and keeps the newest message at the bottom',
   await act(async () => chatRenderer.unmount());
 });
 
+test('empty chat copy renders outside the inverted message list', async () => {
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(
+      <SafeAreaProvider initialMetrics={initialMetrics}>
+        <ChatScreen
+          back={jest.fn()}
+          conversation={{
+            id: 'empty-chat',
+            name: 'Tutor',
+            delivery: 'shared',
+            messages: [],
+          }}
+          send={jest.fn()}
+        />
+      </SafeAreaProvider>,
+    );
+  });
+
+  const labels = renderer.root
+    .findAllByType(Text)
+    .map(node => node.props.children)
+    .flat(Infinity);
+  expect(labels).toContain('No messages yet');
+  expect(labels).toContain('Send the first message to this conversation.');
+  expect(renderer.root.findAllByType(FlatList)).toHaveLength(0);
+  await act(async () => renderer.unmount());
+});
+
 test('chat sends a trimmed draft from the keyboard action', async () => {
   const send = jest.fn();
   let renderer;

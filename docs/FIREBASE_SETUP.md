@@ -68,12 +68,12 @@ for the platform flow and token exchange.
 5. Register the Android package `com.campus4change` in Project settings. For
    Google sign-in, build with a private per-machine debug key and register that
    APK's SHA-1. On this workstation, `~/.android/debug.keystore` is selected
-   with `C4C_DEBUG_STORE_FILE` and its SHA-1 is already registered. Do not add
+   with `C4C_DEBUG_STORE_FILE` and its SHA-1 is registered. The dedicated
+   release certificate's SHA-1 and SHA-256 are registered as well. Do not add
    the public repo-tracked debug key to Firebase. Each additional developer's
    private debug key needs its own authorized SHA-1 entry. App Check Play
-   Integrity uses SHA-256 and requires separate app registration plus terms
-   acceptance. Add both release fingerprints after the dedicated release key
-   is created.
+   Integrity requires a valid release certificate and provider configuration;
+   the registered release SHA-256 alone does not verify release attestation.
 6. Sign in to the Firebase CLI, select the same project, and deploy the
    checked-in Firestore rules and indexes only after reviewing and authorizing
    that live change:
@@ -104,16 +104,15 @@ Android API key are stored in `firebaseConfig.js` separately from the Web app ID
 and Web API key. The JavaScript Firebase app receives only the Web configuration;
 the native App Check bridge receives only the Android app configuration.
 
-The Android app must be registered for App Check with Play Integrity and a
-SHA-256 signing fingerprint. Firebase Console also requires accepting the
-Google APIs and Play Integrity API terms during registration. For a debug
-build, install the app, obtain its debug token from local Android logs, and
-allowlist that token under Firebase Console **Security > App Check > Manage
-debug tokens**. Treat the token as a credential: never commit it or include it
-in screenshots, reports, or CI logs. The signed release build needs its own
-SHA-256 fingerprint. Monitor request metrics before enabling enforcement. The
-current project has no App Check registration or enforcement, so valid live
-token exchange has not yet been verified.
+The Android Firebase app and signing fingerprints are registered. A POCO X4 GT
+debug token was allowlisted for final-sprint QA, used to verify private-state
+sync, then revoked and removed from the local credential cache. Never commit
+debug tokens or include them in screenshots, reports, or CI logs. Release
+builds use Play Integrity and the dedicated release SHA-256 is registered, but
+release attestation, request metrics, and enforcement have not been verified.
+Firestore Security Rules remain the primary authorization boundary. Accept the
+Google APIs and Play Integrity terms in Firebase Console only when you are
+ready to configure production App Check.
 
 ## Verify the Firestore rules locally
 

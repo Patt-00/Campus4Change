@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { AppButton } from '../../../shared/components/AppButton';
 import { Screen } from '../../../shared/components/Screen';
 import {
   Avatar,
@@ -30,6 +31,10 @@ export function TutorSearchScreen({
   loading = false,
   error = '',
   retry,
+  hasMoreTutors = false,
+  loadingMoreTutors = false,
+  tutorsLive = true,
+  loadMoreTutors,
 }) {
   const [query, setQuery] = useState(initialQuery);
   const [subject, setSubject] = useState('');
@@ -116,6 +121,7 @@ export function TutorSearchScreen({
       )}
       <Text style={s.section}>
         {sharedAccount ? 'Community tutors' : 'Tutor directory'} · {results.length}
+        {hasMoreTutors ? ' shown' : ''}
       </Text>
       {results.map(t => {
         const rating =
@@ -166,17 +172,40 @@ export function TutorSearchScreen({
             body={
               list.length
                 ? 'Try another subject or clear the filters.'
-                : sharedAccount
-                  ? emailVerified
-                    ? 'Publish a tutor profile to help other learners find you, or check back later.'
-                    : 'Tutor listings are available after your Firebase email is verified.'
-                  : 'Create a device-only tutor profile or sign in with Firebase to browse shared tutor listings.'
+                : hasMoreTutors
+                  ? 'No matches in the loaded listings. Load more tutors or clear the filters.'
+                  : sharedAccount
+                    ? emailVerified
+                      ? 'Publish a tutor profile to help other learners find you, or check back later.'
+                      : 'Tutor listings are available after your Firebase email is verified.'
+                    : 'Create a device-only tutor profile or sign in with Firebase to browse shared tutor listings.'
             }
           />
         )
       )}
       {!!error && retry && (
         <Link label="Retry tutor directory" onPress={retry} />
+      )}
+      {filtered && hasMoreTutors && (
+        <Text style={s.muted}>
+          Search covers loaded listings. Load more tutors to search further.
+        </Text>
+      )}
+      {hasMoreTutors && loadMoreTutors && (
+        <AppButton
+          title={loadingMoreTutors ? 'LOADING MORE TUTORS...' : 'LOAD MORE TUTORS'}
+          outline
+          disabled={loadingMoreTutors}
+          onPress={loadMoreTutors}
+        />
+      )}
+      {!tutorsLive && retry && (
+        <>
+          <Text style={s.muted}>
+            Older listings are a snapshot. Refresh to see the latest changes.
+          </Text>
+          <AppButton title="REFRESH LATEST TUTOR LISTINGS" outline onPress={retry} />
+        </>
       )}
       {!list.length && (
         <>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Text, TouchableOpacity, View, StyleSheet } from 'react-native';
+import { AppButton } from '../../../shared/components/AppButton';
 import { Screen } from '../../../shared/components/Screen';
 import { Chip, Empty, Link } from '../../../shared/components/UI';
 import { sessionTime } from '../../../shared/data/utils';
@@ -17,6 +18,11 @@ export function SessionsScreen({
   sessions,
   list,
   initialFilter = 'Upcoming',
+  hasMoreSessions = false,
+  loadingMoreSessions = false,
+  sessionsLive = true,
+  loadMoreSessions,
+  refreshSessions,
 }) {
   const [filter, setFilter] = useState(initialFilter);
   const now = useSessionClock(sessions);
@@ -150,6 +156,22 @@ export function SessionsScreen({
         ))}
       </View>
       <Text style={s.section}>{filter}</Text>
+      {hasMoreSessions && loadMoreSessions && (
+        <AppButton
+          title={loadingMoreSessions ? 'LOADING MORE SESSIONS...' : 'LOAD MORE SESSIONS'}
+          outline
+          disabled={loadingMoreSessions}
+          onPress={loadMoreSessions}
+        />
+      )}
+      {!sessionsLive && refreshSessions && (
+        <>
+          <Text style={s.muted}>
+            Older sessions are a snapshot. Refresh to check for changes.
+          </Text>
+          <AppButton title="REFRESH LATEST SESSIONS" outline onPress={refreshSessions} />
+        </>
+      )}
       {filtered.map(card)}
       {filter === 'Upcoming' && !filtered.length && (
         <Empty
@@ -157,14 +179,20 @@ export function SessionsScreen({
           body={
             hasOtherSessions
               ? 'Your other sessions are grouped below by status.'
-              : 'Find a tutor to book your next session.'
+              : hasMoreSessions
+                ? 'Load more sessions to check older bookings.'
+                : 'Find a tutor to book your next session.'
           }
         />
       )}
       {filter === 'Requests' && !filtered.length && (
         <Empty
           title="No session requests"
-          body="Requests you send and requests waiting for your response will appear here."
+          body={
+            hasMoreSessions
+              ? 'No requests in the loaded records. Load more sessions to check older requests.'
+              : 'Requests you send and requests waiting for your response will appear here.'
+          }
         />
       )}
       {inProgress.length > 0 && (
@@ -188,7 +216,11 @@ export function SessionsScreen({
       {filter !== 'Upcoming' && !filtered.length && (
         <Empty
           title={'No ' + filter.toLowerCase() + ' sessions'}
-          body="Sessions will appear here when their status changes."
+          body={
+            hasMoreSessions
+              ? 'No sessions in the loaded records. Load more to check older sessions.'
+              : 'Sessions will appear here when their status changes.'
+          }
         />
       )}
       {filter === 'Upcoming' &&

@@ -122,44 +122,47 @@ export function ChatScreen({
           onPress={loadMoreMessages}
         />
       )}
-      <FlatList
-        style={s.grow}
-        contentContainerStyle={styles.chatContent}
-        data={messages}
-        inverted
-        keyExtractor={(message, index) =>
-          typeof message.id === 'string' && message.id
-            ? message.id
-            : `message-${messages.length - 1 - index}`
-        }
-        renderItem={({ item: message }) => (
-          <View
-            style={[styles.bubble, message.mine ? styles.mine : styles.theirs]}
-          >
-            {conversation.kind === 'group' && !message.mine && (
-              <Text style={styles.sender}>{message.senderName || 'Group member'}</Text>
-            )}
-            <Text style={s.text}>{messageText(message)}</Text>
-            <Text style={styles.time}>
-              {timeLabel(message.sentAt)}
-              {message.mine && !delivered ? ' • Not delivered' : ''}
-            </Text>
-            {conversation.kind === 'group' && reportMessage && !message.mine && (
-              <Link
-                label="Report message"
-                danger
-                onPress={() => report(message)}
-              />
-            )}
-          </View>
-        )}
-        initialNumToRender={18}
-        maxToRenderPerBatch={12}
-        windowSize={5}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        ListEmptyComponent={
-          loading ? (
+      {messages.length ? (
+        <FlatList
+          style={s.grow}
+          contentContainerStyle={styles.chatContent}
+          data={messages}
+          inverted
+          keyExtractor={(message, index) =>
+            typeof message.id === 'string' && message.id
+              ? message.id
+              : `message-${messages.length - 1 - index}`
+          }
+          renderItem={({ item: message }) => (
+            <View
+              style={[styles.bubble, message.mine ? styles.mine : styles.theirs]}
+            >
+              {conversation.kind === 'group' && !message.mine && (
+                <Text style={styles.sender}>{message.senderName || 'Group member'}</Text>
+              )}
+              <Text style={s.text}>{messageText(message)}</Text>
+              <Text style={styles.time}>
+                {timeLabel(message.sentAt)}
+                {message.mine && !delivered ? ' • Not delivered' : ''}
+              </Text>
+              {conversation.kind === 'group' && reportMessage && !message.mine && (
+                <Link
+                  label="Report message"
+                  danger
+                  onPress={() => report(message)}
+                />
+              )}
+            </View>
+          )}
+          initialNumToRender={18}
+          maxToRenderPerBatch={12}
+          windowSize={5}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        />
+      ) : (
+        <View style={[s.grow, styles.emptyContent]}>
+          {loading ? (
             <View style={styles.loading}>
               <ActivityIndicator color={C.cyan} />
               <Text style={s.muted}>Loading messages…</Text>
@@ -173,9 +176,9 @@ export function ChatScreen({
                   : 'Notes here stay in your account and are not delivered to the other person.'
               }
             />
-          )
-        }
-      />
+          )}
+        </View>
+      )}
       {!canSend && (
         <Text style={s.muted}>
           {conversation.kind === 'group'
@@ -241,6 +244,9 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingBottom: 12,
     paddingTop: 20,
+  },
+  emptyContent: {
+    justifyContent: 'center',
   },
   alignItemsflexend: {
     alignItems: 'flex-end',

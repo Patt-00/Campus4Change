@@ -98,10 +98,11 @@ $env:C4C_DEBUG_STORE_FILE = Join-Path $HOME '.android\debug.keystore'
 .\gradlew.bat assembleDebug
 ```
 
-This setting applies only to that build; it is not stored in Git. The current
-Firebase project has this workstation's per-user SHA-1 registered. Other
-developers must use their own local key and authorize its SHA-1 separately
-before testing Google sign-in. Switching between different debug keys prevents
+This setting applies only to that build; it is not stored in Git. Firebase has
+the current workstation's per-user debug SHA-1 and the dedicated release
+SHA-1/SHA-256 registered for Google sign-in. Other developers must use their
+own local key and authorize its SHA-1 separately before testing Google
+sign-in. Switching between different debug keys prevents
 an in-place APK update; uninstalling the old APK removes device-only app data.
 Back up or migrate local-only data before changing the signing key on a device
 that already has the app installed. Keep App Check registration and its
@@ -199,7 +200,7 @@ PowerShell and CI should provide the same four variables through a secure secret
 
 Version 1.2.0 has version code 3 and application ID `com.campus4change`.
 
-An update requires a matching application ID and signing certificate. The v1.0.0, 1.1.0, and 1.2.0 APKs use the same debug certificate. A dedicated release key will not update those debug-signed installs; plan the transition before distribution. The earlier 1.1.0 update over v1.0 succeeded on one Android 16 phone. Installation of 1.2.0 is left to the user and has not been verified. Uninstalling removes on-device data.
+An update requires a matching application ID and signing certificate. The v1.0.0, 1.1.0, and 1.2.0 APKs use the same debug certificate. The final-sprint debug build was updated in place on the POCO with the workstation's matching key. The dedicated release APK/AAB were built and signature-checked, but the release APK was not installed over the debug-signed app because that would require uninstalling and remove on-device data. Back up or migrate local-only state before changing signing identities.
 
 Minimum Android is 7.0. Optional biometrics require Android 9 or newer. The iOS scaffold has no native implementation for these local accounts.
 

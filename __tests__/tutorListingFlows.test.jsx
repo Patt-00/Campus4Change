@@ -178,6 +178,53 @@ test('tutor subject filters collapse spelling variants', async () => {
   await act(async () => renderer.unmount());
 });
 
+test('shared tutor search loads older pages and offers refresh while paging', async () => {
+  const loadMoreTutors = jest.fn(async () => {});
+  const retry = jest.fn();
+  let renderer;
+  await act(async () => {
+    renderer = renderScreen(
+      <TutorSearchScreen
+        go={jest.fn()}
+        back={jest.fn()}
+        list={[
+          { id: 'tutor-1', name: 'First Tutor', subjects: ['Calculus'], shared: true },
+        ]}
+        sharedAccount
+        hasMoreTutors
+        tutorsLive
+        loadMoreTutors={loadMoreTutors}
+        retry={retry}
+      />,
+    );
+  });
+  expect(button(renderer, 'LOAD MORE TUTORS')).toBeDefined();
+  await act(async () => button(renderer, 'LOAD MORE TUTORS').props.onPress());
+  expect(loadMoreTutors).toHaveBeenCalledTimes(1);
+
+  await act(async () => {
+    renderer.update(
+      <SafeAreaProvider initialMetrics={initialMetrics}>
+        <TutorSearchScreen
+          go={jest.fn()}
+          back={jest.fn()}
+          list={[
+            { id: 'tutor-1', name: 'First Tutor', subjects: ['Calculus'], shared: true },
+            { id: 'tutor-2', name: 'Older Tutor', subjects: ['Physics'], shared: true },
+          ]}
+          sharedAccount
+          tutorsLive={false}
+          retry={retry}
+        />
+      </SafeAreaProvider>,
+    );
+  });
+  expect(button(renderer, 'REFRESH LATEST TUTOR LISTINGS')).toBeDefined();
+  await act(async () => button(renderer, 'REFRESH LATEST TUTOR LISTINGS').props.onPress());
+  expect(retry).toHaveBeenCalledTimes(1);
+  await act(async () => renderer.unmount());
+});
+
 test('shared tutor directory gives a real empty state without bundled listings', async () => {
   const go = jest.fn();
   let renderer;

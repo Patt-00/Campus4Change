@@ -864,3 +864,55 @@ edited, or deleted receipts. This test, the complete rules suite, participant
 overlap regression, and Auth verification suite pass together. All 260 Jest
 tests, lint, public-link checks, and whitespace checks pass. CI includes the
 adapter/rules regression. Live redeployment and POCO collaboration checks follow.
+
+## Final sprint verification — 2026-10-17
+
+- `npm test -- --runInBand` passed 266 tests in 34 suites. `npm run lint`,
+  `npm run check:public-drive-links`, and `git diff --check` passed.
+- The Firebase Local Emulator Suite passed Auth email verification, complete
+  Firestore rules/offline persistence, booking-overlap, and actual group-client
+  adapter/rules tests using the demo project `demo-campus4change-rules`.
+- Firebase project `campus4change` has six composite indexes, all `READY`. An
+  authenticated Rules API readback matched the repository's `firestore.rules`
+  SHA-256 `4bd5afad4aa7c1e7428c45e018509c33d0ae00721dcdcc549ac72a3c341d35c0`.
+- The data-preserving debug build was updated and exercised on the authorized
+  POCO X4 GT (`22041216G`). Two verified temporary accounts exercised tutor
+  discovery, session request/accept/cancel, participant chat, group discovery,
+  post/reply, group chat, in-app notification, and notification deep-link flows.
+  A tutor-only note was present in that owner's Firestore state and absent from
+  the student's workspace. The shared request note stayed on Session Details
+  and did not prefill either participant's private-notes field.
+- A private note initially failed to sync while the POCO's App Check debug
+  token was not allowlisted. After a temporary device debug token was
+  registered, the tutor's private state was readable at the owner-only Firestore
+  path and sign-out completed without an unsynced-state warning. The temporary
+  debug tokens were revoked after QA. Release Play Integrity attestation,
+  production request metrics, and enforcement were not verified.
+- QA Firestore fixtures included one tutor profile, one shared test group with
+  posts/replies/chat, one cancelled booking, participant slot paths, and two
+  temporary Auth accounts. Firestore absence checks passed after deletion. The
+  protected local QA credential file was removed. The POCO remains signed out;
+  encrypted per-account QA snapshots remain in the installed app because this
+  build has no per-account local purge action. No app data was cleared.
+- The editable Figma prototype was updated and visually checked: Tutor Search
+  now shows loaded-list pagination, Sessions includes Requests plus pagination
+  and refresh states, the Chat composer uses SEND, and a separate centered empty
+  chat frame was added. The private-note design remains blank by default.
+- `assembleRelease` and `bundleRelease` succeeded with the protected dedicated
+  keystore. The release APK SHA-256 is
+  `12bf9f0a17cb5775453c1b47a07f458cc5f3d62e581cbe3d97efafc161e12bf2`; the
+  AAB SHA-256 is
+  `d7612b52d2bd97fe3f3ff11abf366b95a077c8edd1d2876307eb41cb8ce4f1b4`. Both
+  artifacts use the Firebase-registered release certificate (SHA-1
+  `734c583ad99d2506769677012ab9b63e6750dcfc`, SHA-256
+  `8d3013d36bc87451accb4ff455a7839f39397ea0538c367e615c80d1bbd5c1a4`) and
+  contain the production JavaScript bundle. The release-signed APK was not
+  installed over the POCO's different debug signer, to preserve device-local
+  data; physical interaction evidence is from the debug build.
+- OS push notifications and live calls are not implemented. Store-distribution
+  account deletion, minimum-API 24 password-provider runtime, release-signed
+  Google sign-in on hardware, and App Check production metrics/enforcement
+  remain outside this verified school Android delivery. See
+  [QUALITY_AUDIT.md](QUALITY_AUDIT.md).
+- The implementation branch had not yet been committed, pushed, or checked by
+  its final GitHub Actions run when this record was written.

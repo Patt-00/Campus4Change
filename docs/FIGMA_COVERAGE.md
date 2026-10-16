@@ -2,7 +2,7 @@
 
 Reference: [Campus4Change Mobile App Prototype](https://www.figma.com/proto/i23zbYooPqV1EkTLXfnxMo/Campus4Change-Mobile-App-Prototype?node-id=1-2&starting-point-node-id=1%3A2).
 
-The file now lists the 19 mobile screens below and a separate `Campus4Change Components` page for reusable dark-theme controls. The Login and Sign-up frames show the implemented Google buttons and account guidance, using a reusable token-bound Google button component. The component page also includes the red inline auth-feedback component used when Google sign-in does not complete and a token-bound cloud-sync pending banner. The Home frame shows its instance at the top when Firebase has not acknowledged the newest local state. The Group Session and Booked Session Workspace frames use editable text, variables, and component instances; their compositions and the updated Group Details and Session Details screens were visually inspected in Figma.
+The file now contains the original 19 mobile screens plus an empty-chat state frame and a separate `Campus4Change Components` page for reusable dark-theme controls. The Login and Sign-up frames show the implemented Google buttons and account guidance, using a reusable token-bound Google button component. The component page also includes the red inline auth-feedback component used when Google sign-in does not complete and a token-bound cloud-sync pending banner. The Home frame shows its instance at the top when Firebase has not acknowledged the newest local state. The Group Session and Booked Session Workspace frames use editable text, variables, and component instances; pagination and chat-composer updates were visually checked in Figma.
 
 The prototype has 69 navigation action nodes: 42 directional 220 ms ease-out move-ins and 27 tab dissolves. The new Booked Session Workspace flow adds four visible links/buttons: Session Details to the workspace, Back to Session Details, and participant links to Chat. The Back and Open Workspace targets have reactions on both the text and button surface for reliable hit coverage.
 
@@ -16,21 +16,22 @@ The latest visual pass keeps the existing colors and card style while removing s
 | 1:15 | Login | Firebase email/password or Android Google sign-in, existing local credentials, password reset, and biometrics for local accounts. No demo sign-in is included. |
 | 1:39 | Sign-up | Create an email/password Firebase or device account; any verified email may use shared features. Google sign-up uses the Google name/email and adds Student ID privately after sign-in. |
 | 1:69 | Home | Search, quick actions, next session, menu, notifications, tabs; shows pending cloud sync when device state is waiting for Firebase acknowledgement. |
-| 1:133 | Tutor Search | The account's own device-only listing or live Firebase tutor listings for email-verified accounts, subject filters, and a real empty state. |
+| 1:133 | Tutor Search | Email-verified Firebase listings, subject/request filters, loaded-page search guidance, and a load-more control. |
 | 1:187 | Tutor Details | Selected community tutor profile, public subjects, and request-a-session action. A tutor chat opens from the resulting session request. |
 | 1:218 | Book Session | Subject/date/time/note selection; Firebase accounts send a pending request. Future and overlap checks apply. |
 | 1:251 | Booking Confirmed | Local schedule confirmation or shared request status and link to Requests. |
 | 1:263 | Study Groups | Joined/discover views, search, creation, membership. |
 | 1:302 | Group Details | Join/leave, meetup schedule, posts/replies, shared-member group chat, group session entry. Device-only chats remain private. |
 | 93:2 | Group Session | Meetup topic, status, date/time, location, group notes, and explicit save/share action. |
-| 1:324 | Sessions | Upcoming, requests, completed, and cancelled filters with incoming/outgoing request context. |
+| 1:324 | Sessions | Upcoming, requests, completed, and cancelled filters, incoming/outgoing context, load-more history, and latest-refresh state. |
 | 1:361 | Session Details | Accept/decline/cancel shared requests, tutor/student participant chat, private notes, and local reschedule/rating flows. |
 | 147:35 | Booked Session Workspace | Private agenda and notes, participant chat, and completion only after the scheduled start; Back returns to Session Details. |
 | 1:386 | Messages | Search chat names and private notes; open member or tutor-session chats. |
-| 1:422 | Chat | Deliver group messages to current members and tutor-session messages to their two participants; device-only conversations remain private notes. |
+| 1:422 | Chat | Deliver group messages to current members and tutor-session messages to their two participants; the composer uses a SEND action. |
 | 1:438 | Notifications | Mark read and open linked session/group. |
 | 1:458 | Profile | Current data/counts, edit, preferences, biometric setup, sign-out. |
 | 1:495 | Edit Profile | Save name, course, year, school, interests. |
+| 160:52 | Empty Chat State | Centered “No messages yet” and first-message guidance outside the inverted message list. |
 
 ## Supporting flows and adaptations
 
@@ -46,6 +47,6 @@ The Booked Session Workspace is a supporting screen for tutor requests. Session 
 
 Device-only data stays in the account's state. With Firebase configured, accounts with verified email addresses share the study-group directory, memberships, posts, replies, published tutor profiles, and participant-only session requests. Email verification confirms control of an address; the app does not verify school affiliation. The code now includes a Requests filter and response actions that extend the original flow.
 
-The checked-in Firestore rules and indexes have not been deployed to the project, so real-project sharing and two-account chat are not verified. Rooms have no live participants, voice, or video. Notifications have no OS push delivery. Firebase password reset is available to configured Firebase accounts; device-only accounts must use their original password.
+Firestore rules are deployed with six ready composite indexes, and two-account tutor-session and study-group flows were exercised on the POCO X4 GT. Rooms have no live participants, voice, or video. Notifications have no OS push delivery. Firebase password reset is available to configured Firebase accounts; device-only accounts must use their original password.
 
-Firebase Authentication, private account-state sync, and shared study-group data are implemented when configured. This checkout now uses Firebase project `campus4change`; its Email/Password provider and Singapore Firestore database are configured, but the checked-in rules have not been deployed. Firebase verifies ownership of the entered email before allowing shared-group access; no school-domain allowlist or file-upload service is connected, and real two-account workflows remain unverified, so this is not yet a complete online service.
+Firebase Authentication, private account-state sync, and shared study-group data are configured for Firebase project `campus4change` with Firestore in Singapore. Firebase verifies email control before allowing shared-group access; there is no school-domain allowlist or file-upload service. Release Play Integrity metrics/enforcement, OS push delivery, and live calls remain outside the verified prototype flow.

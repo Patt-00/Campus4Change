@@ -78,6 +78,8 @@ function createFirestore() {
     where: jest.fn((field, operator, value) => ({ field, operator, value })),
     orderBy: jest.fn((field, direction) => ({ field, direction })),
     limit: jest.fn(count => ({ count })),
+    getDocs: jest.fn(async () => ({ docs: [] })),
+    startAfter: jest.fn(snapshot => ({ startAfter: snapshot })),
     query: jest.fn((ref, ...constraints) => ({ ref, constraints })),
     onSnapshot: jest.fn((target, next, error) => {
       const subscription = {
@@ -217,7 +219,7 @@ test('subscribes to each participant role with UID-constrained booking queries',
   const services = createFirestore();
   firebaseServicesForUser.mockReturnValue(services);
   const onBookings = jest.fn();
-  const stop = watchTutorBookings('student-1', onBookings, jest.fn());
+  const subscription = watchTutorBookings('student-1', onBookings, jest.fn());
 
   expect(services.subscriptions).toHaveLength(2);
   const [asStudent, asTutor] = services.subscriptions;
@@ -231,6 +233,11 @@ test('subscribes to each participant role with UID-constrained booking queries',
     operator: '==',
     value: 'student-1',
   });
+  expect(asStudent.target.constraints).toContainEqual({
+    field: 'createdAt',
+    direction: 'desc',
+  });
+  expect(asStudent.target.constraints).toContainEqual({ count: 100 });
 
   asStudent.next({ docs: [documentSnapshot('outgoing', {
     studentUid: 'student-1',
@@ -259,10 +266,10 @@ test('subscribes to each participant role with UID-constrained booking queries',
       expect.objectContaining({ id: 'outgoing', incoming: false, status: 'Pending' }),
       expect.objectContaining({ id: 'incoming', incoming: true, status: 'Upcoming' }),
     ],
-    { hasMore: false },
+    { hasMore: false, loadingMore: false, live: true },
   );
 
-  stop();
+  subscription.unsubscribe();
   expect(asStudent.unsubscribe).toHaveBeenCalledTimes(1);
   expect(asTutor.unsubscribe).toHaveBeenCalledTimes(1);
 });
@@ -414,6 +421,108 @@ test('uses a bounded live tutor directory query and maps owner state', () => {
   });
   expect(onTutors).toHaveBeenCalledWith(
     [expect.objectContaining({ id: 'tutor-1', own: true, shared: true })],
-    { hasMore: false },
+    { hasMore: false, loadingMore: false, live: true },
+  );
+});
+
+test('loads older tutor directory pages once and pauses the live head until refresh', async () => {
+  const services = createFirestore();
+  firebaseServicesForUser.mockReturnValue(services);
+  const onTutors = jest.fn();
+  const older = Array.from({ length: 3 }, (_, index) =>
+    documentSnapshot(`older-${index}`, {
+      uid: `older-${index}`,
+      name: `Older Tutor ${index}`,
+      subjects: ['Physics'],
+      bio: 'Helpful tutor for physics students.',
+      updatedAt: { toDate: () => new Date('2026-10-10T00:00:00.000Z') },
+    }),
+  );
+  services.firestore.getDocs.mockResolvedValueOnce({ docs: older });
+  const subscription = watchTutorDirectory('student-1', onTutors, jest.fn());
+  const head = Array.from({ length: 20 }, (_, index) =>
+    documentSnapshot(`head-${index}`, {
+      uid: `head-${index}`,
+      name: `Current Tutor ${index}`,
+      subjects: ['Calculus'],
+      bio: 'Helpful tutor for calculus students.',
+      updatedAt: { toDate: () => new Date('2026-10-15T00:00:00.000Z') },
+    }),
+  );
+  services.subscriptions[0].next({ docs: head });
+  expect(onTutors.mock.lastCall[1]).toMatchObject({ hasMore: true, live: true });
+  expect(onTutors.mock.lastCall[0]).toHaveLength(20);
+
+  await subscription.loadMore();
+  expect(services.firestore.getDocs).toHaveBeenCalledTimes(1);
+  expect(services.firestore.getDocs.mock.calls[0][0].constraints).toContainEqual({
+    startAfter: head.at(-1),
+  });
+  expect(onTutors.mock.lastCall[0]).toHaveLength(23);
+  expect(onTutors.mock.lastCall[1]).toMatchObject({
+    hasMore: false,
+    loadingMore: false,
+    live: false,
+  });
+
+  services.subscriptions[0].next({ docs: [documentSnapshot('new-live-tutor', {
+    uid: 'new-live-tutor', name: 'New Tutor', subjects: ['Algebra'],
+    bio: 'New tutor listing for algebra students.', updatedAt: {},
+  })] });
+  expect(onTutors.mock.lastCall[0]).toHaveLength(23);
+  subscription.unsubscribe();
+  expect(services.subscriptions[0].unsubscribe).toHaveBeenCalledTimes(1);
+});
+
+test('loads older booking pages for both participant roles and exposes refresh state', async () => {
+  const services = createFirestore();
+  firebaseServicesForUser.mockReturnValue(services);
+  const onBookings = jest.fn();
+  const makeBooking = (id, incoming, index) => documentSnapshot(id, {
+    studentUid: incoming ? `student-${index}` : 'student-1',
+    tutorUid: incoming ? 'student-1' : `tutor-${index}`,
+    studentName: incoming ? 'Other Student' : 'Jordan',
+    tutorName: incoming ? 'Jordan' : 'Other Tutor',
+    subject: incoming ? 'Physics' : 'Calculus',
+    startsAt: { toDate: () => new Date(Date.UTC(2026, 9, 1, 14, index)) },
+    createdAt: { toDate: () => new Date(Date.UTC(2026, 8, 1, 14, index)) },
+    updatedAt: { toDate: () => new Date(Date.UTC(2026, 8, 1, 14, index)) },
+    status: 'pending',
+  });
+  const asStudentHead = Array.from({ length: 100 }, (_, index) =>
+    makeBooking(`outgoing-${index}`, false, index),
+  );
+  const asTutorHead = Array.from({ length: 100 }, (_, index) =>
+    makeBooking(`incoming-${index}`, true, index),
+  );
+  services.firestore.getDocs
+    .mockResolvedValueOnce({ docs: [makeBooking('outgoing-older', false, 101)] })
+    .mockResolvedValueOnce({ docs: [makeBooking('incoming-older', true, 101)] });
+  const subscription = watchTutorBookings('student-1', onBookings, jest.fn());
+  services.subscriptions[0].next({ docs: asStudentHead });
+  services.subscriptions[1].next({ docs: asTutorHead });
+  expect(onBookings.mock.lastCall[0]).toHaveLength(200);
+  expect(onBookings.mock.lastCall[1]).toMatchObject({ hasMore: true, live: true });
+  for (const roleQuery of services.subscriptions.map(item => item.target)) {
+    expect(roleQuery.constraints).toContainEqual({
+      field: 'createdAt',
+      direction: 'desc',
+    });
+    expect(roleQuery.constraints).toContainEqual({ count: 100 });
+  }
+
+  await subscription.loadMore();
+  expect(services.firestore.getDocs).toHaveBeenCalledTimes(2);
+  expect(onBookings.mock.lastCall[0]).toHaveLength(202);
+  expect(onBookings.mock.lastCall[1]).toMatchObject({
+    hasMore: false,
+    loadingMore: false,
+    live: false,
+  });
+  services.subscriptions[0].next({ docs: [makeBooking('newer-but-paused', false, 200)] });
+  expect(onBookings.mock.lastCall[0]).toHaveLength(202);
+  subscription.unsubscribe();
+  services.subscriptions.forEach(item =>
+    expect(item.unsubscribe).toHaveBeenCalledTimes(1),
   );
 });

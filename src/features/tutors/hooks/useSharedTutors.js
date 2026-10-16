@@ -35,6 +35,10 @@ export function useSharedTutors({ uid, enabled, profile }) {
     error: '',
     hasMoreTutors: false,
     hasMoreBookings: false,
+    loadingMoreTutors: false,
+    loadingMoreBookings: false,
+    tutorsLive: true,
+    bookingsLive: true,
     tutorsLoaded: false,
     bookingsLoaded: false,
   });
@@ -42,6 +46,7 @@ export function useSharedTutors({ uid, enabled, profile }) {
   const [retryKey, setRetryKey] = useState(0);
   const activeUid = useRef(enabled ? uid : null);
   const previousUid = useRef(uid);
+  const subscriptions = useRef({ uid: null, tutors: null, bookings: null });
   activeUid.current = enabled ? uid : null;
 
   useEffect(() => {
@@ -56,6 +61,10 @@ export function useSharedTutors({ uid, enabled, profile }) {
         error: '',
         hasMoreTutors: false,
         hasMoreBookings: false,
+        loadingMoreTutors: false,
+        loadingMoreBookings: false,
+        tutorsLive: true,
+        bookingsLive: true,
         tutorsLoaded: false,
         bookingsLoaded: false,
       });
@@ -73,14 +82,20 @@ export function useSharedTutors({ uid, enabled, profile }) {
       tutors: current.uid === uid ? current.tutors : EMPTY,
       bookings: current.uid === uid ? current.bookings : EMPTY,
       error: '',
-      hasMoreTutors: current.uid === uid ? current.hasMoreTutors : false,
-      hasMoreBookings: current.uid === uid ? current.hasMoreBookings : false,
+      hasMoreTutors: false,
+      hasMoreBookings: false,
+      loadingMoreTutors: false,
+      loadingMoreBookings: false,
+      tutorsLive: true,
+      bookingsLive: true,
       tutorsLoaded: current.uid === uid ? current.tutorsLoaded : false,
       bookingsLoaded: current.uid === uid ? current.bookingsLoaded : false,
     }));
 
-    let stopTutors = () => {};
-    let stopBookings = () => {};
+    const currentSubscriptions = { uid, tutors: null, bookings: null };
+    subscriptions.current = currentSubscriptions;
+    let tutorSubscription = { unsubscribe: () => {}, loadMore: async () => {} };
+    let bookingSubscription = { unsubscribe: () => {}, loadMore: async () => {} };
     const onError = error => {
       if (active) {
         setResult(current => ({
@@ -92,7 +107,7 @@ export function useSharedTutors({ uid, enabled, profile }) {
     };
 
     try {
-      stopTutors = watchTutorDirectory(
+      tutorSubscription = watchTutorDirectory(
         uid,
         (tutors, metadata) => {
           if (active) {
@@ -101,13 +116,15 @@ export function useSharedTutors({ uid, enabled, profile }) {
               uid,
               tutors,
               hasMoreTutors: metadata.hasMore,
+              loadingMoreTutors: metadata.loadingMore,
+              tutorsLive: metadata.live,
               tutorsLoaded: true,
             }));
           }
         },
         onError,
       );
-      stopBookings = watchTutorBookings(
+      bookingSubscription = watchTutorBookings(
         uid,
         (bookings, metadata) => {
           if (active) {
@@ -116,20 +133,27 @@ export function useSharedTutors({ uid, enabled, profile }) {
               uid,
               bookings,
               hasMoreBookings: metadata.hasMore,
+              loadingMoreBookings: metadata.loadingMore,
+              bookingsLive: metadata.live,
               bookingsLoaded: true,
             }));
           }
         },
         onError,
       );
+      currentSubscriptions.tutors = tutorSubscription;
+      currentSubscriptions.bookings = bookingSubscription;
     } catch (error) {
       onError(error);
     }
 
     return () => {
       active = false;
-      stopTutors();
-      stopBookings();
+      tutorSubscription.unsubscribe();
+      bookingSubscription.unsubscribe();
+      if (subscriptions.current === currentSubscriptions) {
+        subscriptions.current = { uid: null, tutors: null, bookings: null };
+      }
     };
   }, [enabled, retryKey, uid]);
 
@@ -181,6 +205,18 @@ export function useSharedTutors({ uid, enabled, profile }) {
       ),
     [runAction, uid],
   );
+  const loadMoreTutors = useCallback(() => {
+    const current = subscriptions.current;
+    return current.uid === uid && current.tutors
+      ? current.tutors.loadMore()
+      : Promise.resolve();
+  }, [uid]);
+  const loadMoreBookings = useCallback(() => {
+    const current = subscriptions.current;
+    return current.uid === uid && current.bookings
+      ? current.bookings.loadMore()
+      : Promise.resolve();
+  }, [uid]);
 
   return {
     tutors: result.uid === uid ? result.tutors : EMPTY,
@@ -197,7 +233,13 @@ export function useSharedTutors({ uid, enabled, profile }) {
       enabled && uid && actionError.uid === uid ? actionError.message : '',
     hasMoreTutors: result.uid === uid && result.hasMoreTutors,
     hasMoreBookings: result.uid === uid && result.hasMoreBookings,
+    loadingMoreTutors: result.uid === uid && result.loadingMoreTutors,
+    loadingMoreBookings: result.uid === uid && result.loadingMoreBookings,
+    tutorsLive: result.uid === uid && result.tutorsLive,
+    bookingsLive: result.uid === uid && result.bookingsLive,
     retry: () => setRetryKey(value => value + 1),
+    loadMoreTutors,
+    loadMoreBookings,
     publishProfile,
     unpublishProfile,
     requestSession,

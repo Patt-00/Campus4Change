@@ -413,6 +413,10 @@ export function AppNavigator() {
           loading={sharedTutors.loading}
           error={sharedTutors.error}
           retry={sharedTutors.retry}
+          hasMoreTutors={Boolean(syncUid && sharedTutors.hasMoreTutors)}
+          loadingMoreTutors={sharedTutors.loadingMoreTutors}
+          tutorsLive={!syncUid || sharedTutors.tutorsLive}
+          loadMoreTutors={sharedTutors.loadMoreTutors}
         />
       );
 
@@ -514,6 +518,13 @@ export function AppNavigator() {
           initialFilter={route.filter || 'Upcoming'}
           sessions={sessions}
           list={list}
+          hasMoreSessions={
+            Boolean(syncUid && sharedTutors.hasMoreBookings)
+          }
+          loadingMoreSessions={sharedTutors.loadingMoreBookings}
+          sessionsLive={!syncUid || sharedTutors.bookingsLive}
+          loadMoreSessions={sharedTutors.loadMoreBookings}
+          refreshSessions={sharedTutors.retry}
         />
       );
 
@@ -887,7 +898,10 @@ export function AppNavigator() {
                   }
                 : () => message(sessionTutor)
             }
-            initialNotes={state.roomNotes?.[session.id] ?? session.note}
+            initialNotes={
+              state.roomNotes?.[session.id] ??
+              (session.shared ? '' : session.note)
+            }
             onDraft={text =>
               dispatch({ type: 'roomDraft', id: session.id, text })
             }
