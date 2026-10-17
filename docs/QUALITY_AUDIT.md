@@ -7,10 +7,14 @@ what is implemented, what has been verified, and what still prevents a
 production-ready claim. Older checkpoint notes below are historical; the current
 issue dispositions are summarized immediately after this scope.
 
-## Current sprint status — 2026-10-17, version 1.2.2 candidate
+## Current sprint status — 2026-10-17, version 1.2.2 published
 
-The `codex/firebase-auth-firestore` branch now contains the profile and UI
-audit changes for version 1.2.2. Lint and all 277 Jest tests pass, the public
+Version 1.2.2 source commit
+`fe112d9b13d79bcf5995d8e8fa6a037d11967f34` is published to `main` and
+`codex/firebase-auth-firestore`. GitHub Actions run
+[39026925785](https://github.com/Patt-00/Campus4Change/actions/runs/39026925785)
+passed every configured check on that exact `main` SHA. The profile and UI
+audit changes passed lint and all 277 Jest tests, the public
 Drive-link scan passes, the Firestore rules emulator suite passes, and the
 debug APK builds under JDK 25. A rules-only Firebase CLI deployment to
 `campus4change` succeeded for the optional allowlisted avatar ID field; the
@@ -24,7 +28,7 @@ installed on the POCO X4 GT using the same private debug signer as the
 installed app; app data was preserved. Release JavaScript bundling and release
 Kotlin compilation pass, but the protected release keystore is not configured
 here, so there is no signed 1.2.2 APK/AAB. See `FINAL_SPRINT.md` for the
-current main-branch and release gates.
+current publication and release-scope record.
 
 ## UI audit and profile changes — 2026-10-17
 

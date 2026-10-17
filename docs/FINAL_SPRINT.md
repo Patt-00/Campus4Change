@@ -4,9 +4,11 @@ This record covers the request to finish Campus4Change, verify it on the POCO
 X4 GT, and push the verified source to `main`. The branded-icon correction
 for version 1.2.1 is already on `main` at `158961c`; GitHub Actions run
 [39017646958](https://github.com/Patt-00/Campus4Change/actions/runs/39017646958)
-passed on that commit. The current version 1.2.2 UI, profile, and catalog work
-is still on `codex/firebase-auth-firestore`; the completion goal remains open
-until its remaining gates pass.
+passed on that commit. Version 1.2.2 source commit
+`fe112d9b13d79bcf5995d8e8fa6a037d11967f34` is now on both `main` and
+`codex/firebase-auth-firestore`. GitHub Actions run
+[39026925785](https://github.com/Patt-00/Campus4Change/actions/runs/39026925785)
+passed every configured check on that exact main SHA.
 
 ## Verified application scope
 
@@ -52,7 +54,16 @@ The version 1.2.1 launcher-icon correction was published at `158961c` to
 `main` and `codex/firebase-auth-firestore`. GitHub Actions run
 [39017646958](https://github.com/Patt-00/Campus4Change/actions/runs/39017646958)
 passed all configured checks on that exact SHA. The version 1.2.2 UI/profile
-changes in this record have not been pushed to `main` yet.
+changes were not yet on `main` at this earlier checkpoint; their publication
+is recorded below.
+
+## Version 1.2.2 publication — 2026-10-17
+
+The profile, course-topic, avatar, and UI audit changes were pushed to both
+`main` and `codex/firebase-auth-firestore` at
+`fe112d9b13d79bcf5995d8e8fa6a037d11967f34`. GitHub Actions run
+[39026925785](https://github.com/Patt-00/Campus4Change/actions/runs/39026925785)
+passed every configured check on that exact `main` SHA.
 
 ## Release and remaining scope
 
@@ -85,13 +96,10 @@ the POCO using the same debug certificate. Android App Info displayed the new
 icon and version; the app data was preserved. A cold launch loaded the Home
 screen. The same icon was added to the Figma Components page.
 
-## Publication gate — version 1.2.2
+## POCO account state after final review
 
-The version 1.2.2 UI/profile changes are verified locally and on the POCO but
-are not yet on `main`. Release Play Integrity enforcement and other Play Store
-readiness items remain a separate scope; see [QUALITY_AUDIT.md](QUALITY_AUDIT.md).
-No app-specific final teacher acceptance checklist has been provided. The
-POCO's signed-in account still shows a shared “Final Sprint QA” group with a
-pending permission error and posts waiting for access to sync; its data was
-preserved. See [VERIFICATION.md](VERIFICATION.md) for dated evidence and
-[FIREBASE_SETUP.md](FIREBASE_SETUP.md) for service configuration.
+The POCO's signed-in account still shows a shared “Final Sprint QA” group with
+a pending permission error and posts waiting for access to sync. Its cause is
+unconfirmed, and its data was preserved without retrying or deleting the
+pending operation. See [VERIFICATION.md](VERIFICATION.md) for dated evidence
+and [FIREBASE_SETUP.md](FIREBASE_SETUP.md) for service configuration.

@@ -7,6 +7,10 @@
   The debug APK assembled under JDK 25; release JS bundling and release Kotlin
   compilation passed. A signed 1.2.2 release APK/AAB was not produced because
   the protected release-signing environment is unavailable on this checkout.
+- Source commit `fe112d9b13d79bcf5995d8e8fa6a037d11967f34` is published to
+  `main` and `codex/firebase-auth-firestore`. GitHub Actions run
+  [39026925785](https://github.com/Patt-00/Campus4Change/actions/runs/39026925785)
+  passed every configured check on that exact main SHA.
 - The rules-only Firebase CLI deploy to `campus4change` completed after the
   emulator pass. It adds an optional `avatarId` field restricted to the eight
   built-in preset IDs; no index or group/session rule changed.
@@ -19,6 +23,10 @@
   `Z9GMOVDMHQV8X84D` using the matching per-user debug certificate (SHA-256
   `688f332c76200bc27d097a65ef4b48366596c790e89e08a43625354239f37082`). The
   install preserved app data. A cold launch loaded Home with the saved account.
+- The final UI check ran in the existing private-signed debug install with
+  Metro serving the current source. A newly assembled APK used the checkout's
+  fallback debug certificate, which differs from the installed private key;
+  I did not install it or replace the user's app data.
 - The Edit Profile screen was checked on the device. Android Photo Picker
   imported a generated 1600×1200 test image and displayed the profile preview.
   Backing out without Save preserved the cyan profile avatar; after relaunch,
