@@ -1,34 +1,44 @@
 # Verification history
 
-## Release signing migration — 2026-10-17
+## Current release v1.2.2 — 2026-10-17
 
-- The public GitHub releases v1.0.0, v1.1.0, and v1.2.0 were archived outside
-  the repository under `/home/patt/Documents/Codex/Campus4Change-release-archive-2026-10-17`.
-  All archived assets' SHA-256 values match the GitHub release asset digests.
-- The published v1.2.0 APK's `SOURCE-BUILD.json` and `apksigner` output show
-  that it was signed with the public, repository-tracked debug certificate
-  (SHA-256 `fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c`).
-  The APK has two GitHub downloads. Removing its release entry cannot revoke
-  copies already downloaded.
-- Older verification history records a separate local APK/AAB signed with a
-  dedicated Firebase-registered certificate (SHA-256
-  `8d3013d36bc87451accb4ff455a7839f39397ea0538c367e615c80d1bbd5c1a4`). That
-  local artifact is distinct from the public GitHub v1.2.0 APK.
-- The owner chose to replace the signing identity and accept the reinstall
-  migration. The existing local release keystore is retained unchanged because
-  its password is unknown. `scripts/build-release.sh` creates a separate
-  private v2 keystore with hidden local password prompts and builds the APK/AAB;
-  its syntax was checked, but it has not yet been run. No new key was created,
-  no release artifact was signed, and old GitHub release entries remain until a
-  new signed artifact is built and verified.
+- The private-signed release is published at
+  https://github.com/Patt-00/Campus4Change/releases/tag/v1.2.2. The APK is
+  59,043,719 bytes with SHA-256
+  a9f2c55c631428310bd09a2b2f2914c0df1e782651116bc519147230025127fb. The AAB
+  is 42,018,113 bytes with SHA-256
+  0bf61969159b620711db9871162c7c55a6de9bbcfc6044aece716bcd53c6b4b4.
+- APK Signature Scheme v2 verification passed. Google's Bundletool 1.18.3
+  validated the AAB and its base manifest reports application ID
+  com.campus4change, version 1.2.2, and version code 5. Both artifacts contain
+  the offline React Native JavaScript bundle.
+- Release certificate SHA-1
+  548892bbc09b9925d319fc10fd0b6e05b34dbf70 and SHA-256
+  ea25abea60d3226097fb5d0beef69c25656560f81e246cfefe75f8f0a14c9f49 are
+  registered to Firebase Android app
+  1:722562628798:android:5c20a4828a4478337132ef. CI run 39041101459 passed on
+  source commit cb386acc29c1cd2b55d4c9ed620b657b874f1c91, which is on main.
+- The APK installed and cold-launched on a REDMI Turbo 4 running Android 16.
+  The branded start screen and Introduction 1 of 3 displayed. The installed
+  APK signature matched the release certificate; the checked log sample had no
+  React Native fatal exception. Google sign-in with this release key and Play
+  Integrity App Check were not tested.
+- The older v1.0.0, v1.1.0, and v1.2.0 GitHub release assets were archived at
+  /home/patt/Documents/Codex/Campus4Change-release-archive-2026-10-17 and their
+  SHA-256 hashes matched GitHub's digests. The old release entries were removed
+  after v1.2.2 was verified; historical Git tags remain. Downloaded copies
+  cannot be revoked.
+- The previous local release keystore remains untouched because its password is
+  unknown. The current private key was generated separately and is not included
+  in the repository or release assets.
 
 ## Version 1.2.2 profile and UI audit — 2026-10-17
 
 - `npm run lint`, `npm test -- --runInBand` (277 tests in 38 suites), the
   public-Drive-link check, and the Firestore rules emulator suite passed.
-  The debug APK assembled under JDK 25; release JS bundling and release Kotlin
-  compilation passed. A signed 1.2.2 release APK/AAB was not produced because
-  the protected release-signing environment is unavailable on this checkout.
+  At this earlier profile/UI checkpoint, the debug APK assembled under JDK 25
+  and release JS bundling and Kotlin compilation passed, but signed release
+  artifacts had not yet been produced. The completed release is recorded above.
 - Source commit `fe112d9b13d79bcf5995d8e8fa6a037d11967f34` is published to
   `main` and `codex/firebase-auth-firestore`. GitHub Actions run
   [39026925785](https://github.com/Patt-00/Campus4Change/actions/runs/39026925785)

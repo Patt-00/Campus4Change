@@ -7,39 +7,25 @@ what is implemented, what has been verified, and what still prevents a
 production-ready claim. Older checkpoint notes below are historical; the current
 issue dispositions are summarized immediately after this scope.
 
-## Current sprint status — 2026-10-17, version 1.2.2 published
+## Current sprint status — 2026-10-17, version 1.2.2 released
 
-Version 1.2.2 source commit
-`fe112d9b13d79bcf5995d8e8fa6a037d11967f34` is published to `main` and
-`codex/firebase-auth-firestore`. GitHub Actions run
-[39026925785](https://github.com/Patt-00/Campus4Change/actions/runs/39026925785)
-passed every configured check on that exact `main` SHA. The profile and UI
-audit changes passed lint and all 277 Jest tests, the public
-Drive-link scan passes, the Firestore rules emulator suite passes, and the
-debug APK builds under JDK 25. A rules-only Firebase CLI deployment to
-`campus4change` succeeded for the optional allowlisted avatar ID field; the
-six existing composite indexes were not changed. A read-only Firebase Rules
-API readback confirmed the deployed `cloud.firestore` release exactly matches
-`firestore.rules` (SHA-256
-`867e1b314fb639608ef4fe6978892ee6d337536be27a65b01b76c066679ec0a8`), and the
-six live composite index definitions exactly match `firestore.indexes.json`.
-Version 1.2.2 code 5 was
-installed on the POCO X4 GT using the same private debug signer as the
-installed app; app data was preserved. Release JavaScript bundling and release
-Kotlin compilation pass, but the protected release keystore is not configured
-here, so there is no signed 1.2.2 APK/AAB. See `FINAL_SPRINT.md` for the
-current publication and release-scope record.
+Source commit cb386acc29c1cd2b55d4c9ed620b657b874f1c91 is on main and
+codex/firebase-auth-firestore. GitHub Actions run
+[39041101459](https://github.com/Patt-00/Campus4Change/actions/runs/39041101459)
+passed on this exact source commit. Lint, 277 Jest tests, the public Drive-link
+scan, Firestore emulator tests, and Android CI checks passed. The v1.2.2 APK and
+AAB were signed with the dedicated private release key and published to GitHub.
+Their APK/AAB metadata and SHA-256 checksums are attached to the release. The
+new certificate SHA-1 and SHA-256 are registered in Firebase. The APK was
+installed and cold-launched on a REDMI Turbo 4 running Android 16; the branded
+start screen and first introduction screen loaded without a React Native fatal
+exception in the checked log sample. Google sign-in with the replacement key and
+release Play Integrity attestation, metrics, and enforcement remain unverified.
 
-Release migration is now authorized by the owner. GitHub's published v1.2.0
-APK metadata and signing-certificate readback show that it used the
-repository-tracked public debug key (SHA-256
-`fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c`); the
-release asset has two downloads. The v1.0.0, v1.1.0, and v1.2.0 GitHub release
-assets were archived locally and their hashes verified. A separate private
-replacement signer is being prepared before the old GitHub release entries are
-removed. A new signature will require reinstalling old versions and may remove
-their device-only data; deleting GitHub release entries cannot revoke APKs
-already downloaded.
+The prior v1.0.0, v1.1.0, and v1.2.0 GitHub releases were archived and removed;
+the Git tags remain for source history. Copies already downloaded cannot be
+revoked. Older installs require a reinstall to use the new signing identity,
+which clears device-only state and app-private profile photos.
 
 ## UI audit and profile changes — 2026-10-17
 
@@ -392,10 +378,10 @@ toast is development-only and does not appear in release builds.
 | C4C-04 | Medium | OS push notification delivery is not implemented. | In-app booking/group notices and tutor-session/group chat were verified live across two verified accounts on the POCO, including the Session confirmed deep link. OS push is outside the verified school Android scope; live calls are also unavailable. |
 | C4C-05 | Conditional | Shared groups have no instructor-wide moderation path. | Group members can report another member's post, reply, or chat message without storing reporter UID. The group owner can dismiss a report or reversibly hide and restore the target; chat-message moderation is included in emulator tests. No instructor role or broader moderation requirement was supplied; revisit only if a future rubric requires it. |
 | C4C-06 | Medium | The current audit reports 20 high, 20 moderate, and 0 critical findings; `npm audit --omit=dev` reports 20 high paths. | On 2026-10-15, a scoped override aligned the React Native preset's `babel-jest` and `jest-environment-node` with the project's existing Jest 30.5.2. A clean `npm ci`, all 250 tests in 33 suites, lint, and the public Drive-link check passed in an isolated worktree and again in the main checkout. The full audit fell from 28 high/17 moderate to 20 high/20 moderate (45 total to 40); the Jest 29 high findings are removed. `@react-native/jest-preset@0.87.1` still declares Jest 29 ranges, so the compatibility override must remain covered by the suite and CI. The 20 high production-only paths remain in the current React Native/Metro/CLI toolchain; npm's downgrade suggestions to React Native 0.72.17 and CLI 13.5.1 are incompatible, and the npm registry has no newer `braces`, `micromatch`, or `fast-glob` release that resolves them. The production Hermes bundle does not contain `braces`, `micromatch`, or `fast-glob`; those packages remain in the build/tooling dependency graph. The `braces` maintainer disputes its finding. See the [braces advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm), [braces maintainer discussion](https://github.com/micromatch/braces/issues/84), and [sprintf-js advisory](https://github.com/advisories/GHSA-hp3w-g68c-fv3c).  Rechecked 2026-10-17: `npm audit` still reports 20 high/20 moderate (0 critical), while `npm audit --omit=dev` reports 20 high. |
-| C4C-07 | High for release distribution | The public v1.2.0 release APK was signed with the repository's publicly available debug certificate, not a private release certificate. | Confirmed from the published `SOURCE-BUILD.json` and `apksigner` readback. The old GitHub assets are archived and hash-verified. A new private signer must be created, its Firebase SHA-1/SHA-256 registered, a signed v1.2.2 APK/AAB verified, then old GitHub release entries removed. Copies already downloaded cannot be revoked; existing installs need a reinstall to move to the new identity. |
+| C4C-07 | High for release distribution | The public v1.2.0 release APK was signed with the repository debug certificate. | Resolved for new downloads on 2026-10-17: archived the old release assets, published the private-signed v1.2.2 APK/AAB, registered the new Firebase SHA-1/SHA-256, and removed old release entries. Historical tags remain; downloaded copies cannot be revoked, and installs signed by the old key require reinstalling, which clears device-only data. |
 | C4C-08 | Low | The iOS scaffold cannot use the Android storage module. | Current app support is Android-only; do not claim iOS parity until secure storage and biometrics are implemented and verified there. |
-| C4C-09 | Medium if distributing binaries | Google-to-Firebase sign-in has not been run with the replacement release-signed app. | Debug Google sign-in was previously verified on the POCO. Register the replacement private key's SHA-1 in Firebase, then test a cold release launch and Google sign-in before distributing. The old public v1.2.0 APK used the repository debug key. |
-| C4C-11 | Medium if enabling production enforcement | Release App Check attestation, request metrics, and enforcement have not been verified for the replacement key. | The native bridge uses the Firebase debug provider in debug builds and Play Integrity in release. Register the replacement release key's SHA-256 with Firebase and verify Play Integrity metrics before enabling enforcement; Firestore rules remain the authorization boundary. The temporary POCO debug token used for QA was revoked after cleanup. |
+| C4C-09 | Medium if distributing binaries | Google-to-Firebase sign-in has not been run with the replacement release-signed app. | The new release key SHA-1 is registered in Firebase. Debug Google sign-in was previously verified on the POCO, but release-key Google sign-in remains unverified and needs a live sign-in check. |
+| C4C-11 | Medium if enabling production enforcement | Release App Check attestation, request metrics, and enforcement have not been verified for the replacement key. | The native bridge uses the Firebase debug provider in debug builds and Play Integrity in release. The replacement release key SHA-256 is registered; verify Play Integrity metrics before enabling enforcement; Firestore rules remain the authorization boundary. The temporary POCO debug token used for QA was revoked after cleanup. |
 | C4C-12 | Medium | Public Git history retains a link to the Lab 4.1 Google Doc, which remains readable to anyone with the link. | The value-redacted history scan found Drive links only in historical commit `51f0100`; the current tree has none and CI rejects new Google Drive links in tracked files. On 2026-10-15, the owner-approved Share-dialog change replaced `anyone:writer` with `anyone:reader`; Google Docs showed **Access updated**, and Drive metadata readback confirmed `anyone:reader` with the named owner unchanged. The link remains in public history, so the document's course and group details are still publicly readable to anyone who finds it. Rewriting public Git history is a separate operation requiring approval and collaborator resynchronization. |
 | C4C-13 | Low | Password-hash performance and minimum-API coverage have partial device evidence. | On 2026-10-15, the POCO X4 GT (Android 14/API 34) passed both Android instrumentation tests: the current PBKDF2-HMAC-SHA256/600,000 vector and legacy PBKDF2-HMAC-SHA1 verification/migration. One current-hash sample took 2,572 ms in the debug instrumentation process. Local password operations run on `CampusStorageModule`'s single-thread worker, not the UI thread. After instrumentation, the app remained installed and cold-launched back to the signed-in Home screen without clearing its data. This single timing sample is not a stable performance baseline; the physical device does not verify the minimum API 24 provider runtime. Do not reduce the current 600,000 work factor without a security review; it matches the [OWASP PBKDF2-HMAC-SHA256 recommendation](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html). |
 | C4C-14 | High if Google Play distribution is planned | Firebase-created accounts have no in-app deletion flow or external deletion-request resource. | The app supports Firebase email/password and Google account creation, but a source search found no account-deletion workflow. Google Play requires both an in-app deletion path and a web resource for deletion requests, including deletion of associated account data. Campus4Change stores private account state and user-authored shared records, so deleting only the Firebase Auth user would leave orphaned data. Decide whether Play distribution is in scope, then design a trusted, authorized cascade and external request page before claiming Play readiness; see [Google Play account-deletion requirements](https://support.google.com/googleplay/android-developer/answer/13327111?hl=en) and the [User Data policy](https://support.google.com/googleplay/android-developer/answer/10144311?hl=en). |

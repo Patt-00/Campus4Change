@@ -28,9 +28,12 @@ repository-tracked debug keystore is public and has different SHA-1/SHA-256
 fingerprints (`5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25` /
 `FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C`). Do not register that public certificate with Firebase. Other developers need to use their own local debug key and add its SHA-1 to Firebase after authorization.
 
-A future release signing certificate must also be added before release Google
-sign-in and Play Integrity can be verified. The reviewed Firestore rules were
-deployed to this project, including a rules-only update on 2026-10-17 for the
+The current v1.2.2 release certificate SHA-1 and SHA-256 are registered to
+the Firebase Android app. Google sign-in with that release key and Play Integrity
+attestation have not yet been verified. A future signing-key rotation requires
+registering the new certificate fingerprints before testing that build. The
+reviewed Firestore rules were deployed to this project, including a rules-only
+update on 2026-10-17 for the
 optional allowlisted tutor avatar preset. That update did not change indexes;
 the six existing composite indexes were previously read back as `READY`. The
 emulator suite passes for the current rules. One POCO group change still shows
@@ -69,10 +72,10 @@ for the platform flow and token exchange.
 5. Register the Android package `com.campus4change` in Project settings. For
    Google sign-in, build with a private per-machine debug key and register that
    APK's SHA-1. On this workstation, `~/.android/debug.keystore` is selected
-   with `C4C_DEBUG_STORE_FILE` and its SHA-1 is registered. The previous
-   private release key also has registered SHA fingerprints. A replacement
-   release key requires registering its new SHA-1 for Google sign-in and its
-   new SHA-256 for App Check before release verification. Do not add the public
+   with `C4C_DEBUG_STORE_FILE` and its SHA-1 is registered. The v1.2.2 private release key SHA-1 and SHA-256 are registered. A future
+release-key rotation requires registering its new SHA-1 for Google sign-in
+and new SHA-256 for App Check before verifying that build. Do not add the
+public
    repo-tracked debug key to Firebase. Each additional developer's private
    debug key needs its own authorized SHA-1 entry. App Check Play Integrity
    requires a valid release certificate and provider configuration; a
@@ -107,11 +110,13 @@ Android API key are stored in `firebaseConfig.js` separately from the Web app ID
 and Web API key. The JavaScript Firebase app receives only the Web configuration;
 the native App Check bridge receives only the Android app configuration.
 
-The Android Firebase app and signing fingerprints are registered. A POCO X4 GT
+The Android Firebase app has the v1.2.2 release certificate SHA-1 and
+SHA-256 registered, along with authorized workstation debug fingerprints.
+A POCO X4 GT
 debug token was allowlisted for final-sprint QA, used to verify private-state
 sync, then revoked and removed from the local credential cache. Never commit
 debug tokens or include them in screenshots, reports, or CI logs. Release
-builds use Play Integrity and the dedicated release SHA-256 is registered, but
+builds use Play Integrity and the v1.2.2 release SHA-256 is registered, but
 release attestation, request metrics, and enforcement have not been verified.
 Firestore Security Rules remain the primary authorization boundary. Accept the
 Google APIs and Play Integrity terms in Firebase Console only when you are

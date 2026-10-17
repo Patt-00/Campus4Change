@@ -177,11 +177,15 @@ dedicated keystore file and all four environment variables are supplied:
 
 The published v1.0.0–v1.2.0 APKs were signed with the repository debug key.
 Their release certificate is public and must not be used for future releases.
-The new release signer is intentionally separate; the old GitHub release assets
-are archived locally until the replacement APK/AAB is verified.
+The v1.2.2 release uses a dedicated private signer. The v1.0.0, v1.1.0, and
+v1.2.0 GitHub release entries were removed after v1.2.2 was published. Their
+verified files remain in the local archive at
+/home/patt/Documents/Codex/Campus4Change-release-archive-2026-10-17. The current
+release is https://github.com/Patt-00/Campus4Change/releases/tag/v1.2.2.
 
-To create the replacement signing identity and build both artifacts, run this
-helper from an interactive terminal at the repository root:
+To build both release artifacts with the dedicated signer (creating the key if
+it does not exist), run this helper from an interactive terminal at the
+repository root:
 
 ```sh
 ./scripts/build-release.sh
@@ -191,10 +195,11 @@ The script creates `~/.android/keystores/campus4change-release-v2.jks` if it
 does not exist, prompts for the key credentials without echoing them, builds
 the APK and AAB, and prints their SHA-256 hashes. Save the new passwords in a
 password manager; the script does not store them. It does not publish artifacts
-or delete GitHub releases. Register the new release SHA-1/SHA-256 with the
-Firebase Android app before publishing; the old v1.2.0 APK will not accept an
-in-place update signed with the new key, so existing installs require a
-reinstall and may lose local-only data. See [Android app signing](https://developer.android.com/studio/publish/app-signing) and [Gradle release signing](https://developer.android.com/build/building-cmdline#sign_your_app).
+or delete GitHub releases. The v1.2.2 release SHA-1 and SHA-256 are registered
+with the Firebase Android app. For a future key rotation, register both new
+fingerprints before publishing. Existing installs signed with a different key
+require uninstalling first, which clears device-only state and app-private
+photos; Firebase-backed accounts and Firestore data remain in the cloud. See [Android app signing](https://developer.android.com/studio/publish/app-signing) and [Gradle release signing](https://developer.android.com/build/building-cmdline#sign_your_app).
 
 PowerShell and CI should provide the same four variables through a secure
 secret store. Do not save passwords in `gradle.properties`, shell history, or
