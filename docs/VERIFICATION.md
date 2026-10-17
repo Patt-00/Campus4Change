@@ -1,5 +1,27 @@
 # Verification history
 
+## Release signing migration — 2026-10-17
+
+- The public GitHub releases v1.0.0, v1.1.0, and v1.2.0 were archived outside
+  the repository under `/home/patt/Documents/Codex/Campus4Change-release-archive-2026-10-17`.
+  All archived assets' SHA-256 values match the GitHub release asset digests.
+- The published v1.2.0 APK's `SOURCE-BUILD.json` and `apksigner` output show
+  that it was signed with the public, repository-tracked debug certificate
+  (SHA-256 `fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c`).
+  The APK has two GitHub downloads. Removing its release entry cannot revoke
+  copies already downloaded.
+- Older verification history records a separate local APK/AAB signed with a
+  dedicated Firebase-registered certificate (SHA-256
+  `8d3013d36bc87451accb4ff455a7839f39397ea0538c367e615c80d1bbd5c1a4`). That
+  local artifact is distinct from the public GitHub v1.2.0 APK.
+- The owner chose to replace the signing identity and accept the reinstall
+  migration. The existing local release keystore is retained unchanged because
+  its password is unknown. `scripts/build-release.sh` creates a separate
+  private v2 keystore with hidden local password prompts and builds the APK/AAB;
+  its syntax was checked, but it has not yet been run. No new key was created,
+  no release artifact was signed, and old GitHub release entries remain until a
+  new signed artifact is built and verified.
+
 ## Version 1.2.2 profile and UI audit — 2026-10-17
 
 - `npm run lint`, `npm test -- --runInBand` (277 tests in 38 suites), the

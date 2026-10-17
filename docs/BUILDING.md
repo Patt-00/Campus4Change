@@ -175,33 +175,34 @@ dedicated keystore file and all four environment variables are supplied:
 - `C4C_RELEASE_KEY_ALIAS`: alias of the release key.
 - `C4C_RELEASE_KEY_PASSWORD`: release-key password.
 
-Generate a dedicated key interactively with `keytool` when ready to distribute. Keep the keystore outside the repository and protect it with a password manager or secrets store; never commit the file or passwords. Android signing keys must remain protected and stable for future updates. See [Android app signing](https://developer.android.com/studio/publish/app-signing) and [Gradle release signing](https://developer.android.com/build/building-cmdline#sign_your_app).
+The published v1.0.0–v1.2.0 APKs were signed with the repository debug key.
+Their release certificate is public and must not be used for future releases.
+The new release signer is intentionally separate; the old GitHub release assets
+are archived locally until the replacement APK/AAB is verified.
 
-On Linux/macOS, this one-time command creates a keystore outside the repository and prompts for its password and certificate details:
-
-```sh
-mkdir -p "$HOME/.android/keystores"
-keytool -genkeypair -v \
-  -keystore "$HOME/.android/keystores/campus4change-release.jks" \
-  -keyalg RSA -keysize 2048 -validity 10000 -alias campus4change
-```
-
-For a release build in a Bash session, set the file and alias, enter both passwords through hidden prompts, build, and clear the session variables afterward:
+To create the replacement signing identity and build both artifacts, run this
+helper from an interactive terminal at the repository root:
 
 ```sh
-export C4C_RELEASE_STORE_FILE="$HOME/.android/keystores/campus4change-release.jks"
-export C4C_RELEASE_KEY_ALIAS="campus4change"
-read -r -s -p 'Keystore password: ' C4C_RELEASE_STORE_PASSWORD; printf '\n'; export C4C_RELEASE_STORE_PASSWORD
-read -r -s -p 'Key password: ' C4C_RELEASE_KEY_PASSWORD; printf '\n'; export C4C_RELEASE_KEY_PASSWORD
-(cd android && ./gradlew --no-daemon assembleRelease)
-unset C4C_RELEASE_STORE_FILE C4C_RELEASE_STORE_PASSWORD C4C_RELEASE_KEY_ALIAS C4C_RELEASE_KEY_PASSWORD
+./scripts/build-release.sh
 ```
 
-PowerShell and CI should provide the same four variables through a secure secret store. Do not save passwords in `gradle.properties`, shell history, or the repository.
+The script creates `~/.android/keystores/campus4change-release-v2.jks` if it
+does not exist, prompts for the key credentials without echoing them, builds
+the APK and AAB, and prints their SHA-256 hashes. Save the new passwords in a
+password manager; the script does not store them. It does not publish artifacts
+or delete GitHub releases. Register the new release SHA-1/SHA-256 with the
+Firebase Android app before publishing; the old v1.2.0 APK will not accept an
+in-place update signed with the new key, so existing installs require a
+reinstall and may lose local-only data. See [Android app signing](https://developer.android.com/studio/publish/app-signing) and [Gradle release signing](https://developer.android.com/build/building-cmdline#sign_your_app).
+
+PowerShell and CI should provide the same four variables through a secure
+secret store. Do not save passwords in `gradle.properties`, shell history, or
+the repository.
 
 Version 1.2.2 has version code 5 and application ID `com.campus4change`.
 
-An update requires a matching application ID and signing certificate. Use your machine's private debug key with `C4C_DEBUG_STORE_FILE` when updating an installation made with that key. The 1.2.2 debug build was updated in place on the POCO using the matching per-user key, and on-device data was preserved. The signed release APK/AAB currently available are version 1.2.0; a signed 1.2.2 release build still needs the protected release-signing environment. Do not install a different signing identity over the debug-signed app because that would require uninstalling and remove on-device data. Back up or migrate local-only state before changing signing identities.
+An update requires a matching application ID and signing certificate. Use your machine's private debug key with `C4C_DEBUG_STORE_FILE` when updating an installation made with that key. The 1.2.2 debug build was updated in place on the POCO using the matching per-user key, and on-device data was preserved. The publicly released v1.2.0 APK used the repository debug signing identity; the new v1.2.2 release uses the separate private signer created by `scripts/build-release.sh`. Moving an old installation to the new signer requires uninstalling it, which removes device-local state. Firebase-backed account state can be restored after signing in again, but local-only state and device-only profile photos cannot. Back up or migrate local-only state before reinstalling.
 
 Minimum Android is 7.0. Optional biometrics require Android 9 or newer. The iOS scaffold has no native implementation for these local accounts.
 

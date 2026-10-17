@@ -26,7 +26,7 @@ passed every configured check on that exact main SHA.
 | Profile and learning-interest flow | Edit Profile now provides a device photo picker, eight built-in avatar presets, a searchable TIP catalog grouped by campus and college, at least 24 searchable core and specialization prompts per program, and selected interests grouped by course. The POCO imported a generated 1600×1200 test image through Android Photo Picker; its preview appeared, then the unsaved edit was discarded and the staged app-private copy was cleaned on relaunch. The temporary gallery fixture was removed. No personal photo was selected or opened. |
 | UI issues found and fixed | Oversized blank interest pills, the past-meetup heading, the blank booking-confirmation header, the tall sync-error panel, and indefinite post loading while group access changes are pending were corrected. Existing shared group data was left intact. |
 | Figma alignment | The editable prototype includes updated Edit Profile and Be a Tutor screens, a Create action screen, a past-meetup state, and the booking-confirmation header. Five missing avatar color tokens were added to the dark collection. The updated frames were visually checked. |
-| Regression and Android builds | 277 Jest tests in 38 suites, lint, public-Drive-link scan, Firestore rules emulator tests, debug APK assembly, release JS bundling, and release Kotlin compilation passed. Version 1.2.2 code 5 was installed on the POCO using the matching private debug key. The signed release APK/AAB available are version 1.2.0; a signed 1.2.2 artifact needs the protected release-signing environment. The repository currently has one CI workflow and no repository-level release secrets. |
+| Regression and Android builds | 277 Jest tests in 38 suites, lint, public-Drive-link scan, Auth/Firestore emulator tests, Android unit/instrumentation compilation, release JS bundling/Kotlin compilation, and debug APK assembly passed in CI. Version 1.2.2 code 5 was exercised on the POCO using the matching private debug install. GitHub's published v1.2.0 APK was signed with the public repository debug key; the replacement private-signed v1.2.2 APK/AAB are in progress. |
 | QA cleanup | The two temporary Auth accounts and their group, tutor profile, cancelled booking, participant locks, and private Firestore data were deleted. Firestore absence checks passed. The temporary POCO App Check debug tokens were revoked, and the local QA credential file was removed. At QA cleanup, the POCO app was signed out; encrypted per-account snapshots remain because this build has no per-account local purge action, and app data was not cleared. A later cold-launch observation is recorded below. |
 | Codebase and workspace cleanup | Removed the unused logo-mark and logo-circle PNG/SVG files; no tracked TypeScript source or bundled demo-data module remains. Lint found no TODO/FIXME/HACK markers, and local Markdown links resolve. Removed about 3.7 GB of ignored Gradle, CMake, and coverage output after verification. `node_modules` and ignored `android/local.properties` remain as local development dependencies/configuration. |
 
@@ -67,16 +67,20 @@ passed every configured check on that exact `main` SHA.
 
 ## Release and remaining scope
 
-The previously generated version 1.2.0 release APK/AAB contain a bundled
-JavaScript app and use the dedicated release certificate registered with
-Firebase (SHA-1 `734c583ad99d2506769677012ab9b63e6750dcfc`, SHA-256
-`8d3013d36bc87451accb4ff455a7839f39397ea0538c367e615c80d1bbd5c1a4`). They
-were not installed on the POCO because the existing package uses a different
-debug certificate and uninstalling it would erase device-local account data.
-The version 1.2.1 debug APK was installed in place and its icon verified in
-Android App Info. The version 1.2.2 debug APK was later installed in place with
-the POCO's matching private debug signer and was cold-launched. A signed 1.2.2
-release artifact remains pending the protected release-signing environment.
+GitHub releases `v1.0.0`, `v1.1.0`, and `v1.2.0` were downloaded to
+`/home/patt/Documents/Codex/Campus4Change-release-archive-2026-10-17` before
+cleanup; archived APK hashes match the GitHub asset digests. The published
+v1.2.0 APK's `SOURCE-BUILD.json` and `apksigner` readback show it was signed
+with the repository's public debug key (SHA-256
+`fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c`), not the
+private release key. The v1.2.0 APK has two recorded downloads. Deleting the
+GitHub release page cannot revoke copies already downloaded. The older release
+APK therefore cannot be updated in place by the new private signing identity;
+existing installs will need reinstall/migration, which can remove local-only
+data. The version 1.2.1 debug APK's icon was verified in Android App Info, and
+version 1.2.2 code 5 was installed in place with the POCO's matching private
+debug signer and cold-launched. A replacement private release signer and
+version 1.2.2 APK/AAB are being prepared before old release entries are deleted.
 
 Release Play Integrity attestation, App Check request metrics/enforcement,
 Google Play account deletion, OS push notifications, live calls, iOS, and the
