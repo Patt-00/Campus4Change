@@ -1,4 +1,32 @@
-# Verification for 1.2.0
+# Verification history
+
+## Version 1.2.1 launcher-icon follow-up — 2026-10-17
+
+- The previous Android launcher PNGs were the default Android robot. They were
+  replaced with the Campus4Change education emblem in adaptive, themed
+  monochrome, and density-specific legacy resources.
+- `npm run lint`, `npm test -- --runInBand` (266 tests in 34 suites), the
+  public-Drive-link check, and `git diff --check` passed. Android
+  `:app:assembleDebug` passed under JDK 25.
+- The debug APK identifies as `com.campus4change`, version 1.2.1, version code
+  4. Its certificate matches the installed debug app. `adb install -r` updated
+  the POCO X4 GT in place; app data was not cleared. Android App Info displayed
+  the branded icon and version 1.2.1. A cold launch loaded Home with the
+  existing profile.
+- The Figma Components page now contains a matching launcher-icon specimen.
+  The frame was visually inspected after upload.
+- Repository cleanup removed the unused root logo-mark/logo-circle assets and
+  the ignored Gradle, CMake, coverage, and temporary screenshot/APK outputs
+  (about 3.7 GB). Tracked-source scans found no TypeScript files, demo-data
+  module, or TODO/FIXME/HACK markers; local Markdown links resolve. The normal
+  `node_modules` installation and ignored Android SDK path remain for local
+  development.
+- The temporary Firebase App Check debug token remains revoked. This fresh
+  debug launch logged App Check token-acquisition warnings, then completed
+  account restoration and displayed Home. This check did not rerun live shared
+  Firebase workflows.
+- The source changes are not yet on `main`; the publication gate is recorded in
+  [FINAL_SPRINT.md](FINAL_SPRINT.md).
 
 ## Follow-up verification — 2026-10-15
 

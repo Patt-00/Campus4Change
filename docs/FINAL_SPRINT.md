@@ -1,9 +1,11 @@
 # Final sprint acceptance record
 
 This record covers the request to finish Campus4Change, verify it on the POCO
-X4 GT, and push the verified source to `main`. The scoped Android/Firebase
-application is published to `main`, its GitHub Actions checks pass, and the
-remaining store-readiness items are listed separately.
+X4 GT, and push the verified source to `main`. The previous Android/Firebase
+implementation is on `main`, but a later audit found that its Android launcher
+resources were still the default robot. Version 1.2.1 now fixes that gap; the
+goal remains open until this corrected version is pushed and its main-branch CI
+passes.
 
 ## Verified application scope
 
@@ -18,11 +20,12 @@ remaining store-readiness items are listed separately.
 | Tutor-session chat and notifications | The tutor sent a participant chat message and the student received it. The tutor saw a “Session confirmed” notice and opening it linked to the session detail. |
 | Private notes and state sync | The tutor's private QA note was present in that owner's Firestore state and remained absent from the student's workspace. A shared request note remained on session details and did not prefill either participant's private-note field. The post-fix POCO sign-out completed without a cloud-sync warning. |
 | Tutor/session pagination, private-note default, and chat empty state | Cursor paging is exposed in Tutor Search and Sessions. Shared request notes no longer prefill private notes. The empty chat state now renders outside the inverted list; the POCO displayed it upright and centered. |
-| Figma alignment | The editable prototype now includes the Requests filter, tutor/session load-more and refresh states, a SEND action, and a separate empty-chat state. The updated frames were visually reviewed. |
-| Regression and release builds | 266 Jest tests in 34 suites, lint, public-Drive-link scan, Auth/Firestore/booking-overlap/group-adapter emulator tests, signed `assembleRelease`, and signed `bundleRelease` passed. |
+| Figma alignment | The editable prototype now includes the Requests filter, tutor/session load-more and refresh states, a SEND action, and a separate empty-chat state. The updated frames were visually reviewed. A launcher-icon specimen is on the Components page. |
+| Regression and Android builds | 266 Jest tests in 34 suites, lint, public-Drive-link scan, Auth/Firestore/booking-overlap/group-adapter emulator tests, the 1.2.1 debug APK, release resource processing, production JS bundling, and release Kotlin compilation passed. The signed release APK/AAB available are version 1.2.0; a signed 1.2.1 artifact needs the protected signing environment. |
 | QA cleanup | The two temporary Auth accounts and their group, tutor profile, cancelled booking, participant locks, and private Firestore data were deleted. Firestore absence checks passed. The temporary POCO App Check debug tokens were revoked, and the local QA credential file was removed. At QA cleanup, the POCO app was signed out; encrypted per-account snapshots remain because this build has no per-account local purge action, and app data was not cleared. A later cold-launch observation is recorded below. |
+| Codebase and workspace cleanup | Removed the unused logo-mark and logo-circle PNG/SVG files; no tracked TypeScript source or bundled demo-data module remains. Lint found no TODO/FIXME/HACK markers, and local Markdown links resolve. Removed about 3.7 GB of ignored Gradle, CMake, and coverage output after verification. `node_modules` and ignored `android/local.properties` remain as local development dependencies/configuration. |
 
-## Final publication and POCO check — 2026-10-17
+## Previous publication checkpoint — 2026-10-17
 
 Application source commit `d4e4f89` was pushed to both `main` and
 `codex/firebase-auth-firestore`. GitHub Actions run
@@ -42,13 +45,15 @@ not be read as the phone's current state.
 
 ## Release and remaining scope
 
-The release APK and AAB contain a bundled JavaScript app and use the dedicated
-release certificate registered with Firebase (SHA-1 `734c583ad99d2506769677012ab9b63e6750dcfc`,
-SHA-256 `8d3013d36bc87451accb4ff455a7839f39397ea0538c367e615c80d1bbd5c1a4`).
-The APK and AAB were not installed on the POCO: the existing package uses a
-different debug certificate, and replacing it would require uninstalling the
-app and erasing its device-local account data. The current POCO debug install
-was used for the complete live workflow instead.
+The previously generated version 1.2.0 release APK/AAB contain a bundled
+JavaScript app and use the dedicated release certificate registered with
+Firebase (SHA-1 `734c583ad99d2506769677012ab9b63e6750dcfc`, SHA-256
+`8d3013d36bc87451accb4ff455a7839f39397ea0538c367e615c80d1bbd5c1a4`). They
+were not installed on the POCO because the existing package uses a different
+debug certificate and uninstalling it would erase device-local account data.
+The updated 1.2.1 debug APK was installed in place and its icon verified in
+Android App Info. A signed 1.2.1 release artifact remains pending the protected
+release-signing environment.
 
 Release Play Integrity attestation, App Check request metrics/enforcement,
 Google Play account deletion, OS push notifications, live calls, iOS, and the
@@ -57,12 +62,24 @@ They are not part of the verified school Android delivery scope; a Play Store
 release would require a separate readiness pass. No app-specific final teacher
 acceptance checklist has been provided.
 
-## Publication gate — passed for the scoped Android/Firebase delivery
+## Launcher-icon correction — 2026-10-17
 
-The application source is on `main`, and its main-branch GitHub Actions run
-passed as recorded above. Release Play Integrity/App Check enforcement and
-other Play Store readiness items remain outside this school Android delivery
+A review of the installed Android resources found that the prior `ic_launcher`
+PNGs were the default Android robot, despite the manifest referencing them as
+the app icon. Version 1.2.1 replaces them with the Campus4Change education
+emblem: adaptive, themed monochrome, and density-specific legacy assets. The
+version 1.2.1 debug APK was built as version code 4 and installed in place on
+the POCO using the same debug certificate. Android App Info displayed the new
+icon and version; the app data was preserved. A cold launch loaded the Home
+screen. The same icon was added to the Figma Components page.
+
+## Publication gate — open for the 1.2.1 correction
+
+The previous implementation commit is already on `main`, but version 1.2.1 is
+still local. Push this correction to `main`, verify CI on its exact commit, and
+then update this record with the resulting SHA and run. Release Play Integrity/
+App Check enforcement and other Play Store readiness items remain a separate
 scope; see [QUALITY_AUDIT.md](QUALITY_AUDIT.md). No app-specific final teacher
 acceptance checklist has been provided. See [VERIFICATION.md](VERIFICATION.md)
-for the dated evidence and [FIREBASE_SETUP.md](FIREBASE_SETUP.md) for the
-deployed service configuration.
+for dated evidence and [FIREBASE_SETUP.md](FIREBASE_SETUP.md) for deployed
+service configuration.

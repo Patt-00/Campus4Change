@@ -7,17 +7,20 @@ what is implemented, what has been verified, and what still prevents a
 production-ready claim. Older checkpoint notes below are historical; the current
 issue dispositions are summarized immediately after this scope.
 
-## Final sprint status — 2026-10-17
+## Final sprint status — 2026-10-17, updated for version 1.2.1
 
 The scoped Android/Firebase functionality passed the 266-test Jest suite, lint,
 public-link scan, Auth/Firestore/booking-overlap/group-adapter emulator suite,
-and signed release APK/AAB builds. Live Firestore rules match the repository and
-six indexes are ready. Two verified temporary accounts exercised tutor/session,
-group, chat, private-note, and notification flows on the POCO. Their accounts,
-Firestore fixtures, local QA credential file, and temporary App Check debug
-tokens were removed. The release artifact was signed with the registered release
-certificate but not installed over the data-preserving debug install. See
-`FINAL_SPRINT.md` for the publication gate.
+and release-resource/bundle/Kotlin checks. Live Firestore rules match the
+repository and six indexes are ready. Two verified temporary accounts
+exercised tutor/session, group, chat, private-note, and notification flows on
+the POCO. Their accounts, Firestore fixtures, local QA credential file, and
+temporary App Check debug tokens were removed. Version 1.2.1 replaces the
+default Android robot launcher art with the Campus4Change education mark; the
+debug build was installed in place and the app icon was confirmed in Android
+App Info. The signed APK/AAB previously available are version 1.2.0; a signed
+1.2.1 release artifact still needs the protected release-signing environment.
+See `FINAL_SPRINT.md` for the publication gate.
 
 ## Implementation history and prior evidence
 

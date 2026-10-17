@@ -198,9 +198,9 @@ unset C4C_RELEASE_STORE_FILE C4C_RELEASE_STORE_PASSWORD C4C_RELEASE_KEY_ALIAS C4
 
 PowerShell and CI should provide the same four variables through a secure secret store. Do not save passwords in `gradle.properties`, shell history, or the repository.
 
-Version 1.2.0 has version code 3 and application ID `com.campus4change`.
+Version 1.2.1 has version code 4 and application ID `com.campus4change`.
 
-An update requires a matching application ID and signing certificate. The v1.0.0, 1.1.0, and 1.2.0 APKs use the same debug certificate. The final-sprint debug build was updated in place on the POCO with the workstation's matching key. The dedicated release APK/AAB were built and signature-checked, but the release APK was not installed over the debug-signed app because that would require uninstalling and remove on-device data. Back up or migrate local-only state before changing signing identities.
+An update requires a matching application ID and signing certificate. The v1.0.0 through v1.2.1 debug APKs use the same debug certificate. The 1.2.1 debug build was updated in place on the POCO with the workstation's matching key. The signed release APK/AAB currently available are version 1.2.0; a signed 1.2.1 release build needs the protected release-signing environment. Do not install a different signing identity over the debug-signed app because that would require uninstalling and remove on-device data. Back up or migrate local-only state before changing signing identities.
 
 Minimum Android is 7.0. Optional biometrics require Android 9 or newer. The iOS scaffold has no native implementation for these local accounts.
 
