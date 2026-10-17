@@ -76,25 +76,47 @@ test('tutor listing requires a subject and a sufficiently long introduction', as
   await act(async () => renderer.unmount());
 });
 
-test('tutor listing trims subjects and removes case-insensitive duplicates', async () => {
+test('tutor listing subjects stay grouped by course and deduplicate within the course', async () => {
   const save = jest.fn();
   const back = jest.fn();
+  const courseId = 'manila-computer-studies-computer-science';
   let renderer;
   await act(async () => {
     renderer = renderScreen(
       <BeTutorScreen
         back={back}
-        profile={{ tutorSubjects: [], bio: '' }}
+        profile={{
+          courseId,
+          course: 'Computer Science',
+          tutorSubjects: [],
+          tutorSubjectGroups: [],
+          bio: '',
+        }}
         save={save}
       />,
     );
   });
 
   await act(async () =>
-    input(renderer, 'Subjects (separate with commas)').props.onChangeText(
-      ' Physics  , PHYSICS, Calculus ',
-    ),
+    input(renderer, 'Add a tutoring subject').props.onChangeText(' Physics  '),
   );
+  await act(async () => button(renderer, 'ADD INTEREST').props.onPress());
+  await act(async () =>
+    input(renderer, 'Add a tutoring subject').props.onChangeText('PHYSICS'),
+  );
+  await act(async () => button(renderer, 'ADD INTEREST').props.onPress());
+  const duplicateMessages = renderer.root
+    .findAllByType(Text)
+    .map(node => node.props.children)
+    .flat(Infinity)
+    .filter(value => typeof value === 'string');
+  expect(duplicateMessages).toContain(
+    'That subject is already in your list for Computer Science.',
+  );
+  await act(async () =>
+    input(renderer, 'Add a tutoring subject').props.onChangeText(' Calculus '),
+  );
+  await act(async () => button(renderer, 'ADD INTEREST').props.onPress());
   await act(async () =>
     input(renderer, 'About you').props.onChangeText(
       'I can help students understand physics and calculus.',
@@ -104,6 +126,15 @@ test('tutor listing trims subjects and removes case-insensitive duplicates', asy
 
   expect(save).toHaveBeenCalledWith({
     tutorSubjects: ['Physics', 'Calculus'],
+    tutorSubjectGroups: [
+      {
+        id: courseId,
+        programId: courseId,
+        programName: 'Computer Science',
+        campus: 'T.I.P. Manila',
+        interests: ['Physics', 'Calculus'],
+      },
+    ],
     bio: 'I can help students understand physics and calculus.',
   });
   expect(back).toHaveBeenCalledTimes(1);
@@ -131,7 +162,11 @@ test('tutor owner can remove an existing listing', async () => {
   await act(async () => button(renderer, 'Remove tutor listing').props.onPress());
   expect(save).not.toHaveBeenCalled();
   await act(async () => confirmRemoval());
-  expect(save).toHaveBeenCalledWith({ tutorSubjects: [], bio: '' });
+  expect(save).toHaveBeenCalledWith({
+    tutorSubjects: [],
+    tutorSubjectGroups: [],
+    bio: '',
+  });
   expect(back).toHaveBeenCalledTimes(1);
   await act(async () => renderer.unmount());
 });

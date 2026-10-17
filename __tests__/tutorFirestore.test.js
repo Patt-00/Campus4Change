@@ -111,6 +111,7 @@ test('publishes only bounded, normalized tutor profile fields', async () => {
     name: '  Taylor Student  ',
     course: ' BS Mathematics ',
     year: ' 3rd Year ',
+    avatarId: 'violet',
     subjects: [' Calculus  ', 'CALCULUS', 'Statistics'],
     bio: ' I explain concepts step by step. ',
   });
@@ -127,6 +128,7 @@ test('publishes only bounded, normalized tutor profile fields', async () => {
       name: 'Taylor Student',
       course: 'BS Mathematics',
       year: '3rd Year',
+      avatarId: 'violet',
       subjects: ['Calculus', 'Statistics'],
       bio: 'I explain concepts step by step.',
       visibility: 'listed',

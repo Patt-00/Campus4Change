@@ -69,7 +69,7 @@ State records are plain JavaScript objects for profiles, tutors, sessions, group
 
 `data/utils.js` contains shared ID, date, and time helpers and creates blank account state. New accounts begin without tutors, groups, bookings, conversations, or notices. `catalog.js` exposes only the current device account's own tutor listing; verified Firebase tutor listings come from the shared directory subscription. Device groups come only from that account's saved state.
 
-The profile feature owns the custom-interest editor. The tutor feature owns booking slot definitions shared by its details and booking forms, and pure search/filter rules in `data/search.js`. The group feature owns meetup date validation. A group's optional `meetupAt` ISO timestamp is compatible with version-1 saved state; old groups without it show no scheduled meetup.
+The profile feature owns the custom-interest editor, course-aware tutor-subject editor, topic search, and avatar editor. The shared data layer contains the campus-specific TIP program catalog, core-subject and specialization suggestions, and helpers that normalize saved interests into program groups while deriving a flat topic list for tutor matching. Topic prompts are searchable suggestions, not a published curriculum. Tutor-subject groups are private profile state; a published tutor listing contains the flattened subject names and one built-in avatar preset. The tutor feature owns booking slot definitions shared by its details and booking forms, and pure search/filter rules in `data/search.js`. The group feature owns meetup date validation. A group's optional `meetupAt` ISO timestamp is compatible with version-1 saved state; expired meetups are labeled as past.
 
 `shared/state/reducer.js` applies profile edits, bookings, session changes, memberships, posts, replies, messages, read notices, and study-note drafts. It rejects overlapping bookings, invalid ratings, and group posts/messages from non-members. A version-1 `pendingSharedActions` queue preserves shared group writes in the encrypted device state so the navigator can retry them after network failures.
 
@@ -133,8 +133,9 @@ queries defined in `firestore.indexes.json`. Instructor-wide moderation is
 not part of this group-owner workflow.
 
 The tutor feature publishes only opted-in profiles under `tutorProfiles/{uid}`.
-Each listing contains a name, optional course/year, subjects, and a bio; it does
-not contain email or Student ID. Only Firebase accounts with verified email
+Each listing contains a name, optional course/year, subjects, a bio, and one
+allowlisted avatar preset ID; it does not contain a custom photo, email, or
+Student ID. Only Firebase accounts with verified email
 addresses can discover these listings, and the owner can update or remove their
 profile. Email verification does not confirm school affiliation.
 `features/tutors/data/firestore.js` writes `tutorBookings/{bookingId}` requests
@@ -165,7 +166,7 @@ moderation are not implemented.
 
 ## Android local accounts
 
-`CampusStorageModule.kt` implements the Android-only `CampusStorage` native module registered by `MainApplication.kt`. It protects local account records, cached state, and Firebase Auth persistence values.
+`CampusStorageModule.kt` implements the Android-only `CampusStorage` native module registered by `MainApplication.kt`. It protects local account records, cached state, and Firebase Auth persistence values, and opens the Android system Photo Picker for a single profile image.
 
 - Private SharedPreferences hold encrypted account, per-account JSON, and Firebase Auth persistence records.
 - AES-GCM uses an Android Keystore key and a new IV per write.
@@ -177,6 +178,7 @@ moderation are not implemented.
   comparisons use `MessageDigest.isEqual`, and passwords are capped at 1,024
   characters. Real passwords are not saved as plain text.
 - A single background executor orders account and storage operations.
+- A selected profile image is reduced to a 512-pixel JPEG and copied into app-private files keyed by a hash of the signed-in account ID. The file URI is retained only in local account state and omitted from cloud persistence. No general media permission is requested.
 - Loading and saving requires an active account.
 - Biometric setup requires a signed-in local account and a successful Android biometric prompt. Sign-in uses the enrolled device biometrics. Android 9 or newer is required.
 - Android backup is disabled. Clearing app data or uninstalling removes local accounts and data.
@@ -185,7 +187,7 @@ An update from the older seeded build removes only the exact bundled account and
 
 ## UI and builds
 
-Shared controls provide the screen wrapper, header, tabs, buttons, inputs, chips, avatars, and icons. Inter fonts are bundled under Android assets. Figma circle images are bundled as PNGs, with source SVGs retained. The app's outline icons also have local SVG sources and PNG assets, without an icon-library dependency. The Inter license is in `shared/assets/Inter-OFL.txt`.
+Shared controls provide the screen wrapper, header, tabs, buttons, inputs, chips, avatars, compact notices, and icons. Inter fonts are bundled under Android assets. Figma circle images are bundled as PNGs, with source SVGs retained. The app's outline icons also have local SVG sources and PNG assets, without an icon-library dependency. The Inter license is in `shared/assets/Inter-OFL.txt`.
 
 A normal full-screen View is retained. Safe-area insets pad status and navigation bar edges. Forms scroll, Android resizes for the keyboard, tablet content width is limited, and portrait orientation is retained.
 

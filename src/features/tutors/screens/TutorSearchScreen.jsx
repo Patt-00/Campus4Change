@@ -138,7 +138,12 @@ export function TutorSearchScreen({
             onPress={() => go({ page: 'Tutor Details', tutorId: t.id })}
           >
             <View style={s.row}>
-              <Avatar name={t.name} size={44} />
+              <Avatar
+                name={t.name}
+                size={44}
+                avatarId={t.avatarId}
+                photoUri={t.profilePhotoUri}
+              />
               <View style={s.grow}>
                 <Text style={s.name}>{t.name}</Text>
                 <Text style={s.muted}>{t.subjects.join(' · ')}</Text>

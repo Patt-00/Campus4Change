@@ -11,7 +11,12 @@ export function TutorDetailsScreen({ go, back, tutor, message }) {
   return (
     <Screen title="Tutor Profile" back={back}>
       <View style={styles.alignItemscenterpaddingTop8}>
-        <Avatar name={tutor.name} size={72} />
+        <Avatar
+          name={tutor.name}
+          size={72}
+          avatarId={tutor.avatarId}
+          photoUri={tutor.profilePhotoUri}
+        />
         <Text style={[s.heading, styles.marginTop16]}>{tutor.name}</Text>
         <Text style={s.muted}>
           {[tutor.course, tutor.year].filter(Boolean).join(' • ')}

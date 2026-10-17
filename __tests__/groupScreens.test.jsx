@@ -337,3 +337,78 @@ test('legacy post IDs no longer inject bundled sample content', async () => {
   expect(rendered).not.toContain('∫ u dv = uv − ∫ v du');
   await act(async () => renderer.unmount());
 });
+
+test('group details describe a past meetup as past instead of the next session', async () => {
+  jest.spyOn(Date, 'now').mockReturnValue(
+    Date.parse('2026-10-17T08:00:00.000Z'),
+  );
+  let renderer;
+  await act(async () => {
+    renderer = renderScreen(
+      <GroupDetailsScreen
+        back={jest.fn()}
+        go={jest.fn()}
+        group={{
+          id: 'group-one',
+          name: 'Calculus Circle',
+          members: 2,
+          joined: true,
+          shared: false,
+          postsLoaded: true,
+          posts: [],
+          meetup: 'Integration review',
+          meetupAt: '2026-10-17T07:00:00.000Z',
+          room: 'Room A',
+        }}
+        membership={jest.fn()}
+        addPost={jest.fn()}
+        message={jest.fn()}
+      />,
+    );
+  });
+
+  const headings = renderer.root
+    .findAllByType(Text)
+    .map(node => node.props.children)
+    .flat(Infinity);
+  expect(headings).toContain('Past meetup');
+  expect(headings).not.toContain('Next group session');
+  await act(async () => renderer.unmount());
+});
+
+test('a pending group membership action does not leave the post area on an endless loading label', async () => {
+  let renderer;
+  await act(async () => {
+    renderer = renderScreen(
+      <GroupDetailsScreen
+        back={jest.fn()}
+        go={jest.fn()}
+        group={{
+          id: 'group-one',
+          name: 'Calculus Circle',
+          members: 2,
+          joined: true,
+          shared: true,
+          postsLoaded: false,
+          posts: [],
+          meetup: '',
+          room: 'Room A',
+        }}
+        membership={jest.fn()}
+        addPost={jest.fn()}
+        message={jest.fn()}
+        pendingGroupSync
+      />,
+    );
+  });
+
+  const visibleText = renderer.root
+    .findAllByType(Text)
+    .map(node => node.props.children)
+    .flat(Infinity);
+  expect(visibleText).toContain(
+    'Group changes are still syncing. Posts will appear when group access is up to date.',
+  );
+  expect(visibleText).not.toContain('Loading group posts...');
+  await act(async () => renderer.unmount());
+});

@@ -33,7 +33,7 @@ import {
   canRescheduleSession,
 } from '../features/sessions/data/status';
 import { AppButton } from '../shared/components/AppButton';
-import { Empty, Link } from '../shared/components/UI';
+import { Empty, Link, NoticeBanner } from '../shared/components/UI';
 import { RouteTransition } from '../shared/components/RouteTransition';
 import { Screen } from '../shared/components/Screen';
 import { uid } from '../shared/data/utils';
@@ -327,8 +327,20 @@ export function AppNavigator() {
     return renderTransition(<OnboardingScreen go={startFromOnboarding} />);
   }
   const ownId = 'local-' + state.profile.id;
-  const list = syncUid ? sharedTutors.tutors : knownTutors(state);
-  const directory = syncUid ? sharedTutors.tutors : directoryTutors(state);
+  const withLocalOwnPhoto = tutor =>
+    tutor.own
+      ? {
+          ...tutor,
+          avatarId: state.profile.avatarId,
+          profilePhotoUri: state.profile.profilePhotoUri,
+        }
+      : tutor;
+  const list = (syncUid ? sharedTutors.tutors : knownTutors(state)).map(
+    withLocalOwnPhoto,
+  );
+  const directory = (syncUid ? sharedTutors.tutors : directoryTutors(state)).map(
+    withLocalOwnPhoto,
+  );
   const sharedBookings = syncUid ? sharedTutors.bookings : [];
   const sharedBookingIds = new Set(sharedBookings.map(item => item.id));
   const sessions = [
@@ -647,6 +659,14 @@ export function AppNavigator() {
             message={groupMessage}
             hasMorePosts={hasMoreGroupPosts}
             postsLive={groupPostsLive}
+            pendingGroupSync={state.pendingSharedActions.some(
+              operation =>
+                (operation.type === 'membership' &&
+                  operation.groupId === group.id) ||
+                (operation.type === 'createGroup' &&
+                  operation.group?.id === group.id),
+            )}
+            contentError={groupContentError}
             loadingMorePosts={loadingMorePosts}
             loadMorePosts={loadMorePosts}
             refreshPosts={retryGroupContent}
@@ -1013,58 +1033,57 @@ export function AppNavigator() {
           </View>
         )}
       {route.page === 'Study Groups' && sharedGroupsError && (
-        <View style={s.banner}>
-          <Text style={s.error}>Study groups could not be refreshed: {sharedGroupsError}</Text>
-          <Link label="Retry groups" onPress={retrySharedGroups} />
-        </View>
+        <NoticeBanner
+          message={`Study groups could not be refreshed: ${sharedGroupsError}`}
+          actionLabel="Retry"
+          actionAccessibilityLabel="Retry groups"
+          onAction={retrySharedGroups}
+        />
       )}
       {groupStatusPages.has(route.page) && groupActionError && (
-        <View style={s.banner}>
-          <Text style={s.error}>A group change has not synced: {groupActionError}</Text>
-          <Link
-            label="Retry group changes"
-            onPress={retryGroupActions}
-          />
-        </View>
+        <NoticeBanner
+          message={`A group change has not synced: ${groupActionError}`}
+          actionLabel="Retry"
+          actionAccessibilityLabel="Retry group changes"
+          onAction={retryGroupActions}
+        />
       )}
       {groupContentStatusPages.has(route.page) && groupContentError && (
-        <View style={s.banner}>
-          <Text style={s.error}>Group posts could not be loaded: {groupContentError}</Text>
-          <Link label="Retry posts" onPress={retryGroupContent} />
-        </View>
+        <NoticeBanner
+          message={`Group posts could not be loaded: ${groupContentError}`}
+          actionLabel="Retry"
+          actionAccessibilityLabel="Retry posts"
+          onAction={retryGroupContent}
+        />
       )}
       {tutorStatusPages.has(route.page) && sharedTutors.error && (
-        <View style={s.banner}>
-          <Text style={s.error}>
-            Tutor listings and session requests could not be refreshed: {sharedTutors.error}
-          </Text>
-          <Link label="Retry tutor data" onPress={sharedTutors.retry} />
-        </View>
+        <NoticeBanner
+          message={`Tutor listings and session requests could not be refreshed: ${sharedTutors.error}`}
+          actionLabel="Retry"
+          actionAccessibilityLabel="Retry tutor data"
+          onAction={sharedTutors.retry}
+        />
       )}
       {tutorStatusPages.has(route.page) && sharedTutors.actionError && (
-        <View style={s.banner}>
-          <Text style={s.error}>
-            A tutor change was not saved: {sharedTutors.actionError}
-          </Text>
-        </View>
+        <NoticeBanner
+          message={`A tutor change was not saved: ${sharedTutors.actionError}`}
+        />
       )}
       {cloudSyncPending && !saveError && (
-        <View style={s.banner}>
-          <Text accessibilityLiveRegion="polite" style={s.muted}>
-            Saved on this device. Waiting to sync with Firebase.
-          </Text>
-        </View>
+        <NoticeBanner
+          tone="info"
+          message="Saved on this device. Waiting to sync with Firebase."
+        />
       )}
       {saveError && (
-        <View style={s.banner}>
-          <Text style={s.error}>
-            {sessionType === 'firebase' ? 'Some changes are not synced' : 'Data has not been saved'}: {saveError}
-          </Text>
-          <Link
-            label={sessionType === 'firebase' ? 'Retry sync' : 'Retry saving'}
-            onPress={retrySave}
-          />
-        </View>
+        <NoticeBanner
+          message={`${sessionType === 'firebase' ? 'Some changes are not synced' : 'Data has not been saved'}: ${saveError}`}
+          actionLabel={sessionType === 'firebase' ? 'Retry sync' : 'Retry saving'}
+          actionAccessibilityLabel={
+            sessionType === 'firebase' ? 'Retry sync' : 'Retry saving'
+          }
+          onAction={retrySave}
+        />
       )}
       {renderTransition(
         screen ?? (

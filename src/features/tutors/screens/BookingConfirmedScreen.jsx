@@ -12,7 +12,7 @@ import { C } from '../../../shared/theme/colors';
 export function BookingConfirmedScreen({ go, session, tutor }) {
   const request = session?.shared && session.status === 'Pending';
   return (
-    <Screen title="">
+    <Screen title={request ? 'Request sent' : 'Booking confirmed'}>
       <View style={styles.success}>
         <Icon name="check" size={72} color={C.green} />
       </View>

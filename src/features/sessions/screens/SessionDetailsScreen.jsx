@@ -75,6 +75,8 @@ export function SessionDetailsScreen({
         <Avatar
           name={session.incoming ? session.studentName : tutor.name}
           variant={session.incoming ? 'avatar' : 'tutor'}
+          avatarId={session.incoming ? undefined : tutor.avatarId}
+          photoUri={session.incoming ? undefined : tutor.profilePhotoUri}
         />
         <View>
           <Text style={s.name}>

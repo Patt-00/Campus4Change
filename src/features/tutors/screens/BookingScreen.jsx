@@ -88,7 +88,12 @@ export function BookingScreen({
     >
       <Text style={s.label}>Tutor</Text>
       <View style={[s.card, s.row]}>
-        <Avatar name={tutor.name} variant="tutor" />
+        <Avatar
+          name={tutor.name}
+          variant="tutor"
+          avatarId={tutor.avatarId}
+          photoUri={tutor.profilePhotoUri}
+        />
         <View>
           <Text style={s.name}>{tutor.name}</Text>
           <Text style={s.muted}>{subject}</Text>

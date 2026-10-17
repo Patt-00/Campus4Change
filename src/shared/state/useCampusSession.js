@@ -17,6 +17,12 @@ import {
 import { reducer } from './reducer';
 import { stateForPersistence } from './persistence';
 import { deviceStore, parseAccount, parseState } from './storage';
+import {
+  flattenInterestGroups,
+  normalizeInterestGroups,
+} from '../data/interestGroups';
+import { getAvatarPreset } from '../data/avatarPresets';
+import { getTipProgram } from '../data/tipPrograms';
 
 const SIGN_OUT_CLOUD_SYNC_TIMEOUT_MS = 1200;
 
@@ -30,6 +36,24 @@ function asState(value, account) {
   }
 
   const defaults = initialState(account);
+  const interests = stringList(state.profile.interests, defaults.profile.interests);
+  const interestGroups = normalizeInterestGroups(
+    state.profile.interestGroups,
+    interests,
+    state.profile.courseId,
+    state.profile.course,
+  );
+  const tutorSubjects = stringList(
+    state.profile.tutorSubjects,
+    defaults.profile.tutorSubjects,
+  );
+  const tutorSubjectGroups = normalizeInterestGroups(
+    state.profile.tutorSubjectGroups,
+    tutorSubjects,
+    state.profile.courseId,
+    state.profile.course,
+    10,
+  );
   const profile = {
     ...defaults.profile,
     ...state.profile,
@@ -49,6 +73,11 @@ function asState(value, account) {
       typeof state.profile.course === 'string'
         ? state.profile.course
         : defaults.profile.course,
+    courseId:
+      typeof state.profile.courseId === 'string' &&
+      getTipProgram(state.profile.courseId)
+        ? state.profile.courseId
+        : defaults.profile.courseId,
     year:
       typeof state.profile.year === 'string'
         ? state.profile.year
@@ -57,11 +86,18 @@ function asState(value, account) {
       typeof state.profile.school === 'string'
         ? state.profile.school
         : defaults.profile.school,
-    interests: stringList(state.profile.interests, defaults.profile.interests),
-    tutorSubjects: stringList(
-      state.profile.tutorSubjects,
-      defaults.profile.tutorSubjects,
-    ),
+    interests: flattenInterestGroups(interestGroups),
+    interestGroups,
+    avatarId: getAvatarPreset(state.profile.avatarId).id,
+    profilePhotoUri:
+      typeof state.profile.profilePhotoUri === 'string' &&
+      /^file:\/\/.*\/files\/profile_photos\/[a-f0-9]{64}-[a-f0-9-]{36}\.jpg$/.test(
+        state.profile.profilePhotoUri,
+      )
+        ? state.profile.profilePhotoUri
+        : defaults.profile.profilePhotoUri,
+    tutorSubjects: flattenInterestGroups(tutorSubjectGroups, 10),
+    tutorSubjectGroups,
     bio: typeof state.profile.bio === 'string' ? state.profile.bio : '',
   };
 
@@ -191,7 +227,10 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
         const nextState = queue.pendingState;
         queue.pendingState = null;
         try {
-          await saveCloudState(uid, nextState);
+          await saveCloudState(
+            uid,
+            stateForPersistence(nextState, { forCloud: true }),
+          );
           const updatedAt = Number(nextState.updatedAt);
           if (Number.isFinite(updatedAt)) {
             highestAcknowledgedUpdatedAt = Math.max(
@@ -447,7 +486,20 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
             : local;
         const localUpdatedAt = Number(latestLocal.updatedAt) || 0;
         const cloudUpdatedAt = Number(cloud?.updatedAt) || 0;
-        const selected = cloud && cloudUpdatedAt > localUpdatedAt ? cloud : latestLocal;
+        const newestState =
+          cloud && cloudUpdatedAt > localUpdatedAt ? cloud : latestLocal;
+        const localPhotoUri = latestLocal?.profile?.profilePhotoUri;
+        const selected =
+          typeof localPhotoUri === 'string' &&
+          localPhotoUri !== newestState?.profile?.profilePhotoUri
+            ? {
+                ...newestState,
+                profile: {
+                  ...newestState.profile,
+                  profilePhotoUri: localPhotoUri,
+                },
+              }
+            : newestState;
 
         if (selected !== snapshot.current) {
           snapshot.current = selected;

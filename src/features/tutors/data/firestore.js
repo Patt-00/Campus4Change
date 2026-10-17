@@ -1,4 +1,5 @@
 import { firebaseServicesForUser } from '../../../shared/backend/firebase';
+import { getAvatarPreset } from '../../../shared/data/avatarPresets';
 
 const PROFILE_PAGE_SIZE = 20;
 const BOOKING_PAGE_SIZE = 100;
@@ -24,6 +25,7 @@ function mapTutor(snapshot, uid) {
     name: profile.name,
     course: profile.course,
     year: profile.year,
+    avatarId: getAvatarPreset(profile.avatarId).id,
     subjects: profile.subjects,
     rating: 0,
     sessions: 0,
@@ -275,6 +277,7 @@ export async function saveTutorProfile(uid, profile) {
     name,
     course: String(profile.course || '').trim().slice(0, 100),
     year: String(profile.year || '').trim().slice(0, 40),
+    avatarId: getAvatarPreset(profile.avatarId).id,
     subjects,
     bio,
     visibility: 'listed',

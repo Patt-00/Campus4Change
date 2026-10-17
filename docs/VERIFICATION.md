@@ -1,5 +1,64 @@
 # Verification history
 
+## Version 1.2.2 profile and UI audit — 2026-10-17
+
+- `npm run lint`, `npm test -- --runInBand` (277 tests in 38 suites), the
+  public-Drive-link check, and the Firestore rules emulator suite passed.
+  The debug APK assembled under JDK 25; release JS bundling and release Kotlin
+  compilation passed. A signed 1.2.2 release APK/AAB was not produced because
+  the protected release-signing environment is unavailable on this checkout.
+- The rules-only Firebase CLI deploy to `campus4change` completed after the
+  emulator pass. It adds an optional `avatarId` field restricted to the eight
+  built-in preset IDs; no index or group/session rule changed.
+- Read-only live configuration checks confirmed the default database is in
+  `asia-southeast1`, the deployed `cloud.firestore` Rules API release source
+  exactly matches the local rules file (SHA-256
+  `867e1b314fb639608ef4fe6978892ee6d337536be27a65b01b76c066679ec0a8`), and
+  all six live composite indexes match `firestore.indexes.json`.
+- The version 1.2.2 code-5 debug APK was installed in place on POCO X4 GT
+  `Z9GMOVDMHQV8X84D` using the matching per-user debug certificate (SHA-256
+  `688f332c76200bc27d097a65ef4b48366596c790e89e08a43625354239f37082`). The
+  install preserved app data. A cold launch loaded Home with the saved account.
+- The Edit Profile screen was checked on the device. Android Photo Picker
+  imported a generated 1600×1200 test image and displayed the profile preview.
+  Backing out without Save preserved the cyan profile avatar; after relaunch,
+  the staged app-private photo file was absent. The temporary gallery fixture
+  was deleted, and no personal photo was selected or opened. The violet avatar
+  preset was previewed and discarded. Searching “Information Systems” returned
+  the Quezon City Computer Studies program; that course selection was not saved.
+- Each TIP program now offers at least 24 searchable topic prompts across its
+  core and specialization groups (Computer Science has 28). On the POCO,
+  searching the program picker for “Computer Science” returned separate Manila
+  and Quezon City programs. Selecting the Manila entry displayed 16 core
+  prompts and 12 specialization prompts; this edit was discarded without
+  saving. Searching the Computer Science prompts for “machine learning”
+  previously returned one matching specialization chip in Edit Profile. The
+  same search in Be a Tutor filtered its list, and selecting the chip grouped
+  it under Computer Science; that unsaved form was discarded without
+  publishing. No profile interests or tutor subjects were saved.
+- A stale meetup on the signed-in account now reads “Past meetup.” When its
+  group-access change is pending, the detail screen explains that posts will
+  appear after access syncs instead of showing an indefinite loading label.
+  The POCO still displays a shared group called “Final Sprint QA mva67ozd” and
+  a Firestore permission warning for a pending group change. I did not retry or
+  delete that live account data during the UI audit.
+- The group warning remained after cold launch even though live rules and
+  indexes match the repository and Be a Tutor displayed the verified shared
+  account flow. This points to the queued group operation or that group's
+  membership/document state, but its exact cause is unconfirmed. A temporary
+  private-state sync notice cleared automatically within about eight seconds.
+- The compact sync banner is visible on Study Groups and Group Details. The
+  Create tab, Profile, Edit Profile, and course suggestions were also reviewed
+  on the POCO. Metro displays its usual debug warning toast while connected;
+  that developer overlay is absent from release builds.
+- The connected Figma prototype was updated and visually checked: Edit Profile
+  (`1:495`), Create (`171:40`), Booking Confirmed (`1:251`), Past Meetup state
+  (`172:41`), and Be a Tutor (`173:40`). The Components page gained the missing
+  avatar color tokens.
+- Custom profile photos are stored only in app-private device files and are
+  omitted from the Firebase state write. Built-in avatar IDs are the only
+  profile image information included with a published tutor listing.
+
 ## Version 1.2.1 launcher-icon follow-up — 2026-10-17
 
 - The previous Android launcher PNGs were the default Android robot. They were

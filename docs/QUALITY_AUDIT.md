@@ -7,20 +7,71 @@ what is implemented, what has been verified, and what still prevents a
 production-ready claim. Older checkpoint notes below are historical; the current
 issue dispositions are summarized immediately after this scope.
 
-## Final sprint status — 2026-10-17, updated for version 1.2.1
+## Current sprint status — 2026-10-17, version 1.2.2 candidate
 
-The scoped Android/Firebase functionality passed the 266-test Jest suite, lint,
-public-link scan, Auth/Firestore/booking-overlap/group-adapter emulator suite,
-and release-resource/bundle/Kotlin checks. Live Firestore rules match the
-repository and six indexes are ready. Two verified temporary accounts
-exercised tutor/session, group, chat, private-note, and notification flows on
-the POCO. Their accounts, Firestore fixtures, local QA credential file, and
-temporary App Check debug tokens were removed. Version 1.2.1 replaces the
-default Android robot launcher art with the Campus4Change education mark; the
-debug build was installed in place and the app icon was confirmed in Android
-App Info. The signed APK/AAB previously available are version 1.2.0; a signed
-1.2.1 release artifact still needs the protected release-signing environment.
-See `FINAL_SPRINT.md` for the publication gate.
+The `codex/firebase-auth-firestore` branch now contains the profile and UI
+audit changes for version 1.2.2. Lint and all 277 Jest tests pass, the public
+Drive-link scan passes, the Firestore rules emulator suite passes, and the
+debug APK builds under JDK 25. A rules-only Firebase CLI deployment to
+`campus4change` succeeded for the optional allowlisted avatar ID field; the
+six existing composite indexes were not changed. A read-only Firebase Rules
+API readback confirmed the deployed `cloud.firestore` release exactly matches
+`firestore.rules` (SHA-256
+`867e1b314fb639608ef4fe6978892ee6d337536be27a65b01b76c066679ec0a8`), and the
+six live composite index definitions exactly match `firestore.indexes.json`.
+Version 1.2.2 code 5 was
+installed on the POCO X4 GT using the same private debug signer as the
+installed app; app data was preserved. Release JavaScript bundling and release
+Kotlin compilation pass, but the protected release keystore is not configured
+here, so there is no signed 1.2.2 APK/AAB. See `FINAL_SPRINT.md` for the
+current main-branch and release gates.
+
+## UI audit and profile changes — 2026-10-17
+
+The audit covered all routed screens in `AppNavigator` and physically checked
+Home, Sessions, Create, Messages, Profile, Edit Profile, Study Groups, Group
+Details, and the Group Session workspace on the POCO. It found and corrected
+the learning-interest chips that stretched into blank vertical pills, replaced
+the unstructured course field with a searchable TIP program picker, grouped
+saved interests by program, and added searchable course-specific suggestions
+and custom topic entry. Each of the 45 campus-and-college catalog entries now
+has at least 24 prompts split into core subjects and specialization areas.
+These suggestions draw on TIP's published curricula and program descriptions;
+they are not an official syllabus. Reference sources include
+TIP's [undergraduate program index](https://dru.tip.edu.ph/what-we-offer/undergraduate-programs/),
+the [revised 2024 Computer Science curriculum](https://dru.tip.edu.ph/assets/generic-pages/downloadables/Revised-2018-TIPM-BSCS-Curriculum-Aug-2024.pdf),
+[2023 Computer Engineering curriculum](https://dru.tip.edu.ph/assets/generic-pages/downloadables/2023-CPE_09032024_Updated.pdf),
+[2023 Civil Engineering curriculum](https://dru.tip.edu.ph/assets/generic-pages/downloadables/BSCE-2023-Curriculum.pdf),
+[2023 Industrial Engineering curriculum](https://dru.tip.edu.ph/assets/generic-pages/downloadables/2023-Curriculum_IE_Manila.pdf),
+[2023 Logistics and Supply Chain Management curriculum](https://dru.tip.edu.ph/assets/generic-pages/downloadables/BSBA-LSCM-2023-CURRICULUM.pdf),
+[2023 Financial Management curriculum](https://dru.tip.edu.ph/assets/generic-pages/downloadables/BSBA-FM-2023-CURRICULUM.pdf),
+the [Bachelor of Special Needs Education curriculum](https://dru.tip.edu.ph/assets/generic-pages/downloadables/RE-SPED-2018-Bachelor-of-Special-Needs-Education-Curriculum.xlsx-BSNEd-2018-CURR.-CHECKLIST.pdf),
+and the [TIP Teaching Certificate Program](https://dru.tip.edu.ph/what-we-offer/undergraduate-programs/t-i-p-quezon-city/college-of-education/teaching-certificate-program/).
+
+Edit Profile now supports Android's system photo picker and eight built-in
+color avatars. The Be a Tutor form uses the same course-aware subject tags.
+Custom photo files remain in app-private storage on the device and are removed
+from the cloud-state payload. Only the selected built-in avatar ID can appear
+on a public tutor listing. On the POCO, Android Photo Picker imported a
+generated 1600×1200 image and displayed its profile preview. The unsaved edit
+was discarded; relaunch removed the staged app-private copy, and the temporary
+gallery fixture was removed. No personal photo was selected or opened. A preset
+change was also previewed and discarded without saving.
+
+The same audit reduced full-width retry errors to compact notices, labeled
+expired group meetups as past, showed why posts are waiting when group access
+has an unsynced change, and gave booking confirmations a visible title. The
+Create tab now uses compact action cards. The connected Figma prototype now
+contains the updated Edit Profile screen, a Create screen, a past-meetup state,
+an updated booking-confirmation header, and a course-aware Be a Tutor screen;
+the dark color-token collection includes the missing avatar colors.
+
+One live account condition remains visible: the POCO still lists a shared group
+named “Final Sprint QA mva67ozd” with an unsynced permission error and posts
+waiting for group access to sync. I left that shared account data intact. The
+screen now explains the wait and offers the existing retry action; this audit
+did not replay or delete the live group operation. The debug Metro warning
+toast is development-only and does not appear in release builds.
 
 ## Implementation history and prior evidence
 
@@ -320,7 +371,7 @@ See `FINAL_SPRINT.md` for the publication gate.
 
 | ID | Priority | Issue | Evidence and next action |
 | --- | --- | --- | --- |
-| C4C-01 | High | Production Firestore rules and indexes were not deployed in the earlier audit. | Resolved 2026-10-17: the active Firestore Rules API release matches local `firestore.rules` (SHA-256 `4bd5afad4aa7c1e7428c45e018509c33d0ae00721dcdcc549ac72a3c341d35c0`) and all six composite indexes report `READY`. |
+| C4C-01 | High | Production Firestore rules and indexes were not deployed in the earlier audit. | Resolved 2026-10-17: the active Firestore Rules API release matches local `firestore.rules` (SHA-256 `867e1b314fb639608ef4fe6978892ee6d337536be27a65b01b76c066679ec0a8`) and all six composite indexes report `READY`. |
 | C4C-02 | High | Real-project, two-account shared workflows were not verified in the earlier audit. | Resolved for the current Android scope: two verified test accounts completed tutor discovery, request/accept/cancel, session chat, group discovery, reply, and group chat on the POCO. The temporary users and their Firestore test data were deleted after verification. |
 | C4C-03 | Informational | No Campus4Change-specific final acceptance checklist was found. | The user confirmed no final teacher checklist is available; this is an accepted scope limitation, not a code failure. The known Lab/Seatwork materials cover React Native/Firebase fundamentals but do not specify additional app-specific acceptance criteria; current feature scope is recorded in `FINAL_SPRINT.md`. |
 | C4C-04 | Medium | OS push notification delivery is not implemented. | In-app booking/group notices and tutor-session/group chat were verified live across two verified accounts on the POCO, including the Session confirmed deep link. OS push is outside the verified school Android scope; live calls are also unavailable. |

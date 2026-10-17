@@ -29,11 +29,12 @@ fingerprints (`5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25` /
 `FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C`). Do not register that public certificate with Firebase. Other developers need to use their own local debug key and add its SHA-1 to Firebase after authorization.
 
 A future release signing certificate must also be added before release Google
-sign-in and Play Integrity can be verified. The database was initialized in
-production mode, so its current rules deny all client reads and writes. The
-checked-in `firestore.rules` file has passed the emulator suite but has not been
-deployed to this project; live app data access stays unavailable until that
-deployment.
+sign-in and Play Integrity can be verified. The reviewed Firestore rules were
+deployed to this project, including a rules-only update on 2026-10-17 for the
+optional allowlisted tutor avatar preset. That update did not change indexes;
+the six existing composite indexes were previously read back as `READY`. The
+emulator suite passes for the current rules. One POCO group change still shows
+a permission error; see [VERIFICATION.md](VERIFICATION.md).
 Firebase signup sends an email verification link. Verified email claims are
 required for shared study groups, tutor listings, and session requests; each
 user can still read and save only their own private account state before
@@ -47,8 +48,8 @@ Authentication. The Android app uses the public Firebase Web client ID from
 Firebase. The ID is public client configuration; never put a Web client secret
 in the app. A Google account supplies its name and email. The account holder
 can add a Student ID later in Edit Profile, where it stays in private account
-state. The screens and debug build are verified on the POCO X4 GT; an actual
-Google account sign-in has not yet been verified end-to-end.
+state. Google-to-Firebase sign-in has been completed on the POCO with a debug
+build.
 See [Android's Credential Manager Google sign-in guide](https://developer.android.com/identity/sign-in/credential-manager-siwg-implementation)
 and [Firebase's Google sign-in guide for Android](https://firebase.google.com/docs/auth/android/google-signin)
 for the platform flow and token exchange.
@@ -199,7 +200,9 @@ require the verified-email claim for shared study groups, tutor listings, and
 session requests.
 
 Tutor profiles are owner-editable documents at `tutorProfiles/{uid}` and expose
-only the fields needed for a student listing. Session requests live at
+only the fields needed for a student listing, including an allowlisted built-in
+avatar preset ID. Custom profile photos remain on the originating device and
+are not uploaded to Firestore. Session requests live at
 `tutorBookings/{bookingId}` and can be read only by the student and tutor.
 Request status changes are limited to tutor acceptance/decline, participant
 cancellation, or participant completion. Accepting a request creates two
@@ -209,8 +212,11 @@ conflicts across tutors and role changes; cancellation or completion removes all
 four locks atomically. Pending requests remain cancellable without removing any
 other booking's locks. Current
 group chat is available to current members, and tutor-session chat is limited
-to its two participants. These chat workflows are covered by emulator tests;
-real-project rules deployment and two-account delivery still need verification.
+to its two participants. These chat workflows are covered by emulator tests and
+were exercised with two temporary verified accounts on the POCO. A rules-only
+deployment was completed on 2026-10-17; a pending shared-group change on the
+signed-in POCO account still reports a permission error and has not been
+replayed or deleted.
 Creating a tutor-session request also updates the student's private,
 non-deletable `tutorBookingLimits/{uid}` record in the same atomic batch. The
 rules permit one request every five seconds and reject a limit record that is

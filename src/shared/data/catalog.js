@@ -10,6 +10,8 @@ function ownTutorProfile(state) {
       name: profile.name,
       course: profile.course,
       year: profile.year,
+      avatarId: profile.avatarId,
+      profilePhotoUri: profile.profilePhotoUri,
       subjects: profile.tutorSubjects,
       rating: 0,
       sessions: 0,

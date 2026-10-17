@@ -171,6 +171,7 @@ try {
     name: 'Alice Student',
     course: 'BS Mathematics',
     year: '3rd Year',
+    avatarId: 'violet',
     subjects: ['Calculus', 'Statistics'],
     bio: 'I explain problems step by step.',
     visibility: 'listed',
@@ -189,6 +190,16 @@ try {
   );
   assert.equal(tutorDirectory.size, 1);
   assert.equal(tutorDirectory.docs[0].data().name, 'Alice Student');
+  const legacyTutorProfile = { ...tutorProfile };
+  delete legacyTutorProfile.avatarId;
+  await assertSucceeds(
+    setDoc(doc(bob, 'tutorProfiles/bob'), {
+      ...legacyTutorProfile,
+      uid: 'bob',
+      name: 'Bob Student',
+      updatedAt: serverTimestamp(),
+    }),
+  );
   await assertFails(
     getDocs(
       query(
@@ -219,6 +230,13 @@ try {
     setDoc(doc(alice, 'tutorProfiles/alice'), {
       ...tutorProfile,
       email: 'private@example.test',
+    }),
+  );
+  await assertFails(
+    setDoc(aliceTutorProfile, {
+      ...tutorProfile,
+      avatarId: 'custom-url',
+      updatedAt: serverTimestamp(),
     }),
   );
 

@@ -16,11 +16,18 @@ export function GroupDetailsScreen({
   message,
   hasMorePosts = false,
   postsLive = false,
+  pendingGroupSync = false,
+  contentError = '',
   loadingMorePosts = false,
   loadMorePosts,
   refreshPosts,
 }) {
   const [draft, setDraft] = useState('');
+  const meetupStart = group.meetupAt ? new Date(group.meetupAt) : null;
+  const meetupIsValid = Boolean(
+    meetupStart && Number.isFinite(meetupStart.getTime()),
+  );
+  const meetupHasPassed = meetupIsValid && meetupStart.getTime() <= Date.now();
   return (
     <Screen title={group.name} back={back}>
       <Text style={s.muted}>{group.members} members</Text>
@@ -48,12 +55,25 @@ export function GroupDetailsScreen({
         />
       )}
 
-      <Text style={s.section}>Next group session</Text>
+      <Text style={s.section}>
+        {meetupHasPassed
+          ? 'Past meetup'
+          : meetupIsValid
+            ? 'Next group session'
+            : 'Group meetup'}
+      </Text>
       <View style={s.card}>
         <Text style={s.name}>{group.meetup || 'Study session'}</Text>
         <Text style={s.muted}>
-          {group.meetupAt ? sessionTime(group.meetupAt) : 'No meetup scheduled'}
+          {meetupIsValid
+            ? sessionTime(group.meetupAt)
+            : group.meetupAt
+              ? 'Meetup time unavailable'
+              : 'No meetup scheduled'}
         </Text>
+        {meetupHasPassed && (
+          <Text style={s.muted}>This scheduled meetup has already passed.</Text>
+        )}
         <Text style={s.muted}>
           Location • {group.room || 'Not set'}
         </Text>
@@ -65,7 +85,18 @@ export function GroupDetailsScreen({
           body="Join this group to read posts and replies."
         />
       ) : group.shared && !group.postsLoaded ? (
-        <Text style={s.muted}>Loading group posts...</Text>
+        <View style={styles.feedStatus}>
+          <Text style={s.muted}>
+            {pendingGroupSync
+              ? 'Group changes are still syncing. Posts will appear when group access is up to date.'
+              : contentError
+                ? 'Posts could not be loaded.'
+                : 'Loading group posts...'}
+          </Text>
+          {!!contentError && (
+            <Link label="Retry posts" onPress={refreshPosts} />
+          )}
+        </View>
       ) : (
         <>
           {group.posts.map(p => (
@@ -167,5 +198,9 @@ const styles = StyleSheet.create({
     color: '#9CAFC2',
     fontSize: 12,
     marginTop: 6,
+  },
+  feedStatus: {
+    minHeight: 48,
+    justifyContent: 'center',
   },
 });

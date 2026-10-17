@@ -72,7 +72,12 @@ export function HomeScreen({ go, state, directory, tutors }) {
       unread={state.notices.filter(n => !n.read).length}
     >
       <View style={[s.row, styles.greeting]}>
-        <Avatar name={state.profile.name} size={40} />
+        <Avatar
+          name={state.profile.name}
+          size={40}
+          avatarId={state.profile.avatarId}
+          photoUri={state.profile.profilePhotoUri}
+        />
         <View style={s.grow}>
           <Text style={s.name}>Hello, {state.profile.name.split(' ')[0]}!</Text>
           <Text style={s.muted}>What would you like to learn today?</Text>

@@ -82,6 +82,8 @@ export function SessionWorkspaceScreen({
             name={session.incoming ? session.studentName : tutor.name}
             variant={session.incoming ? 'avatar' : 'tutor'}
             size={44}
+            avatarId={session.incoming ? undefined : tutor.avatarId}
+            photoUri={session.incoming ? undefined : tutor.profilePhotoUri}
           />
           <View style={s.grow}>
             <Text style={s.name}>

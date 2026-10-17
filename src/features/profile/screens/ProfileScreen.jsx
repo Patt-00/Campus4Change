@@ -48,7 +48,13 @@ export function ProfileScreen({
   return (
     <Screen title="Profile" go={go} tab="Profile">
       <View style={styles.alignItemscenterpaddingTop8}>
-        <Avatar name={p.name} variant="tutor" size={64} />
+        <Avatar
+          name={p.name}
+          variant="tutor"
+          size={64}
+          avatarId={p.avatarId}
+          photoUri={p.profilePhotoUri}
+        />
         <Text style={[s.heading, styles.marginTop12]}>{p.name}</Text>
         <Text style={s.muted}>
           {[p.course, p.year].filter(Boolean).join(' • ') ||

@@ -1,11 +1,12 @@
 # Final sprint acceptance record
 
 This record covers the request to finish Campus4Change, verify it on the POCO
-X4 GT, and push the verified source to `main`. The previous Android/Firebase
-implementation is on `main`, but a later audit found that its Android launcher
-resources were still the default robot. Version 1.2.1 now fixes that gap; the
-goal remains open until this corrected version is pushed and its main-branch CI
-passes.
+X4 GT, and push the verified source to `main`. The branded-icon correction
+for version 1.2.1 is already on `main` at `158961c`; GitHub Actions run
+[39017646958](https://github.com/Patt-00/Campus4Change/actions/runs/39017646958)
+passed on that commit. The current version 1.2.2 UI, profile, and catalog work
+is still on `codex/firebase-auth-firestore`; the completion goal remains open
+until its remaining gates pass.
 
 ## Verified application scope
 
@@ -13,15 +14,17 @@ passes.
 | --- | --- |
 | React Native CLI Android app in JavaScript/JSX, with no bundled demo account | The current debug build was updated and exercised on the POCO X4 GT (`22041216G`). Existing on-device data was preserved. |
 | Firebase authentication and any-email-verified shared access | Two temporary verified email/password accounts signed in on the POCO. Earlier approved Google sign-in completed on the same device. The temporary accounts have since been deleted. |
-| Live Firestore isolation, groups, tutor listings, and sessions | Deployed rules were read back from Firebase Rules API and match local `firestore.rules` (SHA-256 `4bd5afad4aa7c1e7428c45e018509c33d0ae00721dcdcc549ac72a3c341d35c0`). All six composite indexes report `READY`. |
+| Live Firestore isolation, groups, tutor listings, and sessions | The 1.2.2 rules emulator suite passes, and a rules-only deployment to `campus4change` succeeded for the optional allowlisted avatar ID field. The six existing composite indexes were unchanged and were previously reported `READY`. |
 | Tutor search and bounded pagination | Live verified directory search showed the temporary tutor listing. Cursor-page behavior, loaded-search guidance, and refresh after paging are covered by focused screen/adapter tests. The live project had fewer than 20 listings, so a second physical page was not available to load. |
 | Session request, acceptance, cancellation, and conflict protection | On the POCO, the student requested a session, the tutor accepted, the student received a confirmation notice, and the student cancelled the QA booking. The emulator overlap suite covers cross-tutor and cross-role conflicts, concurrent accepts, lock release, and adjacent times. |
 | Study-group discovery, posts, replies, and group chat | On the POCO, the tutor's shared group was discovered by the student; the student replied to a tutor post and sent a group-chat message; the tutor account then saw both. Rules tests cover outsiders, moderation, retries, and private receipts. |
 | Tutor-session chat and notifications | The tutor sent a participant chat message and the student received it. The tutor saw a “Session confirmed” notice and opening it linked to the session detail. |
 | Private notes and state sync | The tutor's private QA note was present in that owner's Firestore state and remained absent from the student's workspace. A shared request note remained on session details and did not prefill either participant's private-note field. The post-fix POCO sign-out completed without a cloud-sync warning. |
 | Tutor/session pagination, private-note default, and chat empty state | Cursor paging is exposed in Tutor Search and Sessions. Shared request notes no longer prefill private notes. The empty chat state now renders outside the inverted list; the POCO displayed it upright and centered. |
-| Figma alignment | The editable prototype now includes the Requests filter, tutor/session load-more and refresh states, a SEND action, and a separate empty-chat state. The updated frames were visually reviewed. A launcher-icon specimen is on the Components page. |
-| Regression and Android builds | 266 Jest tests in 34 suites, lint, public-Drive-link scan, Auth/Firestore/booking-overlap/group-adapter emulator tests, the 1.2.1 debug APK, release resource processing, production JS bundling, and release Kotlin compilation passed. The signed release APK/AAB available are version 1.2.0; a signed 1.2.1 artifact needs the protected signing environment. |
+| Profile and learning-interest flow | Edit Profile now provides a device photo picker, eight built-in avatar presets, a searchable TIP catalog grouped by campus and college, at least 24 searchable core and specialization prompts per program, and selected interests grouped by course. The POCO imported a generated 1600×1200 test image through Android Photo Picker; its preview appeared, then the unsaved edit was discarded and the staged app-private copy was cleaned on relaunch. The temporary gallery fixture was removed. No personal photo was selected or opened. |
+| UI issues found and fixed | Oversized blank interest pills, the past-meetup heading, the blank booking-confirmation header, the tall sync-error panel, and indefinite post loading while group access changes are pending were corrected. Existing shared group data was left intact. |
+| Figma alignment | The editable prototype includes updated Edit Profile and Be a Tutor screens, a Create action screen, a past-meetup state, and the booking-confirmation header. Five missing avatar color tokens were added to the dark collection. The updated frames were visually checked. |
+| Regression and Android builds | 277 Jest tests in 38 suites, lint, public-Drive-link scan, Firestore rules emulator tests, debug APK assembly, release JS bundling, and release Kotlin compilation passed. Version 1.2.2 code 5 was installed on the POCO using the matching private debug key. The signed release APK/AAB available are version 1.2.0; a signed 1.2.2 artifact needs the protected release-signing environment. The repository currently has one CI workflow and no repository-level release secrets. |
 | QA cleanup | The two temporary Auth accounts and their group, tutor profile, cancelled booking, participant locks, and private Firestore data were deleted. Firestore absence checks passed. The temporary POCO App Check debug tokens were revoked, and the local QA credential file was removed. At QA cleanup, the POCO app was signed out; encrypted per-account snapshots remain because this build has no per-account local purge action, and app data was not cleared. A later cold-launch observation is recorded below. |
 | Codebase and workspace cleanup | Removed the unused logo-mark and logo-circle PNG/SVG files; no tracked TypeScript source or bundled demo-data module remains. Lint found no TODO/FIXME/HACK markers, and local Markdown links resolve. Removed about 3.7 GB of ignored Gradle, CMake, and coverage output after verification. `node_modules` and ignored `android/local.properties` remain as local development dependencies/configuration. |
 
@@ -43,6 +46,14 @@ type was not inspected. No sign-out, account change, or app-data operation was
 performed during this check, so the earlier signed-out cleanup state should
 not be read as the phone's current state.
 
+## Main branch checkpoint — 2026-10-17
+
+The version 1.2.1 launcher-icon correction was published at `158961c` to
+`main` and `codex/firebase-auth-firestore`. GitHub Actions run
+[39017646958](https://github.com/Patt-00/Campus4Change/actions/runs/39017646958)
+passed all configured checks on that exact SHA. The version 1.2.2 UI/profile
+changes in this record have not been pushed to `main` yet.
+
 ## Release and remaining scope
 
 The previously generated version 1.2.0 release APK/AAB contain a bundled
@@ -51,9 +62,10 @@ Firebase (SHA-1 `734c583ad99d2506769677012ab9b63e6750dcfc`, SHA-256
 `8d3013d36bc87451accb4ff455a7839f39397ea0538c367e615c80d1bbd5c1a4`). They
 were not installed on the POCO because the existing package uses a different
 debug certificate and uninstalling it would erase device-local account data.
-The updated 1.2.1 debug APK was installed in place and its icon verified in
-Android App Info. A signed 1.2.1 release artifact remains pending the protected
-release-signing environment.
+The version 1.2.1 debug APK was installed in place and its icon verified in
+Android App Info. The version 1.2.2 debug APK was later installed in place with
+the POCO's matching private debug signer and was cold-launched. A signed 1.2.2
+release artifact remains pending the protected release-signing environment.
 
 Release Play Integrity attestation, App Check request metrics/enforcement,
 Google Play account deletion, OS push notifications, live calls, iOS, and the
@@ -73,13 +85,13 @@ the POCO using the same debug certificate. Android App Info displayed the new
 icon and version; the app data was preserved. A cold launch loaded the Home
 screen. The same icon was added to the Figma Components page.
 
-## Publication gate — open for the 1.2.1 correction
+## Publication gate — version 1.2.2
 
-The previous implementation commit is already on `main`, but version 1.2.1 is
-still local. Push this correction to `main`, verify CI on its exact commit, and
-then update this record with the resulting SHA and run. Release Play Integrity/
-App Check enforcement and other Play Store readiness items remain a separate
-scope; see [QUALITY_AUDIT.md](QUALITY_AUDIT.md). No app-specific final teacher
-acceptance checklist has been provided. See [VERIFICATION.md](VERIFICATION.md)
-for dated evidence and [FIREBASE_SETUP.md](FIREBASE_SETUP.md) for deployed
-service configuration.
+The version 1.2.2 UI/profile changes are verified locally and on the POCO but
+are not yet on `main`. Release Play Integrity enforcement and other Play Store
+readiness items remain a separate scope; see [QUALITY_AUDIT.md](QUALITY_AUDIT.md).
+No app-specific final teacher acceptance checklist has been provided. The
+POCO's signed-in account still shows a shared “Final Sprint QA” group with a
+pending permission error and posts waiting for access to sync; its data was
+preserved. See [VERIFICATION.md](VERIFICATION.md) for dated evidence and
+[FIREBASE_SETUP.md](FIREBASE_SETUP.md) for service configuration.

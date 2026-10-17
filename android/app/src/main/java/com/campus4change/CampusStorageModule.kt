@@ -1,8 +1,15 @@
 package com.campus4change
 
+import android.app.Activity
+import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
 import android.hardware.biometrics.BiometricPrompt
+import android.net.Uri
 import android.os.Build
 import android.os.CancellationSignal
+import android.provider.MediaStore
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
@@ -12,6 +19,10 @@ import com.facebook.react.bridge.*
 import com.facebook.react.uimanager.ViewManager
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileOutputStream
+import java.security.MessageDigest
 import java.security.KeyStore
 import java.security.SecureRandom
 import java.util.UUID
@@ -21,15 +32,25 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-/** Android-only local accounts and encrypted, per-account app state. */
-class CampusStorageModule(private val context: ReactApplicationContext) : ReactContextBaseJavaModule(context) {
+/** Android-only local accounts, encrypted app state, and private profile photos. */
+class CampusStorageModule(private val context: ReactApplicationContext) :
+    ReactContextBaseJavaModule(context), ActivityEventListener {
     private val worker = Executors.newSingleThreadExecutor()
     private val prefs = context.getSharedPreferences("campus_private", 0)
     private val appPreferences = context.getSharedPreferences("campus_app_preferences", 0)
     @Volatile private var activeUser: String? = null
     private var biometricCancel: CancellationSignal? = null
+    private var pendingProfilePhotoPromise: Promise? = null
+    private var pendingProfilePhotoUserId: String? = null
+
+    private companion object {
+        const val PROFILE_PHOTO_REQUEST_CODE = 7341
+        const val PROFILE_PHOTO_MAX_EDGE = 512
+        const val PROFILE_PHOTO_MAX_BYTES = 450_000
+    }
 
     init {
+        context.addActivityEventListener(this)
         // Queue cleanup before any bridge method can enqueue local account work.
         worker.execute {
             try {
@@ -224,7 +245,9 @@ class CampusStorageModule(private val context: ReactApplicationContext) : ReactC
 
     @ReactMethod fun loadState(expectedUserId: String, promise: Promise) = run(promise) {
         requireActiveUser(expectedUserId)
-        read("state_$expectedUserId")
+        val serialized = read("state_$expectedUserId")
+        cleanProfilePhotos(expectedUserId, profilePhotoUri(serialized))
+        serialized
     }
     @ReactMethod fun setActiveUser(userId: String, promise: Promise) = run(promise) {
         require(userId.isNotBlank() && userId.length <= 256) { "Invalid account ID." }
@@ -233,8 +256,13 @@ class CampusStorageModule(private val context: ReactApplicationContext) : ReactC
     }
     @ReactMethod fun saveState(expectedUserId: String, value: String, promise: Promise) = run(promise) {
         requireActiveUser(expectedUserId)
-        JSONObject(value)
+        val previousPhoto = profilePhotoUri(read("state_$expectedUserId"))
+        val parsed = JSONObject(value)
+        val nextPhoto = profilePhotoUri(parsed.toString())
         write("state_$expectedUserId", value)
+        if (previousPhoto != nextPhoto) {
+            cleanProfilePhotos(expectedUserId, nextPhoto)
+        }
         true
     }
     @ReactMethod fun signOut(expectedUserId: String, promise: Promise) = run(promise) {
@@ -268,6 +296,187 @@ class CampusStorageModule(private val context: ReactApplicationContext) : ReactC
     @ReactMethod fun removeFirebaseAuthValue(key: String, promise: Promise) = run(promise) {
         check(prefs.edit().remove(firebaseAuthKey(key)).commit()) { "Could not clear Firebase sign-in data." }
         true
+    }
+
+    @ReactMethod fun pickProfilePhoto(expectedUserId: String, promise: Promise) {
+        try {
+            requireActiveUser(expectedUserId)
+            check(pendingProfilePhotoPromise == null) { "Finish the current photo selection first." }
+            val activity = context.currentActivity
+                ?: throw IllegalStateException("Open the app before choosing a profile photo.")
+            val intent = if (Build.VERSION.SDK_INT >= 33) {
+                Intent(MediaStore.ACTION_PICK_IMAGES).apply { type = "image/*" }
+            } else {
+                Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = "image/*"
+                }
+            }.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            pendingProfilePhotoPromise = promise
+            pendingProfilePhotoUserId = expectedUserId
+            activity.runOnUiThread {
+                try {
+                    activity.startActivityForResult(intent, PROFILE_PHOTO_REQUEST_CODE)
+                } catch (error: Exception) {
+                    pendingProfilePhotoPromise = null
+                    pendingProfilePhotoUserId = null
+                    promise.reject("PROFILE_PHOTO", error.message ?: "Could not open the photo picker.")
+                }
+            }
+        } catch (error: Exception) {
+            promise.reject("PROFILE_PHOTO", error.message ?: "Could not open the photo picker.")
+        }
+    }
+
+    override fun onActivityResult(
+        activity: Activity,
+        requestCode: Int,
+        resultCode: Int,
+        data: Intent?,
+    ) {
+        if (requestCode != PROFILE_PHOTO_REQUEST_CODE) return
+        val promise = pendingProfilePhotoPromise ?: return
+        val expectedUserId = pendingProfilePhotoUserId
+        pendingProfilePhotoPromise = null
+        pendingProfilePhotoUserId = null
+        if (resultCode != Activity.RESULT_OK || data?.data == null) {
+            promise.resolve(null)
+            return
+        }
+        val uri = data.data ?: run {
+            promise.resolve(null)
+            return
+        }
+        if (expectedUserId == null) {
+            promise.reject("PROFILE_PHOTO", "The active account changed. Choose the photo again.")
+            return
+        }
+        worker.execute {
+            try {
+                requireActiveUser(expectedUserId)
+                val savedPhotoUri = profilePhotoUri(read("state_$expectedUserId"))
+                cleanProfilePhotos(expectedUserId, savedPhotoUri)
+                val bitmap = decodeProfilePhoto(uri)
+                val bytes = compressProfilePhoto(bitmap)
+                if (bitmap.isRecycled.not()) bitmap.recycle()
+                require(bytes.size <= PROFILE_PHOTO_MAX_BYTES) {
+                    "Choose an image that can be reduced below 450 KB."
+                }
+                val destination = profilePhotoFile(expectedUserId)
+                check(destination.parentFile?.mkdirs() == true || destination.parentFile?.isDirectory == true) {
+                    "Could not prepare private photo storage on this device."
+                }
+                val temporary = File(destination.parentFile, destination.name + ".tmp")
+                FileOutputStream(temporary).use { output ->
+                    output.write(bytes)
+                    output.fd.sync()
+                }
+                check(temporary.renameTo(destination)) {
+                    temporary.delete()
+                    "Could not save the profile photo on this device."
+                }
+                promise.resolve("file://${destination.absolutePath}")
+            } catch (error: Exception) {
+                promise.reject("PROFILE_PHOTO", error.message ?: "Could not save this profile photo.")
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) = Unit
+
+    private fun profilePhotoPrefix(expectedUserId: String): String =
+        MessageDigest.getInstance("SHA-256")
+            .digest(expectedUserId.toByteArray(Charsets.UTF_8))
+            .joinToString("") { byte -> "%02x".format(byte.toInt() and 0xff) } + "-"
+
+    private fun profilePhotoFile(expectedUserId: String): File = File(
+        File(context.filesDir, "profile_photos"),
+        profilePhotoPrefix(expectedUserId) + UUID.randomUUID().toString() + ".jpg",
+    )
+
+    private fun profilePhotoUri(serializedState: String?): String? {
+        if (serializedState.isNullOrBlank()) return null
+        return runCatching {
+            JSONObject(serializedState)
+                .optJSONObject("profile")
+                ?.optString("profilePhotoUri")
+                ?.takeIf { it.startsWith("file://") && it.contains("/profile_photos/") }
+        }.getOrNull()
+    }
+
+    private fun cleanProfilePhotos(expectedUserId: String, keepUri: String?) {
+        val directory = File(context.filesDir, "profile_photos")
+        val keepPath = keepUri?.removePrefix("file://")
+        directory.listFiles()
+            ?.filter { file ->
+                file.name.startsWith(profilePhotoPrefix(expectedUserId)) &&
+                    file.absolutePath != keepPath
+            }
+            ?.forEach { file ->
+                if (file.exists()) {
+                    if (!file.delete()) {
+                        Log.w("CampusStorage", "Unused profile photo cleanup failed.")
+                    }
+                }
+            }
+    }
+
+    private fun decodeProfilePhoto(uri: Uri): Bitmap {
+        if (Build.VERSION.SDK_INT >= 28) {
+            val source = ImageDecoder.createSource(context.contentResolver, uri)
+            return ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
+                val width = info.size.width
+                val height = info.size.height
+                require(width > 0 && height > 0) { "This image could not be read." }
+                val scale = minOf(1.0, PROFILE_PHOTO_MAX_EDGE.toDouble() / maxOf(width, height))
+                decoder.setTargetSize(
+                    (width * scale).toInt().coerceAtLeast(1),
+                    (height * scale).toInt().coerceAtLeast(1),
+                )
+            }
+        }
+
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        context.contentResolver.openInputStream(uri).use { stream ->
+            requireNotNull(stream) { "This image could not be opened." }
+            BitmapFactory.decodeStream(stream, null, bounds)
+        }
+        require(bounds.outWidth > 0 && bounds.outHeight > 0) { "This image could not be read." }
+        var sample = 1
+        while (maxOf(bounds.outWidth / sample, bounds.outHeight / sample) > PROFILE_PHOTO_MAX_EDGE * 2) {
+            sample *= 2
+        }
+        val options = BitmapFactory.Options().apply { inSampleSize = sample }
+        val decoded = context.contentResolver.openInputStream(uri).use { stream ->
+            requireNotNull(stream) { "This image could not be opened." }
+            BitmapFactory.decodeStream(stream, null, options)
+        } ?: throw IllegalArgumentException("This image could not be decoded.")
+        val scale = minOf(
+            1.0,
+            PROFILE_PHOTO_MAX_EDGE.toDouble() / maxOf(decoded.width, decoded.height),
+        )
+        if (scale >= 1.0) return decoded
+        val scaled = Bitmap.createScaledBitmap(
+            decoded,
+            (decoded.width * scale).toInt().coerceAtLeast(1),
+            (decoded.height * scale).toInt().coerceAtLeast(1),
+            true,
+        )
+        if (scaled !== decoded) decoded.recycle()
+        return scaled
+    }
+
+    private fun compressProfilePhoto(bitmap: Bitmap): ByteArray {
+        val output = ByteArrayOutputStream()
+        var quality = 88
+        var encoded = false
+        do {
+            output.reset()
+            encoded = bitmap.compress(Bitmap.CompressFormat.JPEG, quality, output)
+            quality -= 8
+        } while (output.size() > PROFILE_PHOTO_MAX_BYTES && quality >= 56)
+        check(encoded && output.size() > 0) { "Could not encode this profile photo." }
+        return output.toByteArray()
     }
     @ReactMethod fun enableBiometrics(promise: Promise) {
         val id = activeUser
@@ -352,7 +561,15 @@ class CampusStorageModule(private val context: ReactApplicationContext) : ReactC
     private fun canAuthenticateLegacy(manager: android.hardware.biometrics.BiometricManager): Int =
         manager.canAuthenticate()
 
-    override fun invalidate() { biometricCancel?.cancel(); worker.shutdown(); super.invalidate() }
+    override fun invalidate() {
+        context.removeActivityEventListener(this)
+        pendingProfilePhotoPromise?.reject("PROFILE_PHOTO", "The app closed before photo selection finished.")
+        pendingProfilePhotoPromise = null
+        pendingProfilePhotoUserId = null
+        biometricCancel?.cancel()
+        worker.shutdown()
+        super.invalidate()
+    }
 }
 
 class CampusStoragePackage : ReactPackage {

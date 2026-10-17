@@ -568,7 +568,7 @@ service cloud.firestore {
           ])
           && request.resource.data.keys().hasOnly([
             'uid', 'name', 'course', 'year', 'subjects', 'bio',
-            'visibility', 'updatedAt'
+            'visibility', 'updatedAt', 'avatarId'
           ])
           && request.resource.data.uid == tutorUid
           && request.resource.data.name is string
@@ -581,6 +581,10 @@ service cloud.firestore {
           && request.resource.data.subjects is list
           && request.resource.data.subjects.size() > 0
           && request.resource.data.subjects.size() <= 10
+          && (!('avatarId' in request.resource.data)
+            || request.resource.data.avatarId in [
+              'cyan', 'blue', 'green', 'violet', 'gold', 'rose', 'teal', 'slate'
+            ])
           && request.resource.data.bio is string
           && request.resource.data.bio.size() >= 10
           && request.resource.data.bio.size() <= 1000

@@ -31,6 +31,9 @@ export function AboutScreen({
             ? 'Firebase sign-in is restored when you reopen the app. A local encrypted copy supports recovery when sync fails. Uninstalling removes that local copy; cloud data remains in Firebase.'
             : 'Uninstalling the app or clearing its data removes your accounts and saved work.'}
         </Text>
+        <Text style={s.muted}>
+          Profile photos are stored in app-private storage on this device. The avatar preset you select can appear on a published tutor listing.
+        </Text>
       </View>
       <Text style={s.section}>Connecting with the community</Text>
       <Text style={s.text}>
