@@ -1,9 +1,9 @@
 # Final sprint acceptance record
 
 This record covers the request to finish Campus4Change, verify it on the POCO
-X4 GT, and push the verified source to `main`. Functional verification now
-covers the scoped Android/Firebase application; the goal remains open until the
-final source commit is on `main` and its GitHub Actions run passes.
+X4 GT, and push the verified source to `main`. The scoped Android/Firebase
+application is published to `main`, its GitHub Actions checks pass, and the
+remaining store-readiness items are listed separately.
 
 ## Verified application scope
 
@@ -20,7 +20,25 @@ final source commit is on `main` and its GitHub Actions run passes.
 | Tutor/session pagination, private-note default, and chat empty state | Cursor paging is exposed in Tutor Search and Sessions. Shared request notes no longer prefill private notes. The empty chat state now renders outside the inverted list; the POCO displayed it upright and centered. |
 | Figma alignment | The editable prototype now includes the Requests filter, tutor/session load-more and refresh states, a SEND action, and a separate empty-chat state. The updated frames were visually reviewed. |
 | Regression and release builds | 266 Jest tests in 34 suites, lint, public-Drive-link scan, Auth/Firestore/booking-overlap/group-adapter emulator tests, signed `assembleRelease`, and signed `bundleRelease` passed. |
-| QA cleanup | The two temporary Auth accounts and their group, tutor profile, cancelled booking, participant locks, and private Firestore data were deleted. Firestore absence checks passed. The temporary POCO App Check debug tokens were revoked, and the local QA credential file was removed. The signed-out POCO app retains encrypted per-account QA snapshots because this build has no per-account local purge action; app data was not cleared. |
+| QA cleanup | The two temporary Auth accounts and their group, tutor profile, cancelled booking, participant locks, and private Firestore data were deleted. Firestore absence checks passed. The temporary POCO App Check debug tokens were revoked, and the local QA credential file was removed. At QA cleanup, the POCO app was signed out; encrypted per-account snapshots remain because this build has no per-account local purge action, and app data was not cleared. A later cold-launch observation is recorded below. |
+
+## Final publication and POCO check — 2026-10-17
+
+Application source commit `d4e4f89` was pushed to both `main` and
+`codex/firebase-auth-firestore`. GitHub Actions run
+[39013996889](https://github.com/Patt-00/Campus4Change/actions/runs/39013996889)
+passed all configured checks on that exact `main` commit: lint, public-link
+scan, Jest, Android unit tests, instrumentation compilation, Firebase Auth and
+Firestore emulator tests, production bundle and release Kotlin compilation,
+debug APK assembly, and the release-signing guard.
+
+On the POCO X4 GT (`22041216G`, Android 14), the installed version 1.2.0 debug
+app was force-stopped and cold-launched with Metro available. It loaded the
+JavaScript bundle and displayed Home with the existing profile; the captured
+log sample had no React Native JavaScript or Android fatal error. The account
+type was not inspected. No sign-out, account change, or app-data operation was
+performed during this check, so the earlier signed-out cleanup state should
+not be read as the phone's current state.
 
 ## Release and remaining scope
 
@@ -39,11 +57,12 @@ They are not part of the verified school Android delivery scope; a Play Store
 release would require a separate readiness pass. No app-specific final teacher
 acceptance checklist has been provided.
 
-## Publication gate
+## Publication gate — passed for the scoped Android/Firebase delivery
 
-The implementation and verification are complete on
-`codex/firebase-auth-firestore`. The remaining steps are to review the exact
-diff, commit it, push the completed source to `main`, and verify the resulting
-main-branch GitHub Actions run. Do not label the goal achieved before those
-checks pass. See [VERIFICATION.md](VERIFICATION.md) for the dated evidence and
-[FIREBASE_SETUP.md](FIREBASE_SETUP.md) for the deployed service configuration.
+The application source is on `main`, and its main-branch GitHub Actions run
+passed as recorded above. Release Play Integrity/App Check enforcement and
+other Play Store readiness items remain outside this school Android delivery
+scope; see [QUALITY_AUDIT.md](QUALITY_AUDIT.md). No app-specific final teacher
+acceptance checklist has been provided. See [VERIFICATION.md](VERIFICATION.md)
+for the dated evidence and [FIREBASE_SETUP.md](FIREBASE_SETUP.md) for the
+deployed service configuration.
