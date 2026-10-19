@@ -10,12 +10,14 @@ or a production deployment.
   matched at `ba7961ce603478d1d755a7ec7c2844c45e3a15b0`, and the worktree was
   clean. The application code is from `64c9192`; later commits updated audit
   and readiness records.
-- In a later instruction, the user authorized publishing the verified current
-  touch-target changes to GitHub `main` and creating a pre-release. This does
-  not authorize production deployment or Firestore authorization changes. The
-  1.3.0 preview will be source-only unless a signed artifact is available; the
-  local release-signing variables are unset and no release workflow or signing
-  secrets are configured in GitHub Actions.
+- The verified touch-target changes are now published on `main` at
+  `f5823c900c16cc7bf7870562ec5a6c7d730e8a2d`. GitHub Actions run
+  [39321845339](https://github.com/Patt-00/Campus4Change/actions/runs/39321845339)
+  passed all configured checks on that exact commit. The source-only
+  pre-release [v1.3.0-preview.1](https://github.com/Patt-00/Campus4Change/releases/tag/v1.3.0-preview.1)
+  is published; no signed 1.3.0 APK/AAB was available. The latest signed,
+  installable release remains v1.2.2. No production deployment or Firestore
+  authorization change was made.
 - The current source version is 1.3.0. The application is a React Native CLI
   Android app using JavaScript/JSX, Firebase Authentication, Firestore, and a
   native encrypted local account store.
@@ -1095,3 +1097,22 @@ or a production deployment.
   The release keystore files exist locally, but their passwords are not
   available in this build environment. No key material was read, no password
   was guessed, and no signed release build was attempted.
+
+### GitHub publication and source preview, 2026-10-20
+
+- Published the 48 dp touch-target changes and audit records to `main` in
+  commit `f5823c900c16cc7bf7870562ec5a6c7d730e8a2d`. GitHub Actions run
+  [39321845339](https://github.com/Patt-00/Campus4Change/actions/runs/39321845339)
+  passed Jest, lint, public Drive-link scanning, Android unit tests,
+  instrumentation compilation, Firebase Auth/Firestore emulator tests,
+  production bundle and release Kotlin compilation, debug APK assembly, and
+  the dedicated-signing fail-closed check.
+- Published [v1.3.0-preview.1](https://github.com/Patt-00/Campus4Change/releases/tag/v1.3.0-preview.1)
+  as a GitHub pre-release on the same commit. It is a source-only preview with
+  no APK or AAB. The latest signed, installable release remains v1.2.2 because
+  release signing credentials were unavailable. The pre-release notes call out
+  the production `studentIdClaims` mismatch and the unverified release-key
+  Google sign-in and Play Integrity App Check.
+- The publication did not deploy Firestore rules, change production data, or
+  alter authorization settings. The GitHub `main` push and pre-release were
+  explicitly authorized for this work.
