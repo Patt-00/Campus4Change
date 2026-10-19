@@ -1,5 +1,9 @@
 # Final sprint acceptance record
 
+> Historical record for the published v1.2.2 source only. It does not verify
+> the current 1.3.0 source or the active production Rules API release. See
+> [COMPLETION_AUDIT.md](../COMPLETION_AUDIT.md) for current evidence.
+
 This record covers the final source and Android release for Campus4Change
 version 1.2.2. Source commit
 cb386acc29c1cd2b55d4c9ed620b657b874f1c91 is on main and

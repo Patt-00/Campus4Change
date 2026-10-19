@@ -1,17 +1,19 @@
 # Ongoing application quality audit
 
 Audit scope: the React Native Android checkout at
-`/home/patt/October Shits/Campus4Change`, currently on `main` with uncommitted
-local improvements. See [AUTONOMOUS_PROGRESS.md](../AUTONOMOUS_PROGRESS.md) for
-the current local validation results and pending device checks. The release
-evidence below describes its pinned source commit and does not verify these
-uncommitted changes.
+`/home/patt/October Shits/Campus4Change`, with the current 1.3.0 source on
+`main`. See [COMPLETION_AUDIT.md](../COMPLETION_AUDIT.md) and
+[AUTONOMOUS_PROGRESS.md](../AUTONOMOUS_PROGRESS.md) for current readiness and
+verification evidence. The release evidence below describes the pinned v1.2.2
+source and does not verify the 1.3.0 source.
 The Figma coverage map and current repository docs are evidence; they do not
 replace a final teacher rubric or live Firebase project. This inventory records
 what is implemented, what has been verified, and what still prevents a
 production-ready claim. Older checkpoint notes below are historical; the current
 issue dispositions are summarized immediately after this scope.
-The current weighted estimate and unresolved acceptance gates are maintained in [COMPLETION_AUDIT.md](../COMPLETION_AUDIT.md); historical release entries below are not evidence for uncommitted changes.
+Current completion and unresolved gates are in
+[COMPLETION_AUDIT.md](../COMPLETION_AUDIT.md). Historical release entries
+below describe the v1.2.2 release only.
 
 ## Current sprint status — 2026-10-17, version 1.2.2 released
 
