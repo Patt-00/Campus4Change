@@ -90,8 +90,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   closeButton: {
-    width: 44,
-    height: 44,
+    width: 48,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
   },

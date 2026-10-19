@@ -6,11 +6,16 @@ or a production deployment.
 
 ## Current workspace
 
-- Checkout: `/home/patt/October Shits/Campus4Change`, branch `main`, with source
-  commit `64c9192` on local and remote history. The worktree has only
-  documentation updates pending a follow-up commit.
-- The active completion goal authorized a normal push to `main` after review
-  and checks. The source was pushed without resetting or force-pushing.
+- At the start of the 2026-10-20 resumed audit, local `main` and `origin/main`
+  matched at `ba7961ce603478d1d755a7ec7c2844c45e3a15b0`, and the worktree was
+  clean. The application code is from `64c9192`; later commits updated audit
+  and readiness records.
+- In a later instruction, the user authorized publishing the verified current
+  touch-target changes to GitHub `main` and creating a pre-release. This does
+  not authorize production deployment or Firestore authorization changes. The
+  1.3.0 preview will be source-only unless a signed artifact is available; the
+  local release-signing variables are unset and no release workflow or signing
+  secrets are configured in GitHub Actions.
 - The current source version is 1.3.0. The application is a React Native CLI
   Android app using JavaScript/JSX, Firebase Authentication, Firestore, and a
   native encrypted local account store.
@@ -944,3 +949,149 @@ or a production deployment.
   hash provider, but its AVD requested 7.37 GB of free space while the volume
   had 5 GB available. The AVD did not boot. Its temporary files and SDK image
   were removed; API 24 runtime behavior remains unverified.
+
+### Touch target accessibility audit, 2026-10-20
+
+- Physical accessibility snapshots on the POCO X4 GT and Pad 7 reproduced
+  undersized targets between 40 and 46.5 dp in shared controls, topic chips,
+  search inputs, menu links, session filters, and notification actions. The
+  clickable controls in the sampled routes already had accessible labels.
+- Android recommends a 48 dp by 48 dp focusable or touch area for interactive
+  elements in touch interfaces ([accessibility guidance](https://developer.android.com/guide/topics/ui/accessibility/apps)).
+  Shared input, chip, and link styles and the affected header, home, picker,
+  notification, saved-interest, and onboarding controls now use 48 dp minimums.
+- Jest passed 320 tests across 40 suites, ESLint passed, and `git diff --check`
+  passed. The emulator-only QA APK assembled successfully with hash
+  `87f7b20f623115c76f8905de90305d751b1a669c3fe9cad30b9d5836b74b1edd` and the
+  installed debug certificate `688f332c76200bc27d097a65ef4b48366596c790e89e08a43625354239f37082`.
+  Its Firebase configuration targets only the local demo emulator and was
+  restored byte-for-byte after the build.
+- The QA APK was installed in place on the POCO and Pad, preserving app data.
+  Both cold-launched version 1.3.0. A route sweep checked Home, Sessions,
+  Create, Messages, Profile, Edit Profile, Tutor Search, Be a Tutor, the menu,
+  Study Groups, Settings, Preferences, About, and Notifications on both devices.
+  No unlabeled clickable control appeared. Fully visible controls met the
+  48 dp layout minimum; smaller accessibility bounds were rows clipped by the
+  scroll viewport or one-pixel density rounding. Scrolling revealed full-size
+  topic controls on both devices. No profile, interest, booking, or group change
+  was submitted.
+- Further physical checks covered Group Details, Group Session, and group chat
+  on both devices, plus the owner-only Group Reports view on the POCO. Every
+  visible action had an accessible label and a full-size target. On the Pad,
+  the group-chat link appeared after scrolling the details page. The QA group
+  had no posts, so the Group Post route could not be opened. No post, reply,
+  report, membership action, chat message, or session note was submitted.
+- On both devices, the profile photo presets, TIP program picker, and campus
+  picker opened without saving changes. After scrolling, fully visible course
+  rows measured at least 55.7 dp on the POCO and 55.8 dp on the Pad. The picker
+  exposed Quezon City and Manila.
+- A source scan of 37 direct React Native pressables found no control without an
+  explicit accessibility label or static text. A contrast spot check measured
+  at least 4.88:1 for sampled text pairs and 3.56:1 for the Google mark on white.
+  This does not verify screen-reader focus order or every dynamic screen state.
+- The React Native development warning overlay appeared on cold launch and was
+  dismissed for testing. It is debug-build UI; a signed release was not built
+  or checked in this cycle. Emulator QA data and source configuration remained
+  separate from production Firebase.
+- The nine-file source change and this progress entry remain uncommitted on
+  local `main` under the no-push task boundary. The two audit-document changes
+  are also local. GitHub CI run `39311400891` passed on the preceding `ba7961c`
+  commit, so it does not cover this source change. The repository completion
+  estimate was adjusted to account for the pending GitHub synchronization and
+  CI gate.
+
+### Dependency advisory recheck, 2026-10-20
+
+- `npm audit --omit=dev` still reports 20 high paths and zero critical paths.
+  Each reported path resolves to `braces@3.0.3` through
+  `cli-platform-android -> fast-glob -> micromatch`. The current npm package
+  page still lists 3.0.3 as latest, and the [GitHub advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm)
+  lists no patched version.
+- The automatic audit fix proposes `@react-native-community/cli@13.5.1`. The
+  project uses CLI 20.2.0 and React Native 0.87.1. The [CLI compatibility
+  table](https://github.com/react-native-community/cli#compatibility) documents
+  CLI 20 with React Native 0.81 through 0.85 and advises against independent
+  CLI updates. The installed combination builds and passes CI, but React Native
+  0.87.1 is outside that published compatibility range.
+- No downgrade or dependency override was applied. Recheck when braces publishes
+  a patched version or the CLI project documents support for the installed
+  React Native version.
+
+### QA debug startup and memory baseline, 2026-10-20
+
+- Measured three process-cold launches per device using the same installed
+  emulator-only QA APK, version 1.3.0, without clearing app data. Both local
+  Firebase emulators returned HTTP 200, and ADB reverse mappings for ports
+  9099 and 8080 were active.
+- ActivityManager `TotalTime` was 530-539 ms on the POCO X4 GT (median 538 ms)
+  and 689-788 ms on the Pad 7 (median 729 ms). Home first appeared in an
+  accessibility-tree snapshot at 4.417-4.714 seconds on the POCO (median
+  4.688 seconds) and 4.328-4.775 seconds on the Pad (median 4.573 seconds).
+  Those Home observations include the ADB and UIAutomator dump time and are
+  upper bounds, not direct render-time measurements.
+- After five seconds at Home, `dumpsys meminfo` reported 156,593 KB total PSS
+  on the POCO and 262,856 KB on the Pad. The POCO was charging at 14% battery
+  and 25.0 C; the Pad was at 59% and 28.0 C. Android versions were 14/API 34
+  and 16/API 36, respectively.
+- These are three-run debug-build baselines, not release measurements. The
+  project has no startup or memory acceptance thresholds, so this does not
+  establish that release performance is acceptable. No code changed in this
+  cycle. Both apps remain on Home; no data was cleared or modified.
+
+### API 24 runtime retry, 2026-10-20
+
+- The SDK repository lists the default x86_64 API 24 image as a 419,261,998
+  byte archive. It was installed in a temporary SDK root under `/tmp`; the
+  expanded system image used 3.1 GB. A minimal AVD used a 768 MB data partition
+  and passed the emulator disk-compatibility check.
+- The Android Emulator exited with code 139 before API 24 reached boot
+  completion. The same result occurred with the default SwiftShader path and
+  the software renderer. `emulator-5556` never reached a usable ADB state, so
+  the password-hash instrumentation tests were not run.
+- Removed the temporary SDK image, AVD files, and emulator artifacts. The two
+  pre-existing AVDs remain listed, `/tmp` has 5.3 GB free, and the home volume
+  has 7.5 GB free. No project source, production Firebase setting, physical
+  device data, or existing AVD data changed. API 24 runtime behavior remains
+  unverified.
+
+### Clean worktree rebuild and native checks, 2026-10-20
+
+- Created an isolated detached worktree at `ba7961c` and applied the exact
+  current 11-file local diff. A fresh `npm ci` installed 1,148 packages. Jest
+  passed 320 tests across 40 suites, ESLint passed, and the public Drive-link
+  check passed.
+- From that clean copy, `android:qa-emulators` built an emulator-only APK.
+  The package remained `com.campus4change` version 1.3.0 with min SDK 24, target
+  SDK 36, and the same workstation debug certificate used by the installed
+  builds. The bundle contained the demo Firebase project and loopback host; the
+  build script restored the production Firebase config byte-for-byte.
+- `testDebugUnitTest` passed 16 tests with no failures, and
+  `assembleDebugAndroidTest` compiled the instrumentation APK. The clean APK
+  SHA-256 was `c345968474a30aea38718eefc9eff5dce71a4321421c80833fb2135509ea7f02`;
+  the earlier main-worktree QA APK hash is different. The two bundles have the
+  same code bytes, with differences only in the 20-byte Hermes header hash and
+  20-byte footer hash. The eight generated native libraries differ only in
+  their 20-byte ELF build IDs; all other APK entries are content-identical.
+  The APK can be rebuilt cleanly, but the artifacts are not byte-for-byte
+  identical.
+- The clean worktree, its build outputs, and the temporary patch were removed
+  after verification. The user's main worktree and existing device installs
+  were left unchanged. GitHub CI still covers `ba7961c`, not the local diff.
+
+### Production rules parity recheck, 2026-10-20
+
+- A read-only Firebase CLI project lookup succeeded. The Firestore Rules API
+  still points the default release to
+  `projects/campus4change/rulesets/4f66efb8-d8d6-404c-83be-8a2b7b37588a`, last
+  updated `2026-10-17T09:33:15.974367Z`. Its source hash remains
+  `867e1b314fb639608ef4fe6978892ee6d337536be27a65b01b76c066679ec0a8`; local
+  `firestore.rules` remains `25f0ec68a34ce0eb1964164dfa7fb9139413d99fa0ca1a5f323236bf4e302323`.
+- The active production rules still omit `studentIdClaims`, while local rules
+  include it. This recheck made no production writes or authorization changes.
+
+### Release signing environment recheck, 2026-10-20
+
+- A read-only environment check found all four `C4C_RELEASE_*` variables absent.
+  The release keystore files exist locally, but their passwords are not
+  available in this build environment. No key material was read, no password
+  was guessed, and no signed release build was attempted.

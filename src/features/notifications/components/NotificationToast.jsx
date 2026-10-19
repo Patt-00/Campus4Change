@@ -188,8 +188,8 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   dismiss: {
-    width: 38,
-    height: 44,
+    width: 48,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
   },

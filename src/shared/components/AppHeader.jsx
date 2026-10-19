@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 10,
   },
-  back: { minWidth: 36, minHeight: 44, justifyContent: 'center' },
+  back: { minWidth: 48, minHeight: 48, justifyContent: 'center' },
   title: {
     flex: 1,
     fontFamily: 'Inter-Bold',
@@ -70,8 +70,8 @@ const styles = StyleSheet.create({
   },
   brand: { flex: 1, fontFamily: 'Inter-Bold', color: C.text, fontSize: 16 },
   notification: {
-    minWidth: 44,
-    minHeight: 44,
+    minWidth: 48,
+    minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',

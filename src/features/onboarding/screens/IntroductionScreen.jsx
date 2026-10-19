@@ -57,8 +57,8 @@ const styles = StyleSheet.create({
   counter: { marginBottom: 12 },
   dots: { flexDirection: 'row', justifyContent: 'center', marginTop: 10 },
   dotTarget: {
-    minWidth: 44,
-    minHeight: 44,
+    minWidth: 48,
+    minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
   },

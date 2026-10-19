@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    minHeight: 40,
+    minHeight: 48,
     maxWidth: '100%',
     backgroundColor: C.chip,
     borderRadius: 16,

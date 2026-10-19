@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
   matchRow: { marginTop: 4 },
   matchAction: {
     width: 128,
-    minHeight: 44,
+    minHeight: 48,
     paddingHorizontal: 8,
     marginTop: 0,
     borderRadius: 10,

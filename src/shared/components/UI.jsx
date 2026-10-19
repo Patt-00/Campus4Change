@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
   noticeErrorText: { color: C.text },
   noticeAction: {
     minWidth: 48,
-    minHeight: 44,
+    minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,

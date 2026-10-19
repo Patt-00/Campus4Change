@@ -87,7 +87,7 @@ export const s = StyleSheet.create({
     fontSize: 14,
     paddingVertical: 12,
     paddingHorizontal: 4,
-    minHeight: 46,
+    minHeight: 48,
   },
   multiline: { minHeight: 96, textAlignVertical: 'top' },
   btn: {
@@ -112,7 +112,7 @@ export const s = StyleSheet.create({
   },
   disabled: { opacity: 0.5 },
   chip: {
-    minHeight: 44,
+    minHeight: 48,
     borderRadius: 16,
     backgroundColor: C.chip,
     paddingHorizontal: 16,
@@ -127,7 +127,7 @@ export const s = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
   },
-  linkControl: { minHeight: 44, justifyContent: 'center' },
+  linkControl: { minHeight: 48, justifyContent: 'center' },
   avatar: {
     height: 28,
     width: 28,
