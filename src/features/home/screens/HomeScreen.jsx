@@ -10,13 +10,14 @@ import {
   sessionTimingStatus,
 } from '../../sessions/data/status';
 import { useSessionClock } from '../../sessions/hooks/useSessionClock';
+import { recommendTutorMatches } from '../../tutors/data/search';
 
 import { C } from '../../../shared/theme/colors';
 import { s } from '../../../shared/theme/styles';
 
 const quick = [
   {
-    title: 'Find a Tutor',
+    title: 'Find People',
     page: 'Tutor Search',
     icon: 'search',
     color: C.cyan,
@@ -41,20 +42,44 @@ const quick = [
   },
 ];
 
-export function HomeScreen({ go, state, directory, tutors }) {
+export function HomeScreen({
+  go,
+  state,
+  directory,
+  tutors,
+  verificationPending,
+  sharedDirectoryAvailable = true,
+  directoryAccessMessage = '',
+  tutorsLoaded = true,
+  hasMoreTutors = false,
+  tutorDirectoryError = '',
+}) {
   const [query, setQuery] = useState('');
   const [menu, setMenu] = useState(false);
   const now = useSessionClock(state.sessions);
-  const interest = state.profile.interests[0];
-  const matches = interest
-    ? directory.filter(
-        t =>
-          !t.own &&
-          t.subjects.some(x =>
-            x.toLowerCase().includes(interest.toLowerCase()),
-          ),
-      ).length
-    : 0;
+  const interests = state.profile.interests || [];
+  const recommendations = recommendTutorMatches(directory, interests);
+  const interest =
+    recommendations[0]?.matchedInterests[0] || interests[0] || '';
+  const matches = recommendations.length;
+  const recommendationSummary = !interests.length
+    ? 'Add learning interests to get personalized people recommendations.'
+    : !sharedDirectoryAvailable
+      ? directoryAccessMessage ||
+        'Sign in with a verified Firebase account to see public tutor matches.'
+      : !tutorsLoaded
+        ? tutorDirectoryError
+          ? 'Tutor matches are not ready yet. Check the notice above for status.'
+          : 'Checking public tutor profiles…'
+          : hasMoreTutors
+            ? matches
+              ? `${matches} ${matches === 1 ? 'matching tutor' : 'matching tutors'} found in the loaded listings. More may match as you browse.`
+              : 'No matches in the loaded listings yet. More tutors may match as you browse.'
+            : matches
+              ? `${matches} ${matches === 1 ? 'tutor matches' : 'tutors match'} your interests.`
+              : directory.length
+                ? 'No public tutor profiles match your interests.'
+                : 'No public tutor profiles are listed yet.';
   const next = state.sessions
     .filter(x => sessionTimingStatus(x, now) === 'Upcoming')
     .sort(
@@ -69,7 +94,10 @@ export function HomeScreen({ go, state, directory, tutors }) {
       tab="Home"
       onMenu={() => setMenu(true)}
       onNotifications={() => go('Notifications')}
-      unread={state.notices.filter(n => !n.read).length}
+      unread={
+        state.notices.filter(n => !n.read).length +
+        (verificationPending ? 1 : 0)
+      }
     >
       <View style={[s.row, styles.greeting]}>
         <Avatar
@@ -102,7 +130,7 @@ export function HomeScreen({ go, state, directory, tutors }) {
       )}
       <Field
         icon="search"
-        placeholder="Search for subjects, skills, or tutors..."
+        placeholder="Search people by name, course, or subject..."
         value={query}
         onChangeText={setQuery}
         returnKeyType="search"
@@ -111,7 +139,7 @@ export function HomeScreen({ go, state, directory, tutors }) {
 
       {!!query.trim() && (
         <Link
-          label="Search tutors"
+          label="Search people"
           onPress={() => go({ page: 'Tutor Search', query })}
         />
       )}
@@ -122,11 +150,7 @@ export function HomeScreen({ go, state, directory, tutors }) {
             <Text style={[s.name, s.blue]}>
               {interest || 'Choose what to learn'}
             </Text>
-            <Text style={s.muted}>
-              {interest
-                ? `${matches} ${matches === 1 ? 'tutor' : 'tutors'} available`
-                : 'Add an interest to get tutor matches.'}
-            </Text>
+            <Text style={s.muted}>{recommendationSummary}</Text>
           </View>
           <AppButton
             title={interest ? 'VIEW MATCHES' : 'ADD INTERESTS'}
@@ -142,7 +166,7 @@ export function HomeScreen({ go, state, directory, tutors }) {
           <Link label="Edit interests" onPress={() => go('Preferences')} />
         )}
       </View>
-      {!state.profile.school && (
+      {!state.profile.campus && (
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel="Complete your profile"
@@ -153,7 +177,7 @@ export function HomeScreen({ go, state, directory, tutors }) {
           <View style={s.grow}>
             <Text style={s.name}>Complete your profile</Text>
             <Text style={s.muted}>
-              Add your course, year level, and school.
+              Add your course, year level, and TIP campus.
             </Text>
           </View>
         </TouchableOpacity>
@@ -225,20 +249,20 @@ export function HomeScreen({ go, state, directory, tutors }) {
           <View style={[s.card, styles.menu]}>
             <Text style={s.heading}>Campus4Change</Text>
             {[
-              'Tutor Search',
-              'Study Groups',
-              'Sessions',
-              'Messages',
-              'Notifications',
-              'Profile',
-              'About',
-            ].map(page => (
+              { label: 'Find People', page: 'Tutor Search' },
+              { label: 'Study Groups', page: 'Study Groups' },
+              { label: 'Sessions', page: 'Sessions' },
+              { label: 'Messages', page: 'Messages' },
+              { label: 'Notifications', page: 'Notifications' },
+              { label: 'Profile', page: 'Profile' },
+              { label: 'Settings', page: 'Settings' },
+            ].map(item => (
               <Link
-                key={page}
-                label={page}
+                key={item.page}
+                label={item.label}
                 onPress={() => {
                   setMenu(false);
-                  go(page);
+                  go(item.page);
                 }}
               />
             ))}

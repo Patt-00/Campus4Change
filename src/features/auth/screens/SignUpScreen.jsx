@@ -12,12 +12,10 @@ const GOOGLE_SIGN_IN_CANCELLED =
 export function SignUpScreen({ go, back, auth }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [studentId, setStudentId] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const emailInput = useRef(null);
-  const idInput = useRef(null);
   const passwordInput = useRef(null);
   async function submit() {
     if (busy) {
@@ -27,18 +25,17 @@ export function SignUpScreen({ go, back, auth }) {
     if (
       name.trim().length < 2 ||
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ||
-      !studentId.trim() ||
       password.length < 8 || password.length > 1024
     ) {
       setError(
-        'Complete all fields with a valid email. Use 8–1024 characters for the password.',
+        'Enter your name and a valid email. Use 8–1024 characters for the password.',
       );
       return;
     }
     setBusy(true);
     Keyboard.dismiss();
     try {
-      await auth.signUp(name, email, studentId, password);
+      await auth.signUp(name, email, password);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -81,8 +78,8 @@ export function SignUpScreen({ go, back, auth }) {
             onPress={submitGoogle}
           />
           <Text style={[s.muted, s.center, styles.googleHelper]}>
-            Google supplies your name and email. Add your private Student ID in
-            Edit Profile after signing in.
+            After signing in, complete your TIP profile and add your private
+            Student ID.
           </Text>
           {!auth.googleSignInAvailable && (
             <Text style={[s.muted, s.center, styles.googleHelper]}>
@@ -118,19 +115,6 @@ export function SignUpScreen({ go, back, auth }) {
         autoCorrect={false}
         returnKeyType="next"
         submitBehavior="submit"
-        onSubmitEditing={() => idInput.current?.focus()}
-      />
-
-      <Field
-        label="Student ID"
-        inputRef={idInput}
-        icon="#"
-        placeholder="Enter your student ID"
-        value={studentId}
-        onChangeText={setStudentId}
-        autoCapitalize="none"
-        returnKeyType="next"
-        submitBehavior="submit"
         onSubmitEditing={() => passwordInput.current?.focus()}
       />
 
@@ -154,7 +138,7 @@ export function SignUpScreen({ go, back, auth }) {
       <AppButton title="CREATE ACCOUNT" busy={busy} onPress={submit} />
       <Text style={[s.muted, s.center, styles.marginTop16]}>
         {auth.firebaseConfigured
-          ? 'Email/password accounts receive a verification link. Any verified email can use shared study groups, tutor listings, and session requests. Google accounts use your verified Google email.'
+          ? 'After signup, add your TIP campus, course, year level, and Student ID. Email accounts receive a verification link; a verified email is required for shared features.'
           : 'Your account and data stay on this device.'}
       </Text>
       <View style={styles.alignItemscentermarginTop24}>

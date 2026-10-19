@@ -18,16 +18,14 @@ internal object LegacySeedIdentity {
         legacyAccountFound: Boolean,
         stateProfileId: String?,
         stateEmail: String?,
-        legacyBiometricPointerFound: Boolean = false,
     ): LegacySeedCleanupPlan? {
         val legacyStateFound = matchesState(stateProfileId.orEmpty(), stateEmail.orEmpty())
-        if (!legacyAccountFound && !legacyStateFound && !legacyBiometricPointerFound) {
+        if (!legacyAccountFound && !legacyStateFound) {
             return null
         }
         return LegacySeedCleanupPlan(
             removeAccount = legacyAccountFound,
             removeState = legacyStateFound,
-            removeBiometricPointer = legacyBiometricPointerFound,
         )
     }
 }
@@ -35,5 +33,4 @@ internal object LegacySeedIdentity {
 internal data class LegacySeedCleanupPlan(
     val removeAccount: Boolean,
     val removeState: Boolean,
-    val removeBiometricPointer: Boolean,
 )

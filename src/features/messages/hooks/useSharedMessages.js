@@ -156,11 +156,13 @@ export function useSharedMessages({
     try {
       await current.subscription.loadMoreMessages();
     } catch (loadError) {
-      setError(
-        loadError instanceof Error
-          ? loadError.message
-          : 'Could not load older messages.',
-      );
+      if (subscriptionRef.current?.subscription === current.subscription) {
+        setError(
+          loadError instanceof Error
+            ? loadError.message
+            : 'Could not load older messages.',
+        );
+      }
     } finally {
       if (subscriptionRef.current?.subscription === current.subscription) {
         setLoadingOlderMessages(false);

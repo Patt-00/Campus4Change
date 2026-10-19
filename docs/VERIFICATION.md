@@ -184,9 +184,10 @@
   prevents stale cloud callbacks from changing the newer session. Additional
   checks cover the cloud-save failure/sign-out path and retention of the active
   Firebase session when remote sign-out fails.
-- Login-screen regressions also verify existing device-only account sign-in and
-  biometrics remain available after Firebase configuration, while local account
-  password recovery explains that the original password is required.
+- Login-screen regressions also verify existing device-only account sign-in
+  remains available after Firebase configuration, while local account password
+  recovery explains that the original password is required. Biometrics were
+  subsequently removed from the current app.
 - Firebase tutor-booking requests now write a private per-student cooldown permit
   in the same atomic batch as the booking. Rules emulator tests pass for valid
   first requests, missing permits, immediate retries, forged resets, private
@@ -621,7 +622,7 @@ Verified for this checkpoint:
   earlier checks do not verify the new membership path or production Firebase.
 - `npm test -- --runInBand --coverage` on 2026-10-13 passed all 141 tests in 23 suites.
 - A partial version-one profile missing its name, interests, tutor subjects,
-  and school fields restored from the account defaults, opened Home, and
+  course, and TIP campus restored from the account defaults, opened Home, and
   persisted the restored values without losing session/group data.
 - A partial personal account restored blank personal defaults; it received no
   demo interests, groups, or conversations.
@@ -853,7 +854,9 @@ The release attaches `SHA256SUMS` and `SOURCE-BUILD.json` with its exact source 
 
 Saved state remains version 1. The Android update was installed over the older seeded build on the POCO without clearing data; the former seeded local sign-in was rejected after launch. The migration removes only the exact bundled account record, its `state_demo` data, and its biometric pointer. Other local accounts and their saved state are retained by the identity check, though a separate user-created local account was not available for an on-device preservation test. Old groups without a meetup date display **No meetup scheduled**.
 
-New accounts have blank interests and school details and no bundled groups, tutors, bookings, or conversations. A personal tutor listing has no fabricated rating or response rate and offers editing instead of self-booking.
+The current source removes biometric sign-in and setup. Android startup clears the retired `biometric_user` preference; password sign-in and saved account data are unchanged.
+
+New accounts have blank interests and campus details and no bundled groups, tutors, bookings, or conversations. A personal tutor listing has no fabricated rating or response rate and offers editing instead of self-booking.
 
 The package ID and certificate match older releases, and the version code increases to 3. Installation as an update retained app data on the test device.
 
@@ -871,10 +874,10 @@ Complete these manual checks on the exact release APK before demonstrating it.
 8. Open a shared group's chat and exchange messages with another current member. Open a tutor-session chat and exchange messages with the other booking participant. Confirm a nonmember and a third student cannot read or send in either chat. Verify group owners can review a chat-message report and hide/restore its message. Device-only conversations remain private notes.
 9. Open notifications and check their read state.
 10. Add a custom interest, reject a duplicate with different letter case, remove an interest, and save. Check the home interest and tutor count.
-11. Create a separate account and confirm that interests and school fields start blank, with an empty tutor directory and groups. Save preferences without entering school details.
-12. Enter your course, year, and school. Create and edit a tutor listing. With two email-verified Firebase accounts, confirm the listing appears to the other account and can be removed by its owner.
-13. Use a dedicated test Google account on the Android debug build. Verify Firebase creates or restores the account, keeps the supplied name/email, and allows the Student ID to be added privately in Edit Profile. Cancel the Google sheet once and confirm the auth screen stays usable. Repeat with the exact release signing certificate before distribution. This account-level flow has not yet been completed.
-14. Sign out and sign in again to check saved data. Check biometrics on a personal account if enrolled on the phone.
+11. Create a separate account and confirm that interests and the TIP campus start blank, with an empty tutor directory and groups. Save preferences without selecting a campus.
+12. Enter your course, year, and select Quezon City or Manila as your TIP campus. Create and edit a tutor listing. With two email-verified Firebase accounts, confirm the listing appears to the other account and can be removed by its owner.
+13. Use disposable Firebase accounts on the Android debug build. Verify email/password and Google signup both open the required Account Setup screen with the supplied name and email, require TIP course, year, campus, and digits-only Student ID, and do not continue until the ID claim succeeds. Try the same ID with a second account and confirm it is rejected; then use a different ID and complete setup. Cancel the Google sheet once and confirm the auth screen stays usable. Repeat with the exact release signing certificate before distribution. This account-level flow has not yet been completed.
+14. Sign out and sign in again to check saved data. For an unverified email/password account, open Notifications and check that the verification item can resend the link and refresh verification status.
 
 Email-verified Firebase accounts share tutor profiles, session requests, current-member group chats, and tutor-session chats limited to their two participants. Device-only conversations remain private notes. Signed-in Firebase users share group details, memberships, posts, replies, and chat. About explains that email verification does not establish school affiliation.
 

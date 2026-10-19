@@ -279,3 +279,66 @@ test('group activity updates keep the active live chat listener instead of re-su
   expect(subscription.unsubscribe).not.toHaveBeenCalled();
   await act(async () => renderer.unmount());
 });
+
+test.each(['conversation', 'account'])('a late older-message failure stays with its original %s', async change => {
+  const otherGroup = { ...sharedGroup, id: 'group-two', name: 'Physics Circle' };
+  const options = {
+    uid: 'student-one',
+    groups: [sharedGroup, otherGroup],
+    bookings: [],
+    activeConversationId: 'shared-group-group-one',
+    senderName: 'Jordan Student',
+  };
+  const renderer = await mount(options);
+  let rejectOlder;
+  let request;
+  try {
+    const oldSubscription = mockSubscriptions[0];
+    oldSubscription.loadMoreMessages.mockImplementation(() => new Promise((_resolve, reject) => {
+      rejectOlder = reject;
+    }));
+    await act(async () => oldSubscription.onMessages([], { hasMoreMessages: true }));
+    await act(async () => {
+      request = latest.loadMoreMessages();
+    });
+    expect(latest.loadingOlderMessages).toBe(true);
+    await act(async () => {
+      renderer.update(<Probe options={{
+        ...options,
+        ...(change === 'account'
+          ? { uid: 'student-two' }
+          : { activeConversationId: 'shared-group-group-two' }),
+      }} />);
+    });
+    await act(async () => mockSubscriptions[1].onMessages([{ id: 'new-message' }]));
+    await act(async () => {
+      rejectOlder(new Error('Old chat history failed.'));
+      await request;
+    });
+    expect(latest.error).toBe('');
+    expect(latest.messages).toEqual([{ id: 'new-message' }]);
+    expect(latest.loadingOlderMessages).toBe(false);
+  } finally {
+    await act(async () => renderer.unmount());
+  }
+});
+
+test('older-message failures remain visible in the active chat', async () => {
+  const renderer = await mount({
+    uid: 'student-one',
+    groups: [sharedGroup],
+    bookings: [],
+    activeConversationId: 'shared-group-group-one',
+    senderName: 'Jordan Student',
+  });
+  try {
+    const subscription = mockSubscriptions[0];
+    subscription.loadMoreMessages.mockRejectedValue(new Error('History is offline.'));
+    await act(async () => subscription.onMessages([], { hasMoreMessages: true }));
+    await act(async () => latest.loadMoreMessages());
+    expect(latest.error).toBe('History is offline.');
+    expect(latest.loadingOlderMessages).toBe(false);
+  } finally {
+    await act(async () => renderer.unmount());
+  }
+});

@@ -19,12 +19,13 @@ import {
 import { C } from '../../../shared/theme/colors';
 import { s } from '../../../shared/theme/styles';
 
-import { filterTutors } from '../data/search';
+import { filterTutors, recommendTutorMatches } from '../data/search';
 
 export function TutorSearchScreen({
   go,
   back,
   list,
+  interests = [],
   initialQuery = '',
   sharedAccount = false,
   emailVerified = true,
@@ -52,18 +53,29 @@ export function TutorSearchScreen({
   const subjects = [...subjectsByKey.values()].sort((a, b) =>
     a.localeCompare(b),
   );
-  const results = filterTutors(list, query, subject, available, top);
+  const filteredResults = filterTutors(list, query, subject, available, top);
+  const recommendations = top
+    ? []
+    : recommendTutorMatches(filteredResults, interests);
+  const recommendedIds = new Set(recommendations.map(tutor => tutor.id));
+  const results = [
+    ...recommendations,
+    ...filteredResults.filter(tutor => !recommendedIds.has(tutor.id)),
+  ];
   const filtered = !!query.trim() || !!subject || available || top;
   return (
-    <Screen title="Find a Tutor" back={back} go={go} tab="Home">
+    <Screen title="Find People" back={back} go={go} tab="Home">
       <Field
         icon="search"
-        placeholder="Search subject or tutor"
+        placeholder="Search name, course, or subject"
         value={query}
         onChangeText={setQuery}
         autoCorrect={false}
         returnKeyType="search"
       />
+      <Text style={[s.muted, styles.directoryHint]}>
+        Search public tutor profiles by name, course, or subject.
+      </Text>
 
       {!!list.length && (
         <View style={s.wrap}>
@@ -119,69 +131,124 @@ export function TutorSearchScreen({
           }}
         />
       )}
+      {!!interests.length && !recommendations.length && !filtered && !!list.length && (
+        <View style={styles.recommendationHint}>
+          <Text style={s.muted}>
+            {hasMoreTutors
+              ? 'No matches in the loaded listings yet. Load more to check the rest of the directory.'
+              : 'No public tutor profiles match your saved interests.'}
+          </Text>
+          <Link
+            label="Edit learning interests"
+            onPress={() => go('Preferences')}
+          />
+        </View>
+      )}
+      {!interests.length && !filtered && !!list.length && (
+        <View style={styles.recommendationHint}>
+          <Text style={s.muted}>
+            Add learning interests to get personalized people recommendations.
+          </Text>
+          <Link
+            label="Add learning interests"
+            onPress={() => go('Preferences')}
+          />
+        </View>
+      )}
+      {recommendations.length > 0 && (
+        <Text style={[s.section, styles.recommendationHeading]}>
+          Recommended for your interests
+        </Text>
+      )}
       <Text style={s.section}>
-        {sharedAccount ? 'Community tutors' : 'Tutor directory'} · {results.length}
+        {filtered
+          ? 'People search results'
+          : sharedAccount
+            ? 'Public community profiles'
+            : 'Your public profile'} · {results.length}
         {hasMoreTutors ? ' shown' : ''}
       </Text>
-      {results.map(t => {
+      {results.map((t, index) => {
+        const isRecommended = recommendedIds.has(t.id);
+        const previous = results[index - 1];
         const rating =
           Number.isFinite(t.rating) && t.rating > 0
             ? `Rating ${t.rating.toFixed(1)} stars`
             : 'No rating yet';
         const listing = t.own ? 'Your listing' : 'Community tutor';
         return (
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel={`${t.name}. Subjects: ${t.subjects.join(', ')}. ${rating}. ${listing}. View profile.`}
-            key={t.id}
-            style={s.card}
-            onPress={() => go({ page: 'Tutor Details', tutorId: t.id })}
-          >
-            <View style={s.row}>
-              <Avatar
-                name={t.name}
-                size={44}
-                avatarId={t.avatarId}
-                photoUri={t.profilePhotoUri}
-              />
-              <View style={s.grow}>
-                <Text style={s.name}>{t.name}</Text>
-                <Text style={s.muted}>{t.subjects.join(' · ')}</Text>
-                {Number.isFinite(t.rating) && t.rating > 0 && (
-                  <Text style={s.star}>★ {t.rating.toFixed(1)}</Text>
-                )}
-                {t.own && <Text style={[s.muted, s.blue]}>Your listing</Text>}
+          <React.Fragment key={t.id}>
+            {index > 0 && isRecommended && !previous?.matchedInterests?.length && (
+              <Text style={[s.section, styles.recommendationHeading]}>
+                Recommended for your interests
+              </Text>
+            )}
+            {index > 0 && !isRecommended && previous?.matchedInterests?.length > 0 && (
+              <Text style={s.section}>More public profiles</Text>
+            )}
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={`${t.name}. ${[t.course, t.year].filter(Boolean).join(', ')}. Subjects: ${(t.subjects || []).join(', ')}.${isRecommended ? ` Matches your interests: ${t.matchedInterests.join(', ')}.` : ''} ${rating}. ${listing}. View profile.`}
+              accessibilityHint="Opens this public tutor profile."
+              style={s.card}
+              onPress={() => go({ page: 'Tutor Details', tutorId: t.id })}
+            >
+              <View style={s.row}>
+                <Avatar
+                  name={t.name}
+                  size={44}
+                  avatarId={t.avatarId}
+                  photoUri={t.profilePhotoUri}
+                />
+                <View style={s.grow}>
+                  <Text style={s.name}>{t.name}</Text>
+                  {!!(t.course || t.year) && (
+                    <Text style={s.muted}>
+                      {[t.course, t.year].filter(Boolean).join(' · ')}
+                    </Text>
+                  )}
+                  {isRecommended && (
+                    <Text style={[s.muted, s.blue]}>
+                      Matches: {t.matchedInterests.join(' · ')}
+                    </Text>
+                  )}
+                  <Text style={s.muted}>{(t.subjects || []).join(' · ')}</Text>
+                  {Number.isFinite(t.rating) && t.rating > 0 && (
+                    <Text style={s.star}>★ {t.rating.toFixed(1)}</Text>
+                  )}
+                  {t.own && <Text style={[s.muted, s.blue]}>Your listing</Text>}
+                </View>
               </View>
-            </View>
-            <Text style={[s.link, styles.profile]}>View profile</Text>
-          </TouchableOpacity>
+              <Text style={[s.link, styles.profile]}>View profile</Text>
+            </TouchableOpacity>
+          </React.Fragment>
         );
       })}
       {!results.length && (
         loading ? (
           <View style={styles.loading}>
             <ActivityIndicator color={C.cyan} />
-            <Text style={s.muted}>Loading tutor listings…</Text>
+            <Text style={s.muted}>Loading public profiles…</Text>
           </View>
         ) : (
           <Empty
             title={
               list.length
-                ? 'No tutors found'
+                ? 'No people found'
                 : sharedAccount
                   ? emailVerified
-                    ? 'No community tutors yet'
+                    ? 'No public profiles yet'
                     : 'Verify your email to browse tutors'
                   : 'Your directory is empty'
             }
             body={
               list.length
-                ? 'Try another subject or clear the filters.'
+                ? 'Try another name, course, or subject, or clear the filters.'
                 : hasMoreTutors
                   ? 'No matches in the loaded listings. Load more tutors or clear the filters.'
                   : sharedAccount
                     ? emailVerified
-                      ? 'Publish a tutor profile to help other learners find you, or check back later.'
+                      ? 'People who publish a tutor profile can be found here. Check back later or create your own profile.'
                       : 'Tutor listings are available after your Firebase email is verified.'
                     : 'Create a device-only tutor profile or sign in with Firebase to browse shared tutor listings.'
             }
@@ -228,6 +295,9 @@ export function TutorSearchScreen({
 }
 const styles = StyleSheet.create({
   space: { marginTop: 14 },
+  directoryHint: { marginTop: -4, marginBottom: 8 },
+  recommendationHeading: { marginTop: 16, marginBottom: 8 },
+  recommendationHint: { marginBottom: 8, gap: 6 },
   profile: { textAlign: 'right', marginTop: 12 },
   loading: { alignItems: 'center', gap: 12, paddingVertical: 28 },
 });

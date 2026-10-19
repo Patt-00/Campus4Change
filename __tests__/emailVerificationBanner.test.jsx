@@ -1,11 +1,14 @@
 import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
-import { Text } from 'react-native';
+import { Text, TouchableOpacity } from 'react-native';
 import App from '../App';
 import { initialState } from '../src/shared/data/utils';
 
 let mockSession;
 let mockTutorError = '';
+let mockTutorListings = [];
+let mockTutorHasMore = false;
+let mockTutorsLoaded = true;
 let mockSharedGroupOptions;
 let mockGroupReportOptions;
 const mockSharedGroupState = {
@@ -41,7 +44,7 @@ jest.mock('../src/shared/state/useCampusSession', () => ({
     const R = require('react');
     R.useEffect(() => {
       if (mockSession?.sessionType) {
-        callbacks.onSignedIn();
+        callbacks.onSignedIn(mockSession.state, mockSession.studentIdClaimStatus);
       }
     }, []);
     return mockSession;
@@ -69,16 +72,17 @@ jest.mock('../src/features/groups/hooks/useSharedGroupReports', () => ({
 
 jest.mock('../src/features/tutors/hooks/useSharedTutors', () => ({
   useSharedTutors: () => ({
-    tutors: [],
+    tutors: mockTutorListings,
     bookings: [],
     error: mockTutorError,
     actionError: '',
     loading: false,
-    hasMoreTutors: false,
+    hasMoreTutors: mockTutorHasMore,
     hasMoreBookings: false,
     loadingMoreTutors: false,
     loadingMoreBookings: false,
     tutorsLive: true,
+    tutorsLoaded: mockTutorsLoaded,
     bookingsLive: true,
     loadMoreTutors: jest.fn(),
     loadMoreBookings: jest.fn(),
@@ -118,7 +122,7 @@ function makeSession(emailVerified, emailVerificationMessage = '') {
         id: 'firebase-student',
         name: 'Student',
         email: 'student@school.test',
-        studentId: 'STU-1',
+        studentId: '10001',
       }),
     saveError: '',
     auth: {
@@ -131,34 +135,59 @@ function makeSession(emailVerified, emailVerificationMessage = '') {
     retrySave: jest.fn(),
     restoring: false,
     sessionType: 'firebase',
+    studentIdClaimStatus: 'claimed',
     emailVerified,
     emailVerificationMessage,
+    emailVerificationToast: null,
+    dismissVerificationToast: jest.fn(),
   };
 }
 
-test('unverified Firebase accounts see recovery actions and cannot sync shared groups', async () => {
+beforeEach(() => {
+  mockTutorError = '';
+  mockTutorListings = [];
+  mockTutorHasMore = false;
+  mockTutorsLoaded = true;
+  mockSharedGroupState.error = '';
+  mockSession = null;
+});
+
+test('unverified Firebase accounts receive a Notifications item with recovery actions', async () => {
   mockSession = makeSession(
     false,
     'Verification email sent to student@school.test. Check your inbox and spam folder.',
   );
+  mockSession.state.profile.interests = ['Physics'];
   let renderer;
   await act(async () => {
     renderer = ReactTestRenderer.create(<App />);
-  });
-  const resend = renderer.root.findByProps({
-    accessibilityLabel: 'Resend verification email',
-  });
-  const refresh = renderer.root.findByProps({
-    accessibilityLabel: "I've verified — check again",
   });
   expect(mockSharedGroupOptions.enabled).toBe(false);
   expect(mockGroupReportOptions.enabled).toBe(false);
   expect(
     renderer.root
       .findAllByType(Text)
+      .map(node => String(node.props.children))
+      .join(' '),
+  ).toContain('Verify your email to browse public tutor profiles.');
+  const bell = renderer.root
+    .findAllByType(TouchableOpacity)
+    .find(control => control.props.accessibilityLabel?.startsWith('Notifications, '));
+  expect(bell.props.accessibilityLabel).toBe('Notifications, 1 unread');
+  await act(async () => bell.props.onPress());
+
+  const resend = renderer.root.findByProps({
+    accessibilityLabel: 'Resend verification email',
+  });
+  const refresh = renderer.root.findByProps({
+    accessibilityLabel: "I've verified — check again",
+  });
+  expect(
+    renderer.root
+      .findAllByType(Text)
       .map(node => node.props.children)
       .join(' '),
-  ).toContain('Verification email sent to student@school.test');
+  ).toContain('Verify student@school.test');
 
   await act(async () => resend.props.onPress());
   await act(async () => refresh.props.onPress());
@@ -175,6 +204,123 @@ test('unverified Firebase accounts see recovery actions and cannot sync shared g
     }),
   ).toHaveLength(0);
 
+  await act(async () => renderer.unmount());
+});
+
+test('Home carries paged tutor recommendations through its shared-data hook', async () => {
+  mockSession = makeSession(true);
+  mockSession.state.profile.interests = ['Physics'];
+  mockTutorListings = [
+    {
+      id: 'physics-tutor',
+      name: 'Taylor Student',
+      subjects: ['Physics'],
+      own: false,
+    },
+  ];
+  mockTutorHasMore = true;
+
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(<App />);
+  });
+
+  const copy = renderer.root
+    .findAllByType(Text)
+    .map(node => String(node.props.children))
+    .join(' ');
+  expect(copy).toContain(
+    '1 matching tutor found in the loaded listings. More may match as you browse.',
+  );
+  expect(copy).not.toContain('1 tutor matches your interests.');
+
+  await act(async () => renderer.unmount());
+});
+
+test('verification toast opens its related Notifications screen when tapped', async () => {
+  mockSession = makeSession(
+    false,
+    'Verification email sent to student@school.test. Check your inbox and spam folder.',
+  );
+  mockSession.emailVerificationToast = {
+    id: 'verification-event-1',
+    tone: 'success',
+    title: 'Verification email sent',
+    message: 'Open the link we sent to student@school.test to verify your account.',
+    destination: 'Notifications',
+  };
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(<App />);
+  });
+  expect(
+    renderer.root.findAllByType(Text).some(
+      node => node.props.children === 'Verification email sent',
+    ),
+  ).toBe(true);
+  const open = renderer.root.findByProps({
+    accessibilityLabel: 'Open notification: Verification email sent',
+  });
+  expect(open.props.accessibilityRole).toBe('button');
+  await act(async () => open.props.onPress());
+  expect(
+    renderer.root.findAllByType(Text).some(
+      node => node.props.children === 'Verify your email',
+    ),
+  ).toBe(true);
+  await act(async () => renderer.unmount());
+});
+
+test('email-verified toast opens a matching success notice without recovery actions', async () => {
+  mockSession = makeSession(
+    true,
+    'Email verified. Your account can now use shared campus features.',
+  );
+  mockSession.emailVerificationToast = {
+    id: 'verification-complete-1',
+    tone: 'success',
+    title: 'Email verified',
+    message: 'Your account can now use shared campus features.',
+    destination: 'Notifications',
+  };
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(<App />);
+  });
+
+  const open = renderer.root.findByProps({
+    accessibilityLabel: 'Open notification: Email verified',
+  });
+  await act(async () => open.props.onPress());
+
+  const copy = renderer.root
+    .findAllByType(Text)
+    .map(node => String(node.props.children))
+    .join(' ');
+  expect(copy).toContain('Email verified');
+  expect(copy).toContain(
+    'Your account can now use shared campus features.',
+  );
+  expect(
+    renderer.root.findAllByProps({
+      accessibilityLabel: 'Resend verification email',
+    }),
+  ).toHaveLength(0);
+  await act(async () => renderer.unmount());
+});
+
+test('pending sync no longer shows the old full-width top banner', async () => {
+  mockSession = makeSession(true);
+  mockSession.cloudSyncPending = true;
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(<App />);
+  });
+  const copy = renderer.root
+    .findAllByType(Text)
+    .map(node => node.props.children)
+    .join(' ');
+  expect(copy).not.toContain('Saved on this device. Waiting to sync with Firebase.');
   await act(async () => renderer.unmount());
 });
 
@@ -221,19 +367,4 @@ test('shared-data errors only appear on screens that use that data', async () =>
   await act(async () => renderer.unmount());
   mockSharedGroupState.error = '';
   mockTutorError = '';
-});
-
-test('pending cloud sync announces updates with native-safe accessibility props', async () => {
-  mockSession = { ...makeSession(true), cloudSyncPending: true };
-  let renderer;
-  await act(async () => {
-    renderer = ReactTestRenderer.create(<App />);
-  });
-  const notice = renderer.root.findAllByType(Text).find(node =>
-    String(node.props.children).includes('Waiting to sync with Firebase'),
-  );
-  expect(notice).toBeDefined();
-  expect(notice.props.accessibilityLiveRegion).toBe('polite');
-  expect(notice.props.accessibilityRole).toBeUndefined();
-  await act(async () => renderer.unmount());
 });

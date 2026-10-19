@@ -86,3 +86,50 @@ test('report queue remains disabled for a non-owner or signed-out session', asyn
   expect(currentResult.error).toBe('');
   await act(async () => renderer.unmount());
 });
+
+test.each([false, true])('late report pagination cannot change a disabled or renewed queue (renewed: %s)', async renewed => {
+  watchSharedGroupReports.mockReset();
+  let rejectOldPage;
+  const oldSubscription = {
+    loadMoreReports: jest.fn(() => new Promise((_resolve, reject) => {
+      rejectOldPage = reject;
+    })),
+    refreshReports: jest.fn(),
+    unsubscribe: jest.fn(),
+  };
+  const newSubscription = {
+    loadMoreReports: jest.fn(),
+    refreshReports: jest.fn(),
+    unsubscribe: jest.fn(),
+  };
+  watchSharedGroupReports.mockReturnValueOnce(oldSubscription).mockReturnValueOnce(newSubscription);
+  const options = { uid: 'owner-uid', groupId: 'group-one', enabled: true };
+  let renderer;
+  let request;
+  try {
+    await act(async () => {
+      renderer = ReactTestRenderer.create(<Harness options={options} />);
+    });
+    await act(async () => {
+      request = currentResult.loadMoreReports();
+    });
+    await act(async () => renderer.update(<Harness options={{ ...options, enabled: false }} />));
+    if (renewed) {
+      await act(async () => renderer.update(<Harness options={options} />));
+      await act(async () => watchSharedGroupReports.mock.calls[1][2](
+        [{ id: 'current-report' }], { reportsLive: true },
+      ));
+    }
+    await act(async () => {
+      rejectOldPage(new Error('Obsolete queue failed.'));
+      await request;
+    });
+    expect(currentResult.error).toBe('');
+    expect(currentResult.reports).toEqual(renewed ? [{ id: 'current-report' }] : []);
+    expect(currentResult.loadingMoreReports).toBe(false);
+  } finally {
+    if (renderer) {
+      await act(async () => renderer.unmount());
+    }
+  }
+});

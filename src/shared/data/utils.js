@@ -63,7 +63,7 @@ export function initialState(account) {
       course: '',
       courseId: '',
       year: '',
-      school: '',
+      campus: '',
       interests: [],
       interestGroups: [],
       avatarId: 'cyan',

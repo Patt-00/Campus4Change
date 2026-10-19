@@ -1,12 +1,11 @@
 import React from 'react';
 import { Alert, Text, TouchableOpacity, View, StyleSheet } from 'react-native';
 import { Screen } from '../../../shared/components/Screen';
-import { Avatar, Link } from '../../../shared/components/UI';
+import { Avatar } from '../../../shared/components/UI';
 import { s } from '../../../shared/theme/styles';
 import { C } from '../../../shared/theme/colors';
 
 import { Icon } from '../../../shared/components/Icon';
-import { version } from '../../../../package.json';
 
 export function ProfileScreen({
   go,
@@ -14,7 +13,6 @@ export function ProfileScreen({
   signOut,
   sessionType,
   firebaseConfigured,
-  enableBiometrics,
 }) {
   const p = state.profile;
   const rated = state.sessions.filter(x => x.rating);
@@ -40,9 +38,7 @@ export function ProfileScreen({
   ];
   const accountActions = [
     { label: 'Edit profile', page: 'Edit Profile' },
-    { label: 'Learning preferences', page: 'Preferences' },
     { label: 'Tutor profile', page: 'Be a Tutor' },
-    { label: 'About Campus4Change', page: 'About' },
   ];
 
   return (
@@ -60,7 +56,7 @@ export function ProfileScreen({
           {[p.course, p.year].filter(Boolean).join(' • ') ||
             'Add your course and year level'}
         </Text>
-        {!!p.school && <Text style={[s.muted, s.center]}>{p.school}</Text>}
+        {!!p.campus && <Text style={[s.muted, s.center]}>{p.campus}</Text>}
       </View>
       <View style={[s.card, s.row, styles.statsCard]}>
         {stats.map(x => (
@@ -89,26 +85,6 @@ export function ProfileScreen({
           </View>
         ))}
       </View>
-      {sessionType === 'local' && (
-        <Link
-          label="Enable biometric sign-in"
-          onPress={async () => {
-            try {
-              await enableBiometrics();
-              Alert.alert(
-                'Biometrics enabled',
-                'Sign in with the biometrics enrolled on this device next time.',
-              );
-            } catch (e) {
-              Alert.alert(
-                'Biometrics',
-                e instanceof Error ? e.message : String(e),
-              );
-            }
-          }}
-        />
-      )}
-
       {firebaseConfigured && sessionType === 'local' && (
         <Text style={[s.muted, s.center]}>
           This existing device account does not sync to Firebase.
@@ -148,9 +124,6 @@ export function ProfileScreen({
       >
         <Text style={[s.text, s.danger]}>Sign out</Text>
       </TouchableOpacity>
-      <Text style={[s.muted, s.center]}>
-        Campus4Change {version}
-      </Text>
     </Screen>
   );
 }

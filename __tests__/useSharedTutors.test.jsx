@@ -62,6 +62,7 @@ test('waits for both shared queries and cleans up both subscriptions', async () 
   });
 
   expect(currentResult.loading).toBe(true);
+  expect(currentResult.tutorsLoaded).toBe(false);
   expect(watchTutorDirectory).toHaveBeenCalledWith(
     'student-1',
     expect.any(Function),
@@ -79,6 +80,7 @@ test('waits for both shared queries and cleans up both subscriptions', async () 
   });
   expect(currentResult.tutors).toEqual([tutor]);
   expect(currentResult.hasMoreTutors).toBe(true);
+  expect(currentResult.tutorsLoaded).toBe(true);
   expect(currentResult.loading).toBe(true);
 
   const booking = { id: 'booking-1', status: 'Pending' };

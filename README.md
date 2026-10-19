@@ -1,14 +1,13 @@
 # Campus4Change
 
-Campus4Change is a school Android app for tutoring, study groups, and campus learning. It uses React Native CLI, JavaScript/JSX, and Hermes.
+Campus4Change is an Android peer-learning app for the TIP student community. It uses React Native CLI, JavaScript/JSX, and Hermes.
 
-Version 1.2.2 keeps the branded Android adaptive launcher icon and adds course-grouped learning interests, a searchable TIP program catalog, profile photo and avatar options, and quieter sync notices. The design follows the [Campus4Change prototype](https://www.figma.com/proto/i23zbYooPqV1EkTLXfnxMo/Campus4Change-Mobile-App-Prototype?node-id=1-2&starting-point-node-id=1%3A2); exact pixel matching is not claimed.
+The current source is version 1.3.0. It keeps the branded Android launcher and adds required TIP account setup, private Student ID claims, searchable tutor recommendations, animated in-app notices, and separate Settings. The design follows the [Campus4Change prototype](https://www.figma.com/proto/i23zbYooPqV1EkTLXfnxMo/Campus4Change-Mobile-App-Prototype?node-id=1-2&starting-point-node-id=1%3A2); exact pixel matching is not claimed.
 
 ## Features
 
 - Splash screen, novice/intermediate/expert introduction, and login/signup screens.
-- Firebase email/password and Google sign-in/sign-up on Android, plus sign-in for existing device-only accounts, profile editing, and sign-out. Google accounts provide a name and email; add a private Student ID later in Edit Profile.
-- Optional Android biometric sign-in after password login and a successful biometric prompt.
+- Firebase email/password and Google sign-in/sign-up on Android, plus sign-in for existing device-only accounts, profile editing, and sign-out. New accounts continue to required TIP account setup after signup, where they enter their course, year, campus, and digits-only Student ID. Student IDs stay private; Firebase uniqueness requires the matching Firestore rules to be deployed, while device-only accounts check for duplicates on the same device.
 - Tutor directory, filters, editable student listings, and selected tutor profiles.
 - Bounded tutor and session history pages with load-more and latest-refresh controls.
 - Firebase users with verified email addresses can request a one-hour session; the tutor can accept or decline, and participants can cancel or mark an accepted session complete. Device-only bookings stay in a private schedule.
@@ -19,13 +18,15 @@ Version 1.2.2 keeps the branded Android adaptive launcher icon and adds course-g
 - Tutor profiles use course-grouped subject tags from the TIP catalog and publish to email-verified Firebase users or stay in the local device directory for device-only accounts.
 - Choose a profile photo from Android's system photo picker or select one of eight built-in color avatars. Custom photos stay in app-private storage on this device; the selected avatar preset can appear in a published tutor listing.
 - Browse 45 campus-specific TIP program listings grouped by campus and college. Each program has a searchable set of core-subject and specialization-area prompts; learning topics can be grouped under multiple programs, and custom courses and topics remain available. The prompts are suggestions based on TIP's published program materials, not a complete curriculum.
-- Add and remove any learning topic; course, year level, and school are optional.
+- Add and remove any learning topic; course, year level, and TIP campus are optional. The campus selector is limited to Quezon City and Manila.
 - Optional group meetup dates and times, with valid-date and future-time checks.
-- About screen with device storage and service limits.
+- A separate Settings destination in the Home menu for learning preferences
+  and About/service details. Profile stays
+  focused on identity, tutor profile, and sign-out.
 
-Email/password and Google accounts use Firebase Authentication, and private app state syncs to that user's Firestore record. The reviewed Firestore rules are deployed to the `campus4change` project with six composite indexes in `READY` state. Any Firebase account with a verified email can discover shared groups and tutor profiles, collaborate in groups, and exchange participant-only session requests; the app does not verify school affiliation. Tutor acceptance reserves two half-hour buckets for each participant atomically, preventing conflicts across tutors and student/tutor roles. Members can report another member's content without storing reporter identity; the group owner can review and reversibly hide or restore content. Pending group changes are saved locally and can be retried if the connection fails. Authentication is restored when the app reopens, and an encrypted device copy supports recovery after a cloud-sync failure. See [Firebase setup](docs/FIREBASE_SETUP.md).
+Email/password and Google accounts use Firebase Authentication, and private app state syncs to that user's Firestore record. The six production composite indexes match the local definitions and are `READY`. A read-only Rules API check on 2026-10-20 confirmed that production still uses an older Firestore ruleset than this 1.3.0 source; the new Student ID claim flow is emulator-tested and needs an authorized deployment before live account setup. Any Firebase account with a verified email can discover shared groups and tutor profiles, collaborate in groups, and exchange participant-only session requests; the app does not verify school affiliation. Tutor acceptance reserves two half-hour buckets for each participant atomically, preventing conflicts across tutors and student/tutor roles. Members can report another member's content without storing reporter identity; the group owner can review and reversibly hide or restore content. Pending group changes are saved locally and can be retried if the connection fails. Authentication is restored when the app reopens, and an encrypted device copy supports recovery after a cloud-sync failure. See [Firebase setup](docs/FIREBASE_SETUP.md).
 
-The account-state document stays private to its owner. Shared groups, tutor profiles, session requests, and slot locks use separate Firestore documents. Group chat is readable by current members; tutor-session chat is readable by its two participants. Device-only conversations remain private notes. Two verified temporary accounts completed tutor discovery, session request/accept/cancel, participant chat, group post/reply/chat, and notification-link checks on the POCO X4 GT; those temporary accounts and their fixtures were removed afterward. Google-to-Firebase sign-in was previously verified on the POCO. Version 1.2.2 was installed in place for profile, course-picker, photo-picker, and UI-state checks without clearing app data. The public v1.2.0 APK was signed with the tracked debug key, archived locally, and its GitHub release entry removed after v1.2.2 was published. The current private-signed v1.2.2 APK/AAB release is available in the [GitHub release](https://github.com/Patt-00/Campus4Change/releases/tag/v1.2.2). The APK installed and cold-launched on a REDMI Turbo 4 running Android 16, displaying the branded start screen and first introduction screen. Firebase has the replacement certificate SHA-1 and SHA-256 fingerprints. Google sign-in with the replacement key and release Play Integrity App Check remain unverified. OS push notifications and live calls are not implemented. Clearing app data removes the encrypted local state and app-private profile photos; configured Firebase accounts and cloud state remain in Firebase.
+The account-state document stays private to its owner. Shared groups, tutor profiles, session requests, and slot locks use separate Firestore documents. Group chat is readable by current members; tutor-session chat is readable by its two participants. Device-only conversations remain private notes. Two verified temporary accounts completed tutor discovery, session request/accept/cancel, participant chat, group post/reply/chat, and notification-link checks on the POCO X4 GT; those accounts and their production test data were removed afterward. The latest published private-signed release is v1.2.2 at the [GitHub release](https://github.com/Patt-00/Campus4Change/releases/tag/v1.2.2); it does not contain the current 1.3.0 source. Google sign-in with the release key and release Play Integrity App Check remain unverified. OS push notifications and live calls are not implemented. Clearing app data removes the encrypted local state and app-private profile photos; configured Firebase accounts and cloud state remain in Firebase.
 
 ## Run and build
 
@@ -45,6 +46,10 @@ Debug builds use a machine-local debug key. Release builds require the protected
 ## Guides and checks
 
 - [Architecture and feature ownership](docs/ARCHITECTURE.md)
+- [Reproducible local emulator QA APK](docs/BUILDING.md#local-firebase-emulator-qa-build)
+- [Autonomous improvement progress](AUTONOMOUS_PROGRESS.md)
+- [Completion audit and weighted readiness estimate](COMPLETION_AUDIT.md)
+- [Presentation readiness walkthrough](PRESENTATION_READINESS.md)
 - [Firebase setup and data boundary](docs/FIREBASE_SETUP.md)
 - [Ongoing quality audit and open issues](docs/QUALITY_AUDIT.md)
 - [Final sprint completion gates](docs/FINAL_SPRINT.md)
@@ -58,4 +63,4 @@ npm test -- --runInBand --testTimeout=15000
 git diff --check
 ```
 
-Jest tests mock Android storage. They do not prove native encryption, biometrics, APK installation, or visible device behavior.
+Jest tests mock Android storage. They do not prove native encryption, APK installation, or visible device behavior.

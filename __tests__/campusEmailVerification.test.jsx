@@ -11,8 +11,6 @@ let mockSaveCloudState;
 let mockGoogleSignIn;
 let currentSession;
 const mockStore = {
-  biometricSignIn: jest.fn(),
-  enableBiometrics: jest.fn(),
   loadState: jest.fn(async () => null),
   saveState: jest.fn(async () => true),
   setActiveUser: jest.fn(async () => true),
@@ -33,6 +31,7 @@ jest.mock('../src/shared/backend/firebase', () => ({
   firebaseSignIn: jest.fn(),
   firebaseSignOut: (...args) => mockFirebaseSignOut(...args),
   firebaseSignUp: jest.fn(),
+  firebaseStudentIdClaimed: jest.fn(async (_uid, studentId) => Boolean(studentId)),
   loadCloudState: (...args) => mockLoadCloudState(...args),
   saveCloudState: (...args) => mockSaveCloudState(...args),
   watchFirebaseUser: listener => {
@@ -137,6 +136,10 @@ test('the session keeps shared access closed until refreshed email verification 
   expect(currentSession.emailVerificationMessage).toContain(
     'Verification email sent to student@school.test',
   );
+  expect(currentSession.emailVerificationToast).toMatchObject({
+    tone: 'success',
+    title: 'Verification email sent',
+  });
 
   mockCheckEmailVerification.mockResolvedValueOnce({
     id: 'firebase-student',
@@ -148,7 +151,11 @@ test('the session keeps shared access closed until refreshed email verification 
   });
 
   expect(currentSession.emailVerified).toBe(true);
-  expect(currentSession.emailVerificationMessage).toBe('');
+  expect(currentSession.emailVerificationMessage).toMatch(/^Email verified/);
+  expect(currentSession.emailVerificationToast).toMatchObject({
+    tone: 'success',
+    title: 'Email verified',
+  });
   expect(mockCheckEmailVerification).toHaveBeenCalledTimes(1);
   await act(async () => renderer.unmount());
 });
@@ -190,7 +197,7 @@ test('Firebase cloud profiles missing optional fields restore account defaults',
     studentId: 'STU-1',
     course: '',
     year: '',
-    school: '',
+    campus: '',
     interests: [],
     tutorSubjects: [],
     bio: '',

@@ -5,10 +5,8 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
-import android.hardware.biometrics.BiometricPrompt
 import android.net.Uri
 import android.os.Build
-import android.os.CancellationSignal
 import android.provider.MediaStore
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
@@ -39,7 +37,6 @@ class CampusStorageModule(private val context: ReactApplicationContext) :
     private val prefs = context.getSharedPreferences("campus_private", 0)
     private val appPreferences = context.getSharedPreferences("campus_app_preferences", 0)
     @Volatile private var activeUser: String? = null
-    private var biometricCancel: CancellationSignal? = null
     private var pendingProfilePhotoPromise: Promise? = null
     private var pendingProfilePhotoUserId: String? = null
 
@@ -54,6 +51,9 @@ class CampusStorageModule(private val context: ReactApplicationContext) :
         // Queue cleanup before any bridge method can enqueue local account work.
         worker.execute {
             try {
+                check(prefs.edit().remove("biometric_user").commit()) {
+                    "Could not clear the removed biometric sign-in preference."
+                }
                 removeLegacySeedAccount()
             } catch (error: Exception) {
                 Log.e(
@@ -141,9 +141,6 @@ class CampusStorageModule(private val context: ReactApplicationContext) :
                 retained.put(account)
             }
         }
-        val legacyBiometricPointerFound = runCatching {
-            read("biometric_user") == "demo"
-        }.getOrDefault(false)
         val legacyStateProfile = runCatching { read("state_demo") }
             .getOrNull()
             ?.let { runCatching { JSONObject(it).optJSONObject("profile") }.getOrNull() }
@@ -151,17 +148,15 @@ class CampusStorageModule(private val context: ReactApplicationContext) :
             legacyAccountFound = foundLegacyAccount,
             stateProfileId = legacyStateProfile?.optString("id"),
             stateEmail = legacyStateProfile?.optString("email"),
-            legacyBiometricPointerFound = legacyBiometricPointerFound,
         ) ?: return
 
-        // Commit the account list, state, and biometric pointer together so a
-        // failed write cannot leave the removed seed's state orphaned.
+        // Commit the account list and state together so a failed write cannot
+        // leave the removed seed's state orphaned.
         val editor = prefs.edit()
         if (cleanup.removeAccount && serializedAccounts != null) {
             editor.putString("accounts", encrypt(retained.toString()))
         }
         if (cleanup.removeState) editor.remove("state_demo")
-        if (cleanup.removeBiometricPointer) editor.remove("biometric_user")
         check(editor.commit()) { "Could not remove the legacy seeded account." }
         if (cleanup.removeAccount && activeUser == "demo") activeUser = null
     }
@@ -172,6 +167,21 @@ class CampusStorageModule(private val context: ReactApplicationContext) :
         return JSONArray()
     }
 
+    private fun accountIdentities(list: JSONArray): List<LocalAccountIdentity> {
+        val identities = mutableListOf<LocalAccountIdentity>()
+        for (index in 0 until list.length()) {
+            val account = list.getJSONObject(index)
+            identities.add(
+                LocalAccountIdentity(
+                    account.optString("id"),
+                    account.optString("email"),
+                    account.optString("studentId"),
+                ),
+            )
+        }
+        return identities
+    }
+
     private fun publicAccount(a: JSONObject): String = JSONObject().put("id", a.getString("id"))
         .put("name", a.getString("name")).put("email", a.getString("email"))
         .put("studentId", a.getString("studentId")).toString()
@@ -180,30 +190,72 @@ class CampusStorageModule(private val context: ReactApplicationContext) :
         worker.execute { try { promise.resolve(block()) } catch (e: Exception) { promise.reject("LOCAL_ACCOUNT", e.message ?: "Device storage failed.") } }
     }
 
-    @ReactMethod fun signUp(name: String, email: String, studentId: String, password: String, promise: Promise) = run(promise) {
-        require(name.trim().length >= 2 && email.matches(Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) && studentId.trim().isNotEmpty() && password.length in 8..CampusPasswordHash.MAX_PASSWORD_LENGTH) { "Complete all fields. Use a password between 8 and ${CampusPasswordHash.MAX_PASSWORD_LENGTH} characters." }
+    @ReactMethod fun signUp(name: String, email: String, password: String, promise: Promise) = run(promise) {
+        require(name.trim().length >= 2 && email.matches(Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) && password.length in 8..CampusPasswordHash.MAX_PASSWORD_LENGTH) { "Enter your name and a valid email. Use 8–1024 characters for the password." }
         val list = accounts()
         for (i in 0 until list.length()) {
             val item = list.getJSONObject(i)
-            require(!item.getString("email").equals(email.trim(), true) && !item.getString("studentId").equals(studentId.trim(), true)) { "An account with that email or Student ID already exists on this device." }
+            require(!item.getString("email").equals(email.trim(), true)) { "An account already uses that email on this device." }
         }
-        val a = account(name.trim(), email.trim().lowercase(), studentId.trim(), password)
+        val a = account(name.trim(), email.trim().lowercase(), "", password)
         list.put(a); write("accounts", list.toString()); activeUser = a.getString("id")
         publicAccount(a)
     }
 
+    @ReactMethod fun isStudentIdUnique(expectedUserId: String, studentId: String, promise: Promise) = run(promise) {
+        requireActiveUser(expectedUserId)
+        LocalStudentIdUniqueness.isUniqueForAccount(
+            accountIdentities(accounts()),
+            expectedUserId,
+            studentId,
+        )
+    }
+
+    @ReactMethod fun completeAccountSetup(expectedUserId: String, studentId: String, value: String, promise: Promise) = run(promise) {
+        requireActiveUser(expectedUserId)
+        val normalizedStudentId = studentId.trim()
+        require(LocalStudentIdUniqueness.isValidStudentId(normalizedStudentId)) { "Enter a Student ID using digits only." }
+        val list = accounts()
+        val identities = accountIdentities(list)
+        val accountIndex = identities.indexOfFirst { it.id == expectedUserId }
+        require(accountIndex >= 0) { "The local account could not be found. Sign in again." }
+        require(
+            !LocalStudentIdUniqueness.hasConflict(
+                identities,
+                expectedUserId,
+                normalizedStudentId,
+            ),
+        ) {
+            "That Student ID is already in use on this device. Check the number and try again."
+        }
+
+        val parsedState = JSONObject(value)
+        val profile = parsedState.optJSONObject("profile")
+        require(
+            profile != null &&
+                profile.optString("id") == expectedUserId &&
+                profile.optString("studentId") == normalizedStudentId
+        ) { "The profile does not match the active account." }
+
+        val previousPhoto = profilePhotoUri(read("state_$expectedUserId"))
+        list.getJSONObject(accountIndex).put("studentId", normalizedStudentId)
+        val editor = prefs.edit()
+            .putString("accounts", encrypt(list.toString()))
+            .putString("state_$expectedUserId", encrypt(value))
+        check(editor.commit()) { "Could not save the completed profile on this device." }
+        val nextPhoto = profilePhotoUri(value)
+        if (previousPhoto != nextPhoto) cleanProfilePhotos(expectedUserId, nextPhoto)
+        true
+    }
+
     @ReactMethod fun signIn(identifier: String, password: String, promise: Promise) = run(promise) {
         val list = accounts()
-        var match: JSONObject? = null
-        var matchIndex = -1
-        for (i in 0 until list.length()) {
-            val a = list.getJSONObject(i)
-            if (a.getString("email").equals(identifier.trim(), true) || a.getString("studentId").equals(identifier.trim(), true)) {
-                match = a
-                matchIndex = i
-            }
-        }
-        val a = match ?: throw IllegalArgumentException("Email/Student ID or password is incorrect.")
+        val matchIndex = LocalStudentIdUniqueness.findSignInMatch(
+            accountIdentities(list),
+            identifier,
+        )
+        val a = if (matchIndex >= 0) list.getJSONObject(matchIndex) else null
+        requireNotNull(a) { "Email/Student ID or password is incorrect." }
         require(password.isNotEmpty() && password.length <= CampusPasswordHash.MAX_PASSWORD_LENGTH) { "Enter a password no longer than ${CampusPasswordHash.MAX_PASSWORD_LENGTH} characters." }
         val storedParameters = CampusPasswordHash.fromStoredMetadata(
             if (a.has("passwordHashAlgorithm")) a.getString("passwordHashAlgorithm") else null,
@@ -478,95 +530,11 @@ class CampusStorageModule(private val context: ReactApplicationContext) :
         check(encoded && output.size() > 0) { "Could not encode this profile photo." }
         return output.toByteArray()
     }
-    @ReactMethod fun enableBiometrics(promise: Promise) {
-        val id = activeUser
-        if (id == null) {
-            promise.reject("BIOMETRIC", "Sign in to your own local account before enabling biometrics.")
-            return
-        }
-        authenticate(promise) { write("biometric_user", id); true }
-    }
-
-    @ReactMethod fun biometricSignIn(promise: Promise) {
-        worker.execute {
-            try {
-                val id = read("biometric_user") ?: error("Sign in with your password, then enable biometrics in Profile.")
-                val list = accounts()
-                val a = (0 until list.length()).map { list.getJSONObject(it) }.first { it.getString("id") == id }
-                authenticate(promise) { activeUser = id; publicAccount(a) }
-            } catch(e: Exception) { promise.reject("BIOMETRIC", e.message ?: "Biometrics are unavailable.") }
-        }
-    }
-
-    private fun authenticate(promise: Promise, success: () -> Any?) {
-        if (Build.VERSION.SDK_INT < 28) {
-            promise.reject("UNAVAILABLE", "Biometrics need Android 9 or newer.")
-            return
-        }
-        val activity = context.currentActivity
-        if (activity == null) {
-            promise.reject("BIOMETRIC", "Open the app before using biometrics.")
-            return
-        }
-        activity.runOnUiThread {
-            try {
-                if (Build.VERSION.SDK_INT >= 29) {
-                    val manager = activity.getSystemService(android.hardware.biometrics.BiometricManager::class.java)
-                    val authenticationStatus = if (Build.VERSION.SDK_INT >= 30) {
-                        manager.canAuthenticate(
-                            android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_WEAK,
-                        )
-                    } else {
-                        canAuthenticateLegacy(manager)
-                    }
-                    require(authenticationStatus == android.hardware.biometrics.BiometricManager.BIOMETRIC_SUCCESS) {
-                        "Enroll biometrics in Android Settings before using this feature."
-                    }
-                }
-                biometricCancel?.cancel()
-                val cancel = CancellationSignal().also { biometricCancel = it }
-                val promptBuilder = BiometricPrompt.Builder(activity)
-                    .setTitle("Sign in to Campus4Change")
-                    .setSubtitle("Use the biometrics enrolled on this device")
-                if (Build.VERSION.SDK_INT >= 30) {
-                    promptBuilder.setAllowedAuthenticators(
-                        android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_WEAK,
-                    )
-                }
-                promptBuilder
-                    .setNegativeButton("Cancel", activity.mainExecutor) { _, _ -> cancel.cancel() }
-                    .build()
-                    .authenticate(
-                        cancel,
-                        activity.mainExecutor,
-                        object : BiometricPrompt.AuthenticationCallback() {
-                            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                                if (biometricCancel === cancel) biometricCancel = null
-                                run(promise, success)
-                            }
-
-                            override fun onAuthenticationError(code: Int, message: CharSequence) {
-                                if (biometricCancel === cancel) biometricCancel = null
-                                promise.reject("BIOMETRIC", message.toString())
-                            }
-                        },
-                    )
-            } catch (error: Exception) {
-                promise.reject("BIOMETRIC", error.message ?: "Biometrics are unavailable.")
-            }
-        }
-    }
-
-    @Suppress("DEPRECATION")
-    private fun canAuthenticateLegacy(manager: android.hardware.biometrics.BiometricManager): Int =
-        manager.canAuthenticate()
-
     override fun invalidate() {
         context.removeActivityEventListener(this)
         pendingProfilePhotoPromise?.reject("PROFILE_PHOTO", "The app closed before photo selection finished.")
         pendingProfilePhotoPromise = null
         pendingProfilePhotoUserId = null
-        biometricCancel?.cancel()
         worker.shutdown()
         super.invalidate()
     }

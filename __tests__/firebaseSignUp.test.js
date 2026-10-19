@@ -6,6 +6,7 @@ let mockDoc;
 let mockCollection;
 let mockGetDoc;
 let mockGetDocs;
+let mockGetCountFromServer;
 let mockSetDoc;
 let mockWriteBatch;
 let mockBatches;
@@ -24,13 +25,20 @@ let mockSignInWithCredential;
 let mockClearGoogleCredentialState;
 let mockInitializeAppCheck;
 let mockNativeAppCheckToken;
+let mockFirebaseAuthValues;
 
 jest.mock('react-native', () => ({
   NativeModules: {
     CampusStorage: {
-      getFirebaseAuthValue: jest.fn(async () => null),
-      setFirebaseAuthValue: jest.fn(async () => true),
-      removeFirebaseAuthValue: jest.fn(async () => true),
+      getFirebaseAuthValue: jest.fn(async key => mockFirebaseAuthValues.get(key) || null),
+      setFirebaseAuthValue: jest.fn(async (key, value) => {
+        mockFirebaseAuthValues.set(key, value);
+        return true;
+      }),
+      removeFirebaseAuthValue: jest.fn(async key => {
+        mockFirebaseAuthValues.delete(key);
+        return true;
+      }),
     },
     CampusGoogleSignIn: {
       signIn: (...args) => mockGoogleSignIn(...args),
@@ -92,6 +100,7 @@ jest.mock('firebase/firestore', () => ({
   collection: (...args) => mockCollection(...args),
   getDoc: (...args) => mockGetDoc(...args),
   getDocs: (...args) => mockGetDocs(...args),
+  getCountFromServer: (...args) => mockGetCountFromServer(...args),
   setDoc: (...args) => mockSetDoc(...args),
   writeBatch: (...args) => mockWriteBatch(...args),
   serverTimestamp: (...args) => mockServerTimestamp(...args),
@@ -105,6 +114,7 @@ jest.mock('firebase/app-check', () => ({
 }));
 
 beforeEach(() => {
+  mockFirebaseAuthValues = new Map();
   mockAuthObserver = null;
   mockApp = {};
   mockInitializeAppCheck = jest.fn(() => ({ app: mockApp }));
@@ -118,6 +128,7 @@ beforeEach(() => {
   mockCollection = jest.fn((db, ...path) => ({ db, path: path.join('/') }));
   mockGetDoc = jest.fn();
   mockGetDocs = jest.fn(async () => ({ docs: [] }));
+  mockGetCountFromServer = jest.fn(async () => ({ data: () => ({ count: 0 }) }));
   mockSetDoc = jest.fn(async () => {});
   mockBatches = [];
   mockWriteBatch = jest.fn(() => {
@@ -217,7 +228,7 @@ test('Android Firebase initializes native-backed App Check before account servic
   expect(firebase.firebaseEnabled).toBe(true);
 });
 
-test('signup listener receives the new student ID even when Auth notifies before signup resolves', async () => {
+test('signup listener receives the new account before Student ID setup', async () => {
   const firebase = require('../src/shared/backend/firebase');
   let observedAccount;
   firebase.watchFirebaseUser(user => {
@@ -227,7 +238,6 @@ test('signup listener receives the new student ID even when Auth notifies before
   const account = await firebase.firebaseSignUp(
     'Jamie Student',
     '  Jamie@School.edu ',
-    '  STU-2048 ',
     'TestPassword123',
   );
 
@@ -235,14 +245,14 @@ test('signup listener receives the new student ID even when Auth notifies before
     uid: 'new-firebase-user',
     name: 'Jamie Student',
     email: 'jamie@school.edu',
-    studentId: 'STU-2048',
+    studentId: '',
     emailVerified: false,
   });
   expect(account).toMatchObject({
     id: 'new-firebase-user',
     name: 'Jamie Student',
     email: 'jamie@school.edu',
-    studentId: 'STU-2048',
+    studentId: '',
     emailVerified: false,
     verificationEmailSent: true,
     displayNameSaved: true,
@@ -278,13 +288,11 @@ test('concurrent sign-up attempts cannot overwrite pending Firebase profile data
   const firstAttempt = firebase.firebaseSignUp(
     'Jamie Student',
     'jamie@school.edu',
-    'STU-2048',
     'TestPassword123',
   );
   const conflictingAttempt = firebase.firebaseSignUp(
     'Different Name',
     'JAMIE@school.edu',
-    'STU-9999',
     'TestPassword123',
   );
 
@@ -299,7 +307,7 @@ test('concurrent sign-up attempts cannot overwrite pending Firebase profile data
   expect(observedAccount).toMatchObject({
     uid: account.id,
     name: 'Jamie Student',
-    studentId: 'STU-2048',
+    studentId: '',
   });
   expect(mockCreateUser).toHaveBeenCalledTimes(1);
 });
@@ -313,7 +321,6 @@ test('a verification-email delivery failure leaves a recoverable Firebase accoun
   const account = await firebase.firebaseSignUp(
     'Jamie Student',
     'jamie@school.edu',
-    'STU-2048',
     'TestPassword123',
   );
 
@@ -337,7 +344,6 @@ test('a profile metadata failure keeps the newly created account and submitted p
   const account = await firebase.firebaseSignUp(
     'Jamie Student',
     'jamie@gmail.com',
-    'STU-2048',
     'TestPassword123',
   );
 
@@ -345,13 +351,13 @@ test('a profile metadata failure keeps the newly created account and submitted p
     id: 'new-firebase-user',
     name: 'Jamie Student',
     email: 'jamie@gmail.com',
-    studentId: 'STU-2048',
+    studentId: '',
     displayNameSaved: false,
   });
   expect(observedAccount).toMatchObject({
     uid: account.id,
     name: 'Jamie Student',
-    studentId: 'STU-2048',
+    studentId: '',
   });
   expect(mockAuth.currentUser.uid).toBe(account.id);
   expect(deleteUser).not.toHaveBeenCalled();
@@ -499,7 +505,7 @@ test('password reset still reports network failures', async () => {
   ).rejects.toThrow('Could not connect. Check your internet and try again.');
 });
 
-test('successful Firebase sign-out clears the transient Student ID cache', async () => {
+test('Student ID is absent from Firebase Auth accounts until profile setup', async () => {
   const firebase = require('../src/shared/backend/firebase');
   let observedAccount;
   firebase.watchFirebaseUser(user => {
@@ -509,10 +515,9 @@ test('successful Firebase sign-out clears the transient Student ID cache', async
   const account = await firebase.firebaseSignUp(
     'Jamie Student',
     'jamie@school.edu',
-    'STU-2048',
     'TestPassword123',
   );
-  expect(observedAccount.studentId).toBe('STU-2048');
+  expect(observedAccount.studentId).toBe('');
 
   await firebase.firebaseSignOut();
   expect(mockSignOut).toHaveBeenCalledWith(mockAuth);
@@ -527,7 +532,7 @@ test('successful Firebase sign-out clears the transient Student ID cache', async
   expect(observedAccount.studentId).toBe('');
 });
 
-test('failed Firebase sign-out keeps the account Student ID cache recoverable', async () => {
+test('failed Firebase sign-out keeps the Firebase account recoverable', async () => {
   const firebase = require('../src/shared/backend/firebase');
   let observedAccount;
   firebase.watchFirebaseUser(user => {
@@ -537,7 +542,6 @@ test('failed Firebase sign-out keeps the account Student ID cache recoverable', 
   const account = await firebase.firebaseSignUp(
     'Jamie Student',
     'jamie@school.edu',
-    'STU-2048',
     'TestPassword123',
   );
   mockSignOut.mockRejectedValueOnce(new Error('Could not reach Firebase.'));
@@ -552,7 +556,7 @@ test('failed Firebase sign-out keeps the account Student ID cache recoverable', 
     emailVerified: false,
   });
 
-  expect(observedAccount.studentId).toBe('STU-2048');
+  expect(observedAccount.studentId).toBe('');
   expect(mockClearGoogleCredentialState).not.toHaveBeenCalled();
 });
 
@@ -638,6 +642,60 @@ test('cloud state saves target the authenticated user document', async () => {
     state,
     updatedAt: 'server-timestamp',
   });
+});
+
+test('Student ID claims and private profile state are reserved atomically', async () => {
+  const firebase = require('../src/shared/backend/firebase');
+  mockAuth.currentUser = { uid: 'cloud-user', emailVerified: false };
+  const state = {
+    version: 1,
+    updatedAt: 123,
+    profile: { id: 'cloud-user', studentId: '2026101234' },
+    sessions: [],
+    groups: [],
+    conversations: [],
+    notices: [],
+  };
+
+  await firebase.saveCloudState('cloud-user', state);
+
+  const writes = mockBatches[0].set.mock.calls;
+  expect(writes).toEqual([
+    [
+      { db: mockDb, path: 'studentIdClaims/2026101234' },
+      { uid: 'cloud-user' },
+    ],
+    [
+      { db: mockDb, path: 'users/cloud-user/private/state' },
+      { state, updatedAt: 'server-timestamp' },
+    ],
+  ]);
+  expect(mockSetDoc).not.toHaveBeenCalled();
+});
+
+test('a rejected Student ID claim returns a duplicate-ID message', async () => {
+  const firebase = require('../src/shared/backend/firebase');
+  mockAuth.currentUser = { uid: 'cloud-user', emailVerified: true };
+  mockWriteBatch.mockImplementationOnce(() => {
+    const batch = {
+      set: jest.fn(),
+      delete: jest.fn(),
+      commit: jest.fn().mockRejectedValue({ code: 'permission-denied' }),
+    };
+    mockBatches.push(batch);
+    return batch;
+  });
+
+  await expect(
+    firebase.saveCloudState('cloud-user', {
+      version: 1,
+      profile: { id: 'cloud-user', studentId: '2026101234' },
+      sessions: [],
+      groups: [],
+      conversations: [],
+      notices: [],
+    }),
+  ).rejects.toThrow('That Student ID is already in use');
 });
 
 test('private notes move to bounded owner-scoped documents instead of the state document', async () => {
@@ -796,6 +854,229 @@ test('private note documents merge with legacy messages embedded in account stat
     'cloud-user',
     'privateMessages',
   );
+});
+
+test('private note merges preserve chronological order across legacy and document history', async () => {
+  const firebase = require('../src/shared/backend/firebase');
+  mockAuth.currentUser = { uid: 'cloud-user', emailVerified: false };
+  const conversationId = 'chat-tutor-1';
+  const state = {
+    version: 1,
+    profile: { id: 'cloud-user' },
+    sessions: [],
+    groups: [],
+    conversations: [
+      {
+        id: conversationId,
+        name: 'Tutor',
+        messages: [
+          {
+            id: 'newer-legacy',
+            text: 'A later embedded note',
+            mine: true,
+            sentAt: '2026-10-01T12:00:00.000Z',
+          },
+          {
+            id: 'older-legacy',
+            text: 'An earlier embedded note',
+            mine: true,
+            sentAt: '2026-10-01T10:00:00.000Z',
+          },
+        ],
+      },
+    ],
+    notices: [],
+  };
+  mockGetDoc.mockResolvedValue({
+    exists: () => true,
+    data: () => ({ state }),
+  });
+  mockGetDocs.mockResolvedValue({
+    docs: [
+      {
+        id: `${conversationId.length}_${encodeURIComponent(conversationId)}__remote-mid`,
+        data: () => ({
+          conversationId,
+          id: 'remote-mid',
+          text: 'Middle remote note',
+          mine: true,
+          sentAt: '2026-10-01T11:00:00.000Z',
+        }),
+      },
+    ],
+  });
+
+  const restored = await firebase.loadCloudState('cloud-user');
+
+  expect(restored.conversations[0].messages.map(message => message.id)).toEqual([
+    'older-legacy',
+    'remote-mid',
+    'newer-legacy',
+  ]);
+});
+
+test('repeat private-note restores reuse all verified local messages', async () => {
+  const firebase = require('../src/shared/backend/firebase');
+  mockAuth.currentUser = { uid: 'cloud-user', emailVerified: false };
+  const conversationId = 'chat-tutor-1';
+  const messages = Array.from({ length: 300 }, (_, index) => ({
+    conversationId,
+    id: `message-${index}`,
+    text: `Saved note ${index}`,
+    mine: true,
+    sentAt: `2026-10-01T10:${String(index % 60).padStart(2, '0')}:00.000Z`,
+  }));
+  const snapshots = messages.map(data => ({
+    id: `${conversationId.length}_${encodeURIComponent(conversationId)}__${encodeURIComponent(data.id)}`,
+    data: () => data,
+  }));
+  const state = {
+    version: 1,
+    profile: { id: 'cloud-user' },
+    sessions: [],
+    groups: [],
+    conversations: [{ id: conversationId, name: 'Tutor', messages: [] }],
+    notices: [],
+  };
+  mockGetDoc.mockResolvedValue({
+    exists: () => true,
+    data: () => ({ state }),
+  });
+  mockGetDocs.mockResolvedValue({ docs: snapshots });
+  mockGetCountFromServer.mockResolvedValue({ data: () => ({ count: 300 }) });
+
+  const firstRestore = await firebase.loadCloudState('cloud-user');
+  expect(firstRestore.conversations[0].messages).toHaveLength(300);
+  expect(mockGetDocs).toHaveBeenCalledTimes(1);
+
+  const secondRestore = await firebase.loadCloudState('cloud-user', firstRestore);
+  expect(secondRestore.conversations[0].messages).toHaveLength(300);
+  expect(mockGetCountFromServer).toHaveBeenCalledTimes(1);
+  expect(mockGetDocs).toHaveBeenCalledTimes(1);
+
+  mockGetCountFromServer.mockRejectedValueOnce(new Error('offline'));
+  const offlineRestore = await firebase.loadCloudState('cloud-user', secondRestore);
+  expect(offlineRestore.conversations[0].messages).toHaveLength(300);
+  expect(mockGetDocs).toHaveBeenCalledTimes(2);
+});
+
+test('private-note cache misses when local history has an unsynced message', async () => {
+  const firebase = require('../src/shared/backend/firebase');
+  mockAuth.currentUser = { uid: 'cloud-user', emailVerified: false };
+  const conversationId = 'chat-tutor-1';
+  const remoteMessage = {
+    conversationId,
+    id: 'remote-message',
+    text: 'Saved in the cloud',
+    mine: true,
+    sentAt: '2026-10-01T11:00:00.000Z',
+  };
+  const state = {
+    version: 1,
+    profile: { id: 'cloud-user' },
+    sessions: [],
+    groups: [],
+    conversations: [{ id: conversationId, name: 'Tutor', messages: [] }],
+    notices: [],
+  };
+  mockGetDoc.mockResolvedValue({
+    exists: () => true,
+    data: () => ({ state }),
+  });
+  mockGetDocs.mockResolvedValue({
+    docs: [
+      {
+        id: `${conversationId.length}_${encodeURIComponent(conversationId)}__remote-message`,
+        data: () => remoteMessage,
+      },
+    ],
+  });
+  mockGetCountFromServer.mockResolvedValue({ data: () => ({ count: 1 }) });
+
+  const firstRestore = await firebase.loadCloudState('cloud-user');
+  const cachedWithUnsyncedMessage = {
+    ...firstRestore,
+    conversations: firstRestore.conversations.map(conversation => ({
+      ...conversation,
+      messages: [
+        ...conversation.messages,
+        {
+          id: 'local-message',
+          text: 'Not uploaded yet',
+          mine: true,
+          sentAt: '2026-10-01T12:00:00.000Z',
+        },
+      ],
+    })),
+  };
+
+  const restored = await firebase.loadCloudState(
+    'cloud-user',
+    cachedWithUnsyncedMessage,
+  );
+  expect(mockGetCountFromServer).not.toHaveBeenCalled();
+  expect(mockGetDocs).toHaveBeenCalledTimes(2);
+  expect(restored.conversations[0].messages).toHaveLength(1);
+});
+
+test('private-note cache refreshes when embedded cloud history changes', async () => {
+  const firebase = require('../src/shared/backend/firebase');
+  mockAuth.currentUser = { uid: 'cloud-user', emailVerified: false };
+  const conversationId = 'chat-tutor-1';
+  const remoteMessage = {
+    conversationId,
+    id: 'remote-message',
+    text: 'Saved in the cloud',
+    mine: true,
+    sentAt: '2026-10-01T11:00:00.000Z',
+  };
+  let state = {
+    version: 1,
+    profile: { id: 'cloud-user' },
+    sessions: [],
+    groups: [],
+    conversations: [{ id: conversationId, name: 'Tutor', messages: [] }],
+    notices: [],
+  };
+  mockGetDoc.mockImplementation(async () => ({
+    exists: () => true,
+    data: () => ({ state }),
+  }));
+  mockGetDocs.mockResolvedValue({
+    docs: [
+      {
+        id: `${conversationId.length}_${encodeURIComponent(conversationId)}__remote-message`,
+        data: () => remoteMessage,
+      },
+    ],
+  });
+  mockGetCountFromServer.mockResolvedValue({ data: () => ({ count: 1 }) });
+
+  const firstRestore = await firebase.loadCloudState('cloud-user');
+  state = {
+    ...state,
+    conversations: [
+      {
+        ...state.conversations[0],
+        messages: [
+          {
+            id: 'legacy-message',
+            text: 'Added by an older app version',
+            mine: true,
+            sentAt: '2026-10-01T09:00:00.000Z',
+          },
+        ],
+      },
+    ],
+  };
+
+  const restored = await firebase.loadCloudState('cloud-user', firstRestore);
+  expect(mockGetCountFromServer).toHaveBeenCalledTimes(1);
+  expect(mockGetDocs).toHaveBeenCalledTimes(2);
+  expect(restored.conversations[0].messages.map(message => message.id)).toEqual([
+    'legacy-message',
+    'remote-message',
+  ]);
 });
 
 test('duplicate legacy message IDs produce one private Firestore write', async () => {

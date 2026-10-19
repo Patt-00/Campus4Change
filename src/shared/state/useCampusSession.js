@@ -10,6 +10,7 @@ import {
   firebaseSignIn,
   firebaseSignOut,
   firebaseSignUp,
+  firebaseStudentIdClaimed,
   loadCloudState,
   saveCloudState,
   watchFirebaseUser,
@@ -23,6 +24,7 @@ import {
 } from '../data/interestGroups';
 import { getAvatarPreset } from '../data/avatarPresets';
 import { getTipProgram } from '../data/tipPrograms';
+import { normalizeTipCampus } from '../data/tipCampuses';
 
 const SIGN_OUT_CLOUD_SYNC_TIMEOUT_MS = 1200;
 
@@ -54,9 +56,10 @@ function asState(value, account) {
     state.profile.course,
     10,
   );
+  const { school: legacySchool, ...savedProfile } = state.profile;
   const profile = {
     ...defaults.profile,
-    ...state.profile,
+    ...savedProfile,
     name:
       typeof state.profile.name === 'string' && state.profile.name.trim()
         ? state.profile.name.trim()
@@ -82,10 +85,9 @@ function asState(value, account) {
       typeof state.profile.year === 'string'
         ? state.profile.year
         : defaults.profile.year,
-    school:
-      typeof state.profile.school === 'string'
-        ? state.profile.school
-        : defaults.profile.school,
+    campus:
+      normalizeTipCampus(state.profile.campus) ||
+      normalizeTipCampus(legacySchool),
     interests: flattenInterestGroups(interestGroups),
     interestGroups,
     avatarId: getAvatarPreset(state.profile.avatarId).id,
@@ -155,8 +157,14 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
   const [pendingCloudUid, setPendingCloudUid] = useState(null);
   const [restoring, setRestoring] = useState(firebaseEnabled);
   const [sessionType, setSessionType] = useState(null);
+  const [studentIdClaimStatus, setStudentIdClaimStatus] = useState('unknown');
   const [emailVerified, setEmailVerified] = useState(true);
   const [emailVerificationMessage, setEmailVerificationMessage] = useState('');
+  const [emailVerificationToast, setEmailVerificationToast] = useState(null);
+  const dismissVerificationToast = useCallback(
+    () => setEmailVerificationToast(null),
+    [],
+  );
   const snapshot = useRef(state);
   const activeSession = useRef(null);
   const cloudHydrated = useRef(false);
@@ -231,6 +239,14 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
             uid,
             stateForPersistence(nextState, { forCloud: true }),
           );
+          if (
+            activeSession.current?.kind === 'firebase' &&
+            activeSession.current.uid === uid
+          ) {
+            setStudentIdClaimStatus(
+              nextState.profile.studentId ? 'claimed' : 'unclaimed',
+            );
+          }
           const updatedAt = Number(nextState.updatedAt);
           if (Number.isFinite(updatedAt)) {
             highestAcknowledgedUpdatedAt = Math.max(
@@ -244,6 +260,9 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
             activeSession.current?.kind === 'firebase' &&
             activeSession.current.uid === uid
           ) {
+            if (/Student ID is already in use/i.test(errorText(error))) {
+              setStudentIdClaimStatus('conflict');
+            }
             setSaveError(errorText(error));
           }
           setPendingCloudUid(current => current === uid ? null : current);
@@ -359,16 +378,32 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
       account = parseAccount(value);
       const saved = await storage.loadState(account.id);
       const next = asState(saved, account);
+      const accountStudentId = String(next.profile.studentId || '').trim();
+      let accountStudentIdStatus = accountStudentId ? 'unknown' : 'unclaimed';
+      if (accountStudentId) {
+        try {
+          accountStudentIdStatus = (await storage.isStudentIdUnique(
+            account.id,
+            accountStudentId,
+          ))
+            ? 'claimed'
+            : 'conflict';
+        } catch {
+          accountStudentIdStatus = 'unknown';
+        }
+      }
       activeSession.current = { kind: 'local', id: account.id };
       cloudHydrated.current = true;
       setSessionType('local');
+      setStudentIdClaimStatus(accountStudentIdStatus);
       setEmailVerified(true);
       setEmailVerificationMessage('');
+      setEmailVerificationToast(null);
       setSaveError('');
       snapshot.current = next;
       setState(next);
       setRestoring(false);
-      callbacks.current.onSignedIn();
+      callbacks.current.onSignedIn(next, accountStudentIdStatus);
     } catch (error) {
       await storage.signOut(account?.id).catch(() => {});
       throw error;
@@ -395,6 +430,13 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
       setSessionType(null);
       setState(null);
       setSaveError('');
+    }
+    if (
+      activeSession.current?.kind !== 'firebase' ||
+      activeSession.current.uid !== user.uid
+    ) {
+      setRestoring(true);
+      setStudentIdClaimStatus('unknown');
     }
 
     const task = (async () => {
@@ -451,7 +493,8 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
 
       let cached = null;
       try {
-        cached = asState(await storage.loadState(user.uid), account);
+        const cachedValue = await storage.loadState(user.uid);
+        cached = cachedValue ? asState(cachedValue, account) : null;
       } catch (error) {
         if (generation !== firebaseRestoreGeneration.current) {
           return;
@@ -465,11 +508,10 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
       const local = cached || initialState(account);
       snapshot.current = local;
       setState(local);
-      setRestoring(false);
-      callbacks.current.onSignedIn();
 
+      let accountStudentIdStatus = 'unclaimed';
       try {
-        const cloudValue = await loadCloudState(user.uid);
+        const cloudValue = await loadCloudState(user.uid, local);
         if (
           generation !== firebaseRestoreGeneration.current ||
           activeSession.current?.kind !== 'firebase' ||
@@ -486,8 +528,13 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
             : local;
         const localUpdatedAt = Number(latestLocal.updatedAt) || 0;
         const cloudUpdatedAt = Number(cloud?.updatedAt) || 0;
+        // Shared-feed snapshots can copy state without making a local edit.
+        const localIsPlaceholder =
+          !cached && localUpdatedAt === Number(local.updatedAt);
         const newestState =
-          cloud && cloudUpdatedAt > localUpdatedAt ? cloud : latestLocal;
+          cloud && (localIsPlaceholder || cloudUpdatedAt > localUpdatedAt)
+            ? cloud
+            : latestLocal;
         const localPhotoUri = latestLocal?.profile?.profilePhotoUri;
         const selected =
           typeof localPhotoUri === 'string' &&
@@ -509,6 +556,21 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
         const cloudHasTransientFeed =
           cloud &&
           JSON.stringify(stateForPersistence(cloud)) !== JSON.stringify(cloud);
+        const selectedStudentId = String(
+          selected.profile.studentId || '',
+        ).trim();
+        if (selectedStudentId) {
+          try {
+            accountStudentIdStatus = (await firebaseStudentIdClaimed(
+              user.uid,
+              selectedStudentId,
+            ))
+              ? 'claimed'
+              : 'unclaimed';
+          } catch {
+            accountStudentIdStatus = 'unknown';
+          }
+        }
         await storage.saveState(user.uid, JSON.stringify(saved));
         if (
           generation !== firebaseRestoreGeneration.current ||
@@ -517,7 +579,13 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
         ) {
           return;
         }
-        if (!cloud || selected === latestLocal || cloudHasTransientFeed) {
+        setStudentIdClaimStatus(accountStudentIdStatus);
+        if (
+          !cloud ||
+          selected === latestLocal ||
+          cloudHasTransientFeed ||
+          (selectedStudentId && accountStudentIdStatus === 'unclaimed')
+        ) {
           const currentSession = activeSession.current;
           if (
             currentSession?.kind === 'firebase' &&
@@ -534,11 +602,13 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
           setSaveError('');
         }
       } catch (error) {
+        accountStudentIdStatus = 'unknown';
         if (
           generation === firebaseRestoreGeneration.current &&
           activeSession.current?.kind === 'firebase' &&
           activeSession.current.uid === user.uid
         ) {
+          setStudentIdClaimStatus('unknown');
           setSaveError(errorText(error));
         }
       } finally {
@@ -553,6 +623,13 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
             const hydratedState = { ...latest };
             snapshot.current = hydratedState;
             setState(hydratedState);
+            setRestoring(false);
+            callbacks.current.onSignedIn(
+              hydratedState,
+              accountStudentIdStatus,
+            );
+          } else {
+            setRestoring(false);
           }
         }
       }
@@ -598,6 +675,7 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
           activeSession.current = null;
           cloudHydrated.current = false;
           setSessionType(null);
+          setStudentIdClaimStatus('unknown');
           setEmailVerified(true);
           setEmailVerificationMessage('');
           setState(null);
@@ -664,9 +742,9 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
     },
     signInLocal: async (identifier, password) =>
       enterLocalAccount(await deviceStore().signIn(identifier, password)),
-    signUp: async (name, email, studentId, password) => {
+    signUp: async (name, email, password) => {
       if (firebaseEnabled) {
-        const account = await firebaseSignUp(name, email, studentId, password);
+        const account = await firebaseSignUp(name, email, password);
         setEmailVerified(Boolean(account.emailVerified));
         const messages = [
           account.verificationEmailSent
@@ -680,19 +758,34 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
           );
         }
         setEmailVerificationMessage(messages.join(' '));
+        const toastId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        setEmailVerificationToast(
+          account.verificationEmailSent
+            ? {
+                id: toastId,
+                tone: 'success',
+                title: 'Verification email sent',
+                message: `Open the link we sent to ${account.email} to verify your account.${account.displayNameSaved === false ? ' Your name could not be saved to Firebase, but it remains in your profile.' : ''}`,
+                destination: 'Notifications',
+              }
+            : {
+                id: toastId,
+                tone: 'error',
+                title: 'Verification email not sent',
+                message:
+                  account.verificationEmailError ||
+                  'Your account was created. Resend the verification link from Notifications.',
+                destination: 'Notifications',
+              },
+        );
         await enterFirebaseAccount({
           ...account,
           uid: account.id,
         });
         return;
       }
-      await enterLocalAccount(
-        await deviceStore().signUp(name, email, studentId, password),
-      );
+      await enterLocalAccount(await deviceStore().signUp(name, email, password));
     },
-    biometrics: async () =>
-      enterLocalAccount(await deviceStore().biometricSignIn()),
-    enableBiometrics: () => deviceStore().enableBiometrics(),
     sendPasswordReset: firebasePasswordReset,
     resendEmailVerification: async () => {
       try {
@@ -701,8 +794,26 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
         setEmailVerificationMessage(
           `Verification email sent${email ? ` to ${email}` : ''}. Check your inbox and spam folder.`,
         );
+        const toastId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        setEmailVerificationToast({
+          id: toastId,
+          tone: 'success',
+          title: 'Verification email sent',
+          message: email
+            ? `Check ${email} for the verification link.`
+            : 'Check your inbox and spam folder for the verification link.',
+          destination: 'Notifications',
+        });
       } catch (error) {
-        setEmailVerificationMessage(errorText(error));
+        const message = errorText(error);
+        setEmailVerificationMessage(message);
+        setEmailVerificationToast({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          tone: 'error',
+          title: 'Could not resend the link',
+          message,
+          destination: 'Notifications',
+        });
       }
     },
     refreshEmailVerification: async () => {
@@ -711,11 +822,28 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
         setEmailVerified(Boolean(account.emailVerified));
         setEmailVerificationMessage(
           account.emailVerified
-            ? ''
+            ? 'Email verified. Your account can now use shared campus features.'
             : 'The email is not verified yet. Open the link from your email, then check again.',
         );
+        if (account.emailVerified) {
+          setEmailVerificationToast({
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            tone: 'success',
+            title: 'Email verified',
+            message: 'Your account can now use shared campus features.',
+            destination: 'Notifications',
+          });
+        }
       } catch (error) {
-        setEmailVerificationMessage(errorText(error));
+        const message = errorText(error);
+        setEmailVerificationMessage(message);
+        setEmailVerificationToast({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          tone: 'error',
+          title: 'Could not check your email',
+          message,
+          destination: 'Notifications',
+        });
       }
     },
   };
@@ -742,6 +870,108 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
       return next;
     });
   }, []);
+
+  const saveProfileUpdate = useCallback(async profileUpdate => {
+    const active = activeSession.current;
+    if (!active || !snapshot.current) {
+      throw new Error('Sign in before saving your profile.');
+    }
+
+    await saveQueue.current.catch(() => {});
+    if (active.kind === 'firebase') {
+      const currentStudentId = String(
+        snapshot.current.profile.studentId || '',
+      ).trim();
+      const requestedStudentId = Object.prototype.hasOwnProperty.call(
+        profileUpdate,
+        'studentId',
+      )
+        ? String(profileUpdate.studentId || '').trim()
+        : currentStudentId;
+      const profileNeedsClaim =
+        studentIdClaimStatus !== 'claimed' ||
+        requestedStudentId !== currentStudentId;
+      if (profileNeedsClaim) {
+        const pendingCloudWrite = cloudWrites.current.get(active.uid)?.task;
+        if (pendingCloudWrite) {
+          await pendingCloudWrite.catch(() => false);
+        }
+      }
+    }
+    if (activeSession.current !== active) {
+      throw new Error('The active account changed. Please try again.');
+    }
+
+    const previous = snapshot.current;
+    const updated = reducer(previous, {
+      type: 'profile',
+      profile: profileUpdate,
+    });
+    if (updated === previous) {
+      return true;
+    }
+    const previousUpdatedAt = Number(previous.updatedAt) || 0;
+    const next = {
+      ...updated,
+      updatedAt: Math.max(Date.now(), previousUpdatedAt + 1),
+    };
+    const saved = stateForPersistence(next);
+
+    const previousStudentId = String(previous.profile.studentId || '').trim();
+    const nextStudentId = String(next.profile.studentId || '').trim();
+    // Student ID claims must reach Firestore before setup can complete.
+    const requiresStudentIdClaim =
+      active.kind === 'firebase' &&
+      (studentIdClaimStatus !== 'claimed' ||
+        previousStudentId !== nextStudentId);
+
+    if (
+      active.kind === 'local' &&
+      Object.prototype.hasOwnProperty.call(profileUpdate, 'studentId')
+    ) {
+      await deviceStore().completeAccountSetup(
+        active.id,
+        String(next.profile.studentId || ''),
+        JSON.stringify(saved),
+      );
+    } else if (active.kind === 'firebase') {
+      if (requiresStudentIdClaim) {
+        try {
+          if (previousStudentId && previousStudentId !== nextStudentId) {
+            // Keep the old claim until ownership can be checked safely.
+            await firebaseStudentIdClaimed(active.uid, previousStudentId);
+          }
+          await saveCloudState(
+            active.uid,
+            stateForPersistence(next, { forCloud: true }),
+          );
+        } catch (error) {
+          if (
+            activeSession.current === active &&
+            /Student ID is already in use/i.test(errorText(error))
+          ) {
+            setStudentIdClaimStatus('conflict');
+          }
+          throw error;
+        }
+      }
+      // Ordinary edits save locally first; the state effect queues cloud sync.
+      await saveLocalState(next, active);
+    } else {
+      await saveLocalState(next, active);
+    }
+
+    if (activeSession.current !== active) {
+      throw new Error('The active account changed. Please try again.');
+    }
+    snapshot.current = next;
+    setState(next);
+    setStudentIdClaimStatus(
+      next.profile.studentId ? 'claimed' : 'unclaimed',
+    );
+    setSaveError('');
+    return true;
+  }, [saveLocalState, studentIdClaimStatus]);
 
   async function signOut() {
     const active = activeSession.current;
@@ -778,8 +1008,10 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
       activeSession.current = null;
       cloudHydrated.current = false;
       setSessionType(null);
+      setStudentIdClaimStatus('unknown');
       setEmailVerified(true);
       setEmailVerificationMessage('');
+      setEmailVerificationToast(null);
       setState(null);
       setSaveError('');
       setRestoring(false);
@@ -838,5 +1070,9 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
     sessionType,
     emailVerified,
     emailVerificationMessage,
+    emailVerificationToast,
+    dismissVerificationToast,
+    studentIdClaimStatus,
+    saveProfileUpdate,
   };
 }

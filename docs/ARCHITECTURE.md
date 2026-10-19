@@ -58,10 +58,20 @@ Google authentication uses Android Credential Manager in
 `firebase.js` exchanges the returned Google ID token with Firebase
 Authentication. The public Web client ID is configured in
 `shared/backend/firebaseConfig.js`. Google supplies a Firebase account name and
-email, while Student ID remains in the user's private profile state. Sign-out
-clears both Firebase's auth session and Credential Manager state. The native
-flow builds and opens the approved Google account chooser; the final Firebase
-account exchange still needs a completed re-authentication check.
+email. After email/password or Google signup, the navigator gates the account
+on required TIP profile setup with a course, year level, campus, and digits-only
+Student ID. Student IDs remain in private profile state; a batch write reserves
+the ID in an owner-only `studentIdClaims/{studentId}` document alongside the
+profile update. The local Firestore rules require the matching claim for new
+and changed IDs, so two Firebase accounts cannot reserve the same ID. The live
+production ruleset does not yet include these claims; see
+[Firebase setup](FIREBASE_SETUP.md). Older installed
+clients may keep syncing an existing ID during migration, but cannot change it
+without the claim flow. Device-only accounts use an atomic encrypted-storage
+update and reject IDs held by another local account. Sign-out clears both
+Firebase's auth session and Credential Manager state. The approved Google
+account chooser and Firebase exchange passed a debug sign-in check on the POCO.
+Google sign-in with the published release certificate remains unverified.
 
 ## State and data flow
 
@@ -180,10 +190,9 @@ moderation are not implemented.
 - A single background executor orders account and storage operations.
 - A selected profile image is reduced to a 512-pixel JPEG and copied into app-private files keyed by a hash of the signed-in account ID. The file URI is retained only in local account state and omitted from cloud persistence. No general media permission is requested.
 - Loading and saving requires an active account.
-- Biometric setup requires a signed-in local account and a successful Android biometric prompt. Sign-in uses the enrolled device biometrics. Android 9 or newer is required.
 - Android backup is disabled. Clearing app data or uninstalling removes local accounts and data.
 
-An update from the older seeded build removes only the exact bundled account and its sample state; other device-only accounts and their saved state are preserved. The migration uses one SharedPreferences commit for the account list, state, and biometric pointer, and can recognize the legacy state left by a partially completed earlier migration. An earlier update over existing POCO data verified that the old account could no longer sign in. That check preceded the atomic-write hardening; the current transaction and identity guard have JVM tests, but have not been run on-device against seeded or partially migrated preferences. A separate user-created account was unavailable to test the preservation path. Device-only accounts are not school identity verification. Configured Firebase accounts provide email/password authentication, account recovery, private state sync, and shared study groups, but the app has no institutional sign-in or complete campus data service. The iOS scaffold cannot use this Android module.
+An update from the older seeded build removes only the exact bundled account and its sample state; other device-only accounts and their saved state are preserved. The migration uses one SharedPreferences commit for the account list and state and can recognize the legacy state left by a partially completed earlier migration. Startup clears the retired biometric preference. An earlier update over existing POCO data verified that the old account could no longer sign in. That check preceded the atomic-write hardening; the current transaction and identity guard have JVM tests, but have not been run on-device against seeded or partially migrated preferences. A separate user-created account was unavailable to test the preservation path. Device-only accounts are not school identity verification. Configured Firebase accounts provide email/password authentication, account recovery, private state sync, and shared study groups, but the app has no institutional sign-in or complete campus data service. The iOS scaffold cannot use this Android module.
 
 ## UI and builds
 
@@ -205,10 +214,12 @@ Account lifecycle tests also verify rejection of another account's saved state, 
 live reply updates, and listener cleanup for groups that are closed or no
 longer joined.
 
-`firebaseSignUp.test.js` exercises an auth-state callback that arrives before
-Firebase's account-creation promise resolves and verifies that the new profile
-still receives its submitted name and Student ID.
+`firebaseSignUp.test.js` exercises auth-state timing, confirms signup starts
+without a Student ID, and verifies profile state and unique ID claims are
+written atomically. `editProfileValidation.test.jsx` covers required account
+setup and duplicate-ID errors. The Firestore rules emulator checks that IDs
+cannot be claimed by two accounts and that claim records remain private.
 
-Version 1.2.0 tests also cover custom-interest addition/removal/deduplication and reopening, optional school fields, empty directories, legacy saved-state compatibility, selected booking slots, group schedule validation, and About navigation before sign-in.
+Version 1.2.0 tests also cover custom-interest addition/removal/deduplication and reopening, optional TIP campus selection, empty directories, legacy saved-state compatibility, selected booking slots, group schedule validation, and About navigation before sign-in.
 
-Jest mocks Android storage. Native encryption, biometric prompts, installation, cold launch, and Android layout require device checks. See [VERIFICATION.md](VERIFICATION.md).
+Jest mocks Android storage. Native encryption, installation, cold launch, and Android layout require device checks. See [VERIFICATION.md](VERIFICATION.md).

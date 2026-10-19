@@ -336,3 +336,31 @@ test('completed sessions with malformed start times still render in history', as
   ).toBeDefined();
   await act(async () => renderer.unmount());
 });
+
+test('an empty Requests tab shows one request-specific empty state', async () => {
+  let renderer;
+  try {
+    await act(async () => {
+      renderer = ReactTestRenderer.create(
+        <SafeAreaProvider initialMetrics={initialMetrics}>
+          <SessionsScreen
+            go={jest.fn()}
+            back={jest.fn()}
+            sessions={[]}
+            list={[]}
+            initialFilter="Requests"
+          />
+        </SafeAreaProvider>,
+      );
+    });
+    const labels = renderer.root.findAllByType(Text)
+      .flatMap(node => [node.props.children].flat(Infinity));
+    expect(labels.filter(label => label === 'No session requests')).toHaveLength(1);
+    expect(labels).not.toContain('No requests sessions');
+    expect(labels).not.toContain('Sessions will appear here when their status changes.');
+  } finally {
+    if (renderer) {
+      await act(async () => renderer.unmount());
+    }
+  }
+});

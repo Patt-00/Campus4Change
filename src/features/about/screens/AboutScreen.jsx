@@ -15,7 +15,16 @@ export function AboutScreen({
       <IconBadge name="graduation" />
       <Text style={s.section}>Campus4Change {version}</Text>
       <Text style={s.text}>
-        Plan your learning, keep study notes, and manage your sessions.
+        Campus4Change connects students who need help with peers who can teach.
+        Find a human tutor to explain a subject or clarify a concept, or publish
+        your tutoring skills so learners can find you. Students can also form
+        study groups and learn together.
+      </Text>
+      <Text style={[s.muted, styles.message]}>
+        The project starts with the TIP campuses in Quezon City and Manila. Its
+        long-term goal is to connect students across the Philippines and around
+        the world. Tutors and students may arrange fees directly; this app does
+        not process payments.
       </Text>
       <Text style={s.section}>Your data</Text>
       <View style={s.card}>
@@ -46,9 +55,13 @@ export function AboutScreen({
       <Text style={s.section}>Sign-in</Text>
       <Text style={s.text}>
         {firebaseConfigured
-          ? 'Firebase handles email/password and Google sign-in on Android, password reset, and verification emails. Google provides your name and email; add your Student ID privately in Edit Profile. A verified email is required for shared study groups, tutor listings, and session requests. Email verification confirms control of an address, not school affiliation; the app does not check a school-domain allowlist. Your Firebase refresh token is encrypted by Android Keystore.'
-          : 'Passwords protect local accounts. Android biometrics can be enabled after signing in. School identity checks, email verification, and password recovery require an online service and are not available here.'}
+          ? 'Firebase handles email/password and Google sign-in on Android, password reset, and verification emails. After signup, complete the required TIP account setup with your course, year level, campus, and Student ID. Student IDs stay private and must be unique. A verified email is required for shared study groups, tutor listings, and session requests. Email verification confirms control of an address, not school affiliation; the app does not check a school-domain allowlist. Your Firebase refresh token is encrypted by Android Keystore.'
+          : 'Passwords protect local accounts. School identity checks, email verification, and password recovery require an online service and are not available here.'}
       </Text>
     </Screen>
   );
 }
+
+const styles = {
+  message: { marginTop: 12 },
+};

@@ -1,11 +1,17 @@
 # Ongoing application quality audit
 
-Audit scope: the React Native Android checkout on `codex/firebase-auth-firestore`.
+Audit scope: the React Native Android checkout at
+`/home/patt/October Shits/Campus4Change`, currently on `main` with uncommitted
+local improvements. See [AUTONOMOUS_PROGRESS.md](../AUTONOMOUS_PROGRESS.md) for
+the current local validation results and pending device checks. The release
+evidence below describes its pinned source commit and does not verify these
+uncommitted changes.
 The Figma coverage map and current repository docs are evidence; they do not
 replace a final teacher rubric or live Firebase project. This inventory records
 what is implemented, what has been verified, and what still prevents a
 production-ready claim. Older checkpoint notes below are historical; the current
 issue dispositions are summarized immediately after this scope.
+The current weighted estimate and unresolved acceptance gates are maintained in [COMPLETION_AUDIT.md](../COMPLETION_AUDIT.md); historical release entries below are not evidence for uncommitted changes.
 
 ## Current sprint status — 2026-10-17, version 1.2.2 released
 
@@ -88,9 +94,9 @@ toast is development-only and does not appear in release builds.
   and a POCO cold launch showed Login without replaying the introduction.
 - When Firebase is configured, existing device-only accounts remain reachable
   through Login's **More sign-in options** path. Focused tests verify local
-  email/Student ID sign-in routes to the local auth action, local biometrics
-  stay available, Firebase controls are hidden in local-only mode, and local
-  password recovery clearly requires the original device-account password.
+  email/Student ID sign-in routes to the local auth action, Firebase controls
+  are hidden in local-only mode, and local password recovery clearly requires
+  the original device-account password. Biometric login was later removed.
 - Android device-only account passwords now use versioned PBKDF2 parameters:
   HMAC-SHA256/600,000 iterations on API 26+, and HMAC-SHA1/1,400,000 on API
   24-25. Existing unversioned HMAC-SHA1/210,000 hashes remain valid and are
@@ -342,17 +348,17 @@ toast is development-only and does not appear in release builds.
   conversations, and notices while preserving valid records; a regression test
   reproduces the null-group crash in Home.
 - Legacy seeded-account cleanup now commits the account list, saved-state
-  deletion, and biometric-pointer deletion atomically. If an older partial
+  deletion atomically. Startup also removes the retired biometric preference.
+  If an older partial
   migration already removed the account row, recovery recognizes only the
-  matching legacy profile ID/email. Two Android local unit tests protect the
+  matching legacy profile ID/email. Six Android local unit tests protect the
   exact identity boundary, and CI runs `:app:testDebugUnitTest`. The shipped
   sign-in flow has no demo account or prefilled demo credentials; in application
   code the old identity is referenced only by the cleanup migration and tests.
   The migration now deletes `state_demo` only when its own profile matches that
   identity, even if the old account row is also present, protecting an unrelated
-  Firebase cache that happens to use the same storage key. It can also remove
-  the exact old biometric pointer when a partial migration left that pointer
-  after the account row and matching profile were already removed.
+  Firebase cache that happens to use the same storage key. Biometric sign-in
+  and its setup UI were subsequently removed from the app.
 - Interactive list labels now include their visible context: session time,
   status, and tutor; group subject, membership, and sharing state; tutor
   subjects and rating; message preview; and notification body and read state.
@@ -368,18 +374,22 @@ toast is development-only and does not appear in release builds.
   passed on commit `af7ea01` without production Firebase credentials. It also
   ran `:app:testDebugUnitTest`, including both migration identity tests.
 
+## Current local completion status
+
+The current weighted estimate, requirement scores, and remaining acceptance gates are in [COMPLETION_AUDIT.md](../COMPLETION_AUDIT.md). The two-device POCO/Pad QA, 320 Jest tests, lint, Firebase emulator rules tests, and current debug APK are verified. These local results do not update the published v1.2.2 release or establish production Firestore rule parity.
+
 ## Audit items and disposition
 
 | ID | Priority | Issue | Evidence and next action |
 | --- | --- | --- | --- |
-| C4C-01 | High | Production Firestore rules and indexes were not deployed in the earlier audit. | Resolved 2026-10-17: the active Firestore Rules API release matches local `firestore.rules` (SHA-256 `867e1b314fb639608ef4fe6978892ee6d337536be27a65b01b76c066679ec0a8`) and all six composite indexes report `READY`. |
+| C4C-01 | High | Production Firestore rules do not match the current Student ID claim source. | The read-only Rules API check on 2026-10-20 confirmed the mismatch; the exact release and hashes are recorded in [FIREBASE_SETUP.md](FIREBASE_SETUP.md). The six live composite indexes match the local definitions and are `READY`. Current Student ID claim rules pass emulator tests only. Production deployment is outside this goal's scope. |
 | C4C-02 | High | Real-project, two-account shared workflows were not verified in the earlier audit. | Resolved for the current Android scope: two verified test accounts completed tutor discovery, request/accept/cancel, session chat, group discovery, reply, and group chat on the POCO. The temporary users and their Firestore test data were deleted after verification. |
 | C4C-03 | Informational | No Campus4Change-specific final acceptance checklist was found. | The user confirmed no final teacher checklist is available; this is an accepted scope limitation, not a code failure. The known Lab/Seatwork materials cover React Native/Firebase fundamentals but do not specify additional app-specific acceptance criteria; current feature scope is recorded in `FINAL_SPRINT.md`. |
 | C4C-04 | Medium | OS push notification delivery is not implemented. | In-app booking/group notices and tutor-session/group chat were verified live across two verified accounts on the POCO, including the Session confirmed deep link. OS push is outside the verified school Android scope; live calls are also unavailable. |
 | C4C-05 | Conditional | Shared groups have no instructor-wide moderation path. | Group members can report another member's post, reply, or chat message without storing reporter UID. The group owner can dismiss a report or reversibly hide and restore the target; chat-message moderation is included in emulator tests. No instructor role or broader moderation requirement was supplied; revisit only if a future rubric requires it. |
-| C4C-06 | Medium | The current audit reports 20 high, 20 moderate, and 0 critical findings; `npm audit --omit=dev` reports 20 high paths. | On 2026-10-15, a scoped override aligned the React Native preset's `babel-jest` and `jest-environment-node` with the project's existing Jest 30.5.2. A clean `npm ci`, all 250 tests in 33 suites, lint, and the public Drive-link check passed in an isolated worktree and again in the main checkout. The full audit fell from 28 high/17 moderate to 20 high/20 moderate (45 total to 40); the Jest 29 high findings are removed. `@react-native/jest-preset@0.87.1` still declares Jest 29 ranges, so the compatibility override must remain covered by the suite and CI. The 20 high production-only paths remain in the current React Native/Metro/CLI toolchain; npm's downgrade suggestions to React Native 0.72.17 and CLI 13.5.1 are incompatible, and the npm registry has no newer `braces`, `micromatch`, or `fast-glob` release that resolves them. The production Hermes bundle does not contain `braces`, `micromatch`, or `fast-glob`; those packages remain in the build/tooling dependency graph. The `braces` maintainer disputes its finding. See the [braces advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm), [braces maintainer discussion](https://github.com/micromatch/braces/issues/84), and [sprintf-js advisory](https://github.com/advisories/GHSA-hp3w-g68c-fv3c).  Rechecked 2026-10-17: `npm audit` still reports 20 high/20 moderate (0 critical), while `npm audit --omit=dev` reports 20 high. |
+| C4C-06 | Medium | `npm audit --omit=dev` reports 20 high paths and 0 critical. | The current dependency tree reaches `braces@3.0.3` through React Native's Metro tooling. The GitHub advisory reports stack exhaustion from deeply nested patterns and lists no patched version; the npm registry still publishes 3.0.3. A source-map scan of the 1.3.0 release JavaScript bundle found none of `braces`, `micromatch`, or `fast-glob` among 658 bundled sources. The maintainer disputes the advisory's exploitability. `npm audit fix` proposes downgrading React Native 0.87.1 to 0.72.17 and the community CLI 20.2.0 to 13.5.1, so no downgrade was applied. Recheck after a patched package or a compatible upstream dependency change. See the [braces advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm), [upstream maintainer discussion](https://github.com/micromatch/braces/issues/70), and [React Native CLI compatibility table](https://github.com/react-native-community/cli#compatibility). |
 | C4C-07 | High for release distribution | The public v1.2.0 release APK was signed with the repository debug certificate. | Resolved for new downloads on 2026-10-17: archived the old release assets, published the private-signed v1.2.2 APK/AAB, registered the new Firebase SHA-1/SHA-256, and removed old release entries. Historical tags remain; downloaded copies cannot be revoked, and installs signed by the old key require reinstalling, which clears device-only data. |
-| C4C-08 | Low | The iOS scaffold cannot use the Android storage module. | Current app support is Android-only; do not claim iOS parity until secure storage and biometrics are implemented and verified there. |
+| C4C-08 | Low | The iOS scaffold cannot use the Android storage module. | Current app support is Android-only; do not claim iOS parity until secure local account storage and photo selection are implemented and verified there. |
 | C4C-09 | Medium if distributing binaries | Google-to-Firebase sign-in has not been run with the replacement release-signed app. | The new release key SHA-1 is registered in Firebase. Debug Google sign-in was previously verified on the POCO, but release-key Google sign-in remains unverified and needs a live sign-in check. |
 | C4C-11 | Medium if enabling production enforcement | Release App Check attestation, request metrics, and enforcement have not been verified for the replacement key. | The native bridge uses the Firebase debug provider in debug builds and Play Integrity in release. The replacement release key SHA-256 is registered; verify Play Integrity metrics before enabling enforcement; Firestore rules remain the authorization boundary. The temporary POCO debug token used for QA was revoked after cleanup. |
 | C4C-12 | Medium | Public Git history retains a link to the Lab 4.1 Google Doc, which remains readable to anyone with the link. | The value-redacted history scan found Drive links only in historical commit `51f0100`; the current tree has none and CI rejects new Google Drive links in tracked files. On 2026-10-15, the owner-approved Share-dialog change replaced `anyone:writer` with `anyone:reader`; Google Docs showed **Access updated**, and Drive metadata readback confirmed `anyone:reader` with the named owner unchanged. The link remains in public history, so the document's course and group details are still publicly readable to anyone who finds it. Rewriting public Git history is a separate operation requiring approval and collaborator resynchronization. |
@@ -410,7 +420,7 @@ passed all configured checks. Commit `94889c0` narrows legacy-state cleanup and
 run
 [38479904396](https://github.com/Patt-00/Campus4Change/actions/runs/38479904396)
 passed all configured checks. The follow-up migration change also clears an
-orphaned legacy biometric pointer; seven native cleanup-plan tests and the
+orphaned legacy biometric pointer; six native identity-cleanup tests and the
 Android debug build pass, and the APK was installed and cold-launched on the
 POCO X4 GT. Login showed no demo account or prefilled credentials, and empty
 signup validation behaved as expected. The cache-collision case was not seeded

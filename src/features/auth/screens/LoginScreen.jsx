@@ -147,18 +147,6 @@ export function LoginScreen({ go, back, auth }) {
           )}
         </>
       )}
-      {(!auth.firebaseConfigured || localOnly) && (
-        <>
-          <Text style={[s.muted, s.center, styles.marginVertical20]}>OR</Text>
-          <AppButton
-            title="SIGN IN WITH BIOMETRICS"
-            outline
-            disabled={busy}
-            onPress={() => submit(auth.biometrics)}
-          />
-        </>
-      )}
-
       <View style={[s.row, styles.alignSelfcentermarginTop20]}>
         <Text style={s.muted}>Don't have an account?</Text>
         <Link label="Sign up" onPress={() => go('Sign Up')} />

@@ -22,20 +22,24 @@ const mockStore = {
     mockIntroductionComplete = true;
     return true;
   }),
+  isStudentIdUnique: jest.fn(async () => true),
   signIn: jest.fn(async () => {
     mockActiveUser = mockCurrent.id;
     return JSON.stringify(mockCurrent);
   }),
-  signUp: jest.fn(async (name, email, studentId) => {
-    mockCurrent = { id: 'new-user', name, email, studentId };
+  signUp: jest.fn(async (name, email) => {
+    mockCurrent = { id: 'new-user', name, email, studentId: '' };
     mockActiveUser = mockCurrent.id;
     return JSON.stringify(mockCurrent);
   }),
-  biometricSignIn: jest.fn(async () => {
-    mockActiveUser = mockCurrent.id;
-    return JSON.stringify(mockCurrent);
+  completeAccountSetup: jest.fn(async (expectedUserId, studentId, value) => {
+    if (expectedUserId !== mockActiveUser) {
+      throw new Error('The active account changed before profile setup.');
+    }
+    mockCurrent = { ...mockCurrent, studentId };
+    mockSaved[expectedUserId] = value;
+    return true;
   }),
-  enableBiometrics: jest.fn(async () => true),
   loadState: jest.fn(async expectedUserId => {
     if (expectedUserId !== mockActiveUser) {
       throw new Error('The active account changed before load.');
@@ -61,6 +65,7 @@ jest.mock('../src/shared/backend/firebase', () => ({
   firebaseEnabled: false,
   firebaseSignIn: jest.fn(),
   firebaseSignUp: jest.fn(),
+  firebaseStudentIdClaimed: jest.fn(async () => false),
   firebaseSignOut: jest.fn(async () => {}),
   firebasePasswordReset: jest.fn(),
   loadCloudState: jest.fn(),
@@ -244,7 +249,8 @@ test('partial version-one profiles restore blank defaults before Home renders', 
   delete savedState.profile.tutorSubjects;
   delete savedState.profile.course;
   delete savedState.profile.year;
-  delete savedState.profile.school;
+  savedState.profile.school = 'A different university';
+  delete savedState.profile.campus;
   mockSaved[qaAccount.id] = JSON.stringify(savedState);
 
   await login();
@@ -267,10 +273,27 @@ test('partial version-one profiles restore blank defaults before Home renders', 
   expect(restoredProfile.tutorSubjects).toEqual([]);
   expect(restoredProfile.course).toBe('');
   expect(restoredProfile.year).toBe('');
-  expect(restoredProfile.school).toBe('');
+  expect(restoredProfile.campus).toBe('');
+  expect(restoredProfile).not.toHaveProperty('school');
   expect(restoredState.sessions).toEqual(savedState.sessions);
   expect(restoredState.groups).toEqual(savedState.groups);
   expect(restoredState.conversations).toEqual(savedState.conversations);
+  await ReactTestRenderer.act(async () => renderer.unmount());
+});
+
+test('migrates a legacy TIP school value to a supported campus', async () => {
+  const savedState = makeQaState();
+  savedState.profile.school = 'TIP Manila';
+  delete savedState.profile.campus;
+  mockSaved[qaAccount.id] = JSON.stringify(savedState);
+
+  await login();
+
+  const restoredProfile = JSON.parse(mockSaved[qaAccount.id]).profile;
+  expect(restoredProfile.campus).toBe('T.I.P. Manila');
+  expect(restoredProfile).not.toHaveProperty('school');
+  await press('Profile');
+  expect(hasText('T.I.P. Manila')).toBe(true);
   await ReactTestRenderer.act(async () => renderer.unmount());
 });
 
@@ -279,7 +302,7 @@ test('partial personal profiles restore blank defaults and empty collections', a
     id: 'partial-student',
     name: 'Student User',
     email: 'student@school.edu',
-    studentId: 'STU-100',
+    studentId: '100',
   };
   mockCurrent = personal;
   const savedState = initialState(personal);
@@ -287,7 +310,7 @@ test('partial personal profiles restore blank defaults and empty collections', a
   delete savedState.profile.tutorSubjects;
   delete savedState.profile.course;
   delete savedState.profile.year;
-  delete savedState.profile.school;
+  delete savedState.profile.campus;
   mockSaved[personal.id] = JSON.stringify(savedState);
 
   await login();
@@ -298,7 +321,8 @@ test('partial personal profiles restore blank defaults and empty collections', a
   expect(restoredState.profile.tutorSubjects).toEqual([]);
   expect(restoredState.profile.course).toBe('');
   expect(restoredState.profile.year).toBe('');
-  expect(restoredState.profile.school).toBe('');
+  expect(restoredState.profile.campus).toBe('');
+  expect(restoredState.profile).not.toHaveProperty('school');
   expect(restoredState.groups).toEqual([]);
   expect(restoredState.conversations).toEqual([]);
   await ReactTestRenderer.act(async () => renderer.unmount());
@@ -373,9 +397,9 @@ test('a failed sign-out save keeps the account open and can be retried', async (
   expect(mockStore.signOut).toHaveBeenCalledTimes(1);
   expect(hasText('SIGN IN')).toBe(true);
 });
-test('device-only tutor search starts without bundled tutor profiles', async () => {
+test('device-only people search starts without bundled public profiles', async () => {
   await login();
-  await press('Find a Tutor');
+  await press('Find People');
   expect(hasText('Your directory is empty')).toBe(true);
   expect(hasText('Mika Santos')).toBe(false);
   expect(hasText('Jamie Dela Cruz')).toBe(false);
@@ -508,7 +532,58 @@ test('profile changes appear in the profile and survive saved state', async () =
     'Jordan Updated',
   );
 });
-test('sign-up validates fields and creates a separate local account', async () => {
+test('discarding unsaved profile changes requires confirmation', async () => {
+  await login();
+  await press('Profile');
+  await press('Edit profile');
+  const alert = jest.spyOn(Alert, 'alert');
+  await fill('Full name', 'Unsaved Student');
+  await press('Back');
+
+  expect(alert).toHaveBeenLastCalledWith(
+    'Discard unsaved changes?',
+    'Your profile changes have not been saved.',
+    expect.arrayContaining([
+      expect.objectContaining({ text: 'Keep editing' }),
+      expect.objectContaining({ text: 'Discard changes' }),
+    ]),
+  );
+  expect(hasText('Edit Profile')).toBe(true);
+
+  const discard = alert.mock.calls.at(-1)?.[2]?.find(
+    button => button.text === 'Discard changes',
+  );
+  expect(discard?.onPress).toBeDefined();
+  await ReactTestRenderer.act(async () => discard.onPress());
+
+  await press('Edit profile');
+  const nameInput = renderer.root
+    .findAllByType(TextInput)
+    .find(input => input.props.accessibilityLabel === 'Full name');
+  expect(nameInput.props.value).toBe(qaAccount.name);
+});
+test('Android back also asks before discarding profile changes', async () => {
+  const listener = jest.spyOn(BackHandler, 'addEventListener');
+  await login();
+  await press('Profile');
+  await press('Edit profile');
+  await fill('Full name', 'Unsaved Student');
+  const alert = jest.spyOn(Alert, 'alert');
+  const onHardwareBack = listener.mock.calls.at(-1)?.[1];
+  expect(onHardwareBack).toBeDefined();
+
+  await ReactTestRenderer.act(async () => {
+    expect(
+      onHardwareBack({ type: 'hardwareBackPress', timeStamp: Date.now() }),
+    ).toBe(true);
+  });
+  expect(alert).toHaveBeenLastCalledWith(
+    'Discard unsaved changes?',
+    'Your profile changes have not been saved.',
+    expect.any(Array),
+  );
+});
+test('sign-up creates an account first and opens required profile setup', async () => {
   await render();
   await completeIntroduction();
   await press('Sign up');
@@ -516,12 +591,11 @@ test('sign-up validates fields and creates a separate local account', async () =
   expect(mockStore.signUp).not.toHaveBeenCalled();
   await fill('Full name', 'New Student');
   await fill('Email', 'new@school.edu');
-  await fill('Student ID', '123456');
   await fill('Password', 'x'.repeat(1025));
   await press('CREATE ACCOUNT');
   expect(
     hasText(
-      'Complete all fields with a valid email. Use 8–1024 characters for the password.',
+      'Enter your name and a valid email. Use 8–1024 characters for the password.',
     ),
   ).toBe(true);
   expect(mockStore.signUp).not.toHaveBeenCalled();
@@ -530,15 +604,28 @@ test('sign-up validates fields and creates a separate local account', async () =
   expect(mockStore.signUp).toHaveBeenCalledWith(
     'New Student',
     'new@school.edu',
-    '123456',
     'TestPass123',
   );
-  expect(JSON.parse(mockSaved['new-user']).sessions).toHaveLength(0);
-  expect(JSON.parse(mockSaved['new-user']).profile.interests).toEqual([]);
-  expect(JSON.parse(mockSaved['new-user']).groups).toHaveLength(0);
+  expect(hasText('Set up your account')).toBe(true);
+  expect(hasText('Student ID (private)')).toBe(true);
+  expect(mockStore.completeAccountSetup).not.toHaveBeenCalled();
 });
 
-test('custom interests can be added, deduplicated, removed, and reopened without requiring school fields', async () => {
+test('a legacy local account with a duplicate Student ID must resolve it during setup', async () => {
+  mockStore.isStudentIdUnique.mockResolvedValueOnce(false);
+
+  await login();
+
+  expect(mockStore.isStudentIdUnique).toHaveBeenCalledWith(
+    qaAccount.id,
+    qaAccount.studentId,
+  );
+  expect(hasText('Set up your account')).toBe(true);
+  expect(hasText('Student ID (private)')).toBe(true);
+  await ReactTestRenderer.act(async () => renderer.unmount());
+});
+
+test('custom interests can be added, deduplicated, removed, and reopened without requiring a campus', async () => {
   mockCurrent = { ...qaAccount, id: 'fresh-user', name: 'New Student' };
   await render();
   await completeIntroduction();
@@ -559,7 +646,8 @@ test('custom interests can be added, deduplicated, removed, and reopened without
   expect(hasText('Nursing care')).toBe(true);
   const saved = JSON.parse(mockSaved['fresh-user']);
   expect(saved.profile.interests).toEqual(['Nursing care']);
-  expect(saved.profile.school).toBe('');
+  expect(saved.profile.campus).toBe('');
+  expect(saved.profile).not.toHaveProperty('school');
   await ReactTestRenderer.act(async () => renderer.unmount());
   await render();
   expect(hasText('Welcome back!')).toBe(true);
@@ -567,7 +655,7 @@ test('custom interests can be added, deduplicated, removed, and reopened without
   await fill('Password', 'TestPass123');
   await press('SIGN IN');
   expect(hasText('Nursing care')).toBe(true);
-  await press('Find a Tutor');
+  await press('Find People');
   expect(hasText('Your directory is empty')).toBe(true);
   expect(hasText('Mika Santos')).toBe(false);
 });
@@ -603,6 +691,29 @@ test('About explains device-only behavior before sign-in and returns to login', 
   expect(hasText('Connecting with the community')).toBe(true);
   await press('Back');
   expect(hasText('SIGN IN')).toBe(true);
+});
+test('settings is a separate destination in the main menu, not the profile', async () => {
+  await login();
+  await press('Open menu');
+  await press('Settings');
+  expect(hasText('Learning preferences')).toBe(true);
+  expect(hasText('Enable biometric sign-in')).toBe(false);
+  expect(hasText('About Campus4Change')).toBe(true);
+
+  await press('Learning preferences');
+  expect(hasText('Learning Preferences')).toBe(true);
+  await press('Back');
+  await press('About Campus4Change');
+  expect(hasText('Connecting with the community')).toBe(true);
+  await press('Back');
+  await press('Back');
+
+  await press('Profile');
+  expect(hasText('Edit profile')).toBe(true);
+  expect(hasText('Tutor profile')).toBe(true);
+  expect(hasText('Learning preferences')).toBe(false);
+  expect(hasText('Enable biometric sign-in')).toBe(false);
+  expect(hasText('About Campus4Change')).toBe(false);
 });
 test('booked session workspace preserves drafts and completes after start without a focus timer', async () => {
   const timedState = makeQaState();

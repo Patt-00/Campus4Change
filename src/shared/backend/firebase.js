@@ -38,12 +38,13 @@ function secureAuthStorage() {
 
 let auth = null;
 let db = null;
-const pendingStudentIds = new Map();
 const pendingSignUpsByEmail = new Map();
 const privateMessageDocumentCacheByUid = new Map();
 const privateConversationMessageRefsByUid = new Map();
 const FIRESTORE_WRITE_BATCH_SIZE = 400;
 const MAX_PRIVATE_MESSAGE_ID_LENGTH = 80;
+const PRIVATE_MESSAGE_CACHE_KEY_PREFIX = 'firebase:privateMessageCache:';
+const ownedStudentIdsByUid = new Map();
 
 if (firebaseEnabled) {
   const { app: appSdk, auth: authSdk, firestore: firestoreSdk } = firebaseSdk();
@@ -156,13 +157,10 @@ export async function firebaseGoogleSignIn() {
   }
 }
 
-export async function firebaseSignUp(name, email, studentId, password) {
+export async function firebaseSignUp(name, email, password) {
   ensureFirebaseEnabled();
   const normalizedEmail = email.trim().toLowerCase();
-  const pendingAccount = {
-    name: name.trim(),
-    studentId: studentId.trim(),
-  };
+  const pendingAccount = { name: name.trim() };
   if (pendingSignUpsByEmail.has(normalizedEmail)) {
     throw new Error('A sign-up is already in progress for this email.');
   }
@@ -178,7 +176,6 @@ export async function firebaseSignUp(name, email, studentId, password) {
       normalizedEmail,
       password,
     );
-    pendingStudentIds.set(result.user.uid, pendingAccount.studentId);
     let displayNameSaved = true;
     try {
       await updateProfile(result.user, { displayName: pendingAccount.name });
@@ -199,7 +196,6 @@ export async function firebaseSignUp(name, email, studentId, password) {
     return {
       ...accountFromFirebaseUser(result.user),
       name: result.user.displayName || pendingAccount.name,
-      studentId: pendingAccount.studentId,
       verificationEmailSent,
       verificationEmailError,
       displayNameSaved,
@@ -267,7 +263,7 @@ export async function firebaseSignOut() {
   const uid = auth.currentUser?.uid;
   await firebaseSdk().auth.signOut(auth);
   if (uid) {
-    pendingStudentIds.delete(uid);
+    ownedStudentIdsByUid.delete(uid);
     privateMessageDocumentCacheByUid.delete(uid);
     privateConversationMessageRefsByUid.delete(uid);
   }
@@ -382,6 +378,173 @@ function privateConversationMessages(conversations = []) {
   return [...messages.values()];
 }
 
+function validPrivateMessageData(data) {
+  return (
+    Boolean(data && typeof data === 'object') &&
+    typeof data.conversationId === 'string' &&
+    data.conversationId.length > 0 &&
+    data.conversationId.length <= MAX_PRIVATE_MESSAGE_ID_LENGTH &&
+    !data.conversationId.includes('/') &&
+    typeof data.id === 'string' &&
+    data.id.length > 0 &&
+    data.id.length <= MAX_PRIVATE_MESSAGE_ID_LENGTH &&
+    typeof data.text === 'string' &&
+    Boolean(data.text.trim()) &&
+    data.text.length <= 2000 &&
+    typeof data.mine === 'boolean' &&
+    typeof data.sentAt === 'string' &&
+    data.sentAt.length > 0 &&
+    data.sentAt.length <= 40
+  );
+}
+
+function stableFingerprint(value) {
+  const serialized = JSON.stringify(value);
+  let first = 0;
+  let second = 0;
+  for (let index = 0; index < serialized.length; index += 1) {
+    const code = serialized.charCodeAt(index);
+    first = (first * 31 + code) % 4_294_967_291;
+    second = (second * 131 + code) % 4_294_967_279;
+  }
+  return `${serialized.length}:${first}:${second}`;
+}
+
+function privateMessageRecordsFromDocuments(snapshots) {
+  return snapshots
+    .flatMap(snapshot => {
+      const data = snapshot.data();
+      if (!validPrivateMessageData(data)) {
+        return [];
+      }
+      return [
+        {
+          documentId: snapshot.id,
+          data: {
+            conversationId: data.conversationId,
+            id: data.id,
+            text: data.text,
+            mine: data.mine,
+            sentAt: data.sentAt,
+          },
+        },
+      ];
+    })
+    .sort((left, right) => left.documentId.localeCompare(right.documentId));
+}
+
+function privateMessageRecordsFromConversations(conversations) {
+  try {
+    return privateConversationMessages(conversations).sort((left, right) =>
+      left.documentId.localeCompare(right.documentId),
+    );
+  } catch {
+    return null;
+  }
+}
+
+function privateMessageRecordsFingerprint(records) {
+  return stableFingerprint(
+    records.map(record => [
+      record.documentId,
+      record.data.conversationId,
+      record.data.id,
+      record.data.text,
+      record.data.mine,
+      record.data.sentAt,
+    ]),
+  );
+}
+
+function embeddedMessageFingerprint(state) {
+  const conversations = Array.isArray(state?.conversations)
+    ? state.conversations
+    : [];
+  return stableFingerprint(
+    conversations.map(conversation => [
+      conversation?.id,
+      (Array.isArray(conversation?.messages) ? conversation.messages : []).map(
+        message => [
+          message?.id,
+          message?.text,
+          message?.mine,
+          message?.sentAt,
+        ],
+      ),
+    ]),
+  );
+}
+
+function privateMessageCacheKey(uid) {
+  return `${PRIVATE_MESSAGE_CACHE_KEY_PREFIX}${uid}`;
+}
+
+async function readPrivateMessageCache(uid) {
+  const storage = NativeModules.CampusStorage;
+  if (typeof storage?.getFirebaseAuthValue !== 'function') {
+    return null;
+  }
+  try {
+    const serialized = await storage.getFirebaseAuthValue(
+      privateMessageCacheKey(uid),
+    );
+    const cache = serialized ? JSON.parse(serialized) : null;
+    return cache?.version === 1 &&
+      cache.uid === uid &&
+      Number.isInteger(cache.documentCount) &&
+      cache.documentCount >= 0 &&
+      typeof cache.documentFingerprint === 'string' &&
+      typeof cache.embeddedFingerprint === 'string'
+      ? cache
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+async function writePrivateMessageCache(uid, cache) {
+  const storage = NativeModules.CampusStorage;
+  if (typeof storage?.setFirebaseAuthValue !== 'function') {
+    return;
+  }
+  try {
+    await storage.setFirebaseAuthValue(
+      privateMessageCacheKey(uid),
+      JSON.stringify({ version: 1, uid, ...cache }),
+    );
+  } catch {
+    // The cache is an optimization. A storage failure keeps the full read path.
+  }
+}
+
+function privateMessageTimestamp(message) {
+  const value = message?.sentAt;
+  const timestamp =
+    typeof value?.toMillis === 'function'
+      ? value.toMillis()
+      : new Date(value).getTime();
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function orderPrivateMessages(messages) {
+  return messages
+    .map((message, index) => ({
+      message,
+      index,
+      timestamp: privateMessageTimestamp(message),
+    }))
+    .sort((left, right) => {
+      if (left.timestamp === null) {
+        return right.timestamp === null ? left.index - right.index : -1;
+      }
+      if (right.timestamp === null) {
+        return 1;
+      }
+      return left.timestamp - right.timestamp || left.index - right.index;
+    })
+    .map(entry => entry.message);
+}
+
 function mergePrivateMessages(state, messageSnapshots, documentCache, messageRefCache) {
   const conversations = new Map(
     (Array.isArray(state?.conversations) ? state.conversations : [])
@@ -401,19 +564,7 @@ function mergePrivateMessages(state, messageSnapshots, documentCache, messageRef
   });
   for (const snapshot of sortedMessages) {
     const data = snapshot.data();
-    if (
-      typeof data.conversationId !== 'string' ||
-      data.conversationId.length > MAX_PRIVATE_MESSAGE_ID_LENGTH ||
-      data.conversationId.includes('/') ||
-      typeof data.id !== 'string' ||
-      data.id.length > MAX_PRIVATE_MESSAGE_ID_LENGTH ||
-      typeof data.text !== 'string' ||
-      !data.text.trim() ||
-      data.text.length > 2000 ||
-      typeof data.mine !== 'boolean' ||
-      typeof data.sentAt !== 'string' ||
-      data.sentAt.length > 40
-    ) {
+    if (!validPrivateMessageData(data)) {
       continue;
     }
     documentCache.add(snapshot.id);
@@ -449,7 +600,7 @@ function mergePrivateMessages(state, messageSnapshots, documentCache, messageRef
     };
     conversations.set(conversationId, {
       ...current,
-      messages: [...messages.values()],
+      messages: orderPrivateMessages([...messages.values()]),
     });
   }
   for (const conversation of conversations.values()) {
@@ -468,27 +619,87 @@ function mergePrivateMessages(state, messageSnapshots, documentCache, messageRef
   return [...conversations.values()];
 }
 
-export async function loadCloudState(uid) {
+export async function loadCloudState(uid, cachedLocalState = null) {
   if (!db || auth?.currentUser?.uid !== uid) {
     throw new Error('Sign in to load your Firebase account data.');
   }
   const firestore = firebaseSdk().firestore;
-  const { collection, doc, getDoc, getDocs } = firestore;
+  const { collection, doc, getCountFromServer, getDoc, getDocs } = firestore;
+  const messagesRef = collection(db, 'users', uid, 'privateMessages');
   const documentCache = new Set();
   const messageRefCache = new Map();
-  const [snapshot, messageSnapshot] = await Promise.all([
-    getDoc(doc(db, 'users', uid, 'private', 'state')),
-    getDocs(collection(db, 'users', uid, 'privateMessages')),
+  const stateSnapshotPromise = getDoc(doc(db, 'users', uid, 'private', 'state'));
+  const cachedRecords =
+    cachedLocalState?.profile?.id === uid
+      ? privateMessageRecordsFromConversations(cachedLocalState.conversations)
+      : null;
+  const cachedStateIsComplete = async () => {
+    const cache = await readPrivateMessageCache(uid);
+    if (
+      !cache ||
+      !cachedRecords ||
+      cachedRecords.length !== cache.documentCount ||
+      privateMessageRecordsFingerprint(cachedRecords) !==
+        cache.documentFingerprint ||
+      typeof getCountFromServer !== 'function'
+    ) {
+      return { cache: null, count: null };
+    }
+    try {
+      const countSnapshot = await getCountFromServer(messagesRef);
+      const count = countSnapshot.data().count;
+      return Number.isInteger(count) && count >= 0
+        ? { cache, count }
+        : { cache: null, count: null };
+    } catch {
+      return { cache: null, count: null };
+    }
+  };
+  const [snapshot, cacheCheck] = await Promise.all([
+    stateSnapshotPromise,
+    cachedStateIsComplete(),
   ]);
+  const data = snapshot.exists() ? snapshot.data().state : null;
+  const canReuseCachedMessages = Boolean(
+    cacheCheck.cache &&
+      cacheCheck.count === cacheCheck.cache.documentCount &&
+      embeddedMessageFingerprint(data) ===
+        cacheCheck.cache.embeddedFingerprint,
+  );
+  let messageSnapshots;
+  if (canReuseCachedMessages) {
+    messageSnapshots = cachedRecords.map(record => ({
+      id: record.documentId,
+      data: () => record.data,
+    }));
+  } else {
+    const messageSnapshot = await getDocs(messagesRef);
+    messageSnapshots = messageSnapshot.docs || [];
+  }
   privateMessageDocumentCacheByUid.set(uid, documentCache);
   privateConversationMessageRefsByUid.set(uid, messageRefCache);
-  const data = snapshot.exists() ? snapshot.data().state : null;
   const conversations = mergePrivateMessages(
     data,
-    messageSnapshot.docs || [],
+    messageSnapshots,
     documentCache,
     messageRefCache,
   );
+  if (!canReuseCachedMessages) {
+    const remoteRecords = privateMessageRecordsFromDocuments(messageSnapshots);
+    const mergedRecords = privateMessageRecordsFromConversations(conversations);
+    if (
+      remoteRecords.length === messageSnapshots.length &&
+      mergedRecords?.length === remoteRecords.length &&
+      privateMessageRecordsFingerprint(mergedRecords) ===
+        privateMessageRecordsFingerprint(remoteRecords)
+    ) {
+      await writePrivateMessageCache(uid, {
+        documentCount: remoteRecords.length,
+        documentFingerprint: privateMessageRecordsFingerprint(remoteRecords),
+        embeddedFingerprint: embeddedMessageFingerprint(data),
+      });
+    }
+  }
   if (!data && conversations.length === 0) {
     return null;
   }
@@ -500,6 +711,42 @@ export async function loadCloudState(uid) {
     notices: [],
   };
   return { ...base, conversations };
+}
+
+export async function firebaseStudentIdClaimed(uid, studentId) {
+  const normalizedStudentId = String(studentId || '').trim();
+  if (!uid || auth?.currentUser?.uid !== uid) {
+    throw new Error('Sign in to verify your Student ID.');
+  }
+  if (!normalizedStudentId) {
+    return false;
+  }
+  if (!/^\d{1,32}$/.test(normalizedStudentId)) {
+    return false;
+  }
+
+  const firestore = firebaseSdk().firestore;
+  try {
+    const snapshot = await firestore.getDoc(
+      firestore.doc(db, 'studentIdClaims', normalizedStudentId),
+    );
+    const claimed = snapshot.exists() && snapshot.data()?.uid === uid;
+    if (claimed) {
+      ownedStudentIdsByUid.set(uid, normalizedStudentId);
+    } else if (ownedStudentIdsByUid.get(uid) === normalizedStudentId) {
+      ownedStudentIdsByUid.delete(uid);
+    }
+    return claimed;
+  } catch (error) {
+    if (error?.code === 'permission-denied') {
+      // Missing claims and claims owned by another account are both unreadable.
+      if (ownedStudentIdsByUid.get(uid) === normalizedStudentId) {
+        ownedStudentIdsByUid.delete(uid);
+      }
+      return false;
+    }
+    throw error;
+  }
 }
 
 export async function saveCloudState(uid, state) {
@@ -575,14 +822,52 @@ export async function saveCloudState(uid, state) {
   changedConversations.forEach(conversation =>
     messageRefCache.set(conversation.id, conversation.messages),
   );
-
-  await firestore.setDoc(
-    firestore.doc(db, 'users', uid, 'private', 'state'),
-    {
-      state: cloudState,
-      updatedAt: firestore.serverTimestamp(),
-    },
+  const studentId = String(cloudState.profile.studentId || '').trim();
+  if (studentId && !/^\d{1,32}$/.test(studentId)) {
+    throw new Error('Student ID must contain digits only.');
+  }
+  const previouslyClaimedStudentId = ownedStudentIdsByUid.get(uid) || '';
+  const claimsStudentId = Boolean(
+    studentId && previouslyClaimedStudentId !== studentId,
   );
+  const releasesStudentId = Boolean(
+    previouslyClaimedStudentId && previouslyClaimedStudentId !== studentId,
+  );
+  const stateRef = firestore.doc(db, 'users', uid, 'private', 'state');
+  const stateDocument = {
+    state: cloudState,
+    updatedAt: firestore.serverTimestamp(),
+  };
+
+  if (claimsStudentId || releasesStudentId) {
+    const batch = firestore.writeBatch(db);
+    if (claimsStudentId) {
+      batch.set(firestore.doc(db, 'studentIdClaims', studentId), { uid });
+    }
+    if (releasesStudentId) {
+      batch.delete(
+        firestore.doc(db, 'studentIdClaims', previouslyClaimedStudentId),
+      );
+    }
+    batch.set(stateRef, stateDocument);
+    try {
+      await batch.commit();
+    } catch (error) {
+      if (claimsStudentId && error?.code === 'permission-denied') {
+        throw new Error(
+          'That Student ID is already in use, or could not be verified. Check the number and try again.',
+        );
+      }
+      throw error;
+    }
+  } else {
+    await firestore.setDoc(stateRef, stateDocument);
+  }
+  if (studentId) {
+    ownedStudentIdsByUid.set(uid, studentId);
+  } else {
+    ownedStudentIdsByUid.delete(uid);
+  }
 }
 
 export function ensureFirebaseEnabled() {
@@ -606,8 +891,7 @@ function accountFromFirebaseUser(user) {
       'Student',
     email: user.email || '',
     emailVerified: Boolean(user.emailVerified),
-    studentId:
-      pendingStudentIds.get(user.uid) || pendingAccount?.studentId || '',
+    studentId: '',
   };
 }
 

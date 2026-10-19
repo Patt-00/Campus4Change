@@ -38,11 +38,18 @@ test('Firebase About copy matches verified-email group access', async () => {
     'Firebase users with verified email addresses can share study-group details',
   );
   expect(copy).toContain('Google sign-in on Android');
-  expect(copy).toContain('add your Student ID privately in Edit Profile');
+  expect(copy).toContain('complete the required TIP account setup');
+  expect(copy).toContain('Student IDs stay private and must be unique');
   expect(copy).toContain('verification emails');
   expect(copy).toContain(
     'Email verification confirms control of an address, not school affiliation',
   );
   expect(copy).toContain('does not check a school-domain allowlist');
+  expect(copy).toContain('Find a human tutor to explain a subject');
+  expect(copy).toContain('publish your tutoring skills so learners can find you');
+  expect(copy).toContain('form study groups');
+  expect(copy).toContain('TIP campuses in Quezon City and Manila');
+  expect(copy).toContain('connect students across the Philippines and around the world');
+  expect(copy).toContain('does not process payments');
   await act(async () => renderer.unmount());
 });

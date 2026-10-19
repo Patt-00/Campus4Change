@@ -100,17 +100,4 @@ class LegacySeedIdentityTest {
         )
     }
 
-    @Test
-    fun cleanupPlanCanRemoveOrphanedLegacyBiometricPointerAlone() {
-        val cleanup = LegacySeedIdentity.cleanupPlan(
-            legacyAccountFound = false,
-            stateProfileId = "student-uid",
-            stateEmail = "student@school.edu",
-            legacyBiometricPointerFound = true,
-        )
-
-        assertFalse(cleanup?.removeAccount == true)
-        assertFalse(cleanup?.removeState == true)
-        assertTrue(cleanup?.removeBiometricPointer == true)
-    }
 }

@@ -213,7 +213,7 @@ export function SessionsScreen({
           {needsReview.map(card)}
         </>
       )}
-      {filter !== 'Upcoming' && !filtered.length && (
+      {filter !== 'Upcoming' && filter !== 'Requests' && !filtered.length && (
         <Empty
           title={'No ' + filter.toLowerCase() + ' sessions'}
           body={

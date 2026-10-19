@@ -1,5 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, BackHandler, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  BackHandler,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { HomeScreen } from '../features/home/screens/HomeScreen';
 import { AboutScreen } from '../features/about/screens/AboutScreen';
 import { CreateScreen } from '../features/create/screens/CreateScreen';
@@ -23,17 +30,19 @@ import { SessionsScreen } from '../features/sessions/screens/SessionsScreen';
 import { ChatScreen } from '../features/messages/screens/ChatScreen';
 import { MessagesScreen } from '../features/messages/screens/MessagesScreen';
 import { NotificationsScreen } from '../features/notifications/screens/NotificationsScreen';
+import { NotificationToast } from '../features/notifications/components/NotificationToast';
 import { bookingNotices } from '../features/notifications/data/bookingNotices';
 import { groupNotices } from '../features/notifications/data/groupNotices';
 import { BeTutorScreen } from '../features/profile/screens/BeTutorScreen';
 import { EditProfileScreen } from '../features/profile/screens/EditProfileScreen';
 import { ProfileScreen } from '../features/profile/screens/ProfileScreen';
+import { SettingsScreen } from '../features/settings/screens/SettingsScreen';
 import {
   canCompleteSession,
   canRescheduleSession,
 } from '../features/sessions/data/status';
 import { AppButton } from '../shared/components/AppButton';
-import { Empty, Link, NoticeBanner } from '../shared/components/UI';
+import { Empty, NoticeBanner } from '../shared/components/UI';
 import { RouteTransition } from '../shared/components/RouteTransition';
 import { Screen } from '../shared/components/Screen';
 import { uid } from '../shared/data/utils';
@@ -56,6 +65,7 @@ import { useCampusSession } from '../shared/state/useCampusSession';
 import { s } from '../shared/theme/styles';
 
 const tabs = new Set(['Home', 'Sessions', 'Create', 'Messages', 'Profile']);
+const editableProfilePages = new Set(['Edit Profile', 'Preferences']);
 const groupStatusPages = new Set([
   'Study Groups',
   'Create Group',
@@ -92,6 +102,7 @@ export function AppNavigator() {
   const [introductionComplete, setIntroductionComplete] = useState(null);
   const [history, setHistory] = useState([]);
   const [transitionDirection, setTransitionDirection] = useState('forward');
+  const [editFormDirty, setEditFormDirty] = useState(false);
   const startupRouteInitialized = useRef(false);
   const routeKey = JSON.stringify(route);
   const renderTransition = children => (
@@ -102,29 +113,50 @@ export function AppNavigator() {
   const {
     state,
     saveError,
-    cloudSyncPending,
     auth,
     dispatch,
+    saveProfileUpdate,
     signOut,
     retrySave,
     restoring,
     sessionType,
+    studentIdClaimStatus,
     emailVerified,
     emailVerificationMessage,
+    emailVerificationToast,
+    dismissVerificationToast,
   } =
     useCampusSession({
-      onSignedIn: () => {
+      onSignedIn: (accountState, claimStatus) => {
+        startupRouteInitialized.current = true;
         setHistory([]);
         setTransitionDirection('forward');
-        setRoute({ page: 'Home' });
+        const needsAccountSetup =
+          !accountState?.profile?.studentId || claimStatus !== 'claimed';
+        setRoute({ page: needsAccountSetup ? 'Account Setup' : 'Home' });
       },
       onSignedOut: () => {
+        startupRouteInitialized.current = true;
         setHistory([]);
         setTransitionDirection('forward');
         setRoute({ page: 'Login' });
       },
     });
   const activeAccountId = state?.profile?.id;
+  const verificationPending = sessionType === 'firebase' && !emailVerified;
+  const verificationComplete =
+    sessionType === 'firebase' &&
+    emailVerified &&
+    emailVerificationMessage.startsWith('Email verified');
+  const verificationNotice = verificationPending
+    ? {
+        body: `Verify ${state?.profile?.email || 'your email address'} to unlock shared study groups, tutor listings, and session requests.`,
+      }
+    : verificationComplete
+      ? {
+          body: 'Your account can now use shared campus features.',
+        }
+      : null;
   useEffect(() => {
     let active = true;
     Promise.resolve()
@@ -155,10 +187,27 @@ export function AppNavigator() {
     startupRouteInitialized.current = true;
     setRoute(
       activeAccountId
-        ? { page: 'Home' }
+        ? {
+            page:
+              !state?.profile?.studentId ||
+              studentIdClaimStatus !== 'claimed'
+                ? 'Account Setup'
+                : 'Home',
+          }
         : { page: introductionComplete ? 'Login' : 'Onboarding' },
     );
-  }, [activeAccountId, introductionComplete, restoring]);
+  }, [activeAccountId, introductionComplete, restoring, state, studentIdClaimStatus]);
+
+  useEffect(() => {
+    if (
+      route.page === 'Account Setup' &&
+      !editFormDirty &&
+      state?.profile?.studentId &&
+      studentIdClaimStatus === 'claimed'
+    ) {
+      go('Home');
+    }
+  }, [editFormDirty, go, route.page, state?.profile?.studentId, studentIdClaimStatus]);
 
   const syncUid =
     sessionType === 'firebase' && emailVerified ? state?.profile?.id : null;
@@ -251,7 +300,8 @@ export function AppNavigator() {
     },
     [route, state],
   );
-  const back = useCallback(() => {
+  const navigateBack = useCallback(() => {
+    setEditFormDirty(false);
     setTransitionDirection('backward');
     if (history.length) {
       setRoute(history[history.length - 1]);
@@ -260,6 +310,33 @@ export function AppNavigator() {
       setRoute({ page: state ? 'Home' : 'Onboarding' });
     }
   }, [history, state]);
+  const back = useCallback(
+    options => {
+      if (
+        options?.force !== true &&
+        editableProfilePages.has(route.page) &&
+        editFormDirty
+      ) {
+        Alert.alert(
+          'Discard unsaved changes?',
+          route.page === 'Preferences'
+            ? 'Your learning preference changes have not been saved.'
+            : 'Your profile changes have not been saved.',
+          [
+            { text: 'Keep editing', style: 'cancel' },
+            {
+              text: 'Discard changes',
+              style: 'destructive',
+              onPress: navigateBack,
+            },
+          ],
+        );
+        return;
+      }
+      navigateBack();
+    },
+    [editFormDirty, navigateBack, route.page],
+  );
   const startFromOnboarding = useCallback(
     () => go(introductionComplete ? 'Login' : 'Introduction'),
     [go, introductionComplete],
@@ -278,6 +355,13 @@ export function AppNavigator() {
   useEffect(() => {
     const listener = BackHandler.addEventListener('hardwareBackPress', () => {
       if (
+        state &&
+        sessionType &&
+        (!state.profile.studentId || studentIdClaimStatus !== 'claimed')
+      ) {
+        return true;
+      }
+      if (
         !history.length &&
         (route.page === 'Home' || route.page === 'Onboarding')
       ) {
@@ -287,7 +371,7 @@ export function AppNavigator() {
       return true;
     });
     return () => listener.remove();
-  }, [back, history.length, route.page]);
+  }, [back, history.length, route.page, sessionType, state, studentIdClaimStatus]);
   if (restoring || introductionComplete === null) {
     return (
       <Screen title="Campus4Change">
@@ -325,6 +409,22 @@ export function AppNavigator() {
   }
   if (!state) {
     return renderTransition(<OnboardingScreen go={startFromOnboarding} />);
+  }
+  if (
+    !state.profile.studentId ||
+    studentIdClaimStatus !== 'claimed'
+  ) {
+    return renderTransition(
+      <EditProfileScreen
+        key="Account Setup"
+        setup
+        onDirtyChange={setEditFormDirty}
+        profile={state.profile}
+        firebaseAccount={sessionType === 'firebase'}
+        save={saveProfileUpdate}
+        onComplete={() => go('Home')}
+      />,
+    );
   }
   const ownId = 'local-' + state.profile.id;
   const withLocalOwnPhoto = tutor =>
@@ -408,7 +508,24 @@ export function AppNavigator() {
       break;
     case 'Home':
       screen = (
-        <HomeScreen go={go} state={appState} directory={directory} tutors={list} />
+        <HomeScreen
+          go={go}
+          state={appState}
+          directory={directory}
+          tutors={list}
+          verificationPending={verificationPending}
+          sharedDirectoryAvailable={Boolean(syncUid)}
+          directoryAccessMessage={
+            !auth.firebaseConfigured
+              ? 'Shared tutor recommendations are unavailable in device-only mode.'
+              : verificationPending
+                ? 'Verify your email to browse public tutor profiles.'
+                : 'Sign in with a verified Firebase account to browse public tutor profiles.'
+          }
+          tutorsLoaded={sharedTutors.tutorsLoaded}
+          hasMoreTutors={Boolean(syncUid && sharedTutors.hasMoreTutors)}
+          tutorDirectoryError={syncUid ? sharedTutors.error : ''}
+        />
       );
 
       break;
@@ -419,6 +536,7 @@ export function AppNavigator() {
           go={go}
           back={back}
           list={directory}
+          interests={state.profile.interests}
           initialQuery={route.query}
           sharedAccount={sessionType === 'firebase'}
           emailVerified={emailVerified}
@@ -832,6 +950,10 @@ export function AppNavigator() {
           back={back}
           notices={state.notices}
           read={id => dispatch({ type: 'read', id })}
+          verificationNotice={verificationNotice}
+          verificationMessage={emailVerificationMessage}
+          resendVerificationEmail={auth.resendEmailVerification}
+          refreshEmailVerification={auth.refreshEmailVerification}
         />
       );
 
@@ -844,7 +966,14 @@ export function AppNavigator() {
           signOut={signOut}
           sessionType={sessionType}
           firebaseConfigured={auth.firebaseConfigured}
-          enableBiometrics={auth.enableBiometrics}
+        />
+      );
+      break;
+    case 'Settings':
+      screen = (
+        <SettingsScreen
+          back={back}
+          go={go}
         />
       );
       break;
@@ -854,10 +983,11 @@ export function AppNavigator() {
         <EditProfileScreen
           key={route.page}
           back={back}
+          onDirtyChange={setEditFormDirty}
           profile={state.profile}
           preferences={route.page === 'Preferences'}
           firebaseAccount={sessionType === 'firebase'}
-          save={profile => dispatch({ type: 'profile', profile })}
+          save={saveProfileUpdate}
         />
       );
 
@@ -1012,26 +1142,6 @@ export function AppNavigator() {
   }
   return (
     <View style={s.grow}>
-      {sessionType === 'firebase' && !emailVerified && (
-          <View style={s.banner}>
-            <Text style={emailVerified ? s.muted : s.error}>
-              {emailVerificationMessage ||
-                `Verify ${state?.profile?.email || 'your email address'} to access shared study groups.`}
-            </Text>
-            {!emailVerified && (
-              <>
-                <Link
-                  label="Resend verification email"
-                  onPress={auth.resendEmailVerification}
-                />
-                <Link
-                  label="I've verified — check again"
-                  onPress={auth.refreshEmailVerification}
-                />
-              </>
-            )}
-          </View>
-        )}
       {route.page === 'Study Groups' && sharedGroupsError && (
         <NoticeBanner
           message={`Study groups could not be refreshed: ${sharedGroupsError}`}
@@ -1069,12 +1179,6 @@ export function AppNavigator() {
           message={`A tutor change was not saved: ${sharedTutors.actionError}`}
         />
       )}
-      {cloudSyncPending && !saveError && (
-        <NoticeBanner
-          tone="info"
-          message="Saved on this device. Waiting to sync with Firebase."
-        />
-      )}
       {saveError && (
         <NoticeBanner
           message={`${sessionType === 'firebase' ? 'Some changes are not synced' : 'Data has not been saved'}: ${saveError}`}
@@ -1096,6 +1200,14 @@ export function AppNavigator() {
             <AppButton title="BACK TO HOME" onPress={() => go('Home')} />
           </Screen>
         ),
+      )}
+      {emailVerificationToast && (
+        <NotificationToast
+          key={emailVerificationToast.id}
+          notice={emailVerificationToast}
+          onDismiss={dismissVerificationToast}
+          onOpen={destination => go(destination || 'Notifications')}
+        />
       )}
     </View>
   );

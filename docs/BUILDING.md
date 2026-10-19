@@ -14,7 +14,7 @@ The source supports PC Android tooling and a separate Termux build path. This is
 | Build Tools | 37.0.0 |
 | NDK | 27.1.12297006 |
 | App CMake | 3.22.1 |
-| Current app version / Android version code | 1.2.2 / 5 |
+| Current app version / Android version code | 1.3.0 / 6 |
 
 Check `android/build.gradle`, the Gradle wrapper, and the npm lockfile for declarations. Hermes is enabled.
 
@@ -114,6 +114,33 @@ not store those values in the repository.
 
 For development, run `npm start` at the root in one terminal and `npm run android` at the root in another. The npm script binds Metro to `127.0.0.1` so the development server is not exposed to the LAN; React Native CLI forwards port 8081 to a connected Android device. For a manually installed debug APK, run `adb reverse tcp:8081 tcp:8081` before launch. A debug APK needs Metro for the JavaScript code; building it alone does not start Metro. Android Studio can also run the debug app after project sync.
 
+### Local Firebase emulator QA build
+
+Use this debug APK only with the local Auth and Firestore emulators. The helper
+temporarily selects the demo project `demo-campus4change-rules`, bundles the
+loopback emulator host, and restores `firebaseConfig.js` byte-for-byte after
+Gradle exits:
+
+```sh
+npx --yes firebase-tools@15.33.0 emulators:start --only auth,firestore --project demo-campus4change-rules
+# In another terminal at the repository root:
+npm run android:qa-emulators
+```
+
+The output is `android/app/build/outputs/apk/debug/app-debug.apk`. For a
+physical device, identify its model and serial with `adb devices -l`, then
+forward both emulator ports:
+
+```sh
+adb -s SERIAL reverse tcp:9099 tcp:9099
+adb -s SERIAL reverse tcp:8080 tcp:8080
+adb -s SERIAL install -r android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+The app and emulators must run on the same workstation. Use disposable local
+emulator accounts and data. This APK is not a release build. `C4C_DEBUG_STORE_FILE`
+may select the signing key needed to update an existing local installation.
+
 Outputs are `app-debug.apk` in `android/app/build/outputs/apk/debug/` and `app-release.apk` in the equivalent `release/` folder.
 
 Release APKs bundle JavaScript, Hermes bytecode, fonts, and images and run without Metro. Normal PC builds include default ARM/x86 ABIs. A known ARM64 device can use `-PreactNativeArchitectures=arm64-v8a`.
@@ -205,11 +232,12 @@ PowerShell and CI should provide the same four variables through a secure
 secret store. Do not save passwords in `gradle.properties`, shell history, or
 the repository.
 
-Version 1.2.2 has version code 5 and application ID `com.campus4change`.
+The published v1.2.2 release has version code 5. Current source has version
+1.3.0, version code 6, and application ID `com.campus4change`.
 
-An update requires a matching application ID and signing certificate. Use your machine's private debug key with `C4C_DEBUG_STORE_FILE` when updating an installation made with that key. The 1.2.2 debug build was updated in place on the POCO using the matching per-user key, and on-device data was preserved. The publicly released v1.2.0 APK used the repository debug signing identity; the new v1.2.2 release uses the separate private signer created by `scripts/build-release.sh`. Moving an old installation to the new signer requires uninstalling it, which removes device-local state. Firebase-backed account state can be restored after signing in again, but local-only state and device-only profile photos cannot. Back up or migrate local-only state before reinstalling.
+An update requires a matching application ID and signing certificate. Use your machine's private debug key with `C4C_DEBUG_STORE_FILE` when updating an installation made with that key. The 1.3.0 emulator QA build was updated in place on the POCO X4 GT and Pad 7 with local app data preserved. It targets local Firebase emulators and is not a release. The publicly released v1.2.0 APK used the repository debug signing identity; the published v1.2.2 release uses the separate private signer created by `scripts/build-release.sh`. Moving an old installation to the release signer requires uninstalling it, which removes device-local state. Firebase-backed account state can be restored after signing in again, but local-only state and device-only profile photos cannot. Back up or migrate local-only state before reinstalling.
 
-Minimum Android is 7.0. Optional biometrics require Android 9 or newer. The iOS scaffold has no native implementation for these local accounts.
+Minimum Android is 7.0. The iOS scaffold has no native implementation for local accounts.
 
 ## Checks
 

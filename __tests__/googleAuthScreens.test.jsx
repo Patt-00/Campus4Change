@@ -40,7 +40,6 @@ async function enterSignUpDetails(renderer, details = {}) {
   const values = {
     'Full name': 'Jamie Student',
     Email: 'jamie@gmail.com',
-    'Student ID': 'STU-2048',
     Password: 'SecurePassword123',
     ...details,
   };
@@ -104,7 +103,7 @@ test('login explains when Google sign-in returns without an account', async () =
   await ReactTestRenderer.act(async () => renderer.unmount());
 });
 
-test('sign-up offers Google and explains how to add the private Student ID later', async () => {
+test('sign-up offers Google and moves Student ID collection to account setup', async () => {
   const signInWithGoogle = jest.fn(async () => true);
   let renderer;
   await ReactTestRenderer.act(async () => {
@@ -127,11 +126,16 @@ test('sign-up offers Google and explains how to add the private Student ID later
     .flat(Infinity)
     .filter(text => typeof text === 'string');
   expect(visibleText).toContain(
-    'Google supplies your name and email. Add your private Student ID in Edit Profile after signing in.',
+    'After signing in, complete your TIP profile and add your private Student ID.',
   );
   expect(visibleText).toContain(
-    'Email/password accounts receive a verification link. Any verified email can use shared study groups, tutor listings, and session requests. Google accounts use your verified Google email.',
+    'After signup, add your TIP campus, course, year level, and Student ID. Email accounts receive a verification link; a verified email is required for shared features.',
   );
+  expect(
+    renderer.root
+      .findAllByType(TextInput)
+      .map(input => input.props.accessibilityLabel),
+  ).not.toContain('Student ID');
   await ReactTestRenderer.act(async () =>
     button(renderer, 'Sign up with Google').props.onPress(),
   );
@@ -211,13 +215,13 @@ test('sign-up validation blocks incomplete details before calling Firebase', asy
     .map(node => node.props.children)
     .flat(Infinity);
   expect(alerts).toContain(
-    'Complete all fields with a valid email. Use 8–1024 characters for the password.',
+    'Enter your name and a valid email. Use 8–1024 characters for the password.',
   );
   expect(signUp).not.toHaveBeenCalled();
   await ReactTestRenderer.act(async () => renderer.unmount());
 });
 
-test('sign-up allows a non-school email address and submits the entered profile', async () => {
+test('sign-up allows a non-school email address and defers Student ID setup', async () => {
   const signUp = jest.fn(async () => {});
   const renderer = await renderSignUp({
     firebaseConfigured: true,
@@ -233,7 +237,6 @@ test('sign-up allows a non-school email address and submits the entered profile'
   expect(signUp).toHaveBeenCalledWith(
     'Jamie Student',
     'jamie@gmail.com',
-    'STU-2048',
     'SecurePassword123',
   );
   await ReactTestRenderer.act(async () => renderer.unmount());
@@ -295,10 +298,9 @@ test('sign-up ignores duplicate submissions while Firebase is still creating the
   await ReactTestRenderer.act(async () => renderer.unmount());
 });
 
-test('Firebase login keeps existing device-only sign-in and biometrics available', async () => {
+test('Firebase login keeps existing device-only sign-in available without biometrics', async () => {
   const signIn = jest.fn(async () => {});
   const signInLocal = jest.fn(async () => {});
-  const biometrics = jest.fn(async () => {});
   let renderer;
   await ReactTestRenderer.act(async () => {
     renderer = ReactTestRenderer.create(
@@ -308,7 +310,6 @@ test('Firebase login keeps existing device-only sign-in and biometrics available
           googleSignInAvailable: true,
           signIn,
           signInLocal,
-          biometrics,
         }}
         back={jest.fn()}
         go={jest.fn()}
@@ -342,9 +343,6 @@ test('Firebase login keeps existing device-only sign-in and biometrics available
 
   expect(signInLocal).toHaveBeenCalledWith('STU-1042', 'LocalPass123');
   expect(signIn).not.toHaveBeenCalled();
-  await ReactTestRenderer.act(async () =>
-    button(renderer, 'SIGN IN WITH BIOMETRICS').props.onPress(),
-  );
-  expect(biometrics).toHaveBeenCalledTimes(1);
+  expect(button(renderer, 'SIGN IN WITH BIOMETRICS')).toBeUndefined();
   await ReactTestRenderer.act(async () => renderer.unmount());
 });

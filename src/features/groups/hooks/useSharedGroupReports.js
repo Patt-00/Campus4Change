@@ -107,11 +107,13 @@ export function useSharedGroupReports({ uid, groupId, enabled }) {
     try {
       await current.subscription.loadMoreReports();
     } catch (error) {
-      setResult(previous =>
-        previous.uid === uid && previous.groupId === groupId
-          ? { ...previous, error: errorText(error) }
-          : previous,
-      );
+      if (subscriptionRef.current?.subscription === current.subscription) {
+        setResult(previous =>
+          previous.uid === uid && previous.groupId === groupId
+            ? { ...previous, error: errorText(error) }
+            : previous,
+        );
+      }
     } finally {
       if (subscriptionRef.current?.subscription === current.subscription) {
         setLoadingMoreReports(false);

@@ -4,7 +4,7 @@ export const qaAccount = {
   id: 'qa-student',
   name: 'Jordan Student',
   email: 'jordan@school.test',
-  studentId: 'STU-2048',
+  studentId: '2048',
 };
 
 export function makeQaState(account = qaAccount) {
@@ -14,7 +14,7 @@ export function makeQaState(account = qaAccount) {
 
   state.profile.course = 'BS Computer Science';
   state.profile.year = '2nd Year';
-  state.profile.school = 'Test University';
+  state.profile.campus = 'T.I.P. Quezon City';
   state.profile.interests = ['Calculus', 'Java', 'Machine Learning'];
   state.sessions = [
     {

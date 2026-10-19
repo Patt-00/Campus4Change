@@ -13,6 +13,7 @@ import {
   disableNetwork,
   enableNetwork,
   getDoc,
+  getCountFromServer,
   getDocs,
   increment,
   limit,
@@ -48,7 +49,16 @@ const stateFor = uid => ({
   state: {
     version: 1,
     updatedAt: Date.now(),
-    profile: { id: uid },
+    profile: { id: uid, studentId: '' },
+  },
+  updatedAt: Timestamp.now(),
+});
+
+const stateWithStudentId = (uid, studentId) => ({
+  state: {
+    version: 1,
+    updatedAt: Date.now(),
+    profile: { id: uid, studentId },
   },
   updatedAt: Timestamp.now(),
 });
@@ -82,6 +92,109 @@ try {
   );
   await assertFails(setDoc(doc(alice, 'tutors/mika'), { name: 'Mika' }));
 
+  const firstStudentId = '2026101234';
+  const firstClaim = doc(alice, 'studentIdClaims', firstStudentId);
+  const firstSetup = writeBatch(alice);
+  firstSetup.set(firstClaim, { uid: 'alice' });
+  firstSetup.set(aliceState, stateWithStudentId('alice', firstStudentId));
+  await assertSucceeds(firstSetup.commit());
+  await assertSucceeds(getDoc(firstClaim));
+  await assertFails(getDoc(doc(bob, 'studentIdClaims', firstStudentId)));
+  await assertFails(getDoc(doc(anonymous, 'studentIdClaims', firstStudentId)));
+  await assertFails(getDocs(collection(bob, 'studentIdClaims')));
+
+  const duplicateSetup = writeBatch(bob);
+  duplicateSetup.set(
+    doc(bob, 'studentIdClaims', firstStudentId),
+    { uid: 'bob' },
+  );
+  duplicateSetup.set(
+    doc(bob, 'users', 'bob', 'private', 'state'),
+    stateWithStudentId('bob', firstStudentId),
+  );
+  await assertFails(duplicateSetup.commit());
+
+  const bobStudentId = '2026105678';
+  const bobSetup = writeBatch(bob);
+  bobSetup.set(doc(bob, 'studentIdClaims', bobStudentId), { uid: 'bob' });
+  bobSetup.set(
+    doc(bob, 'users', 'bob', 'private', 'state'),
+    stateWithStudentId('bob', bobStudentId),
+  );
+  await assertSucceeds(bobSetup.commit());
+
+  // An older installed client may already have an ID without a claim. It may
+  // continue syncing that same ID during migration, but cannot change it
+  // without the new atomic claim write.
+  const legacy = environment
+    .authenticatedContext('legacy', verifiedClaims)
+    .firestore();
+  await environment.withSecurityRulesDisabled(async context => {
+    await setDoc(
+      doc(context.firestore(), 'users/legacy/private/state'),
+      stateWithStudentId('legacy', firstStudentId),
+    );
+  });
+  const legacyState = doc(legacy, 'users/legacy/private/state');
+  await assertSucceeds(
+    setDoc(legacyState, stateWithStudentId('legacy', firstStudentId)),
+  );
+  await assertFails(
+    setDoc(legacyState, stateWithStudentId('legacy', '2026107788')),
+  );
+  const legacyReplacement = '2026108899';
+  const migrateLegacyAccount = writeBatch(legacy);
+  migrateLegacyAccount.set(
+    doc(legacy, 'studentIdClaims', legacyReplacement),
+    { uid: 'legacy' },
+  );
+  migrateLegacyAccount.set(
+    legacyState,
+    stateWithStudentId('legacy', legacyReplacement),
+  );
+  await assertSucceeds(migrateLegacyAccount.commit());
+
+  const replacementStudentId = '2026109012';
+  const changeAliceStudentId = writeBatch(alice);
+  changeAliceStudentId.set(
+    doc(alice, 'studentIdClaims', replacementStudentId),
+    { uid: 'alice' },
+  );
+  changeAliceStudentId.delete(firstClaim);
+  changeAliceStudentId.set(
+    aliceState,
+    stateWithStudentId('alice', replacementStudentId),
+  );
+  await assertSucceeds(changeAliceStudentId.commit());
+
+  const reuseReleasedStudentId = writeBatch(bob);
+  reuseReleasedStudentId.set(
+    doc(bob, 'studentIdClaims', firstStudentId),
+    { uid: 'bob' },
+  );
+  reuseReleasedStudentId.delete(doc(bob, 'studentIdClaims', bobStudentId));
+  reuseReleasedStudentId.set(
+    doc(bob, 'users', 'bob', 'private', 'state'),
+    stateWithStudentId('bob', firstStudentId),
+  );
+  await assertSucceeds(reuseReleasedStudentId.commit());
+
+  await assertFails(
+    setDoc(aliceState, stateWithStudentId('alice', 'not-digits')),
+  );
+
+  const unverifiedStudentId = '2026103344';
+  const unverifiedSetup = writeBatch(unverified);
+  unverifiedSetup.set(
+    doc(unverified, 'studentIdClaims', unverifiedStudentId),
+    { uid: 'unverified' },
+  );
+  unverifiedSetup.set(
+    doc(unverified, 'users', 'unverified', 'private', 'state'),
+    stateWithStudentId('unverified', unverifiedStudentId),
+  );
+  await assertSucceeds(unverifiedSetup.commit());
+
   const privateNoteMessage = {
     conversationId: 'chat-tutor',
     id: 'message-1',
@@ -102,8 +215,15 @@ try {
   await assertSucceeds(
     getDocs(collection(alice, 'users', 'alice', 'privateMessages')),
   );
+  const privateNoteCount = await assertSucceeds(
+    getCountFromServer(collection(alice, 'users', 'alice', 'privateMessages')),
+  );
+  assert.equal(privateNoteCount.data().count, 1);
   await assertFails(
     getDocs(collection(bob, 'users', 'alice', 'privateMessages')),
+  );
+  await assertFails(
+    getCountFromServer(collection(bob, 'users', 'alice', 'privateMessages')),
   );
   await assertFails(
     getDoc(doc(bob, 'users/alice/privateMessages/10_chat-tutor__message-1')),

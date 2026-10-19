@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Icon } from '../../../shared/components/Icon';
 import { AppButton } from '../../../shared/components/AppButton';
@@ -9,11 +9,23 @@ import {
   normalizeInterestGroups,
 } from '../../../shared/data/interestGroups';
 import { getTipProgram } from '../../../shared/data/tipPrograms';
+import {
+  getTipCampusLabel,
+  normalizeTipCampus,
+} from '../../../shared/data/tipCampuses';
 import { C } from '../../../shared/theme/colors';
 import { s } from '../../../shared/theme/styles';
 import { InterestEditor } from '../components/InterestEditor';
 import { ProfileAvatarEditor } from '../components/ProfileAvatarEditor';
 import { TipProgramPicker } from '../components/TipProgramPicker';
+import { TipCampusPicker } from '../components/TipCampusPicker';
+
+function normalizeYearLevel(value) {
+  const match = String(value ?? '')
+    .trim()
+    .match(/^(\d{1,2})(?:st|nd|rd|th)?(?:\s+year)?$/i);
+  return match?.[1] || '';
+}
 
 export function EditProfileScreen({
   back,
@@ -21,29 +33,66 @@ export function EditProfileScreen({
   save,
   preferences = false,
   firebaseAccount = false,
+  setup = false,
+  onComplete,
+  onDirtyChange = () => {},
 }) {
-  const [name, setName] = useState(profile.name);
-  const [courseId, setCourseId] = useState(profile.courseId || '');
-  const [course, setCourse] = useState(profile.course || '');
-  const [customCourse, setCustomCourse] = useState(
-    Boolean(profile.course && !profile.courseId),
-  );
-  const [year, setYear] = useState(profile.year);
-  const [school, setSchool] = useState(profile.school);
-  const [studentId, setStudentId] = useState(profile.studentId || '');
-  const [avatarId, setAvatarId] = useState(profile.avatarId || 'cyan');
-  const [photoUri, setPhotoUri] = useState(profile.profilePhotoUri || '');
-  const [interestGroups, setInterestGroups] = useState(() =>
-    normalizeInterestGroups(
+  const [initialValues] = useState(() => ({
+    name: profile.name || '',
+    courseId: profile.courseId || '',
+    course: profile.course || '',
+    customCourse: Boolean(profile.course && !profile.courseId),
+    year: normalizeYearLevel(profile.year),
+    campus:
+      normalizeTipCampus(profile.campus) ||
+      normalizeTipCampus(profile.school),
+    studentId: String(profile.studentId || '')
+      .replace(/\D/g, '')
+      .slice(0, 32),
+    avatarId: profile.avatarId || 'cyan',
+    photoUri: profile.profilePhotoUri || '',
+    interestGroups: normalizeInterestGroups(
       profile.interestGroups,
       profile.interests,
       profile.courseId,
       profile.course,
     ),
+  }));
+  const [name, setName] = useState(initialValues.name);
+  const [courseId, setCourseId] = useState(initialValues.courseId);
+  const [course, setCourse] = useState(initialValues.course);
+  const [customCourse, setCustomCourse] = useState(initialValues.customCourse);
+  const [year, setYear] = useState(initialValues.year);
+  const [campus, setCampus] = useState(initialValues.campus);
+  const [studentId, setStudentId] = useState(initialValues.studentId);
+  const [avatarId, setAvatarId] = useState(initialValues.avatarId);
+  const [photoUri, setPhotoUri] = useState(initialValues.photoUri);
+  const [interestGroups, setInterestGroups] = useState(
+    initialValues.interestGroups,
   );
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
   const [coursePickerVisible, setCoursePickerVisible] = useState(false);
+  const [campusPickerVisible, setCampusPickerVisible] = useState(false);
   const selectedProgram = getTipProgram(courseId);
+  const currentValues = {
+    name,
+    courseId,
+    course,
+    customCourse,
+    year,
+    campus,
+    studentId,
+    avatarId,
+    photoUri,
+    interestGroups,
+  };
+  const isDirty =
+    JSON.stringify(currentValues) !== JSON.stringify(initialValues);
+
+  useEffect(() => {
+    onDirtyChange(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   function handleAvatarChange(changes) {
     if (typeof changes.avatarId === 'string') {
@@ -54,12 +103,48 @@ export function EditProfileScreen({
     }
   }
 
-  function saveProfile() {
+  async function saveProfile() {
+    if (saving) {
+      return;
+    }
     if (!preferences && name.trim().length < 2) {
       setError('Enter your full name.');
       return;
     }
-    setError('');
+    if (!preferences && year && Number(year) < 1) {
+      setError('Enter a positive number for year level, or leave it blank.');
+      return;
+    }
+    const trimmedStudentId = studentId.trim();
+    if (setup && (!courseId || !selectedProgram)) {
+      setError('Choose your TIP course or program.');
+      return;
+    }
+    if (setup && selectedProgram.campus !== campus) {
+      setError('Choose the TIP campus that matches your course.');
+      return;
+    }
+    if (setup && !year) {
+      setError('Enter your year level.');
+      return;
+    }
+    if (setup && !campus) {
+      setError('Choose your TIP campus.');
+      return;
+    }
+    if ((setup || firebaseAccount) && !trimmedStudentId) {
+      setError('Enter your TIP Student ID.');
+      return;
+    }
+    if (
+      !preferences &&
+      (firebaseAccount || setup) &&
+      trimmedStudentId &&
+      !/^\d+$/.test(trimmedStudentId)
+    ) {
+      setError('Student ID must contain digits only.');
+      return;
+    }
     const normalizedGroups = normalizeInterestGroups(
       interestGroups,
       profile.interests,
@@ -67,42 +152,68 @@ export function EditProfileScreen({
       course,
     );
     const interests = flattenInterestGroups(normalizedGroups);
-    save(
-      preferences
-        ? { interests, interestGroups: normalizedGroups }
-        : {
-            name: name.trim(),
-            course: course.trim(),
-            courseId,
-            year: year.trim(),
-            school: school.trim(),
-            avatarId,
-            profilePhotoUri: photoUri,
-            ...(firebaseAccount ? { studentId: studentId.trim() } : {}),
-            interests,
-            interestGroups: normalizedGroups,
-          },
-    );
-    back();
+    setSaving(true);
+    setError('');
+    try {
+      await save(
+        preferences
+          ? { interests, interestGroups: normalizedGroups }
+          : {
+              name: name.trim(),
+              course: course.trim(),
+              courseId,
+              year,
+              campus,
+              avatarId,
+              profilePhotoUri: photoUri,
+              ...(firebaseAccount || setup
+                ? { studentId: trimmedStudentId }
+                : {}),
+              interests,
+              interestGroups: normalizedGroups,
+            },
+      );
+      if (setup) {
+        onComplete?.();
+      } else {
+        back({ force: true });
+      }
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error ? saveError.message : String(saveError),
+      );
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
     <Screen
-      title={preferences ? 'Learning Preferences' : 'Edit Profile'}
-      back={back}
+      title={setup ? 'Set up your account' : preferences ? 'Learning Preferences' : 'Edit Profile'}
+      back={setup ? undefined : back}
     >
+      {setup && (
+        <Text style={s.muted}>
+          Add your TIP academic details and private Student ID to finish setting
+          up your account.
+        </Text>
+      )}
       {!preferences && (
         <>
-          <Text style={s.section}>Profile photo</Text>
-          <ProfileAvatarEditor
-            accountId={profile.id}
-            name={name}
-            avatarId={avatarId}
-            photoUri={photoUri}
-            onChange={handleAvatarChange}
-          />
+          {!setup && (
+            <>
+              <Text style={s.section}>Profile photo</Text>
+              <ProfileAvatarEditor
+                accountId={profile.id}
+                name={name}
+                avatarId={avatarId}
+                photoUri={photoUri}
+                onChange={handleAvatarChange}
+              />
+            </>
+          )}
 
-          <Text style={s.section}>Profile details</Text>
+          <Text style={s.section}>{setup ? 'Academic details' : 'Profile details'}</Text>
           <Field
             label="Full name"
             icon="N"
@@ -149,42 +260,68 @@ export function EditProfileScreen({
           )}
           <Field
             label="Year level"
-            placeholder="Your year level (optional)"
+            placeholder={setup ? 'Enter your year level' : 'Enter year number (optional)'}
             value={year}
-            onChangeText={setYear}
-            maxLength={40}
+            onChangeText={value => setYear(value.replace(/\D/g, '').slice(0, 2))}
+            keyboardType="number-pad"
+            maxLength={2}
           />
 
-          <Field
-            label="School"
-            placeholder="Your school (optional)"
-            value={school}
-            onChangeText={setSchool}
-          />
-          {firebaseAccount && (
+          <Text style={s.label}>TIP campus</Text>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={`Campus: ${getTipCampusLabel(campus) || 'Choose your TIP campus'}`}
+            accessibilityHint="Select Quezon City or Manila."
+            onPress={() => setCampusPickerVisible(true)}
+            style={styles.courseSelector}
+          >
+            <Icon name="graduation" size={20} color={C.muted} />
+            <View style={s.grow}>
+              <Text style={s.text}>
+                {getTipCampusLabel(campus) || 'Choose your TIP campus'}
+              </Text>
+              <Text style={styles.courseHint}>
+                {campus || 'Quezon City or Manila'}
+              </Text>
+            </View>
+            <Icon name="right" size={18} color={C.muted} />
+          </TouchableOpacity>
+          {(firebaseAccount || setup) && (
             <Field
               label="Student ID (private)"
-              placeholder="Your Student ID (optional)"
+              placeholder="Numbers only"
               value={studentId}
-              onChangeText={setStudentId}
-              autoCapitalize="characters"
-              autoCorrect={false}
+              onChangeText={value =>
+                setStudentId(value.replace(/\D/g, '').slice(0, 32))
+              }
+              keyboardType="number-pad"
+              maxLength={32}
             />
+          )}
+          {(firebaseAccount || setup) && (
+            <Text style={[s.muted, styles.fieldHint]}>
+              Use the digits printed on your TIP ID.
+            </Text>
           )}
         </>
       )}
 
-      <Text style={s.section}>Learning interests</Text>
-      <InterestEditor
-        value={interestGroups}
-        onChange={setInterestGroups}
-        courseId={courseId}
-        courseName={course}
-      />
+      {!setup && (
+        <>
+          <Text style={s.section}>Learning interests</Text>
+          <InterestEditor
+            value={interestGroups}
+            onChange={setInterestGroups}
+            courseId={courseId}
+            courseName={course}
+          />
+        </>
+      )}
       <View style={s.bigGap} />
       <ErrorText value={error} />
       <AppButton
-        title="SAVE CHANGES"
+        title={setup ? 'SAVE AND CONTINUE' : 'SAVE CHANGES'}
+        busy={saving}
         onPress={saveProfile}
       />
 
@@ -192,20 +329,35 @@ export function EditProfileScreen({
         <TipProgramPicker
           visible={coursePickerVisible}
           selectedProgramId={courseId}
-          showNoProgram
           customSelected={customCourse}
           onClose={() => setCoursePickerVisible(false)}
           onSelect={program => {
             setCustomCourse(false);
             setCourseId(program?.id || '');
             setCourse(program?.name || '');
+            if (setup && program?.campus) {
+              setCampus(program.campus);
+            }
           }}
-          onCustom={() => {
-            setCoursePickerVisible(false);
-            setCourseId('');
-            setCourse('');
-            setCustomCourse(true);
-          }}
+          showNoProgram={!setup}
+          onCustom={
+            setup
+              ? undefined
+              : () => {
+                  setCoursePickerVisible(false);
+                  setCourseId('');
+                  setCourse('');
+                  setCustomCourse(true);
+                }
+          }
+        />
+      )}
+      {!preferences && (
+        <TipCampusPicker
+          visible={campusPickerVisible}
+          selectedCampus={campus}
+          onClose={() => setCampusPickerVisible(false)}
+          onSelect={setCampus}
         />
       )}
     </Screen>
@@ -233,4 +385,5 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     marginTop: 2,
   },
+  fieldHint: { marginTop: -6, marginBottom: 8 },
 });

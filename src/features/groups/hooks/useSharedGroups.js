@@ -568,11 +568,13 @@ export function useSharedGroups({
     try {
       await current.subscription.loadMoreGroups();
     } catch (error) {
-      setResult(previous =>
-        previous.uid === uid
-          ? { ...previous, error: errorText(error) }
-          : previous,
-      );
+      if (directorySubscription.current?.subscription === current.subscription) {
+        setResult(previous =>
+          previous.uid === uid
+            ? { ...previous, error: errorText(error) }
+            : previous,
+        );
+      }
     } finally {
       if (
         directorySubscription.current?.subscription === current.subscription
@@ -594,12 +596,14 @@ export function useSharedGroups({
     try {
       await current.subscription.loadMorePosts();
     } catch (error) {
-      setContentResult(previousContent =>
-        previousContent.uid === uid &&
-        previousContent.groupId === activeGroupId
-          ? { ...previousContent, error: errorText(error) }
-          : previousContent,
-      );
+      if (contentSubscription.current?.subscription === current.subscription) {
+        setContentResult(previousContent =>
+          previousContent.uid === uid &&
+          previousContent.groupId === activeGroupId
+            ? { ...previousContent, error: errorText(error) }
+            : previousContent,
+        );
+      }
     } finally {
       if (contentSubscription.current?.subscription === current.subscription) {
         setLoadingMorePosts(false);
@@ -620,12 +624,14 @@ export function useSharedGroups({
       try {
         await current.subscription.loadMoreReplies(postId);
       } catch (error) {
-        setContentResult(previousContent =>
-          previousContent.uid === uid &&
-          previousContent.groupId === activeGroupId
-            ? { ...previousContent, error: errorText(error) }
-            : previousContent,
-        );
+        if (contentSubscription.current?.subscription === current.subscription) {
+          setContentResult(previousContent =>
+            previousContent.uid === uid &&
+            previousContent.groupId === activeGroupId
+              ? { ...previousContent, error: errorText(error) }
+              : previousContent,
+          );
+        }
       } finally {
         if (contentSubscription.current?.subscription === current.subscription) {
           setLoadingReplyIds(ids => {

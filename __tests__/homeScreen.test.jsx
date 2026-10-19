@@ -39,14 +39,14 @@ function input(renderer, label) {
     .find(control => control.props.accessibilityLabel === label);
 }
 
-test('home searches tutors, shows interest matches, quick actions, and next session', async () => {
+test('home searches people, shows interest matches, quick actions, and next session', async () => {
   const go = jest.fn();
   const state = {
     profile: {
       id: 'student',
       name: 'Alex Student',
       interests: ['Physics'],
-      school: '',
+      campus: '',
     },
     notices: [],
     sessions: [
@@ -87,15 +87,15 @@ test('home searches tutors, shows interest matches, quick actions, and next sess
   await act(async () => button(renderer, 'Edit interests').props.onPress());
   expect(go).toHaveBeenLastCalledWith('Preferences');
 
-  const search = input(renderer, 'Search for subjects, skills, or tutors...');
+  const search = input(renderer, 'Search people by name, course, or subject...');
   await act(async () => search.props.onChangeText('Mika'));
   await act(async () => search.props.onSubmitEditing());
   expect(go).toHaveBeenLastCalledWith({ page: 'Tutor Search', query: 'Mika' });
-  await act(async () => button(renderer, 'Search tutors').props.onPress());
+  await act(async () => button(renderer, 'Search people').props.onPress());
   expect(go).toHaveBeenLastCalledWith({ page: 'Tutor Search', query: 'Mika' });
 
   for (const [label, destination] of [
-    ['Find a Tutor', 'Tutor Search'],
+    ['Find People', 'Tutor Search'],
     ['Be a Tutor', 'Be a Tutor'],
     ['Study Groups', 'Study Groups'],
     ['Sessions', 'Sessions'],
@@ -119,10 +119,135 @@ test('home searches tutors, shows interest matches, quick actions, and next sess
   await act(async () => renderer.unmount());
 });
 
+test('home recommendations label loaded tutor pages as partial', async () => {
+  const state = {
+    profile: {
+      id: 'student',
+      name: 'Alex Student',
+      interests: ['Physics'],
+      campus: 'T.I.P. Quezon City',
+    },
+    notices: [],
+    sessions: [],
+  };
+  let renderer;
+  await act(async () => {
+    renderer = renderHome({
+      go: jest.fn(),
+      state,
+      directory: [{ id: 'tutor-1', name: 'Mika', subjects: ['Physics'] }],
+      tutors: [],
+      sharedDirectoryAvailable: true,
+      tutorsLoaded: true,
+      hasMoreTutors: true,
+    });
+  });
+
+  const copy = () =>
+    renderer.root
+      .findAllByType(Text)
+      .map(node => node.props.children)
+      .join(' ');
+  expect(copy()).toContain(
+    '1 matching tutor found in the loaded listings. More may match as you browse.',
+  );
+
+  await act(async () => {
+    renderer.update(
+      <SafeAreaProvider initialMetrics={initialMetrics}>
+        <HomeScreen
+          go={jest.fn()}
+          state={state}
+          directory={[{ id: 'tutor-1', name: 'Mika', subjects: ['Physics'] }]}
+          tutors={[]}
+          sharedDirectoryAvailable
+          tutorsLoaded
+          hasMoreTutors={false}
+        />
+      </SafeAreaProvider>,
+    );
+  });
+  expect(copy()).toContain('1 tutor matches your interests.');
+
+  await act(async () => {
+    renderer.update(
+      <SafeAreaProvider initialMetrics={initialMetrics}>
+        <HomeScreen
+          go={jest.fn()}
+          state={state}
+          directory={[{ id: 'tutor-1', name: 'Mika', subjects: ['Accounting'] }]}
+          tutors={[]}
+          sharedDirectoryAvailable
+          tutorsLoaded
+          hasMoreTutors
+        />
+      </SafeAreaProvider>,
+    );
+  });
+  expect(copy()).toContain(
+    'No matches in the loaded listings yet. More tutors may match as you browse.',
+  );
+
+  await act(async () => renderer.unmount());
+});
+
+test('home explains when tutor matches are loading or require email verification', async () => {
+  const state = {
+    profile: {
+      id: 'student',
+      name: 'Alex Student',
+      interests: ['Physics'],
+      campus: 'T.I.P. Quezon City',
+    },
+    notices: [],
+    sessions: [],
+  };
+  let renderer;
+  await act(async () => {
+    renderer = renderHome({
+      go: jest.fn(),
+      state,
+      directory: [],
+      tutors: [],
+      sharedDirectoryAvailable: true,
+      tutorsLoaded: false,
+    });
+  });
+
+  const copy = () =>
+    renderer.root
+      .findAllByType(Text)
+      .map(node => node.props.children)
+      .join(' ');
+  expect(copy()).toContain('Checking public tutor profiles…');
+  expect(copy()).not.toContain('0 tutors match your interests');
+
+  await act(async () => {
+    renderer.update(
+      <SafeAreaProvider initialMetrics={initialMetrics}>
+        <HomeScreen
+          go={jest.fn()}
+          state={state}
+          directory={[]}
+          tutors={[]}
+          sharedDirectoryAvailable={false}
+          directoryAccessMessage="Verify your email to browse public tutor profiles."
+          verificationPending
+          tutorsLoaded={false}
+        />
+      </SafeAreaProvider>,
+    );
+  });
+  expect(copy()).toContain('Verify your email to browse public tutor profiles.');
+  expect(copy()).not.toContain('0 tutors match your interests');
+
+  await act(async () => renderer.unmount());
+});
+
 test('home skips malformed session times when selecting the next booking', async () => {
   jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-10-13T06:00:00Z'));
   const state = {
-    profile: { id: 'student', name: 'Alex Student', interests: [], school: '' },
+    profile: { id: 'student', name: 'Alex Student', interests: [], campus: '' },
     notices: [],
     sessions: [
       {
@@ -158,7 +283,7 @@ test('home skips malformed session times when selecting the next booking', async
 test('home menu opens, routes to a page, and closes on request', async () => {
   const go = jest.fn();
   const state = {
-    profile: { id: 'student', name: 'Alex Rivera', interests: [], school: 'TIP' },
+    profile: { id: 'student', name: 'Alex Rivera', interests: [], campus: 'T.I.P. Manila' },
     notices: [],
     sessions: [],
   };
@@ -183,7 +308,7 @@ test('home menu opens, routes to a page, and closes on request', async () => {
 test('empty home state offers interest and profile setup', async () => {
   const go = jest.fn();
   const state = {
-    profile: { id: 'student', name: 'New Student', interests: [], school: '' },
+    profile: { id: 'student', name: 'New Student', interests: [], campus: '' },
     notices: [],
     sessions: [],
   };
@@ -203,7 +328,7 @@ test('home warns about past-due bookings instead of showing a clear schedule', a
   jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-10-13T06:00:00Z'));
   const go = jest.fn();
   const state = {
-    profile: { id: 'student', name: 'Alex Student', interests: [], school: 'TIP' },
+    profile: { id: 'student', name: 'Alex Student', interests: [], campus: 'T.I.P. Quezon City' },
     notices: [],
     sessions: [
       {

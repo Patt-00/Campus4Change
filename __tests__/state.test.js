@@ -1,5 +1,8 @@
 import { initialState } from '../src/shared/data/utils';
-import { filterTutors } from '../src/features/tutors/data/search';
+import {
+  filterTutors,
+  recommendTutorMatches,
+} from '../src/features/tutors/data/search';
 import { hasConflict, reducer } from '../src/shared/state/reducer';
 import { parseState } from '../src/shared/state/storage';
 
@@ -523,7 +526,7 @@ test('new accounts start empty and keep independent local data', () => {
   expect(b.profile.interests).toEqual([]);
   expect(a.groups).toHaveLength(0);
   expect(a.profile.course).toBe('');
-  expect(a.profile.school).toBe('');
+  expect(a.profile.campus).toBe('');
   expect(a.profile.year).toBe('');
   expect(a.sessions).toHaveLength(0);
   expect(a.conversations).toHaveLength(0);
@@ -552,6 +555,34 @@ test('search uses names and subjects, combines filters, and handles no results',
   expect(
     filterTutors(tutors, '', 'Calculus I', true, true).map(x => x.id),
   ).toEqual(['tutor-2']);
+});
+test('people recommendations rank public profiles by distinct learning interests', () => {
+  const people = [
+    {
+      id: 'mika',
+      name: 'Mika Student',
+      subjects: ['Physics', 'Calculus I'],
+      own: false,
+    },
+    {
+      id: 'jamie',
+      name: 'Jamie Student',
+      subjects: ['Calculus'],
+      own: false,
+    },
+    {
+      id: 'self',
+      name: 'Current Student',
+      subjects: ['Physics'],
+      own: true,
+    },
+  ];
+
+  expect(recommendTutorMatches(people, ['Physics', 'Calculus', 'physics'])).toMatchObject([
+    { id: 'mika', matchedInterests: ['Physics', 'Calculus'] },
+    { id: 'jamie', matchedInterests: ['Calculus'] },
+  ]);
+  expect(recommendTutorMatches(people, ['Art'])).toEqual([]);
 });
 test('device-only accounts have no bundled tutor or group listings', () => {
   const state = initialState(account);
@@ -595,4 +626,18 @@ test('persisted state round-trips and unknown versions are rejected', () => {
     'not compatible',
   );
   expect(() => parseState('{}')).toThrow();
+});
+
+test('people search treats repeated whitespace consistently in queries and profile text', () => {
+  const people = [{
+    id: 'search-whitespace',
+    name: 'Jamie   Student',
+    course: 'Computer Science',
+    subjects: ['Data Structures'],
+    available: true,
+  }];
+  expect(filterTutors(people, ' computer   science ', '', false, false)).toHaveLength(1);
+  expect(filterTutors(people, 'jamie student', '', false, false)).toHaveLength(1);
+  expect(filterTutors(people, 'data\tstructures', '', false, false)).toHaveLength(1);
+  expect(filterTutors(people, '', ' data   structures ', false, false)).toHaveLength(1);
 });

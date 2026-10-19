@@ -37,7 +37,6 @@ test('Firebase sign-out explains when changes stayed only on the device', async 
           signOut={signOut}
           sessionType="firebase"
           firebaseConfigured
-          enableBiometrics={jest.fn()}
         />
       </SafeAreaProvider>,
     );

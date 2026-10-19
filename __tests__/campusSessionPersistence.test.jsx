@@ -9,12 +9,11 @@ const mockAccount = {
   studentId: 'STU-1',
 };
 const mockStore = {
-  biometricSignIn: jest.fn(),
-  enableBiometrics: jest.fn(),
   loadState: jest.fn(async () => null),
   saveState: jest.fn(async () => {}),
   setActiveUser: jest.fn(async () => {}),
   signIn: jest.fn(async () => mockAccount),
+  isStudentIdUnique: jest.fn(async () => true),
   signOut: jest.fn(async () => {}),
   signUp: jest.fn(),
 };

@@ -280,9 +280,9 @@ test('shared tutor directory gives a real empty state without bundled listings',
     .map(node => node.props.children)
     .flat(Infinity)
     .filter(label => typeof label === 'string');
-  expect(labels).toContain('No community tutors yet');
+  expect(labels).toContain('No public profiles yet');
   expect(labels).toContain(
-    'Publish a tutor profile to help other learners find you, or check back later.',
+    'People who publish a tutor profile can be found here. Check back later or create your own profile.',
   );
   expect(labels).not.toContain('Sample tutor');
   expect(button(renderer, 'Top rated')).toBeUndefined();
@@ -325,10 +325,10 @@ test('tutor directory searches, applies availability and rating, and clears filt
       .findAllByType(TouchableOpacity)
       .map(control => control.props.accessibilityLabel)
       .filter(label => label?.includes('. View profile.'))
-      .map(label => label.split('. Subjects:')[0]);
+      .map(label => label.split('. ')[0]);
 
   await act(async () =>
-    input(renderer, 'Search subject or tutor').props.onChangeText('CALCULUS'),
+    input(renderer, 'Search name, course, or subject').props.onChangeText('CALCULUS'),
   );
   expect(cardLabels()).toEqual(['Bianca Student']);
   await act(async () => button(renderer, 'Clear filters').props.onPress());
@@ -354,6 +354,109 @@ test('tutor directory searches, applies availability and rating, and clears filt
     'Bianca Student',
     'Caleb Student',
   ]);
+  await act(async () => renderer.unmount());
+});
+
+test('people search ranks public profiles against saved interests and searches course names', async () => {
+  const list = [
+    {
+      id: 'mika',
+      name: 'Mika Student',
+      course: 'Computer Science',
+      year: '2',
+      subjects: ['Physics', 'Calculus I'],
+      available: true,
+    },
+    {
+      id: 'jamie',
+      name: 'Jamie Student',
+      course: 'Psychology',
+      year: '3',
+      subjects: ['Calculus I'],
+      available: true,
+    },
+    {
+      id: 'renzo',
+      name: 'Renzo Student',
+      course: 'Accountancy',
+      year: '1',
+      subjects: ['Accounting'],
+      available: true,
+    },
+  ];
+  let renderer;
+  await act(async () => {
+    renderer = renderScreen(
+      <TutorSearchScreen
+        go={jest.fn()}
+        back={jest.fn()}
+        list={list}
+        interests={['Physics', 'Calculus I']}
+        sharedAccount
+      />,
+    );
+  });
+  const names = () =>
+    renderer.root
+      .findAllByType(TouchableOpacity)
+      .map(control => control.props.accessibilityLabel)
+      .filter(label => label?.includes('. View profile.'))
+      .map(label => label.split('.')[0]);
+  expect(names()).toEqual(['Mika Student', 'Jamie Student', 'Renzo Student']);
+  expect(
+    renderer.root.findAllByType(Text).some(
+      node => node.props.children === 'Recommended for your interests',
+    ),
+  ).toBe(true);
+
+  await act(async () =>
+    input(renderer, 'Search name, course, or subject').props.onChangeText('psychology'),
+  );
+  expect(names()).toEqual(['Jamie Student']);
+  await act(async () => renderer.unmount());
+});
+
+test('interest recommendations distinguish loaded pages from a complete directory', async () => {
+  const loadMoreTutors = jest.fn();
+  const props = {
+    go: jest.fn(),
+    back: jest.fn(),
+    interests: ['Physics'],
+    list: [
+      {
+        id: 'tutor-1',
+        name: 'Jamie Student',
+        subjects: ['Accounting'],
+      },
+    ],
+    loadMoreTutors,
+  };
+  let renderer;
+  await act(async () => {
+    renderer = renderScreen(
+      <TutorSearchScreen {...props} hasMoreTutors />,
+    );
+  });
+
+  const copy = () =>
+    renderer.root
+      .findAllByType(Text)
+      .map(node => String(node.props.children))
+      .join(' ');
+  expect(copy()).toContain('No matches in the loaded listings yet.');
+  expect(copy()).toContain('Load more to check the rest of the directory.');
+  await act(async () => button(renderer, 'LOAD MORE TUTORS').props.onPress());
+  expect(loadMoreTutors).toHaveBeenCalledTimes(1);
+
+  await act(async () => {
+    renderer.update(
+      <SafeAreaProvider initialMetrics={initialMetrics}>
+        <TutorSearchScreen {...props} hasMoreTutors={false} />
+      </SafeAreaProvider>,
+    );
+  });
+  expect(copy()).toContain('No public tutor profiles match your saved interests.');
+  expect(copy()).not.toContain('Load more to check the rest of the directory.');
   await act(async () => renderer.unmount());
 });
 

@@ -31,13 +31,28 @@ fingerprints (`5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25` /
 The current v1.2.2 release certificate SHA-1 and SHA-256 are registered to
 the Firebase Android app. Google sign-in with that release key and Play Integrity
 attestation have not yet been verified. A future signing-key rotation requires
-registering the new certificate fingerprints before testing that build. The
-reviewed Firestore rules were deployed to this project, including a rules-only
-update on 2026-10-17 for the
-optional allowlisted tutor avatar preset. That update did not change indexes;
-the six existing composite indexes were previously read back as `READY`. The
-emulator suite passes for the current rules. One POCO group change still shows
-a permission error; see [VERIFICATION.md](VERIFICATION.md).
+registering the new certificate fingerprints before testing that build.
+
+### Current production state
+
+A read-only Rules API check on 2026-10-20 confirmed that the active default
+Firestore release points to ruleset
+`projects/campus4change/rulesets/4f66efb8-d8d6-404c-83be-8a2b7b37588a`.
+Its `firestore.rules` source hashes to
+`867e1b314fb639608ef4fe6978892ee6d337536be27a65b01b76c066679ec0a8`.
+The local source hashes to
+`25f0ec68a34ce0eb1964164dfa7fb9139413d99fa0ca1a5f323236bf4e302323`, so the
+current Student ID claim rules are not live. They pass local emulator tests.
+This audit does not deploy production rules or change authorization policy.
+
+The Rules API also returned six production composite indexes. Their definitions
+match `firestore.indexes.json`, and all six report `READY`.
+
+The last recorded rules deployment was on 2026-10-17. It added the optional
+allowlisted tutor avatar preset and did not change indexes. An earlier manual
+test recorded a permission-denied group update on a signed-in POCO account.
+This audit did not inspect, replay, or delete that pending device operation.
+See [VERIFICATION.md](VERIFICATION.md) for the dated observation.
 Firebase signup sends an email verification link. Verified email claims are
 required for shared study groups, tutor listings, and session requests; each
 user can still read and save only their own private account state before
@@ -50,9 +65,16 @@ Authentication. The Android app uses the public Firebase Web client ID from
 `firebaseConfig.js` to request a Google ID token, then exchanges that token with
 Firebase. The ID is public client configuration; never put a Web client secret
 in the app. A Google account supplies its name and email. The account holder
-can add a Student ID later in Edit Profile, where it stays in private account
-state. Google-to-Firebase sign-in has been completed on the POCO with a debug
-build.
+must complete TIP account setup with a course, year level, campus, and
+digits-only Student ID before entering the app. Student IDs stay in private
+account state and are reserved through owner-only Firestore claim documents so
+two Firebase accounts cannot claim the same new or changed ID. Older installed
+clients can keep syncing an unchanged ID until they are updated; a duplicate
+legacy ID must be changed during setup before it can be claimed. Google-to-
+Firebase sign-in has been completed on the POCO with a debug build.
+The matching Firestore rules must be deployed before Firebase accounts can use
+this uniqueness check. Device-only accounts are checked only against other
+accounts on the same device.
 See [Android's Credential Manager Google sign-in guide](https://developer.android.com/identity/sign-in/credential-manager-siwg-implementation)
 and [Firebase's Google sign-in guide for Android](https://firebase.google.com/docs/auth/android/google-signin)
 for the platform flow and token exchange.
@@ -217,13 +239,12 @@ cancellation, or participant completion. Accepting a request creates two
 four in total, in the same transaction. The shared namespace prevents student
 conflicts across tutors and role changes; cancellation or completion removes all
 four locks atomically. Pending requests remain cancellable without removing any
-other booking's locks. Current
-group chat is available to current members, and tutor-session chat is limited
-to its two participants. These chat workflows are covered by emulator tests and
-were exercised with two temporary verified accounts on the POCO. A rules-only
-deployment was completed on 2026-10-17; a pending shared-group change on the
-signed-in POCO account still reports a permission error and has not been
-replayed or deleted.
+other booking's locks. The local rules source permits group chat for current
+members and tutor-session chat for the two participants. These workflows are
+covered by emulator tests and were exercised with two temporary verified
+accounts on the POCO. An earlier manual test recorded a permission-denied
+shared-group change on a signed-in POCO account. This audit did not inspect,
+replay, or delete that pending device operation.
 Creating a tutor-session request also updates the student's private,
 non-deletable `tutorBookingLimits/{uid}` record in the same atomic batch. The
 rules permit one request every five seconds and reject a limit record that is

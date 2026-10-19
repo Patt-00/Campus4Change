@@ -458,3 +458,63 @@ test('a pending write from a previous account cannot dispatch into the new accou
   });
   await act(async () => renderer.unmount());
 });
+
+test.each(['directory', 'posts', 'replies'])('a late %s page failure cannot overwrite a retried subscription', async kind => {
+  watchSharedGroups.mockReset();
+  watchSharedGroupPosts.mockReset();
+  let rejectPage;
+  const deferredPage = jest.fn(() => new Promise((_resolve, reject) => {
+    rejectPage = reject;
+  }));
+  const directory = { unsubscribe: jest.fn(), loadMoreGroups: deferredPage };
+  const content = {
+    unsubscribe: jest.fn(),
+    loadMorePosts: deferredPage,
+    loadMoreReplies: deferredPage,
+  };
+  watchSharedGroups.mockReturnValueOnce(directory).mockReturnValue({ unsubscribe: jest.fn() });
+  watchSharedGroupPosts.mockReturnValueOnce(content).mockReturnValue({ unsubscribe: jest.fn() });
+  const group = {
+    id: 'shared-one', name: 'Calculus Circle', subject: 'Calculus',
+    shared: true, joined: true, members: 4, posts: [], postsLoaded: true,
+  };
+  const session = {
+    uid: 'student', enabled: true,
+    state: {
+      profile: { id: 'student', name: 'Student' }, groups: [group], pendingSharedActions: [],
+    },
+    dispatch: jest.fn(), activeGroupId: 'shared-one', activePostId: 'post-one',
+  };
+  let renderer;
+  let request;
+  try {
+    await act(async () => {
+      renderer = ReactTestRenderer.create(<Harness session={session} />);
+    });
+    await act(async () => {
+      request = kind === 'directory'
+        ? currentResult.loadMoreGroups()
+        : kind === 'posts'
+          ? currentResult.loadMorePosts()
+          : currentResult.loadMoreReplies('post-one');
+    });
+    expect(deferredPage).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      if (kind === 'directory') {
+        currentResult.retry();
+      } else {
+        currentResult.retryContent();
+      }
+    });
+    expect(kind === 'directory' ? directory.unsubscribe : content.unsubscribe).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      rejectPage(new Error('Obsolete page failed.'));
+      await request;
+    });
+    expect(kind === 'directory' ? currentResult.error : currentResult.contentError).toBe('');
+  } finally {
+    if (renderer) {
+      await act(async () => renderer.unmount());
+    }
+  }
+});

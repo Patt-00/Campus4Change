@@ -222,6 +222,7 @@ export function useSharedTutors({ uid, enabled, profile }) {
     tutors: result.uid === uid ? result.tutors : EMPTY,
     bookings: result.uid === uid ? result.bookings : EMPTY,
     error: result.uid === uid ? result.error : '',
+    tutorsLoaded: Boolean(result.uid === uid && result.tutorsLoaded),
     loading: Boolean(
       enabled &&
         uid &&
