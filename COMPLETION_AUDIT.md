@@ -38,7 +38,7 @@ The six category weights below follow the autonomous goal. Each category is spli
 | --- | ---: | ---: | --- | --- | --- |
 | Navigation and consistent Android visual identity | 6 | 5.5 | IMPLEMENTED BUT UNVERIFIED | Main Home, profile, sessions, groups, search, chat, settings, and notification paths were exercised. A current visual sweep of every route has not been completed. | Medium |
 | Phone/tablet layouts, resizing, and input behavior | 5 | 3.5 | PARTIALLY IMPLEMENTED | POCO phone and Pad tablet use passed representative portrait/landscape checks. Verify all forms, keyboard states, and supported sizes in a final sweep. | Medium |
-| Empty, loading, error, validation, success, and accessibility states | 4 | 3.5 | IMPLEMENTED BUT UNVERIFIED | Focused tests and physical checks cover restore, verification toast, search, and the Requests empty state. A complete accessibility audit remains. | Medium |
+| Empty, loading, error, validation, success, and accessibility states | 4 | 3.5 | IMPLEMENTED BUT UNVERIFIED | Focused tests and physical checks cover restore, verification toast, search, the Requests empty state, TIP campus selection, and profile discard confirmation. A complete accessibility audit remains. | Medium |
 
 ## Technical reliability: 14.5 of 20
 
@@ -82,7 +82,7 @@ The six category weights below follow the autonomous goal. Each category is spli
 2. No signed 1.3.0 APK/AAB has been built. Existing release keystores need passwords that are not available in this shell. A user must unlock the existing key at the secure build prompt; never paste its passwords into chat or commit them.
 3. Google sign-in with the release signer, Play Integrity, and production App Check metrics remain unverified. These checks need a signed release build and applicable production configuration.
 4. `npm audit --omit=dev` reports 20 high paths, zero critical. Its `braces@3.0.3` advisory has no patched release; the flagged package is in Metro tooling and absent from the release JavaScript bundle. Recheck after upstream publishes a patch and keep the compatible React Native/CLI versions.
-5. Minimum Android API 24 runtime behavior and repeatable performance baselines are unverified. A complete accessibility and all-route sweep, plus a clean school-laptop demonstration rehearsal, also remain open. Google Play account deletion is conditional if Play distribution is intended.
+5. Minimum Android API 24 runtime behavior and repeatable performance baselines are unverified. A temporary API 24 AVD could not boot because it needed 7.37 GB of free space and the volume had 5 GB available; its temporary image was removed. A complete accessibility and all-route sweep, plus a clean school-laptop demonstration rehearsal, also remain open. Google Play account deletion is conditional if Play distribution is intended.
 
 The source describes a shared application, but live group/tutor/session access requires production rules matching the current source. Do not represent emulator data as production data or call a local QA APK a release.
 

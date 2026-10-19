@@ -932,3 +932,15 @@ or a production deployment.
   Android tests/builds, and the release-signing guard. The push did not modify
   production Firebase. Only the POCO and Pad were tested; Redmi appeared in ADB
   discovery but was not targeted.
+- The completion audit and historical v1.2.2 banner were pushed in the
+  documentation-only commit `7642785`. GitHub Actions run
+  [39309821674](https://github.com/Patt-00/Campus4Change/actions/runs/39309821674)
+  passed on that commit.
+- On Pad 7, Edit Profile showed the TIP campus selector, the Student ID field,
+  and no School field. The picker exposed Quezon City and Manila. Changing the
+  avatar and pressing Back opened the discard confirmation; Keep editing and
+  Discard changes both worked. No profile edit was saved.
+- A temporary API 24 emulator image was installed to test the legacy password
+  hash provider, but its AVD requested 7.37 GB of free space while the volume
+  had 5 GB available. The AVD did not boot. Its temporary files and SDK image
+  were removed; API 24 runtime behavior remains unverified.
