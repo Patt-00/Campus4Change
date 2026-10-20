@@ -58,7 +58,7 @@ The six category weights below follow the autonomous goal. Each category is spli
 | README, architecture, build, and Firebase guidance | 2 | 2 | COMPLETE AND VERIFIED | Existing guides describe project scope, setup, Android builds, and data boundaries. New audit and presentation documents are indexed from README. | Medium |
 | Ignore rules, CI, and repository secret hygiene | 2 | 2 | COMPLETE AND VERIFIED | The staged-source secret-pattern scan found no private key/token markers, ignore rules exclude local signing files, and the current source CI run passed. | High |
 
-## Testing and quality assurance: 9 of 10
+## Testing and quality assurance: 10 of 10
 
 | Requirement | Weight | Earned | Status | Evidence and remaining work | Priority |
 | --- | ---: | ---: | --- | --- | --- |
