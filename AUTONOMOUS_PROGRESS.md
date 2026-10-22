@@ -6,46 +6,76 @@ or a production deployment.
 
 ## Current workspace
 
-- The current source snapshot is published on branch
-  release/v1.3.0-preview.2 and tag v1.3.0-preview.2. The GitHub pre-release
-  includes the source snapshot and signed installable APK. The default main
-  branch remains at 46fe89a534d98866dc981ef11fe64f24151e8bf4; this preview has
-  not been merged to main, and CI has not run on the preview commit.
+- The current source snapshot is published on branch release/v1.3.0-preview.2
+  and tag v1.3.0-preview.2. The GitHub pre-release contains the current source
+  and signed installable APK. The default main branch remains at
+  46fe89a534d98866dc981ef11fe64f24151e8bf4; it has not been merged, and CI
+  has not run on the preview commit.
 - The Android app version is 1.3.0, version code 6, package
-  com.campus4change, minimum API 24, target API 36. The release asset is
-  Campus4Change-v1.3.0-preview.2.apk. Its SHA-256 is
-  c2191dc45f42d5d9e2a4bbc63d515d1e045a3cbdd72af872b365c5d173fcc210. The
-  signed APK passed apksigner verification. Its manifest contains INTERNET and
-  CAMERA permissions, with no biometric or fingerprint permissions. The
-  matching AAB passed JAR signature and ZIP integrity checks; it remains local
-  and is not attached to the GitHub release.
-- The POCO X4 GT was the only device used for this release check. Its installed
-  base APK hash matched the signed release artifact exactly. Package metadata
-  showed version 1.3.0/code 6, and a fresh launch foregrounded MainActivity.
-  The captured log sample contained no fatal exception, fatal signal, or
-  React Native startup error. The POCO had validated Wi-Fi during this launch, but no live Firebase
-  authentication or Firestore operation was attempted. No emulator was started and Redmi was not used.
-- Current local validation passed 334 Jest tests across 40 suites, full-project
-  ESLint, the public Drive-link scan, git diff --check, the Android
-  testDebugUnitTest task, and the signed release APK/AAB build. The full release
-  build completed with 126 Gradle tasks, 9 executed and 117 up to date.
+  com.campus4change, minimum API 24, target API 36. The signed release asset
+  Campus4Change-v1.3.0-preview.2.apk has SHA-256 e83a7feeaf307d526b6bb34334badbc193f1e218259bfd2aeb8c55f1c1cfa330. Its manifest
+  contains INTERNET and CAMERA permissions, without biometric or fingerprint
+  permissions. The matching signed AAB SHA-256 is 3ae00c1033f7f82c1aed81353b70656b690542e872ebc78e4ab91060ef09ddb4; it remains
+  local and is not attached to GitHub.
+- The POCO X4 GT was the only device used for this cycle. Its installed
+  base.apk hash matches the updated release artifact. Package metadata shows
+  version 1.3.0/code 6; a fresh launch reached MainActivity without a fatal
+  or React Native startup error in the captured log.
+- The Google account-picker cancellation defect was reproduced and fixed.
+  Before the fix, dismissing Credential Manager produced a red generic
+  sign-in failure message. The native log showed
+  GetCredentialCancellationException. After the fix, dismissing the chooser
+  returns to Login without an error. The updated signed APK was installed on
+  POCO and this behavior was checked on-device.
+- Selecting the previously authorized Google Workspace account led Google
+  to display its organization policy requiring a device screen lock. The
+  POCO lock settings were not changed. Google sign-in did not complete and no
+  Firebase Auth operation was confirmed. The user asked to use another email;
+  multiple alternative Google accounts are available, and the exact account
+  has not yet been selected.
+- Current validation passed 334 Jest tests across 40 suites, focused Google
+  auth screens (10 tests), full-project ESLint, the public Drive-link scan,
+  git diff --check, the Android testDebugUnitTest task, and the signed release
+  APK/AAB build. The release build completed with 126 Gradle tasks.
 - Firebase Authentication and Cloud Firestore are integrated and the APK is
-  configured for project campus4change. Production readiness is incomplete:
-  the live Firestore rules do not include the current Student ID claim flow;
-  the replacement release SHA-1/SHA-256 are not registered for Google
-  sign-in/App Check; the App Check Console lists com.campus4change as Not
-  registered, while Auth and Firestore App Check enforcement are Unenforced.
-  No production setting or data was changed in this task. Do not present the
-  live 1.3.0 backend path as fully verified.
-- Pad 7 was unavailable. Current-source two-physical-device flows, a clean
-  school-laptop rehearsal, production Auth/App Check verification, and CI on
-  this exact preview commit remain open. The evidence-weighted completion
-  estimate is 87.5%; see COMPLETION_AUDIT.md for the remaining gates.
-- Earlier local emulator work is retained in the historical entries below.
-  This release task followed the user's instruction to avoid emulators because
-  they make the PC lag.
+  configured for project campus4change. Production Firestore rules lack the
+  current Student ID claim flow. The replacement release SHA-1/SHA-256 are not
+  registered for Google sign-in/App Check. The App Check Console lists the
+  Android app as Not registered; Auth and Firestore App Check enforcement
+  are Unenforced. No production settings or data changed in this cycle.
+- Pad 7 was unavailable. Current-source two-device workflows, production
+  Firebase sign-in, release App Check, exact-source CI, and a clean
+  school-laptop rehearsal remain open. The evidence-weighted completion
+  estimate is 87.75%; see COMPLETION_AUDIT.md for remaining gates.
+- No emulator was started. The Redmi transport was not used.
 
 ## Improvement cycles
+
+### Google account-picker cancellation and work-account lock prompt, 2026-10-22
+
+- Reproduced the POCO Login screen's red Google sign-in error after the user
+  dismissed Credential Manager. App logs showed
+  GetCredentialCancellationException; the flow had returned a normal
+  cancellation, not a Firebase token-exchange error.
+- Updated Login and Sign Up to leave the form unchanged when the chooser is
+  dismissed. Added screen tests for both cancellation paths. The focused suite
+  passed all 10 tests, the complete suite passed 334 tests across 40 suites,
+  and ESLint passed.
+- Built and signature-verified the release APK and AAB. The release signer
+  remains the same. APK SHA-256 is e83a7feeaf307d526b6bb34334badbc193f1e218259bfd2aeb8c55f1c1cfa330; AAB SHA-256 is 3ae00c1033f7f82c1aed81353b70656b690542e872ebc78e4ab91060ef09ddb4.
+  The APK was installed over the existing release app on POCO; its pulled
+  base.apk hash matched the new artifact.
+- On POCO, dismissing the Google chooser now returns to Login with no red
+  error. Selecting the previously authorized work account displayed Google's
+  organization requirement to set a device screen lock. The lock screen was
+  not changed and sign-in did not complete. The user requested a different
+  account; selecting one awaits their choice because several alternatives are
+  present.
+- Firebase's replacement release SHA-1 remains unregistered. The signed
+  Google-to-Firebase path is still unverified; no production Firebase setting
+  or data changed. The updated APK replaces the previous asset on the existing
+  v1.3.0-preview.2 pre-release after the source and release notes are updated.
+
 
 ### Initial inspection, 2026-10-18
 

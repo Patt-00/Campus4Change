@@ -11,7 +11,7 @@ The current app version is 1.3.0, Android version code 6. GitHub hosts the
 current source snapshot and signed, installable APK in the
 [v1.3.0-preview.2 pre-release](https://github.com/Patt-00/Campus4Change/releases/tag/v1.3.0-preview.2).
 Download Campus4Change-v1.3.0-preview.2.apk from that page. Its SHA-256 is
-c2191dc45f42d5d9e2a4bbc63d515d1e045a3cbdd72af872b365c5d173fcc210. It is a
+e83a7feeaf307d526b6bb34334badbc193f1e218259bfd2aeb8c55f1c1cfa330. It is a
 release-signed APK, not a debug APK, and it bundles the application so it does
 not need Metro. The AAB was validated and remains local. The source and APK
 are on the preview branch/tag; main remains at its earlier baseline and has
@@ -20,9 +20,11 @@ not been updated for this pre-release.
 The POCO X4 GT is the only device used in the latest release check. The
 installed APK hash matches the release asset exactly; package metadata reports
 version 1.3.0/code 6, and a fresh launch reached MainActivity without a fatal
-or React Native startup error in the captured log. The device had validated Wi-Fi, but this launch did not attempt a live
-Firebase operation.
-Pad 7 was unavailable and no emulator was started in this release pass.
+or React Native startup error in the captured log. Dismissing Google Credential
+Manager now returns to Login without a false error. Selecting the tested work
+account showed an organization screen-lock requirement; no lock was set and
+Firebase sign-in did not complete. Pad 7 was unavailable and no emulator was
+started in this release pass.
 
 The codebase uses Firebase Authentication and Firestore and is configured for
 project campus4change. The live backend is not fully ready for a verified
@@ -34,7 +36,7 @@ Firestore App Check enforcement are currently Unenforced. Do not promise that
 all live sign-in and shared-data flows have passed on this APK. The current
 local source tests passed; live release authentication was not tested.
 
-The evidence-weighted completion estimate is 87.5%, not a teacher's grade.
+The evidence-weighted completion estimate is 87.75%, not a teacher's grade.
 The pre-release contains the current snapshot, but the main branch, exact-source
 CI, production Firebase checks, current-source two-device verification, and
 school-laptop rehearsal remain open. See COMPLETION_AUDIT.md for the evidence

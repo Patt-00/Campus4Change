@@ -74,7 +74,7 @@ test('login offers Google sign-in and calls the shared Firebase action', async (
   await ReactTestRenderer.act(async () => renderer.unmount());
 });
 
-test('login explains when Google sign-in returns without an account', async () => {
+test('login does not show an error when the Google account picker is dismissed', async () => {
   let renderer;
   await ReactTestRenderer.act(async () => {
     renderer = ReactTestRenderer.create(
@@ -97,7 +97,7 @@ test('login explains when Google sign-in returns without an account', async () =
     .findAllByType(Text)
     .map(node => node.props.children)
     .flat(Infinity);
-  expect(copy).toContain(
+  expect(copy).not.toContain(
     'Google sign-in did not complete. Try again or use email and password.',
   );
   await ReactTestRenderer.act(async () => renderer.unmount());
@@ -143,7 +143,7 @@ test('sign-up offers Google and moves Student ID collection to account setup', a
   await ReactTestRenderer.act(async () => renderer.unmount());
 });
 
-test('sign-up explains when Google sign-in returns without an account', async () => {
+test('sign-up does not show an error when the Google account picker is dismissed', async () => {
   let renderer;
   await ReactTestRenderer.act(async () => {
     renderer = ReactTestRenderer.create(
@@ -166,7 +166,7 @@ test('sign-up explains when Google sign-in returns without an account', async ()
     .findAllByType(Text)
     .map(node => node.props.children)
     .flat(Infinity);
-  expect(copy).toContain(
+  expect(copy).not.toContain(
     'Google sign-in did not complete. Try again or use email and password.',
   );
   await ReactTestRenderer.act(async () => renderer.unmount());
