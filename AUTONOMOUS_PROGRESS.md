@@ -23,9 +23,8 @@ or a production deployment.
   base APK hash matched the signed release artifact exactly. Package metadata
   showed version 1.3.0/code 6, and a fresh launch foregrounded MainActivity.
   The captured log sample contained no fatal exception, fatal signal, or
-  React Native startup error. The POCO reported no network connection during
-  this launch, so live Firebase authentication and Firestore access were not
-  tested. No emulator was started and Redmi was not used.
+  React Native startup error. The POCO had validated Wi-Fi during this launch, but no live Firebase
+  authentication or Firestore operation was attempted. No emulator was started and Redmi was not used.
 - Current local validation passed 334 Jest tests across 40 suites, full-project
   ESLint, the public Drive-link scan, git diff --check, the Android
   testDebugUnitTest task, and the signed release APK/AAB build. The full release

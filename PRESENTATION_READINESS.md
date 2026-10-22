@@ -20,8 +20,8 @@ not been updated for this pre-release.
 The POCO X4 GT is the only device used in the latest release check. The
 installed APK hash matches the release asset exactly; package metadata reports
 version 1.3.0/code 6, and a fresh launch reached MainActivity without a fatal
-or React Native startup error in the captured log. The device reported no
-network connection, so this launch did not verify live Firebase access.
+or React Native startup error in the captured log. The device had validated Wi-Fi, but this launch did not attempt a live
+Firebase operation.
 Pad 7 was unavailable and no emulator was started in this release pass.
 
 The codebase uses Firebase Authentication and Firestore and is configured for
@@ -103,7 +103,7 @@ No password, verification code, production API secret, or private signing creden
 | Risk | Effect | Response |
 | --- | --- | --- |
 | Live Firebase lacks the local Student ID claim rules | New account setup can fail when it tries to reserve an ID | Use local emulators for the demonstration. The active ruleset must be updated by an authorized project owner before live signup can pass. |
-| The v1.3.0 preview APK is now published, but the replacement release certificate remains unregistered in the 2026-10-22 read-only check | Google sign-in/App Check and release-signer behavior are unverified; production rules lack the current Student ID claim flow, and the POCO was offline during the latest launch | Use the preview APK to show the Android app. Do not promise live sign-in or shared cloud flows until the Firebase release checks pass. |
+| The v1.3.0 preview APK is now published, but the replacement release certificate remains unregistered in the 2026-10-22 read-only check | Google sign-in/App Check and release-signer behavior are unverified; production rules lack the current Student ID claim flow, and no live operation was attempted during the latest POCO launch | Use the preview APK to show the Android app. Do not promise live sign-in or shared cloud flows until the Firebase release checks pass. |
 | School network or Firebase service is unavailable | Shared live features cannot reach the backend | Use the local emulator setup above if the school laptop has the required SDK/JDK and the QA APK can be built. Rehearse it on the presentation machine before relying on it. |
 | Google sign-in with release signer and Play Integrity | Release-only authentication/attestation behavior is unknown | For a scoped walkthrough, use verified email/password accounts and report the release-only gates accurately. |
 | OS push or live calls | These functions are not implemented | Demonstrate the in-app notification and messaging flows; do not promise OS push, voice, or video. |

@@ -17,8 +17,8 @@ c2191dc45f42d5d9e2a4bbc63d515d1e045a3cbdd72af872b365c5d173fcc210. It passed
 APK signature and package validation. The AAB passed signature and ZIP
 integrity checks and remains local. The POCO X4 GT installed APK hash matches
 the signed artifact exactly; a fresh launch reached MainActivity without a
-fatal startup marker in the captured logs. The device reported no network
-connection, so no live Firebase flow was attempted.
+fatal startup marker in the captured logs. The POCO had validated Wi-Fi,
+but no live Firebase operation was attempted.
 
 The full JavaScript suite passed 334 tests across 40 suites, full-project
 ESLint passed, the public Drive-link scan and git diff check passed, the
@@ -308,7 +308,7 @@ The six category weights below follow the autonomous goal. Each category is spli
 | --- | ---: | ---: | --- | --- | --- |
 | Overview and technical architecture | 2 | 2 | COMPLETE AND VERIFIED | README, About, architecture, and Firebase setup describe the application and data flow. | Low |
 | Demonstration sequence | 3 | 2.25 | PARTIALLY VERIFIED | On 2026-10-22, the current QA build on POCO completed local Auth Emulator signup, TIP profile and Student ID setup, email verification through the in-app refresh action, and access to the verified Tutor Directory. The synthetic account and data were removed. Earlier builds covered photo capture/save, tutor/group flows, and session actions. Current-source two-device flows and a clean school-laptop rehearsal remain open; the isolated source snapshot is not a GitHub clone. | High |
-| Accounts, services, devices, and install steps | 3 | 1.75 | PARTIALLY IMPLEMENTED | The current signed 1.3.0/code 6 APK is downloadable from the v1.3.0-preview.2 GitHub pre-release and is installed on POCO with a matching hash. The app cold-launched, but the phone was offline and release Firebase authentication remains unverified. The AAB remains local. Pad 7 and the school-laptop rehearsal are still open. | Critical |
+| Accounts, services, devices, and install steps | 3 | 1.75 | PARTIALLY IMPLEMENTED | The current signed 1.3.0/code 6 APK is downloadable from the v1.3.0-preview.2 GitHub pre-release and is installed on POCO with a matching hash. The app cold-launched with validated Wi-Fi, but release Firebase authentication remains unverified because no live operation was attempted. The AAB remains local. Pad 7 and the school-laptop rehearsal are still open. | Critical |
 | Presentation risks and fallback | 2 | 1 | PARTIALLY IMPLEMENTED | The local emulator fallback has been partially rehearsed on POCO, including signup, profile setup, verification, and directory access. It has not been rehearsed from a clean school-laptop clone or across two physical devices. | Medium |
 
 ## Prioritized completion checklist
