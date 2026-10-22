@@ -39,7 +39,8 @@ test('Firebase About copy matches verified-email group access', async () => {
   );
   expect(copy).toContain('Google sign-in on Android');
   expect(copy).toContain('complete the required TIP account setup');
-  expect(copy).toContain('Student IDs stay private and must be unique');
+  expect(copy).toContain('Student IDs stay private');
+  expect(copy).not.toContain('must be unique');
   expect(copy).toContain('verification emails');
   expect(copy).toContain(
     'Email verification confirms control of an address, not school affiliation',
@@ -51,5 +52,50 @@ test('Firebase About copy matches verified-email group access', async () => {
   expect(copy).toContain('TIP campuses in Quezon City and Manila');
   expect(copy).toContain('connect students across the Philippines and around the world');
   expect(copy).toContain('does not process payments');
+  await act(async () => renderer.unmount());
+});
+
+test('signed-out Firebase About copy does not imply an active device-only account', async () => {
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(
+      <SafeAreaProvider>
+        <AboutScreen back={jest.fn()} firebaseConfigured />
+      </SafeAreaProvider>,
+    );
+  });
+
+  const copy = renderer.root
+    .findAllByType(Text)
+    .map(node => node.props.children)
+    .filter(value => typeof value === 'string')
+    .join(' ');
+
+  expect(copy).toContain('No account is currently signed in.');
+  expect(copy).toContain('Sign up or sign in with Firebase');
+  expect(copy).not.toContain('This account is saved only on this Android device.');
+  expect(copy).not.toContain('This device-only account stays private.');
+  await act(async () => renderer.unmount());
+});
+
+test('signed-in device-only Firebase About copy remains account-specific', async () => {
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(
+      <SafeAreaProvider>
+        <AboutScreen back={jest.fn()} firebaseConfigured signedIn />
+      </SafeAreaProvider>,
+    );
+  });
+
+  const copy = renderer.root
+    .findAllByType(Text)
+    .map(node => node.props.children)
+    .filter(value => typeof value === 'string')
+    .join(' ');
+
+  expect(copy).toContain('This account is saved only on this Android device.');
+  expect(copy).toContain('This device-only account stays private.');
+  expect(copy).not.toContain('No account is currently signed in.');
   await act(async () => renderer.unmount());
 });

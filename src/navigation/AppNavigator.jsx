@@ -3,6 +3,8 @@ import {
   ActivityIndicator,
   Alert,
   BackHandler,
+  Image,
+  NativeModules,
   StyleSheet,
   Text,
   View,
@@ -45,6 +47,7 @@ import { AppButton } from '../shared/components/AppButton';
 import { Empty, NoticeBanner } from '../shared/components/UI';
 import { RouteTransition } from '../shared/components/RouteTransition';
 import { Screen } from '../shared/components/Screen';
+import { StatusBarSafeArea } from '../shared/components/StatusBarSafeArea';
 import { uid } from '../shared/data/utils';
 import { useSharedGroups } from '../features/groups/hooks/useSharedGroups';
 import { useSharedGroupReports } from '../features/groups/hooks/useSharedGroupReports';
@@ -58,6 +61,7 @@ import {
 
 import { hasConflict } from '../shared/state/reducer';
 import {
+  discardProfilePhotoDraft,
   hasCompletedIntroduction,
   markIntroductionCompleted,
 } from '../shared/state/storage';
@@ -93,7 +97,9 @@ const restoreStyles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 28,
   },
+  logo: { width: 260, height: 260, marginBottom: 20 },
   message: { marginTop: 16 },
 });
 
@@ -104,6 +110,9 @@ export function AppNavigator() {
   const [transitionDirection, setTransitionDirection] = useState('forward');
   const [editFormDirty, setEditFormDirty] = useState(false);
   const startupRouteInitialized = useRef(false);
+  const cameraRecoveryAccount = useRef(null);
+  const routeRef = useRef(route);
+  routeRef.current = route;
   const routeKey = JSON.stringify(route);
   const renderTransition = children => (
     <RouteTransition key={routeKey} direction={transitionDirection}>
@@ -125,6 +134,7 @@ export function AppNavigator() {
     emailVerificationMessage,
     emailVerificationToast,
     dismissVerificationToast,
+    retryStudentIdClaim,
   } =
     useCampusSession({
       onSignedIn: (accountState, claimStatus) => {
@@ -300,6 +310,35 @@ export function AppNavigator() {
     },
     [route, state],
   );
+  useEffect(() => {
+    const storage = NativeModules.CampusStorage;
+    if (
+      restoring ||
+      introductionComplete === null ||
+      route.page !== 'Home' ||
+      !activeAccountId ||
+      cameraRecoveryAccount.current === activeAccountId ||
+      typeof storage?.consumePendingProfilePhoto !== 'function'
+    ) {
+      return undefined;
+    }
+
+    cameraRecoveryAccount.current = activeAccountId;
+    const homeRoute = route;
+    let active = true;
+    storage
+      .consumePendingProfilePhoto(activeAccountId)
+      .then(photoUri => {
+        if (active && photoUri && routeRef.current === homeRoute) {
+          go('Edit Profile');
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
+  }, [activeAccountId, go, introductionComplete, restoring, route]);
   const navigateBack = useCallback(() => {
     setEditFormDirty(false);
     setTransitionDirection('backward');
@@ -310,6 +349,21 @@ export function AppNavigator() {
       setRoute({ page: state ? 'Home' : 'Onboarding' });
     }
   }, [history, state]);
+  const discardEditChanges = useCallback(async () => {
+    try {
+      if (route.page === 'Edit Profile' && activeAccountId) {
+        await discardProfilePhotoDraft(activeAccountId);
+      }
+      navigateBack();
+    } catch (error) {
+      Alert.alert(
+        'Could not discard changes',
+        error instanceof Error
+          ? error.message
+          : 'Please try again before leaving your profile.',
+      );
+    }
+  }, [activeAccountId, navigateBack, route.page]);
   const back = useCallback(
     options => {
       if (
@@ -327,7 +381,7 @@ export function AppNavigator() {
             {
               text: 'Discard changes',
               style: 'destructive',
-              onPress: navigateBack,
+              onPress: discardEditChanges,
             },
           ],
         );
@@ -335,7 +389,7 @@ export function AppNavigator() {
       }
       navigateBack();
     },
-    [editFormDirty, navigateBack, route.page],
+    [discardEditChanges, editFormDirty, navigateBack, route.page],
   );
   const startFromOnboarding = useCallback(
     () => go(introductionComplete ? 'Login' : 'Introduction'),
@@ -374,14 +428,21 @@ export function AppNavigator() {
   }, [back, history.length, route.page, sessionType, state, studentIdClaimStatus]);
   if (restoring || introductionComplete === null) {
     return (
-      <Screen title="Campus4Change">
+      <StatusBarSafeArea style={s.safe}>
         <View style={restoreStyles.content}>
+          <Image
+            source={require('../shared/assets/campus4change-logo.png')}
+            style={restoreStyles.logo}
+            resizeMode="contain"
+            accessible
+            accessibilityLabel="Campus4Change logo"
+          />
           <ActivityIndicator color="#52d6e8" size="large" />
           <Text style={[s.muted, s.center, restoreStyles.message]}>
             {restoring ? 'Restoring your account...' : 'Preparing your app...'}
           </Text>
         </View>
-      </Screen>
+      </StatusBarSafeArea>
     );
   }
   if (route.page === 'Onboarding') {
@@ -421,6 +482,8 @@ export function AppNavigator() {
         onDirtyChange={setEditFormDirty}
         profile={state.profile}
         firebaseAccount={sessionType === 'firebase'}
+        studentIdClaimStatus={studentIdClaimStatus}
+        retryStudentIdClaim={retryStudentIdClaim}
         save={saveProfileUpdate}
         onComplete={() => go('Home')}
       />,
@@ -503,6 +566,7 @@ export function AppNavigator() {
           back={back}
           firebaseConfigured={auth.firebaseConfigured}
           cloudSession={sessionType === 'firebase'}
+          signedIn={Boolean(sessionType)}
         />
       );
       break;

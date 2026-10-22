@@ -26,6 +26,9 @@ let mockClearGoogleCredentialState;
 let mockInitializeAppCheck;
 let mockNativeAppCheckToken;
 let mockFirebaseAuthValues;
+let mockFirebaseEmulatorHost;
+let mockConnectAuthEmulator;
+let mockConnectFirestoreEmulator;
 
 jest.mock('react-native', () => ({
   NativeModules: {
@@ -63,7 +66,7 @@ jest.mock('../src/shared/backend/firebaseConfig', () => ({
     androidAppId: '1:123456789:android:test-app',
   },
   googleWebClientId: '722562628798-test.apps.googleusercontent.com',
-  firebaseEmulatorHost: '',
+  firebaseEmulatorHost: mockFirebaseEmulatorHost,
   isFirebaseConfigured: () => true,
 }));
 
@@ -90,6 +93,7 @@ jest.mock('firebase/auth', () => ({
   sendEmailVerification: (...args) => mockSendEmailVerification(...args),
   reload: (...args) => mockReload(...args),
   getIdToken: (...args) => mockGetIdToken(...args),
+  connectAuthEmulator: (...args) => mockConnectAuthEmulator(...args),
   updateProfile: (...args) => mockUpdateProfile(...args),
   deleteUser: jest.fn(async () => {}),
 }));
@@ -101,6 +105,7 @@ jest.mock('firebase/firestore', () => ({
   getDoc: (...args) => mockGetDoc(...args),
   getDocs: (...args) => mockGetDocs(...args),
   getCountFromServer: (...args) => mockGetCountFromServer(...args),
+  connectFirestoreEmulator: (...args) => mockConnectFirestoreEmulator(...args),
   setDoc: (...args) => mockSetDoc(...args),
   writeBatch: (...args) => mockWriteBatch(...args),
   serverTimestamp: (...args) => mockServerTimestamp(...args),
@@ -114,6 +119,9 @@ jest.mock('firebase/app-check', () => ({
 }));
 
 beforeEach(() => {
+  mockFirebaseEmulatorHost = '';
+  mockConnectAuthEmulator = jest.fn();
+  mockConnectFirestoreEmulator = jest.fn();
   mockFirebaseAuthValues = new Map();
   mockAuthObserver = null;
   mockApp = {};
@@ -226,6 +234,26 @@ test('Android Firebase initializes native-backed App Check before account servic
     storageBucket: firebaseConfig.storageBucket,
   });
   expect(firebase.firebaseEnabled).toBe(true);
+});
+
+test('Firebase emulator mode skips App Check and connects Auth and Firestore locally', () => {
+  mockFirebaseEmulatorHost = '127.0.0.1';
+
+  const firebase = require('../src/shared/backend/firebase');
+
+  expect(firebase.firebaseEnabled).toBe(true);
+  expect(mockInitializeAppCheck).not.toHaveBeenCalled();
+  expect(mockNativeAppCheckToken).not.toHaveBeenCalled();
+  expect(mockConnectAuthEmulator).toHaveBeenCalledWith(
+    mockAuth,
+    'http://127.0.0.1:9099',
+    { disableWarnings: true },
+  );
+  expect(mockConnectFirestoreEmulator).toHaveBeenCalledWith(
+    mockDb,
+    '127.0.0.1',
+    8080,
+  );
 });
 
 test('signup listener receives the new account before Student ID setup', async () => {

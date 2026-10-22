@@ -586,6 +586,46 @@ test('Student ID changes stop when the previous claim cannot be checked', async 
   expect(mockSaveCloudState).not.toHaveBeenCalled();
 });
 
+test('retrying an offline Student ID claim check accepts the verified existing claim', async () => {
+  const account = { ...firebaseUser('firebase-a'), studentId: '10001' };
+  const cloud = makeQaState(account);
+  cloud.profile.studentId = account.studentId;
+  cloud.updatedAt = Date.now() + 10000;
+  mockCloudStateForUser.set(account.uid, cloud);
+
+  const firebase = require('../src/shared/backend/firebase');
+  firebase.firebaseStudentIdClaimed.mockRejectedValueOnce(
+    new Error('Firestore is unavailable.'),
+  );
+  mockSaveCloudState.mockRejectedValueOnce(
+    new Error('Firestore is unavailable.'),
+  );
+  await render();
+  await act(async () => {
+    mockFirebaseObserver.onUser(account);
+    await flush();
+    await flush();
+  });
+
+  expect(currentSession.state.profile.studentId).toBe('10001');
+  expect(currentSession.studentIdClaimStatus).toBe('unknown');
+  mockSaveCloudState.mockClear();
+  firebase.firebaseStudentIdClaimed.mockResolvedValueOnce(true);
+
+  let retryResult;
+  await act(async () => {
+    retryResult = await currentSession.retryStudentIdClaim();
+    await flush();
+  });
+
+  expect(retryResult).toBe('claimed');
+  expect(currentSession.studentIdClaimStatus).toBe('claimed');
+  expect(currentSession.state.profile.studentId).toBe('10001');
+  expect(mockSaveCloudState).not.toHaveBeenCalled();
+
+  await act(async () => renderer.unmount());
+});
+
 test('cloud save failure still signs Firebase out after the local snapshot is saved', async () => {
   const account = firebaseUser('firebase-a');
   const local = makeQaState(account);

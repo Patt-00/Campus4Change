@@ -846,6 +846,96 @@ const topicIdeas = {
       'Policy writing and legislative research',
     ],
   },
+  artificialIntelligence: {
+    core: [
+      'Artificial intelligence foundations',
+      'Programming for intelligent systems',
+      'Data structures and algorithms',
+      'Discrete mathematics and logic',
+      'Probability and statistics for AI',
+      'Data preparation and feature engineering',
+      'Search, planning, and problem solving',
+      'Knowledge representation and reasoning',
+      'Machine learning fundamentals',
+      'Neural networks and deep learning',
+      'Responsible AI, ethics, and privacy',
+      'Evaluating AI systems',
+    ],
+    specialization: [
+      'Natural language processing',
+      'Computer vision and image recognition',
+      'Reinforcement learning',
+      'Intelligent agents and expert systems',
+      'Generative AI and language models',
+      'Advanced neural network architectures',
+      'Predictive modeling and data mining',
+      'Robotics and autonomous systems',
+      'Explainable and interpretable AI',
+      'Multimodal AI applications',
+      'AI deployment and MLOps',
+      'Human-centered intelligent applications',
+    ],
+  },
+  designTechnology: {
+    core: [
+      'Design fundamentals and creative methods',
+      'Design research and user needs',
+      'Visual communication and technical drawing',
+      'Product design studio',
+      'Interior design studio',
+      'Visual communication design studio',
+      'Digital tools for design practice',
+      'Materials, processes, and fabrication',
+      'Design history, theory, and criticism',
+      'Human-centered design and usability',
+      'Professional practice, ethics, and design codes',
+      'Design project planning and documentation',
+    ],
+    specialization: [
+      'Product prototyping and iterative testing',
+      'Interior space planning and detailing',
+      'Graphic design and visual identity',
+      'Digital interaction and interface design',
+      '3D modeling and rendering',
+      'Sustainable materials and circular design',
+      'Accessibility and inclusive design',
+      'Exhibition and spatial experience design',
+      'Interactive media and creative technology',
+      'Philippine design heritage and cultural contexts',
+      'User research and usability testing',
+      'Design entrepreneurship and innovation',
+    ],
+  },
+  internalAuditing: {
+    core: [
+      'Internal auditing standards and foundations',
+      'Audit engagement planning and scoping',
+      'Risk assessment and control design',
+      'Governance, risk, and compliance',
+      'Audit evidence and workpaper documentation',
+      'Financial reporting and assurance',
+      'Tax laws and regulatory frameworks',
+      'Business process and operational audits',
+      'Accounting systems and information technology controls',
+      'Audit data analysis and sampling',
+      'Professional ethics and auditor independence',
+      'Internal audit reports and communication',
+    ],
+    specialization: [
+      'IT audit and cybersecurity controls',
+      'Fraud examination and forensic methods',
+      'Enterprise risk management',
+      'Continuous auditing and monitoring',
+      'Operational and performance auditing',
+      'Compliance audits and regulatory testing',
+      'Internal control evaluation',
+      'Governance and assurance reviews',
+      'Audit analytics and continuous monitoring',
+      'Accounting information system audits',
+      'Internal audit function management',
+      'Internal audit research and professional certification',
+    ],
+  },
 };
 
 function slug(value) {
@@ -882,8 +972,8 @@ function college(campusId, id, name, sourcePath, entries) {
 }
 
 // Undergraduate program names and campus groupings follow TIP's current
-// program pages. Topic prompts draw on published program curricula and focus
-// areas; they are suggestions, not a complete or official course list.
+// program pages. Topic prompts draw on published curricula, program outcomes,
+// and focus areas; they are suggestions, not an official course list.
 export const tipProgramGroups = [
   {
     id: 'manila',
@@ -900,6 +990,7 @@ export const tipProgramGroups = [
         ['Mechanical Engineering', 'mechanical'],
       ]),
       college('manila', 'computer-studies', 'College of Computer Studies', 'tip-manila/college-of-computer-studies/outcomes-based-education/', [
+        ['Artificial Intelligence', 'artificialIntelligence'],
         ['Computer Science', 'computerScience'],
         ['Data Science and Analytics', 'dataScience'],
         ['Entertainment and Multimedia Computing', 'multimedia'],
@@ -908,6 +999,7 @@ export const tipProgramGroups = [
       college('manila', 'business-education', 'College of Business Education', 'tip-manila/college-of-business-education/outcomes-based-education/', [
         ['Accountancy', 'accountancy'],
         ['Accounting Information System', 'accountingInformationSystem'],
+        ['Internal Auditing', 'internalAuditing'],
         ['Business Administration', 'businessAdministration'],
         ['Financial Management', 'financialManagement'],
         ['Human Resource Management', 'humanResourceManagement'],
@@ -927,6 +1019,7 @@ export const tipProgramGroups = [
         ['Architecture', 'architecture'],
         ['Civil Engineering', 'civil'],
         ['Computer Engineering', 'computerEngineering'],
+        ['Design and Technology', 'designTechnology'],
         ['Electrical Engineering', 'electrical'],
         ['Electronics Engineering', 'electronics'],
         ['Environmental and Sanitary Engineering', 'environmental'],
@@ -941,6 +1034,7 @@ export const tipProgramGroups = [
       ]),
       college('quezon-city', 'business-education', 'College of Business Education', 't-i-p-quezon-city/college-of-business-education/outcomes-based-education/', [
         ['Accountancy', 'accountancy'],
+        ['Accounting Information Systems', 'accountingInformationSystem'],
         ['Business Administration', 'businessAdministration'],
         ['Financial Management', 'financialManagement'],
         ['Human Resource Management', 'humanResourceManagement'],
@@ -973,8 +1067,8 @@ export const tipPrograms = tipProgramGroups.flatMap(campus =>
   ),
 );
 
-export const tipProgramCatalogVerifiedAt = '2026-10-17';
-export const tipTopicSuggestionsVerifiedAt = '2026-10-17';
+export const tipProgramCatalogVerifiedAt = '2026-10-22';
+export const tipTopicSuggestionsVerifiedAt = '2026-10-22';
 
 export function getTipProgram(programId) {
   return tipPrograms.find(item => item.id === programId) || null;

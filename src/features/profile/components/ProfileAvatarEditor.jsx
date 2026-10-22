@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   NativeModules,
+  PermissionsAndroid,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -22,8 +23,45 @@ export function ProfileAvatarEditor({
   photoUri,
   onChange,
 }) {
-  const [busy, setBusy] = useState(false);
+  const [busyAction, setBusyAction] = useState(null);
   const [error, setError] = useState('');
+  const lastRecoveryAccount = useRef(null);
+  const changeHandler = useRef(onChange);
+  changeHandler.current = onChange;
+  const busy = busyAction !== null;
+
+  useEffect(() => {
+    const storage = NativeModules.CampusStorage;
+    if (
+      !accountId ||
+      typeof storage?.consumePendingProfilePhoto !== 'function' ||
+      lastRecoveryAccount.current === accountId
+    ) {
+      return undefined;
+    }
+    lastRecoveryAccount.current = accountId;
+    let active = true;
+    storage
+      .consumePendingProfilePhoto(accountId)
+      .then(uri => {
+        if (active && uri) {
+          setError('');
+          changeHandler.current({ photoUri: uri });
+        }
+      })
+      .catch(recoveryError => {
+        if (active) {
+          setError(
+            recoveryError instanceof Error
+              ? recoveryError.message
+              : 'Could not restore the captured profile photo. Try taking it again.',
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [accountId]);
 
   async function choosePhoto() {
     const storage = NativeModules.CampusStorage;
@@ -31,7 +69,7 @@ export function ProfileAvatarEditor({
       setError('Photo selection is available in the Android app build.');
       return;
     }
-    setBusy(true);
+    setBusyAction('picker');
     setError('');
     try {
       const uri = await storage.pickProfilePhoto(accountId);
@@ -45,7 +83,52 @@ export function ProfileAvatarEditor({
           : 'Could not select this photo. Try another image.',
       );
     } finally {
-      setBusy(false);
+      setBusyAction(null);
+    }
+  }
+
+  async function takePhoto() {
+    const storage = NativeModules.CampusStorage;
+    if (!storage?.captureProfilePhoto) {
+      setError('Camera capture is available in the Android app build.');
+      return;
+    }
+    if (busy) return;
+
+    setBusyAction('camera');
+    setError('');
+    try {
+      const permission = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.CAMERA,
+        {
+          title: 'Use your camera',
+          message:
+            'Campus4Change uses the camera only when you choose to take a profile photo. The image stays on this device.',
+          buttonPositive: 'Continue',
+          buttonNegative: 'Not now',
+        },
+      );
+      if (permission !== PermissionsAndroid.RESULTS.GRANTED) {
+        setError(
+          permission === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN
+            ? 'Camera permission is off in Android settings. You can still choose a photo or avatar.'
+            : 'Camera access is needed to take a photo. You can still choose a photo or avatar.',
+        );
+        return;
+      }
+
+      const uri = await storage.captureProfilePhoto(accountId);
+      if (uri) {
+        onChange({ photoUri: uri });
+      }
+    } catch (captureError) {
+      setError(
+        captureError instanceof Error
+          ? captureError.message
+          : 'Could not take this photo. You can choose a photo or avatar instead.',
+      );
+    } finally {
+      setBusyAction(null);
     }
   }
 
@@ -84,7 +167,14 @@ export function ProfileAvatarEditor({
       </View>
 
       <AppButton
-        title={busy ? 'OPENING PHOTO PICKER...' : 'CHOOSE A PHOTO'}
+        title={busyAction === 'camera' ? 'OPENING CAMERA...' : 'TAKE A PHOTO'}
+        outline
+        disabled={busy}
+        onPress={takePhoto}
+        style={styles.cameraButton}
+      />
+      <AppButton
+        title={busyAction === 'picker' ? 'OPENING PHOTO PICKER...' : 'CHOOSE A PHOTO'}
         outline
         disabled={busy}
         onPress={choosePhoto}
@@ -121,7 +211,7 @@ export function ProfileAvatarEditor({
         })}
       </View>
       <Text style={styles.privacyNote}>
-        Your photo stays on this device. Avatar presets can appear with your tutor listing.
+        Camera opens only when you choose Take a Photo. Photos stay on this device; avatar presets can appear with your tutor listing.
       </Text>
       <ErrorText value={error} />
     </View>
@@ -135,8 +225,12 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   photoButton: {
-    marginTop: 16,
+    marginTop: 8,
     marginBottom: 4,
+  },
+  cameraButton: {
+    marginTop: 16,
+    marginBottom: 0,
   },
   avatarLabel: {
     fontFamily: 'Inter-SemiBold',

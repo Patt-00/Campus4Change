@@ -2,6 +2,7 @@ import React from 'react';
 import {
   Alert,
   BackHandler,
+  NativeModules,
   Text,
   TextInput,
   TouchableOpacity,
@@ -22,6 +23,7 @@ const mockStore = {
     mockIntroductionComplete = true;
     return true;
   }),
+  discardProfilePhotoDraft: jest.fn(async () => true),
   isStudentIdUnique: jest.fn(async () => true),
   signIn: jest.fn(async () => {
     mockActiveUser = mockCurrent.id;
@@ -77,6 +79,8 @@ jest.mock('../src/shared/state/storage', () => ({
   deviceStore: () => mockStore,
   hasCompletedIntroduction: () => mockStore.hasCompletedIntroduction(),
   markIntroductionCompleted: () => mockStore.markIntroductionCompleted(),
+  discardProfilePhotoDraft: expectedUserId =>
+    mockStore.discardProfilePhotoDraft(expectedUserId),
 }));
 jest.mock('react-native-safe-area-context', () => {
   const R = require('react');
@@ -206,6 +210,30 @@ test('completed introduction is skipped on the next cold start', async () => {
   expect(hasText('Welcome back!')).toBe(true);
   expect(hasText('GET STARTED')).toBe(false);
   expect(mockStore.hasCompletedIntroduction).toHaveBeenCalledTimes(1);
+});
+test('returns to profile editing when a camera result is recovered after process recreation', async () => {
+  const previousStorage = NativeModules.CampusStorage;
+  const consumePendingProfilePhoto = jest
+    .fn()
+    .mockResolvedValue('file:///private/recovered-photo.jpg');
+  NativeModules.CampusStorage = { consumePendingProfilePhoto };
+
+  try {
+    await login();
+    await ReactTestRenderer.act(async () => {
+      await new Promise(resolve => setImmediate(resolve));
+    });
+
+    expect(consumePendingProfilePhoto).toHaveBeenCalledWith(qaAccount.id);
+    expect(hasText('Edit Profile')).toBe(true);
+    expect(hasText('Remove photo from this device')).toBe(true);
+  } finally {
+    if (previousStorage === undefined) {
+      delete NativeModules.CampusStorage;
+    } else {
+      NativeModules.CampusStorage = previousStorage;
+    }
+  }
 });
 test('an unavailable introduction preference falls back to first-run onboarding', async () => {
   mockStore.hasCompletedIntroduction.mockRejectedValueOnce(
@@ -550,11 +578,23 @@ test('discarding unsaved profile changes requires confirmation', async () => {
   );
   expect(hasText('Edit Profile')).toBe(true);
 
+  const keepEditing = alert.mock.calls.at(-1)?.[2]?.find(
+    button => button.text === 'Keep editing',
+  );
+  expect(keepEditing).toBeDefined();
+  expect(keepEditing?.onPress).toBeUndefined();
+  expect(mockStore.discardProfilePhotoDraft).not.toHaveBeenCalled();
+  expect(hasText('Edit Profile')).toBe(true);
+
+  await press('Back');
+
   const discard = alert.mock.calls.at(-1)?.[2]?.find(
     button => button.text === 'Discard changes',
   );
   expect(discard?.onPress).toBeDefined();
   await ReactTestRenderer.act(async () => discard.onPress());
+  expect(mockStore.discardProfilePhotoDraft).toHaveBeenCalledTimes(1);
+  expect(mockStore.discardProfilePhotoDraft).toHaveBeenCalledWith(qaAccount.id);
 
   await press('Edit profile');
   const nameInput = renderer.root

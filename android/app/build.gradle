@@ -102,6 +102,16 @@ def releaseSigningConfigured = (
     } && new File(releaseSigningValues.storeFile ?: "").isAbsolute()
         && file(releaseSigningValues.storeFile ?: "").isFile()
 )
+def c4cQaEmulatorsEnabled = providers.gradleProperty("c4cQaEmulators").orNull == "true"
+def c4cQaApplicationIdSuffix = providers.gradleProperty("c4cQaApplicationIdSuffix").orNull
+if (c4cQaApplicationIdSuffix != null) {
+    if (!c4cQaEmulatorsEnabled) {
+        throw new GradleException("C4C QA application ID suffix requires the emulator-QA build flag.")
+    }
+    if (!(c4cQaApplicationIdSuffix ==~ /^\.[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)*$/)) {
+        throw new GradleException("C4C QA application ID suffix must start with a dot and use valid package segments.")
+    }
+}
 def appProject = project
 
 /**
@@ -157,6 +167,9 @@ android {
     }
     buildTypes {
         debug {
+            if (c4cQaApplicationIdSuffix != null) {
+                applicationIdSuffix c4cQaApplicationIdSuffix
+            }
             signingConfig signingConfigs.debug
         }
         release {
@@ -186,6 +199,7 @@ gradle.taskGraph.whenReady { taskGraph ->
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
+    implementation("androidx.core:core-splashscreen:1.2.0")
     implementation(platform("com.google.firebase:firebase-bom:34.19.0"))
     releaseImplementation("com.google.firebase:firebase-appcheck-playintegrity")
     debugImplementation("com.google.firebase:firebase-appcheck-debug")

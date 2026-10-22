@@ -63,6 +63,7 @@ export function TutorSearchScreen({
     ...filteredResults.filter(tutor => !recommendedIds.has(tutor.id)),
   ];
   const filtered = !!query.trim() || !!subject || available || top;
+  const directoryLocked = sharedAccount && !emailVerified && !list.length;
   return (
     <Screen title="Find People" back={back} go={go} tab="Home">
       <Field
@@ -161,12 +162,9 @@ export function TutorSearchScreen({
         </Text>
       )}
       <Text style={s.section}>
-        {filtered
-          ? 'People search results'
-          : sharedAccount
-            ? 'Public community profiles'
-            : 'Your public profile'} · {results.length}
-        {hasMoreTutors ? ' shown' : ''}
+        {directoryLocked
+          ? 'Tutor directory'
+          : `${filtered ? 'People search results' : sharedAccount ? 'Public community profiles' : 'Your public profile'} · ${results.length}${hasMoreTutors ? ' shown' : ''}`}
       </Text>
       {results.map((t, index) => {
         const isRecommended = recommendedIds.has(t.id);

@@ -1,6 +1,39 @@
 # Verification history
 
-## Current release v1.2.2 — 2026-10-17
+## Latest local release v1.3.0 — 2026-10-22 (not published)
+
+- After the camera-result auto-resume source change, scripts/build-release.sh
+  built local version 1.3.0/code 6 APK and AAB artifacts. The APK SHA-256 is
+  c2191dc45f42d5d9e2a4bbc63d515d1e045a3cbdd72af872b365c5d173fcc210; the
+  AAB SHA-256 is
+  98e8c92bef8ce215e64f540ce36fd388713d18d79afed3ab843f7b98962d349a.
+- The APK passed apksigner verify using the v3 release certificate (SHA-1
+  21241e9a18ab8531f5b383a55d8714c980c807d5, SHA-256
+  0c652406cf3b6051a4f96570807ef738d48a48802ee10e0676055d61fef59ee7). The
+  AAB passed jarsigner -verify, ZIP integrity, and Bundletool 1.18.3
+  validation. Its base manifest reports com.campus4change, version 1.3.0,
+  version code 6, min API 24, and target API 36. Both release manifests omit
+  `USE_BIOMETRIC` and `USE_FINGERPRINT`; AndroidX Credential Manager remains
+  installed for Google sign-in.
+- adb install -r updated POCO X4 GT in place. The installed certificate
+  matched, and the pulled base.apk SHA-256 matched the local APK exactly.
+  The cold launch foregrounded com.campus4change/.MainActivity on the
+  sign-in/account-creation screen; the sampled current-process logs contained
+  no fatal or React Native error markers. Existing app data was preserved.
+  The Login screen still shows Continue with Google and no biometric option.
+  The camera process-recreation route is verified on the separate QA build;
+  release camera capture and release Firebase sign-in were not tested.
+  Empty sign-in displayed its email/password validation, and empty account
+  creation displayed local name/email/password validation. Source control flow
+  returns before Firebase auth calls for both invalid submissions. Android
+  Back returned to Login; no credentials or account data were entered.
+- These artifacts are local only. The release certificate remains absent from
+  Firebase's registered SHA list, and release Google sign-in remains unverified.
+  The App Check Console lists the Android app as Not registered; Authentication
+  and Cloud Firestore enforcement are Unenforced. No production or GitHub state
+  changed.
+
+## Latest published release v1.2.2 — 2026-10-17
 
 - The private-signed release is published at
   https://github.com/Patt-00/Campus4Change/releases/tag/v1.2.2. The APK is

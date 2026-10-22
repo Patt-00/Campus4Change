@@ -143,6 +143,13 @@ test('account setup requires a numeric Student ID and TIP academic details', asy
     .findAllByType(TouchableOpacity)
     .find(button => button.props.accessibilityLabel === 'Choose your TIP course or program');
   await ReactTestRenderer.act(async () => courseSelector.props.onPress());
+  const programSearch = renderer.root
+    .findAllByType(TextInput)
+    .find(input => input.props.placeholder === 'Search programs or colleges');
+  expect(programSearch).toBeDefined();
+  await ReactTestRenderer.act(async () =>
+    programSearch.props.onChangeText('Computer Science'),
+  );
   const programOption = renderer.root
     .findAllByType(TouchableOpacity)
     .find(button => button.props.accessibilityLabel?.includes('Computer Science'));
@@ -219,6 +226,79 @@ test('a duplicate Student ID keeps account setup open with the backend error', a
       String(node.props.children).includes('That Student ID is already in use'),
     ),
   ).toBe(true);
+  await ReactTestRenderer.act(async () => renderer.unmount());
+});
+
+test('an unknown existing Student ID claim shows a read-only retry screen', async () => {
+  const save = jest.fn();
+  const retryStudentIdClaim = jest.fn(async () => 'unknown');
+  let renderer;
+  await ReactTestRenderer.act(async () => {
+    renderer = ReactTestRenderer.create(
+      <SafeAreaProvider>
+        <EditProfileScreen
+          setup
+          firebaseAccount
+          studentIdClaimStatus="unknown"
+          retryStudentIdClaim={retryStudentIdClaim}
+          profile={profile}
+          save={save}
+        />
+      </SafeAreaProvider>,
+    );
+  });
+
+  expect(renderer.root.findAllByType(TextInput)).toHaveLength(0);
+  expect(
+    renderer.root.findAllByType(Text).some(node =>
+      String(node.props.children).includes(
+        'Student ID verification is unavailable',
+      ),
+    ),
+  ).toBe(true);
+  expect(
+    renderer.root.findAllByType(TouchableOpacity).some(
+      button => button.props.accessibilityLabel === 'SAVE AND CONTINUE',
+    ),
+  ).toBe(false);
+
+  const retryButton = renderer.root
+    .findAllByType(TouchableOpacity)
+    .find(button => button.props.accessibilityLabel === 'RETRY VERIFICATION');
+  await ReactTestRenderer.act(async () => retryButton.props.onPress());
+
+  expect(retryStudentIdClaim).toHaveBeenCalledTimes(1);
+  expect(save).not.toHaveBeenCalled();
+  await ReactTestRenderer.act(async () => renderer.unmount());
+});
+
+test('a successful Student ID claim retry completes account setup', async () => {
+  const onComplete = jest.fn();
+  const retryStudentIdClaim = jest.fn(async () => 'claimed');
+  let renderer;
+  await ReactTestRenderer.act(async () => {
+    renderer = ReactTestRenderer.create(
+      <SafeAreaProvider>
+        <EditProfileScreen
+          setup
+          firebaseAccount
+          studentIdClaimStatus="unknown"
+          retryStudentIdClaim={retryStudentIdClaim}
+          onComplete={onComplete}
+          profile={profile}
+          save={jest.fn()}
+        />
+      </SafeAreaProvider>,
+    );
+  });
+
+  const retryButton = renderer.root
+    .findAllByType(TouchableOpacity)
+    .find(button => button.props.accessibilityLabel === 'RETRY VERIFICATION');
+  await ReactTestRenderer.act(async () => retryButton.props.onPress());
+
+  expect(retryStudentIdClaim).toHaveBeenCalledTimes(1);
+  expect(onComplete).toHaveBeenCalledTimes(1);
   await ReactTestRenderer.act(async () => renderer.unmount());
 });
 

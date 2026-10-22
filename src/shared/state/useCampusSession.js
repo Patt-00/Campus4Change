@@ -646,6 +646,47 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
     return task;
   }, [queueCloudSave, saveLocalState]);
 
+  const retryStudentIdClaim = useCallback(async () => {
+    const expectedSession = activeSession.current;
+    const currentState = snapshot.current;
+    if (
+      expectedSession?.kind !== 'firebase' ||
+      currentState?.profile?.id !== expectedSession.uid
+    ) {
+      return 'unknown';
+    }
+
+    const studentId = String(currentState.profile.studentId || '').trim();
+    if (!studentId) {
+      setStudentIdClaimStatus('unclaimed');
+      return 'unclaimed';
+    }
+
+    try {
+      const claimed = await firebaseStudentIdClaimed(
+        expectedSession.uid,
+        studentId,
+      );
+      const latestState = snapshot.current;
+      if (
+        activeSession.current !== expectedSession ||
+        latestState?.profile?.id !== expectedSession.uid ||
+        String(latestState.profile.studentId || '').trim() !== studentId
+      ) {
+        return 'unknown';
+      }
+
+      const status = claimed ? 'claimed' : 'unclaimed';
+      setStudentIdClaimStatus(status);
+      return status;
+    } catch {
+      if (activeSession.current === expectedSession) {
+        setStudentIdClaimStatus('unknown');
+      }
+      return 'unknown';
+    }
+  }, []);
+
   useEffect(() => {
     if (!firebaseEnabled) {
       setRestoring(false);
@@ -1073,6 +1114,7 @@ export function useCampusSession({ onSignedIn, onSignedOut }) {
     emailVerificationToast,
     dismissVerificationToast,
     studentIdClaimStatus,
+    retryStudentIdClaim,
     saveProfileUpdate,
   };
 }

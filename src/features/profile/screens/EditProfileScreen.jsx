@@ -36,6 +36,8 @@ export function EditProfileScreen({
   setup = false,
   onComplete,
   onDirtyChange = () => {},
+  studentIdClaimStatus,
+  retryStudentIdClaim,
 }) {
   const [initialValues] = useState(() => ({
     name: profile.name || '',
@@ -72,6 +74,7 @@ export function EditProfileScreen({
   );
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [checkingStudentId, setCheckingStudentId] = useState(false);
   const [coursePickerVisible, setCoursePickerVisible] = useState(false);
   const [campusPickerVisible, setCampusPickerVisible] = useState(false);
   const selectedProgram = getTipProgram(courseId);
@@ -185,6 +188,49 @@ export function EditProfileScreen({
     } finally {
       setSaving(false);
     }
+  }
+
+  async function retryStudentIdVerification() {
+    if (checkingStudentId || typeof retryStudentIdClaim !== 'function') {
+      return;
+    }
+    setCheckingStudentId(true);
+    let status = 'unknown';
+    try {
+      status = await retryStudentIdClaim();
+    } catch {
+      status = 'unknown';
+    } finally {
+      setCheckingStudentId(false);
+    }
+    if (status === 'claimed') {
+      onComplete?.();
+    }
+  }
+
+  if (
+    setup &&
+    firebaseAccount &&
+    initialValues.studentId &&
+    studentIdClaimStatus === 'unknown'
+  ) {
+    return (
+      <Screen title="Verify your account">
+        <Text style={s.section}>Student ID verification is unavailable</Text>
+        <Text style={s.muted}>
+          We couldn’t confirm the claim for your saved TIP Student ID with
+          Firebase. Check your connection and retry. Your profile has not been
+          changed.
+        </Text>
+        <View style={s.bigGap} />
+        <AppButton
+          title={checkingStudentId ? 'CHECKING STUDENT ID...' : 'RETRY VERIFICATION'}
+          busy={checkingStudentId}
+          disabled={!retryStudentIdClaim}
+          onPress={retryStudentIdVerification}
+        />
+      </Screen>
+    );
   }
 
   return (

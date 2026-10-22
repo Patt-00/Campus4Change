@@ -2,11 +2,45 @@
 
 ## Purpose and current status
 
-Campus4Change connects learners with peer tutors and gives TIP students shared study groups and in-app messaging. The POCO X4 GT and Xiaomi Pad 7 have rehearsed shared group discovery, membership, and chat. The Pad has also exercised tutor search, a session request, acceptance, cancellation, and lock release.
+Campus4Change connects TIP learners who need tutoring with peers who can
+teach, and supports study groups and messaging. Payments, live voice/video
+calls, operating-system push notifications, and iOS are outside this Android
+version's scope.
 
-The current 1.3.0 source has been installed and cold-launched on the POCO X4 GT and Pad 7. Both devices opened Settings, About, Notifications, the same shared group, and exchanged a group message using local Firebase emulators. A signed build of current source is not available, and production Firestore still uses an older ruleset than this source. Use the emulator build for the current demonstration; do not describe its data as production data.
+The current app version is 1.3.0, Android version code 6. GitHub hosts the
+current source snapshot and signed, installable APK in the
+[v1.3.0-preview.2 pre-release](https://github.com/Patt-00/Campus4Change/releases/tag/v1.3.0-preview.2).
+Download Campus4Change-v1.3.0-preview.2.apk from that page. Its SHA-256 is
+c2191dc45f42d5d9e2a4bbc63d515d1e045a3cbdd72af872b365c5d173fcc210. It is a
+release-signed APK, not a debug APK, and it bundles the application so it does
+not need Metro. The AAB was validated and remains local. The source and APK
+are on the preview branch/tag; main remains at its earlier baseline and has
+not been updated for this pre-release.
 
-Payments and voice/video calls are outside scope. The app does not provide OS push notifications or iOS support.
+The POCO X4 GT is the only device used in the latest release check. The
+installed APK hash matches the release asset exactly; package metadata reports
+version 1.3.0/code 6, and a fresh launch reached MainActivity without a fatal
+or React Native startup error in the captured log. The device reported no
+network connection, so this launch did not verify live Firebase access.
+Pad 7 was unavailable and no emulator was started in this release pass.
+
+The codebase uses Firebase Authentication and Firestore and is configured for
+project campus4change. The live backend is not fully ready for a verified
+presentation flow: production Firestore rules are older than the current
+source and do not include Student ID claims; the replacement release signer
+is not registered for Firebase Google sign-in or Play Integrity; the App
+Check Console lists the Android app as Not registered, while Auth and
+Firestore App Check enforcement are currently Unenforced. Do not promise that
+all live sign-in and shared-data flows have passed on this APK. The current
+local source tests passed; live release authentication was not tested.
+
+The evidence-weighted completion estimate is 87.5%, not a teacher's grade.
+The pre-release contains the current snapshot, but the main branch, exact-source
+CI, production Firebase checks, current-source two-device verification, and
+school-laptop rehearsal remain open. See COMPLETION_AUDIT.md for the evidence
+and remaining gates. The Desktop presentation guide is
+~/Desktop/Campus4Change Presentation Guide.md.
+
 
 ## Application overview
 
@@ -28,7 +62,7 @@ Payments and voice/video calls are outside scope. The app does not provide OS pu
 
 Use two presenter-controlled student email accounts with inbox access. Do not add embedded demo credentials to the application.
 
-1. Launch on the learner device and sign in. Show required TIP profile fields: campus, course, year, and unique digits-only Student ID.
+1. Launch on the learner device and sign in. Show required TIP profile fields: campus, course, year, and private digits-only Student ID.
 2. On the tutor device, sign in and publish a tutor profile with a course and subjects.
 3. On the learner device, open Find People, search a tutor, inspect the subjects/profile, and request a future one-hour session in a listed subject.
 4. On the tutor device, open Sessions and accept the incoming request. Return to the learner device and show the accepted booking and in-app notice.
@@ -44,7 +78,7 @@ Expected results are a tutor profile visible to the learner, an incoming request
 
 ### Live Firebase presentation
 
-- Use the intended current signed release, not the emulator-configured QA APK.
+- Use the signed release only after its Firebase certificate registration, release sign-in/App Check, and production-rule checks pass. Until those gates are verified, use the local-emulator QA fallback below.
 - Provide two verified email accounts with inbox access and distinct Student IDs. Use a third account only if demonstrating outsider denial.
 - The active production ruleset differs from the local source. Live account setup requires an owner-authorized rules deployment; this task does not perform one. The six production composite indexes match the local definitions and are ready.
 - Both Android devices need working Wi-Fi or mobile data. POCO X4 GT and Pad 7 were used in the recent physical rehearsal.
@@ -69,9 +103,84 @@ No password, verification code, production API secret, or private signing creden
 | Risk | Effect | Response |
 | --- | --- | --- |
 | Live Firebase lacks the local Student ID claim rules | New account setup can fail when it tries to reserve an ID | Use local emulators for the demonstration. The active ruleset must be updated by an authorized project owner before live signup can pass. |
-| Release signing credentials are unavailable in the current shell | A fresh signed APK/AAB for the latest source cannot be produced here | Use the already-published v1.2.2 only for its verified scope; it does not contain current local changes. Do not distribute the debug QA APK as a release. |
+| The v1.3.0 preview APK is now published, but the replacement release certificate remains unregistered in the 2026-10-22 read-only check | Google sign-in/App Check and release-signer behavior are unverified; production rules lack the current Student ID claim flow, and the POCO was offline during the latest launch | Use the preview APK to show the Android app. Do not promise live sign-in or shared cloud flows until the Firebase release checks pass. |
 | School network or Firebase service is unavailable | Shared live features cannot reach the backend | Use the local emulator setup above if the school laptop has the required SDK/JDK and the QA APK can be built. Rehearse it on the presentation machine before relying on it. |
 | Google sign-in with release signer and Play Integrity | Release-only authentication/attestation behavior is unknown | For a scoped walkthrough, use verified email/password accounts and report the release-only gates accurately. |
 | OS push or live calls | These functions are not implemented | Demonstrate the in-app notification and messaging flows; do not promise OS push, voice, or video. |
 
-The final demo is presentation-ready only after the chosen live or emulator setup has been rehearsed from the exact school-laptop checkout and the relevant network/signing gates are verified.
+The signed APK is available for the presentation. A full live multi-user demo still needs a networked rehearsal with the release certificate and current production Firestore rules.
+
+On 2026-10-22, the latest signed release APK (version 1.3.0/code 6) was
+rebuilt, verified, installed in place on POCO X4 GT, and cold-launched. The
+signed-out Login → About route now shows accurate Firebase sign-in guidance
+instead of implying that an active account is device-only. Its regression
+suite passed 3 tests; the full Jest suite passed 333 tests across 40 suites,
+ESLint passed, and the installed APK hash matches the local artifact. The AAB
+passed signature and ZIP-integrity checks but remains local. No credentials or
+production Firebase data were used. At that checkpoint Pad 7 verification,
+release Auth/App Check, school-laptop rehearsal, and publication remained open.
+The signed APK was later published in the v1.3.0-preview.2 pre-release.
+
+A current-source local-emulator QA build also verified Settings → Learning
+Preferences on POCO X4 GT. For the TIP Manila Computer Science profile, topic
+search returned Natural language processing; selecting it and adding Graph
+theory produced two grouped interests. Saving, returning to Settings, and
+reopening Preferences preserved both. The owner-readable Firestore Emulator
+state contained the same two values. A second local-emulator profile switched
+to Information Technology and added Cloud computing and deployment while
+keeping Computer Science and Computer programming in a separate course group;
+saving and reopening preserved both groups. Both temporary Auth Emulator
+accounts, private-state documents, Student ID claims, and pending verification
+codes were removed afterward; the QA app returned to GET STARTED. A separate current-source QA check resent email verification on POCO. It
+showed the animated floating **Verification email sent** card with **VIEW
+NOTIFICATION**; tapping it from Home opened Notifications. Home had no separate
+persistent verification banner. The focused toast/banner suites passed 8
+tests. The temporary Auth account and queued local verification codes were
+removed. This is single-device local-emulator evidence, not a school-laptop or
+two-device rehearsal.
+
+
+A further current-source local-emulator check exercised interest-based tutor
+discovery on POCO X4 GT. One verified TIP Manila Computer Science account
+published a tutor listing for Natural language processing. A second verified
+student account saved that interest, opened Find People, and saw the tutor at
+the top under **Recommended for your interests**, with the exact match shown;
+opening the card displayed the tutor profile and subject. Both accounts,
+private records, Student ID claims, tutor listing, and verification codes were
+removed. This is single-device local-emulator proof, not a live-Firebase or
+two-device demonstration.
+
+
+A current-source Edit Profile check on the POCO confirmed that injected letters
+do not remain in Year level or Student ID. Back with the form dirty displayed
+the discard confirmation; discarding restored the saved profile values. The
+private emulator state still held the original digits-only Student ID before
+cleanup.
+
+
+The latest signed 1.3.0/code 6 release build includes all 49 catalog entries.
+The POCO-installed APK hash matches the local artifact and cold-launches to
+Login. The AAB passes signature, ZIP integrity, and bundletool validation.
+That build checkpoint preceded the v1.3.0-preview.2 publication. The current
+pre-release APK is downloadable from GitHub; release Firebase sign-in and Play
+Integrity/App Check remain unverified.
+
+The latest camera recovery-route fix was verified on the POCO X4 GT with a
+local Auth/Firestore emulator account. After a one-time camera grant and a
+controlled process kill while the external camera was open, the updated app
+automatically resumed Edit Profile, restored the pending photo, saved it, and
+retained it after a later cold launch. The screen reuses Figma Edit Profile
+frame `1:495`; no new visual state was required. The temporary account and
+Firestore data were removed, the emulator was stopped, QA app data was cleared,
+and camera permission was revoked. The full Jest suite now passes 334 tests
+across 40 suites, full-project ESLint passes, and a forced Android unit-test
+rerun passed all 21 tests. This adds current-source POCO evidence; Pad 7 and the
+school-laptop rehearsal remain open.
+
+A fresh isolated snapshot of that route-fix source also passed `npm ci`, all
+334 Jest tests, and ESLint. Its clean Android debug build compiled the bundle,
+Kotlin/Java, and CMake targets, then failed at APK packaging with `Disk quota
+exceeded`; the temporary snapshot required 2.7 GB. The in-place QA APK build
+did pass and was installed on POCO. Repeat a clean packaging run on the
+school-laptop or another host with sufficient free disk before relying on it
+for presentation.

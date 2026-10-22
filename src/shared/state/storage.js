@@ -15,6 +15,10 @@ export function markIntroductionCompleted() {
   return deviceStore().markIntroductionCompleted();
 }
 
+export function discardProfilePhotoDraft(expectedUserId) {
+  return deviceStore().discardProfilePhotoDraft(expectedUserId);
+}
+
 export function parseAccount(value) {
   return JSON.parse(value);
 }

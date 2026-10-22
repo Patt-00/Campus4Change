@@ -47,6 +47,11 @@ const PRIVATE_MESSAGE_CACHE_KEY_PREFIX = 'firebase:privateMessageCache:';
 const ownedStudentIdsByUid = new Map();
 
 if (firebaseEnabled) {
+  const emulatorHost = firebaseEmulatorHost.trim();
+  if (emulatorHost && !__DEV__) {
+    throw new Error('Firebase emulators must never be enabled in a release app.');
+  }
+
   const { app: appSdk, auth: authSdk, firestore: firestoreSdk } = firebaseSdk();
   const webFirebaseConfig = { ...firebaseConfig };
   delete webFirebaseConfig.androidApiKey;
@@ -54,7 +59,11 @@ if (firebaseEnabled) {
   const app = appSdk.getApps().length
     ? appSdk.getApp()
     : appSdk.initializeApp(webFirebaseConfig);
-  initializeAndroidAppCheck(app, firebaseConfig);
+  // Emulator QA routes Auth and Firestore to local services. Skip the debug
+  // provider so it does not request a token for the demo project.
+  if (!emulatorHost) {
+    initializeAndroidAppCheck(app, firebaseConfig);
+  }
   try {
     auth = authSdk.initializeAuth(app, {
       persistence: authSdk.getReactNativePersistence(secureAuthStorage()),
@@ -66,16 +75,13 @@ if (firebaseEnabled) {
     auth = authSdk.getAuth(app);
   }
   db = firestoreSdk.getFirestore(app);
-  if (firebaseEmulatorHost.trim()) {
-    if (!__DEV__) {
-      throw new Error('Firebase emulators must never be enabled in a release app.');
-    }
+  if (emulatorHost) {
     authSdk.connectAuthEmulator(
       auth,
-      `http://${firebaseEmulatorHost}:9099`,
+      `http://${emulatorHost}:9099`,
       { disableWarnings: true },
     );
-    firestoreSdk.connectFirestoreEmulator(db, firebaseEmulatorHost, 8080);
+    firestoreSdk.connectFirestoreEmulator(db, emulatorHost, 8080);
   }
 }
 

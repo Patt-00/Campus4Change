@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
-import { Text, TouchableOpacity } from 'react-native';
+import { Image, Text, TouchableOpacity } from 'react-native';
 import App from '../App';
 import { initialState } from '../src/shared/data/utils';
 
@@ -150,6 +150,29 @@ beforeEach(() => {
   mockTutorsLoaded = true;
   mockSharedGroupState.error = '';
   mockSession = null;
+});
+
+test('shows the branded restore screen while account restoration is pending', async () => {
+  mockSession = makeSession(true);
+  mockSession.restoring = true;
+
+  let renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(<App />);
+  });
+
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Campus4Change logo' }),
+  ).toBeDefined();
+  expect(renderer.root.findAllByType(Image)).toHaveLength(1);
+  expect(
+    renderer.root
+      .findAllByType(Text)
+      .map(node => String(node.props.children))
+      .join(' '),
+  ).toContain('Restoring your account...');
+
+  await act(async () => renderer.unmount());
 });
 
 test('unverified Firebase accounts receive a Notifications item with recovery actions', async () => {

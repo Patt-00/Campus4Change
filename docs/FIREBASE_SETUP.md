@@ -28,25 +28,45 @@ repository-tracked debug keystore is public and has different SHA-1/SHA-256
 fingerprints (`5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25` /
 `FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C`). Do not register that public certificate with Firebase. Other developers need to use their own local debug key and add its SHA-1 to Firebase after authorization.
 
-The current v1.2.2 release certificate SHA-1 and SHA-256 are registered to
-the Firebase Android app. Google sign-in with that release key and Play Integrity
-attestation have not yet been verified. A future signing-key rotation requires
-registering the new certificate fingerprints before testing that build.
+The v1.2.2 release certificate SHA-1 and SHA-256 are registered to the Firebase
+Android app. The locally built v1.3.0 APK and AAB use a replacement signer with
+these fingerprints:
+
+- SHA-1: `21:24:1E:9A:18:AB:85:31:F5:B3:83:A5:5D:87:14:C9:80:C8:07:D5`
+- SHA-256: `0C:65:24:06:CF:3B:60:51:A4:F9:65:70:80:7E:F7:38:D4:8A:48:80:2E:E1:0E:06:76:05:5D:61:FE:F5:9E:E7`
+
+The read-only Firebase SHA list check on 2026-10-22 found this replacement
+certificate unregistered. On 2026-10-22, the signed app cold-launched on POCO,
+but its startup log showed App Check token failures. The exact server-side
+cause is unconfirmed, and Google sign-in and Play Integrity/App Check for this
+signer remain unverified. An authorized Firebase project owner must register
+both fingerprints before testing those release-only flows. The install did
+not change production configuration or Firebase Auth/Firestore data.
+
+A read-only Firebase Console inspection on 2026-10-22 showed the Android app
+`com.campus4change` as **Not registered** under App Check. In the App Check
+APIs tab, both Authentication and Cloud Firestore were **Unenforced**. This
+confirms an App Check registration gap that is consistent with the observed
+token-request failures, but the current native bridge intentionally logs only
+the Firebase exception class, so the specific Play Integrity error remains
+unknown. No registration or enforcement setting was changed.
 
 ### Current production state
 
-A read-only Rules API check on 2026-10-20 confirmed that the active default
-Firestore release points to ruleset
+A read-only Rules API recheck on 2026-10-22 confirmed that the active default
+Firestore release still points to ruleset
 `projects/campus4change/rulesets/4f66efb8-d8d6-404c-83be-8a2b7b37588a`.
 Its `firestore.rules` source hashes to
 `867e1b314fb639608ef4fe6978892ee6d337536be27a65b01b76c066679ec0a8`.
 The local source hashes to
 `25f0ec68a34ce0eb1964164dfa7fb9139413d99fa0ca1a5f323236bf4e302323`, so the
-current Student ID claim rules are not live. They pass local emulator tests.
-This audit does not deploy production rules or change authorization policy.
+live source still lacks the local `studentIdClaims` path. The local claim rules
+pass emulator tests. This check used read-only GET requests; it did not deploy
+rules or change production authorization.
 
-The Rules API also returned six production composite indexes. Their definitions
-match `firestore.indexes.json`, and all six report `READY`.
+A read-only Firestore index API recheck on 2026-10-22 returned six production
+composite indexes, all in `READY` state and matching all six definitions in
+`firestore.indexes.json`. No production index was modified.
 
 The last recorded rules deployment was on 2026-10-17. It added the optional
 allowlisted tutor avatar preset and did not change indexes. An earlier manual
@@ -118,19 +138,25 @@ public
    successful sign-in restores the account's Firestore state. No account or
    sample listings are preloaded. Existing device-only accounts remain local.
 
-Firebase client settings identify the project; the API key is not an access
-control mechanism. Keep Firestore rules restrictive and never put service
-account credentials or Admin SDK keys in the mobile app.
+Firebase `apiKey` and `androidApiKey` values are public client configuration:
+they identify the Firebase project and do not authorize access. Keep
+Firebase-provisioned keys restricted to Firebase APIs, and use separate,
+restricted keys for any non-Firebase Google APIs. Firestore rules and App Check
+enforce data access; never put service-account credentials or Admin SDK keys in
+the mobile app. See [Firebase API key guidance](https://firebase.google.com/docs/projects/api-keys).
 
 ## Android App Check
 
-The app initializes Firebase App Check before the Firebase JavaScript SDK
+Live Firebase builds initialize App Check before the Firebase JavaScript SDK
 creates Auth or Firestore services. A custom JavaScript provider forwards token
 requests to the Android native Firebase SDK. Debug builds use Firebase's debug
-provider; release builds use Play Integrity. The native app registration ID and
-Android API key are stored in `firebaseConfig.js` separately from the Web app ID
-and Web API key. The JavaScript Firebase app receives only the Web configuration;
-the native App Check bridge receives only the Android app configuration.
+provider; release builds use Play Integrity. Debug builds configured for local
+Auth and Firestore emulators skip App Check initialization so they do not
+request a debug token for the demo project. The native app registration ID and
+Android API key are stored in `firebaseConfig.js` separately from the Web app
+ID and Web API key. The JavaScript Firebase app receives only the Web
+configuration; the native App Check bridge receives only the Android app
+configuration.
 
 The Android Firebase app has the v1.2.2 release certificate SHA-1 and
 SHA-256 registered, along with authorized workstation debug fingerprints.
@@ -191,7 +217,8 @@ app build requires the Node.js engine range declared in `package.json`:
 For an Android debug build that tests Auth/Firestore from the app, set
 `firebaseEmulatorHost` to `127.0.0.1` in the local Firebase config while the
 emulators are running, then run `adb reverse tcp:9099 tcp:9099` and
-`adb reverse tcp:8080 tcp:8080`. Keep this value blank for every release build.
+`adb reverse tcp:8080 tcp:8080`. This mode skips App Check token requests. Keep
+the value blank for every release build.
 
 ## Current data boundary
 
