@@ -20,9 +20,9 @@ have been checked without creating an account. The POCO is the only required
 physical test device; Pad 7 is deferred.
 
 The source branch has a draft PR to `main`. GitHub Actions run
-[40016696376](https://github.com/Patt-00/Campus4Change/actions/runs/40016696376)
+[40022730763](https://github.com/Patt-00/Campus4Change/actions/runs/40022730763)
 passed both required jobs, including API 24 instrumentation, on head
-`220123a`. Manual run `39966502505` also passed the clean macOS build. Check
+`dc33cf5`. Manual run `39966502505` also passed the clean macOS build. Check
 PR #1 for passing checks on its current head before merge. The last weighted
 completion estimate was 88.25% before the 1.4.0 release work and is not a
 current score. See

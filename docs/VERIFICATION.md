@@ -1346,3 +1346,7 @@ Integrity config has no saved off-Play allowance: `allowUnrecognizedVersion`
 and `requireLicensed` are unset, and the minimum device level is
 `NO_INTEGRITY`. The Console draft's off-Play settings are not saved because
 the project owner's terms checkbox is still unchecked. No API write was made.
+
+GitHub Actions run 40022730763 passed the checks job and API 24
+instrumentation on PR commit dc33cf59cfabf383d2cd11f38c44a4ffeca78c9b. The
+workflow skipped its clean macOS job; manual run 39966502505 covers that build.

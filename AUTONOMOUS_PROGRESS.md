@@ -4052,3 +4052,10 @@ current worktree.
   App Check, save the off-Play settings, verify POCO tokens and request metrics,
   and then consider enforcement.
 - This was read-only. No App Check configuration or enforcement setting changed.
+
+### Documentation head CI, 2026-10-24
+
+- GitHub Actions run 40022730763 passed the checks job and API 24
+  instrumentation on PR commit dc33cf59cfabf383d2cd11f38c44a4ffeca78c9b.
+- The workflow's clean macOS job was skipped. Manual run 39966502505 remains
+  the evidence for the clean GitHub-hosted macOS build.
