@@ -6,61 +6,67 @@ or a production deployment.
 
 ## Current workspace
 
-- The previous source snapshot is published on branch
-  release/v1.3.0-preview.2 and tag v1.3.0-preview.2. The current worktree has
-  uncommitted UUID and Google sign-in navigation changes that are not in that
-  release. The default main branch remains at
-  46fe89a534d98866dc981ef11fe64f24151e8bf4; no changes were pushed.
-  GitHub Actions run [39829733295](https://github.com/Patt-00/Campus4Change/actions/runs/39829733295)
-  passed on the exact preview commit.
-- The Android app version is 1.3.0, version code 6, package
-  com.campus4change, minimum API 24, target API 36. The signed release asset
-  Campus4Change-v1.3.0-preview.2.apk has SHA-256 e83a7feeaf307d526b6bb34334badbc193f1e218259bfd2aeb8c55f1c1cfa330. Its manifest
-  contains INTERNET and CAMERA permissions, without biometric or fingerprint
-  permissions. The matching signed AAB SHA-256 is 3ae00c1033f7f82c1aed81353b70656b690542e872ebc78e4ab91060ef09ddb4; it remains
-  local and is not attached to GitHub.
-- The installed POCO X4 GT package is still version 1.3.0/code 6 from the
-  previously published snapshot. Its last update was 2026-10-22. The current
-  UUID changes have not been built or installed on the device yet.
-- The published app's Google account-picker cancellation behavior was
-  reproduced and fixed in the earlier release cycle.
-  Before the fix, dismissing Credential Manager produced a red generic
-  sign-in failure message. The native log showed
-  GetCredentialCancellationException. After the fix, dismissing the chooser
-  returns to Login without an error. The updated signed APK was installed on
-  POCO and this behavior was checked on-device.
-- Selecting the previously authorized Google Workspace account led Google
-  to display its organization policy requiring a device screen lock. The
-  POCO lock settings were not changed. Google sign-in did not complete and no
-  Firebase Auth operation was confirmed. The user asked to use another email;
-  multiple alternative Google accounts are available, and the exact account
-  has not yet been selected.
-- The published preview snapshot passed 334 Jest tests across 40 suites, the
-  focused Google auth screen suite (10 tests), full-project ESLint, the public
-  Drive-link scan, `git diff --check`, Android unit tests, and the signed
-  release APK/AAB build. That release build completed with 126 Gradle tasks.
-- GitHub Actions run [39829733295](https://github.com/Patt-00/Campus4Change/actions/runs/39829733295)
-  passed all jobs on the exact preview commit, including hosted API 24
-  instrumentation.
-- A focused session test verifies that a successful mocked Google account
-  calls the sign-in callback that `AppNavigator` uses to choose Account Setup
-  or Home. It does not verify the live Google credential exchange.
-- Firebase Authentication and Cloud Firestore are integrated and the APK is
-  configured for project campus4change. The current worktree removes Student
-  ID claim reads and writes; legacy Student ID values are stripped during
-  profile migration. A read-only Firebase CLI check on 2026-10-23
-  confirmed the replacement release SHA-1/SHA-256 remain absent from the Android
-  app registration. The 2026-10-22 App Check Console check listed the Android
-  app as Not registered; Auth and Firestore App Check enforcement
-  are Unenforced. No production settings or data changed in this cycle.
-- Pad 7 was unavailable. Current-source two-device workflows, production
-  Firebase sign-in, release App Check, and a clean school-laptop rehearsal
-  remain open. The evidence-weighted completion estimate is 88.25%; see
-  COMPLETION_AUDIT.md for remaining gates.
-- GitHub Actions ran the API 24 instrumentation emulator on a hosted runner.
-  No emulator was started on the user's PC. The Redmi transport was not used.
+Updated 2026-10-23 after rechecking GitHub, Firebase CLI, the POCO, and the
+current worktree.
+
+- The UUID/auth source is pushed on `release/v1.3.0-preview.2` at
+  `4d8968adf586722e21bc5b4b741d9a4ee556c442`. The preview tag still points to
+  the older `55dcc571436d705827b7b069d6bb077350a7e6f5`; `main` is
+  `46fe89a534d98866dc981ef11fe64f24151e8bf4`, four commits behind, and no PR is
+  open. The latest passing CI run is still
+  [39829733295](https://github.com/Patt-00/Campus4Change/actions/runs/39829733295)
+  on `55dcc57`; the current source has no CI result yet.
+- Source metadata is versioned as 1.4.0/code 7 in the local candidate. The
+  published v1.3.0-preview.2 APK is still the older signed build at SHA-256
+  `e83a7feeaf307d526b6bb34334badbc193f1e218259bfd2aeb8c55f1c1cfa330`; no
+  signed 1.4.0 APK or AAB has been built.
+- The USB-connected POCO X4 GT (`Z9GMOVDMHQV8X84D`) remains on package
+  `com.campus4change`, version 1.3.0/code 6, last updated 2026-10-22. The new
+  UUID changes have not been installed or physically verified. Only this POCO
+  is in the test scope; the other ADB device is excluded and Pad 7 is deferred.
+- The 1.4.0 versioned source passes 337 Jest tests across 41 suites, ESLint,
+  `git diff --check`, Firestore test-script syntax validation, and
+  `:app:testDebugUnitTest` when Gradle is run with JDK 25. A first unit-test
+  attempt under the workstation's default JDK 27 failed with unsupported class
+  file major version 71; rerunning with the documented JDK 25 passed. The
+  versioned debug APK has not yet been rebuilt. No local Android emulator is
+  being used; CI provides the emulator suites.
+- Firebase CLI is now authorized as the selected project-owner account, and
+  its read-only project listing confirms `campus4change` / Campus4Change. No
+  production Firebase setting, rule, account, or document has been changed.
+  The new v4 signing key has not been generated, registered, or built yet.
+- The approved finalization data reset has not started. The required encrypted
+  local export must be created and integrity-checked first. The eventual reset
+  covers all Firebase Auth accounts and Firestore documents, including real
+  user data; the temporary backup will be deleted after release verification.
+- Google release sign-in and App Check remain unverified. The previously
+  installed release signer was not registered for Google sign-in/App Check,
+  and selecting the work account on POCO previously reached an organization
+  screen-lock requirement. No device security setting was changed.
+- The last weighted estimate was 88.25% before the current source commit. It is
+  a historical checkpoint and will be recalculated after the final acceptance
+  gates are verified; it is not a current completion claim.
 
 ## Improvement cycles
+
+### 1.4.0 finalization started, 2026-10-23
+
+- Re-read the user-provided completion requirements and rechecked the active
+  branch, tag, main, GitHub Actions, Firebase CLI access, installed POCO
+  package, and signing inventory before making changes.
+- Bumped source metadata to version 1.4.0/code 7. The previous preview asset is
+  explicitly identified as stale; no release artifact is being represented as
+  the 1.4.0 build.
+- Re-ran the full Jest suite (337 tests/41 suites), ESLint, static checks, and
+  Android unit tests with JDK 25; all passed. The default JDK 27 attempt failed
+  for the already documented unsupported class-file version and was not used
+  as the final verification result.
+- Reauthorized Firebase CLI for the project owner and confirmed the
+  `campus4change` project is available. This is access verification only; no
+  production writes have occurred.
+- Current-source CI, the new signer, Firebase alignment, local encrypted
+  backup, authorized data reset, POCO install/runtime checks, Mac/Termux build
+  checks, main merge, final tag/assets, and final email remain open.
 
 ### UUID account migration and Google sign-in navigation, 2026-10-23
 

@@ -2,15 +2,17 @@
 
 ## Current estimate
 
-**CURRENT COMPLETION: 88.25%**
+**LAST WEIGHTED CHECKPOINT: 88.25% (before commit `4d8968a`)**
 
 **TARGET COMPLETION: 100%**
 
-**REMAINING GAP: 11.75 percentage points**
+The 88.25% figure is historical, not a score for the current source or final
+release candidate. Recalculate it after the final acceptance gates below are
+verified.
 
 This is an evidence-weighted engineering estimate, not a teacher's grade. No app-specific final acceptance checklist has been supplied. The assessed scope is the documented Android TIP peer-learning app. Payments and live voice or video calls are outside the user's stated scope.
 
-The signed APK for version 1.3.0/code 6 is published in the
+The older signed APK for version 1.3.0/code 6 is published in the
 [v1.3.0-preview.2 GitHub pre-release](https://github.com/Patt-00/Campus4Change/releases/tag/v1.3.0-preview.2)
 as Campus4Change-v1.3.0-preview.2.apk. Its current SHA-256 is
 e83a7feeaf307d526b6bb34334badbc193f1e218259bfd2aeb8c55f1c1cfa330. It passed
@@ -19,23 +21,31 @@ checks and remains local. The POCO installed APK hash matches the updated
 artifact and a fresh launch reached MainActivity without a fatal startup
 marker.
 
-The current worktree contains uncommitted UUID-based account and Google
-sign-in navigation changes. They are not included in the linked pre-release
-APK. ADB currently lists the POCO X4 GT only, and the installed 1.3.0/code 6
-package predates these changes. The current changes have not yet been installed
-or tested on the phone.
+The UUID-based account and Google sign-in navigation source is pushed at
+`4d8968adf586722e21bc5b4b741d9a4ee556c442` on
+`release/v1.3.0-preview.2`. The tag and published APK still point to
+`55dcc571436d705827b7b069d6bb077350a7e6f5`; the installed POCO package is
+version 1.3.0/code 6 and predates the UUID source. Source metadata is now
+version 1.4.0/code 7, but no signed 1.4.0 APK/AAB has been built or installed.
+`main` remains at `46fe89a534d98866dc981ef11fe64f24151e8bf4`, four commits
+behind, with no open PR. The latest successful CI run is for `55dcc57`, not the
+current source.
 
-The current source passed 337 Jest tests across 41 suites, ESLint,
-`:app:testDebugUnitTest`, `assembleDebug`, and `git diff --check`. The local
-Firestore rules emulator suite was not run because no emulator was started.
-Figma now shows UUID setup and profile states and has no Student ID input or
-verification screen. These local results do not verify live Google sign-in or
-production Firestore behavior.
+The 1.4.0 versioned source passes 337 Jest tests across 41 suites, ESLint,
+`git diff --check`, rules-test script syntax validation, and
+`:app:testDebugUnitTest` with JDK 25. The first native test attempt used the
+workstation's default JDK 27 and failed with unsupported class file major
+version 71; the documented JDK 25 rerun passed. The 1.4.0 debug APK has not
+yet been rebuilt, and the Firestore emulator suite has not run on this PC; CI
+must provide current-source emulator evidence. Figma shows UUID setup and
+profile states and has no Student ID input or verification screen. These
+results do not verify live Google sign-in or production Firestore behavior.
 
 GitHub Actions run
 [39829733295](https://github.com/Patt-00/Campus4Change/actions/runs/39829733295)
 passed on preview commit `55dcc571436d705827b7b069d6bb077350a7e6f5`, including
-hosted API 24 instrumentation tests. The Testing section lists the job results.
+hosted API 24 instrumentation tests. No CI result exists yet for the current
+source; a PR to `main` is needed to trigger the repository workflow.
 
 The Google account-picker cancellation issue was reproduced on POCO and
 corrected: dismissing Credential Manager now returns to Login without a false
@@ -47,22 +57,31 @@ requiring a screen lock. No screen-lock setting was changed and no live
 Firebase sign-in completed. The user asked to use another account, and an
 account choice is still pending.
 
-A session-level test from the earlier source verifies that a successful mocked
-Google account hydrates Firebase state and calls the `onSignedIn` callback used
-by `AppNavigator`. Current uncommitted code routes complete profiles to Home,
-incomplete profiles to Account Setup, and displays a neutral cancellation
-message. This JavaScript behavior does not prove a real Google token exchange.
+A session-level test verifies that a successful mocked Google account hydrates
+Firebase state and calls the `onSignedIn` callback used by `AppNavigator`.
+Commit `4d8968a` routes complete profiles to Home, incomplete profiles to
+Account Setup, and displays a neutral cancellation message. This JavaScript
+behavior does not prove a real Google token exchange.
 
-Firebase is configured in the app for project campus4change. The local source
-now removes Student ID claims and migrates old Student ID values to generated
-account UUIDs. A read-only Firebase CLI check on 2026-10-23 confirmed the
-replacement release signer SHA-1 and
-SHA-256 are absent from the Android app registration. The Firebase Console
-inspection on 2026-10-22 found App Check not registered, with Authentication
-and Firestore enforcement Unenforced. No production
-Firebase setting or data was changed. Current-source two-physical-device
-verification, a completed release Google sign-in, and a clean school-laptop
-rehearsal remain open.
+Firebase CLI access for the owner account is now verified, and a read-only
+project listing includes `campus4change`. The app remains configured for that
+project. The 1.4.0 source removes Student ID claims and migrates old Student ID
+values to generated account UUIDs. The replacement v3 release certificate was
+previously found absent from Google sign-in and App Check registration; a new
+v4 certificate has not yet been generated. App Check enforcement and rules
+parity must be rechecked before deployment. No production setting or data has
+been changed. Live release sign-in, App Check, the current-source POCO checks,
+the clean school-laptop rehearsal, and the authorized data reset remain open.
+
+The user selected a one-time pre-release reset of **all** Firebase Auth users
+and Firestore documents, including real-user data, after a temporary encrypted
+local export has been verified. This reset has not been performed. The POCO is
+the only required physical QA device; Pad 7 is deferred.
+
+The detailed weighted tables below describe the previous 88.25% checkpoint.
+Refresh their evidence and recalculate the score only after the 1.4.0 candidate
+passes all final gates; historical rows are not proof of current-source
+behavior.
 
 After the signed-out About copy fix on 2026-10-22, the full Jest suite passed
 333 tests across 40 suites and ESLint passed. The rebuilt 1.3.0/code 6 release
