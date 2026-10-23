@@ -145,3 +145,58 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: ./gradlew --no-daemon :app:connectedDebugAndroidTest
           working-directory: android
+
+  macos-clean-build:
+    # Run only when manually dispatched; keep macOS build minutes off normal PR checks.
+    if: github.event_name == 'workflow_dispatch'
+    name: Clean Android debug build on macOS
+    runs-on: macos-15
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.x
+          cache: npm
+
+      - name: Set up Java
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          sdk_root="${ANDROID_HOME:-${HOME}/Library/Android/sdk}"
+          sdkmanager="${sdk_root}/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$sdkmanager"
+          yes | "$sdkmanager" --licenses >/dev/null 2>&1 || true
+          "$sdkmanager" \
+            "platform-tools" \
+            "platforms;android-37" \
+            "build-tools;37.0.0" \
+            "ndk;27.1.12297006"
+          printf 'sdk.dir=%s\n' "$sdk_root" > android/local.properties
+
+      - name: Install JavaScript dependencies from lockfile
+        run: npm ci
+
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew --no-daemon assembleDebug
+
+      - name: Verify package, version, and signature
+        shell: bash
+        run: |
+          apk="android/app/build/outputs/apk/debug/app-debug.apk"
+          sdk_root="${ANDROID_HOME:-${HOME}/Library/Android/sdk}"
+          "$sdk_root/build-tools/37.0.0/aapt" dump badging "$apk" | grep '^package:'
+          "$sdk_root/build-tools/37.0.0/apksigner" verify --verbose "$apk"
+          shasum -a 256 "$apk"
