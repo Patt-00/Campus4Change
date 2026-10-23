@@ -21,12 +21,12 @@ checks and remains local. At that earlier checkpoint, the POCO installed APK
 hash matched the v1.3.0 artifact and a fresh launch reached MainActivity.
 
 The UUID/auth source and 1.4.0 candidate are pushed on
-`release/v1.3.0-preview.2`, which includes workflow commit
-`e5d06b537eca63011ad2c2e295db133f8a5dd463`. Draft PR
+`release/v1.3.0-preview.2`, which includes documentation commit
+`9bbdb824430e2e331f9511dbc4f03e256f4c5094`. Draft PR
 [#1](https://github.com/Patt-00/Campus4Change/pull/1) targets `main`. CI run
-[39960247884](https://github.com/Patt-00/Campus4Change/actions/runs/39960247884)
+[39964691039](https://github.com/Patt-00/Campus4Change/actions/runs/39964691039)
 passed both checks on that head. Manual workflow run
-[39962382113](https://github.com/Patt-00/Campus4Change/actions/runs/39962382113)
+[39966502505](https://github.com/Patt-00/Campus4Change/actions/runs/39966502505)
 passed the clean macOS build on the same source. Verify the current PR checks
 before merge. The preview tag remains at
 `55dcc571436d705827b7b069d6bb077350a7e6f5`; `main` remains at
@@ -53,14 +53,14 @@ The 1.4.0 versioned source passes 337 Jest tests across 41 suites, ESLint,
 workstation's default JDK 27 and failed with unsupported class file major
 version 71; the documented JDK 25 rerun passed. The release APK passes
 `apksigner verify`; the AAB passes `jarsigner -verify` and ZIP integrity
-checks. Current PR CI run `39948381988` passed both the main checks and hosted
-API 24 instrumentation job on `7fc0d00`. That head includes the app source used
-by the clean Termux build. Subsequent commits changed documentation, the
-release helper, and CI configuration, not app source or Android Gradle
-configuration. The Termux debug APK was verified but not installed. A clean
-macOS 15.7.9 ARM64 hosted build on `e5d06b5` passed `npm ci`, Android debug APK
-assembly, package/version verification, and APK signature verification. This
-does not reproduce the user's personal Mac environment.
+checks. PR run `39964691039` passed both jobs on `9bbdb82`; manual run
+`39966502505` passed the clean macOS build on the same source. The source
+changes after the Termux build affect documentation and CI configuration, not
+app source or Android Gradle configuration. The Termux debug APK was verified
+but not installed. The macOS build ran on a GitHub-hosted macOS 15.7.9 ARM64
+runner with Node.js 24.20.0, npm 11.19.0, JDK 17.0.21+9, and Gradle 9.4.1. It
+passed package/version and signature checks. This does not reproduce the user's
+personal Mac environment.
 Figma shows UUID setup and profile states and has no Student ID input or
 verification screen. These results do not verify live Google sign-in or
 production Firestore behavior.

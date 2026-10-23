@@ -9,13 +9,13 @@ or a production deployment.
 Updated 2026-10-23 after rechecking GitHub, Firebase Console, the POCO, and the
 current worktree.
 
-- Branch `release/v1.3.0-preview.2` includes the Mac build workflow commit
-  `e5d06b537eca63011ad2c2e295db133f8a5dd463`. Draft PR
+- Branch `release/v1.3.0-preview.2` includes documentation commit
+  `9bbdb824430e2e331f9511dbc4f03e256f4c5094`. Draft PR
   [#1](https://github.com/Patt-00/Campus4Change/pull/1) targets `main`. CI run
-  [39960247884](https://github.com/Patt-00/Campus4Change/actions/runs/39960247884)
+  [39964691039](https://github.com/Patt-00/Campus4Change/actions/runs/39964691039)
   passed both PR checks on that head. Manual workflow run
-  [39962382113](https://github.com/Patt-00/Campus4Change/actions/runs/39962382113)
-  also passed, including the clean macOS build. Verify the PR checks on its
+  [39966502505](https://github.com/Patt-00/Campus4Change/actions/runs/39966502505)
+  passed, including a clean macOS build on the same source. Verify the PR checks on its
   current head before merge. The preview
   tag remains at `55dcc571436d705827b7b069d6bb077350a7e6f5`; `main` remains at
   `46fe89a534d98866dc981ef11fe64f24151e8bf4`.
@@ -51,8 +51,8 @@ current worktree.
   package metadata is 1.4.0/code 7 and `apksigner verify` passed. The debug APK
   was not installed. Later changes through `7fc0d00` affect documentation and
   the release helper, not app source or Android Gradle configuration. A clean
-  macOS 15 ARM64 hosted build passed in workflow run `39962382113` on commit
-  `e5d06b5`. This verifies the clean macOS build procedure on a GitHub-hosted
+  macOS 15 ARM64 hosted build passed in workflow run `39966502505` on commit
+  `9bbdb82`. This verifies the clean macOS build procedure on a GitHub-hosted
   runner; the user's personal Mac environment has not been tested.
 - Firebase CLI is authorized for the selected owner account, and the project
   listing confirms `campus4change` / Campus4Change. The v4 SHA-1 and SHA-256
@@ -85,14 +85,14 @@ current worktree.
 
 ### Clean macOS hosted build, 2026-10-23
 
-- Manual workflow run [39962382113](https://github.com/Patt-00/Campus4Change/actions/runs/39962382113)
-  passed on commit `e5d06b5`. It used GitHub-hosted macOS 15.7.9 ARM64, Node.js
-  24.20.0, npm 11.19.0, Temurin JDK 17.0.21+9, and Gradle 9.4.1.
+- Manual workflow run [39966502505](https://github.com/Patt-00/Campus4Change/actions/runs/39966502505)
+  passed on current PR head `9bbdb82`. It used GitHub-hosted macOS 15.7.9 ARM64,
+  Node.js 24.20.0, npm 11.19.0, Temurin JDK 17.0.21+9, and Gradle 9.4.1.
 - The job installed Android Platform 37.0, Build Tools 37.0.0, and NDK
   27.1.12297006. `npm ci` and `./gradlew assembleDebug` passed; Gradle completed
-  in 5m54s. `aapt` reported `com.campus4change` version 1.4.0/code 7, and
+  in 2 minutes. `aapt` reported `com.campus4change` version 1.4.0/code 7, and
   `apksigner verify` passed. The debug APK SHA-256 was
-  `2259701551204331d4efe063cc27256f229b86b9618a599efc7abedd4ce75d03`.
+  `ea5c3799d9370134218eeedd290a43c0229fb93df172e1ef752ad87a5d2b42e2`.
 - The first hosted attempt failed because the workflow requested the invalid
   SDK package `platforms;android-37`. The package list uses `platforms;android-37.0`;
   the corrected workflow passed on the next run. The debug APK was not

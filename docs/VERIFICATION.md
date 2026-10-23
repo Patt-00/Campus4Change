@@ -53,14 +53,14 @@
   `com.campus4change`, version 1.4.0/code 7, and `apksigner verify` passed. It
   was not installed; the current-source POCO app remains the signed release.
 - Manual workflow run
-  [39962382113](https://github.com/Patt-00/Campus4Change/actions/runs/39962382113)
-  built a clean checkout of commit `e5d06b5` on GitHub-hosted macOS 15.7.9
+  [39966502505](https://github.com/Patt-00/Campus4Change/actions/runs/39966502505)
+  built a clean checkout of current PR head `9bbdb82` on GitHub-hosted macOS 15.7.9
   ARM64. Node.js 24.20.0, npm 11.19.0, Temurin JDK 17.0.21+9, and Gradle
   9.4.1 were used. The job installed Platform 37.0, Build Tools 37.0.0, and NDK
-  27.1.12297006. `npm ci` and `./gradlew assembleDebug` passed in 5m54s. APK
+  27.1.12297006. `npm ci` and `./gradlew assembleDebug` passed in 2m. APK
   metadata reports `com.campus4change`, version 1.4.0/code 7; `apksigner verify`
   passed. The debug APK SHA-256 is
-  `2259701551204331d4efe063cc27256f229b86b9618a599efc7abedd4ce75d03`. The APK
+  `ea5c3799d9370134218eeedd290a43c0229fb93df172e1ef752ad87a5d2b42e2`. The APK
   was not installed. This verifies the hosted macOS build procedure, not the
   user's personal Mac setup.
 - GitHub's public v1.3.0-preview.2 asset remains unchanged and does not contain
@@ -69,10 +69,9 @@
   emulator rules/Auth suites, API 24 instrumentation, debug build, and release
   packaging guard on `6101ee2`. CI run `39948381988` passed both checks on
   `7fc0d00`; run `39952360701` passed both checks on `1d5c451`. PR run
-  [39960247884](https://github.com/Patt-00/Campus4Change/actions/runs/39960247884)
-  passed both PR checks on `e5d06b5`. Manual run
-  [39962382113](https://github.com/Patt-00/Campus4Change/actions/runs/39962382113)
-  passed the clean macOS 15 build on the same source. Confirm the current PR
+  [39964691039](https://github.com/Patt-00/Campus4Change/actions/runs/39964691039)
+  passed both PR checks on `9bbdb82`. Manual run 39966502505 passed the clean
+  macOS 15 build on the same source. Confirm the current PR
   head has passing checks before merge. The active production Firestore ruleset is
   `7194f765-35ec-4ecd-b266-cca407e2a07c` and its hash matches local rules
   `31f4827c128dcc063a21f7de1dc0542db720dd45efce13b8d0ac3a63630f4cfa`. All

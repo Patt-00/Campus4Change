@@ -75,8 +75,8 @@ java -version
 ```
 
 Android Studio's Gradle JDK setting does not set `JAVA_HOME` in a terminal.
-A clean checkout of commit `e5d06b5` passed on GitHub-hosted macOS 15.7.9 ARM64
-in [workflow run 39962382113](https://github.com/Patt-00/Campus4Change/actions/runs/39962382113).
+A clean checkout of current PR head `9bbdb82` passed on GitHub-hosted macOS
+15.7.9 ARM64 in [workflow run 39966502505](https://github.com/Patt-00/Campus4Change/actions/runs/39966502505).
 The job used Node.js 24.20.0, npm 11.19.0, Temurin JDK 17.0.21+9, and Gradle
 9.4.1. It installed Platform 37.0, Build Tools 37.0.0, and NDK 27.1.12297006;
 `npm ci` and `./gradlew assembleDebug` passed. `aapt` reported

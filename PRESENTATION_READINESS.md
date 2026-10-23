@@ -17,8 +17,8 @@ validation, Google account-picker cancellation, and the signed-out About page
 have been checked without creating an account. The POCO is the only required
 physical test device; Pad 7 is deferred.
 
-The source branch has a draft PR to `main`. CI run `39960247884` passed both
-checks on head `e5d06b5`; manual run `39962382113` also passed the clean
+The source branch has a draft PR to `main`. CI run `39964691039` passed both
+checks on head `9bbdb82`; manual run `39966502505` also passed the clean
 macOS build. Check PR #1 for passing checks on its current head before merge.
 The last weighted completion estimate was 88.25% before the 1.4.0 release work
 and is not a current score. See
