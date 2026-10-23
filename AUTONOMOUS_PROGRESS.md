@@ -6,17 +6,15 @@ or a production deployment.
 
 ## Current workspace
 
-Updated 2026-10-23 after rechecking GitHub, Firebase CLI, the POCO, and the
+Updated 2026-10-23 after rechecking GitHub, Firebase Console, the POCO, and the
 current worktree.
 
-- The UUID/auth source is pushed on `release/v1.3.0-preview.2` at
-  `4d8968adf586722e21bc5b4b741d9a4ee556c442`. Final candidate metadata and
-  audit updates are committed at `6101ee252c60a18337f73470247ae8f256202121`.
-  Draft PR [#1](https://github.com/Patt-00/Campus4Change/pull/1) targets `main`.
-  CI run [39942899889](https://github.com/Patt-00/Campus4Change/actions/runs/39942899889)
-  passed all jobs on `6101ee2`. Later candidate commits are checked through
-  the current PR checks before merge. The preview tag remains at
-  `55dcc571436d705827b7b069d6bb077350a7e6f5`; `main` remains at
+- Branch `release/v1.3.0-preview.2` is pushed through `7fc0d00589f31d5f388577a37caa47370b8ee64b`.
+  Draft PR [#1](https://github.com/Patt-00/Campus4Change/pull/1) targets
+  `main`. CI run [39948381988](https://github.com/Patt-00/Campus4Change/actions/runs/39948381988)
+  passed both checks on the latest pushed head. Local documentation changes
+  remain uncommitted and need their own CI run before merge. The preview
+  tag remains at `55dcc571436d705827b7b069d6bb077350a7e6f5`; `main` remains at
   `46fe89a534d98866dc981ef11fe64f24151e8bf4`.
 - The signed 1.4.0/code 7 candidate APK SHA-256 is
   `e1c13ca9af40494302fcee8b717503d2e1f3f8a5b19d580368a27f859cd94b8a`; the
@@ -25,14 +23,18 @@ current worktree.
   signature, ZIP integrity, and bundletool validation passed. It remains
   unpublished. The
   older v1.3.0-preview.2 APK remains the only public installable asset.
-- The USB-connected POCO X4 GT (`Z9GMOVDMHQV8X84D`) now has the candidate
-  `com.campus4change`, version 1.4.0/code 7. The installed base APK hash matches
-  the local release APK. A fresh launch showed the branded Get Started screen;
-  intro-to-login and signup navigation plus empty-form validation were checked
+- The USB-connected POCO X4 GT (`Z9GMOVDMHQV8X84D`, model `22041216G`) has the
+  signed candidate `com.campus4change`, version 1.4.0/code 7. Reinstalling the
+  local release APK returned `Success`; a second pull confirmed the installed
+  base APK SHA-256 matches the local artifact exactly. The earlier fresh launch
+  showed the branded Get Started screen. Intro-to-login and signup navigation,
+  plus empty-form validation, were checked
   without creating an account. Canceling the Google account picker returned to
   Login with the neutral cancellation message and no generic failure. No
-  account was selected, and no Firebase data was changed. Only this POCO is in
-  test scope; the other ADB device is excluded and Pad 7 is deferred.
+  account was selected. Login → About displayed the current objective and data
+  boundaries and returned to signed-out Login. No Firebase data was changed.
+  Only this POCO is in test scope; the other ADB device is excluded and Pad 7
+  is deferred.
 - The 1.4.0 versioned source passes 337 Jest tests across 41 suites, ESLint,
   `git diff --check`, Firestore test-script syntax validation, and
   `:app:testDebugUnitTest` when Gradle is run with JDK 25. A first unit-test
@@ -44,7 +46,9 @@ current worktree.
   passed `npm ci` and `scripts/gradlew-termux.sh clean assembleDebug` on the
   POCO. It completed 92 Gradle tasks in 2m51s using Node 26.4.0 and JDK 17.0.21;
   package metadata is 1.4.0/code 7 and `apksigner verify` passed. The debug APK
-  was not installed. The Mac build check remains open.
+  was not installed. Later changes through `7fc0d00` affect documentation and
+  the release helper, not app source or Android Gradle configuration. The clean
+  Mac build check remains open.
 - Firebase CLI is authorized for the selected owner account, and the project
   listing confirms `campus4change` / Campus4Change. The v4 SHA-1 and SHA-256
   are registered on the Android app. Firestore rules were deployed after the
@@ -53,11 +57,16 @@ current worktree.
   its SHA-256 exactly matches local `firestore.rules` at
   `31f4827c128dcc063a21f7de1dc0542db720dd45efce13b8d0ac3a63630f4cfa`. All
   six live indexes are READY and match local definitions.
-- App Check Console still lists the Android app as Not registered. The Play
-  Integrity form is open at the Google APIs and Play Integrity terms checkbox;
-  user acceptance is required before saving registration. Authentication and
-  Firestore enforcement remain Unenforced. No Play Integrity request has been
-  tested from the candidate.
+- The App Check page still lists the Android app as Not registered. The Play
+  Integrity form contains the v4 SHA-256 and is open at the Google APIs and
+  Play Integrity terms checkbox, which remains unchecked with Save disabled.
+  Project-owner acceptance is required before saving registration.
+  Authentication and Firestore enforcement remain Unenforced. On a POCO cold
+  launch, the named native App Check app initialized and Google Play Integrity
+  returned a token callback, but Firebase App Check token exchange failed with
+  a generic `FirebaseException`. The bridge omits the underlying response, so
+  the exact cause is unknown. Device connectivity currently reports validated
+  Wi-Fi. This is not evidence of a valid Firebase App Check token.
 - A local encrypted backup has been created and integrity-verified outside
   Git. It contains metadata for 9 Auth accounts and 13 Firestore documents
   across 8 collection paths, without password hashes or tokens. Plaintext
@@ -68,6 +77,52 @@ current worktree.
   gates are verified; it is not a current completion claim.
 
 ## Improvement cycles
+
+### Current candidate install and Firebase Console recheck, 2026-10-23
+
+- Rechecked PR #1 at head `7fc0d00`; GitHub reports CI run `39948381988` with
+  both `checks` and `api24-instrumentation` jobs successful.
+- Reinstalled the signed release APK on POCO X4 GT with
+  `adb -s Z9GMOVDMHQV8X84D install --no-streaming -r`. ADB returned `Success`.
+  The package reports `com.campus4change`, version 1.4.0/code 7. The APK pulled
+  from the installed package has SHA-256
+  `e1c13ca9af40494302fcee8b717503d2e1f3f8a5b19d580368a27f859cd94b8a`, matching
+  the signed local artifact. No app data was cleared.
+- The current App Check Console page still lists the Android app as Not
+  registered. The Play Integrity form has the candidate SHA-256, but the terms
+  checkbox remains unchecked and Save remains disabled. No Console setting was
+  changed.
+- A cold launch on the POCO reached `MainActivity` and displayed the signed-out
+  Login screen without a React Native fatal exception. The default native
+  Firebase initializer logged that default options were absent; the app's
+  explicitly configured named App Check instance initialized afterward. Google
+  Play Integrity returned its callback, then the Firebase App Check exchange
+  failed with a generic exception. The exact service response is intentionally
+  not exposed by the native bridge.
+- Live Google sign-in and test-data deletion remain pending. The currently
+  authorized data reset has not started; the encrypted backup remains available
+  outside Git.
+
+### Dependency advisory refresh, 2026-10-23
+
+- `npm audit --json` and `npm audit --omit=dev --json` each report 20 high,
+  zero moderate, and zero critical paths. All 20 high paths resolve through
+  React Native CLI and Metro tooling to `braces@3.0.3`.
+- The npm registry still lists `braces@3.0.3` as latest. GitHub advisory
+  [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm)
+  affects versions through 3.0.3 and lists no patched release. npm's forced
+  fixes downgrade React Native to 0.72.17 or CLI to 13.5.1, incompatible with
+  the current 0.87.1 and 20.2.0 toolchain. No downgrade or override was applied.
+- The Jest preset path also contains `sprintf-js@1.0.3`. GitHub advisory
+  [GHSA-hp3w-g68c-fv3c](https://github.com/advisories/GHSA-hp3w-g68c-fv3c)
+  affects versions through 1.1.3 and lists no patched release. The current
+  npm report no longer includes this moderate advisory. Its proposed Jest
+  25.0.0 downgrade conflicts with the project's Jest 30 line, so no change was
+  made.
+- The 1.4.0 candidate source map contains 654 sources and no paths for
+  `braces`, `micromatch`, `fast-glob`, `launch-editor`, or `sprintf-js`.
+- No `package.json` or lockfile changes were required. The findings and source
+  bundle boundary are recorded in [QUALITY_AUDIT.md](docs/QUALITY_AUDIT.md).
 
 ### 1.4.0 finalization started, 2026-10-23
 
@@ -94,11 +149,11 @@ current worktree.
 - A clean Termux clone of the 1.4.0 source passed dependency installation and
   debug assembly on POCO in 2m51s. The resulting debug APK was verified but not
   installed; a Mac clean-clone build remains pending.
-- CI run 39942899889 passed on `6101ee2`; the latest local helper/docs changes
-  still need to be pushed and checked. Play Integrity terms/registration and
-  token verification, live Google sign-in, production cleanup, broader POCO
-  feature checks, Mac/Termux builds, main merge, final tag/assets, and final
-  email remain open.
+- CI run 39942899889 passed on `6101ee2`; the latest head's status is tracked
+  in PR #1 and must be green before merge. Play Integrity terms/registration
+  and token verification, live Google sign-in, production cleanup, broader
+  POCO feature checks, the Mac build, main merge, final tag/assets, and final
+  email remain open. The clean Termux 1.4.0 build has passed.
 
 ### UUID account migration and Google sign-in navigation, 2026-10-23
 

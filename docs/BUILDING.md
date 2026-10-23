@@ -14,7 +14,7 @@ The source supports PC Android tooling and a separate Termux build path. This is
 | Build Tools | 37.0.0 |
 | NDK | 27.1.12297006 |
 | CMake version | Not pinned by the Android project |
-| Current app version / Android version code | 1.3.0 / 6 |
+| Current candidate app version / Android version code | 1.4.0 / 7 |
 
 Check `android/build.gradle`, the Gradle wrapper, and the npm lockfile for declarations. Hermes is enabled.
 
@@ -75,6 +75,10 @@ java -version
 ```
 
 Android Studio's Gradle JDK setting does not set `JAVA_HOME` in a terminal.
+A clean-clone build on macOS has not yet been verified for version 1.4.0. Run
+the procedure on a Mac and record the Node.js, JDK, SDK, and Gradle results in
+[VERIFICATION.md](VERIFICATION.md) before reporting that platform check as
+passed.
 
 ### Install dependencies and build
 
@@ -117,10 +121,12 @@ $env:C4C_DEBUG_STORE_FILE = Join-Path $HOME '.android\debug.keystore'
 ```
 
 This setting applies only to that build; it is not stored in Git. Firebase has
-the current workstation's per-user debug SHA-1 and the previous v1.2.2 release
-SHA-1/SHA-256 registered. The replacement signer used by the current v1.3.0
-release is not registered yet, so release Google sign-in remains unverified;
-see [Firebase setup](FIREBASE_SETUP.md) for its fingerprints and current status.
+the current workstation's per-user debug SHA-1 and the v1.2.2 release
+SHA-1/SHA-256 registered. The v4 candidate's SHA-1 and SHA-256 are also
+registered to the Android app. Release Google sign-in still needs an end-to-end
+POCO test. Play Integrity App Check registration is pending the project owner's
+acceptance of the required terms; see [Firebase setup](FIREBASE_SETUP.md) for
+the current status.
 Other developers must use their own local key and authorize its SHA-1
 separately before testing Google sign-in. Switching between different debug
 keys prevents an in-place APK update; uninstalling the old APK removes

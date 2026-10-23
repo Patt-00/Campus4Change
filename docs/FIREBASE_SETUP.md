@@ -50,10 +50,14 @@ Release App Check and enforcement remain unverified.
 
 A Firebase Console inspection on 2026-10-23 still shows the Android app
 `com.campus4change` as **Not registered** under App Check. Authentication and
-Cloud Firestore enforcement remain **Unenforced**. The release currently
-initializes the Play Integrity provider, but token exchange has not been
-verified with the v4 signer. Do not enable enforcement until the v4 POCO build
-obtains valid tokens and the API request metrics show expected release traffic.
+Cloud Firestore enforcement remain **Unenforced**. On a POCO cold launch, the
+named native App Check instance initialized and Google Play Integrity returned
+its token callback. Firebase App Check token exchange then failed with a
+generic `FirebaseException`; the native bridge does not expose the underlying
+service response. The Console still shows registration as unsaved. Do not
+enable enforcement until the project owner completes provider registration,
+the v4 POCO build obtains valid tokens, and the API request metrics show
+expected release traffic.
 
 ### Current production state
 
@@ -170,13 +174,16 @@ SHA-256 registered, along with authorized workstation debug fingerprints and
 the v4 release candidate's SHA-1/SHA-256. The v4 fingerprints support Google
 sign-in and are present in Android app registration; the App Check Console
 still shows the Android app as **Not registered** pending Play Integrity terms
-acceptance and provider registration.
+acceptance and provider registration. A POCO release request reached the
+Google Play Integrity service, but Firebase token exchange failed. The exact
+service response is not available in the redacted native log.
 A POCO X4 GT
 debug token was allowlisted for final-sprint QA, used to verify private-state
 sync, then revoked and removed from the local credential cache. Never commit
 debug tokens or include them in screenshots, reports, or CI logs. Release
-builds use Play Integrity, but v4 release attestation, request metrics, and
-enforcement have not been verified. Firestore Security Rules remain the primary
+builds use Play Integrity. The v4 request produced a generic Firebase App Check
+token-exchange failure, so release attestation and request metrics remain
+unverified. Firestore Security Rules remain the primary
 authorization boundary. The Firebase Console is open at the Play Integrity
 registration form, where the project owner must accept the Google APIs and
 Play Integrity terms before saving provider registration. For this

@@ -20,13 +20,12 @@ APK signature/package validation. The AAB passed signature and ZIP integrity
 checks and remains local. At that earlier checkpoint, the POCO installed APK
 hash matched the v1.3.0 artifact and a fresh launch reached MainActivity.
 
-The UUID/auth source is pushed at `4d8968adf586722e21bc5b4b741d9a4ee556c442`;
-the 1.4.0 candidate metadata and audit refresh are at
-`6101ee252c60a18337f73470247ae8f256202121`. Draft PR
-[#1](https://github.com/Patt-00/Campus4Change/pull/1) targets `main`. CI run
-[39942899889](https://github.com/Patt-00/Campus4Change/actions/runs/39942899889)
-passed all jobs on `6101ee2`. Later candidate commits are checked through PR
-#1 before merge. The preview tag remains at
+The UUID/auth source and 1.4.0 candidate are pushed on
+`release/v1.3.0-preview.2` through `7fc0d00589f31d5f388577a37caa47370b8ee64b`.
+Draft PR [#1](https://github.com/Patt-00/Campus4Change/pull/1) targets `main`.
+CI run [39948381988](https://github.com/Patt-00/Campus4Change/actions/runs/39948381988)
+passed both jobs on that head. Local documentation edits still need to be
+committed, pushed, and checked before merge. The preview tag remains at
 `55dcc571436d705827b7b069d6bb077350a7e6f5`; `main` remains at
 `46fe89a534d98866dc981ef11fe64f24151e8bf4`.
 
@@ -34,13 +33,16 @@ The v1.4.0/code 7 signed candidate APK SHA-256 is
 `e1c13ca9af40494302fcee8b717503d2e1f3f8a5b19d580368a27f859cd94b8a`; the AAB
 SHA-256 is `4f4339999355e4e5975d118d7317b38e530e461a7bb06cba437f94db5511d5bb`.
 Both were built with the new v4 signer and are unpublished. The candidate APK
-is installed on POCO; the pulled base APK hash matches the build artifact.
+is installed on POCO; the pulled base APK hash matches the build artifact. A
+repeat `adb install --no-streaming -r` returned `Success`, and a post-install
+pull reproduced the artifact SHA-256 exactly.
 A fresh launch displayed the branded Get Started screen. Intro-to-login,
 signup navigation, and empty-signup validation were checked without creating
 an account. Canceling Credential Manager returned to Login with the neutral
 cancellation notice and no generic error. No account was selected, so live
-Google token exchange remains unverified. The public pre-release remains the
-older v1.3.0/code 6 APK.
+Google token exchange remains unverified. Login → About displayed the v1.4.0
+objective and current data boundaries, then returned to signed-out Login. The
+public pre-release remains the older v1.3.0/code 6 APK.
 
 The 1.4.0 versioned source passes 337 Jest tests across 41 suites, ESLint,
 `git diff --check`, rules-test script syntax validation, and
@@ -48,12 +50,12 @@ The 1.4.0 versioned source passes 337 Jest tests across 41 suites, ESLint,
 workstation's default JDK 27 and failed with unsupported class file major
 version 71; the documented JDK 25 rerun passed. The release APK passes
 `apksigner verify`; the AAB passes `jarsigner -verify` and ZIP integrity
-checks. Current-source Firestore/Auth emulator suites passed in PR CI run
-39942899889 on `6101ee2`; verify PR #1 checks for the latest candidate head
-before merge.
-The clean Termux clone at `6101ee2` also passed `npm ci` and Android debug APK
-assembly on POCO (92 Gradle tasks, 2m51s, JDK 17). The debug APK was not
-installed. A clean Mac build remains unverified.
+checks. Current PR CI run `39948381988` passed both the main checks and hosted
+API 24 instrumentation job on `7fc0d00`. That head includes the app source used
+by the clean Termux build. Subsequent commits changed documentation and the
+release helper, not app source or Android Gradle configuration. The Termux
+debug APK was verified but not installed. A clean Mac build remains
+unverified.
 Figma shows UUID setup and profile states and has no Student ID input or
 verification screen. These results do not verify live Google sign-in or
 production Firestore behavior.
@@ -63,8 +65,9 @@ GitHub Actions run
 passed on preview commit `55dcc571436d705827b7b069d6bb077350a7e6f5`, including
 hosted API 24 instrumentation tests. Draft PR #1's run
 [39942899889](https://github.com/Patt-00/Campus4Change/actions/runs/39942899889)
-passed both checks and hosted API 24 instrumentation on `6101ee2`; later
-candidate commits need green PR checks before merge.
+passed both checks and hosted API 24 instrumentation on `6101ee2`. The latest
+run `39948381988` passed both checks on `7fc0d00`; local documentation changes
+still need a new CI run before merge.
 
 The Google account-picker cancellation issue was reproduced on POCO and
 corrected: dismissing Credential Manager now returns to Login without a false
@@ -87,7 +90,10 @@ Firebase CLI access for the owner account is verified, and the project is
 app registration. The App Check Console still shows the Android app as Not
 registered; the Play Integrity provider form is waiting for the user to accept
 the Google APIs and Play Integrity terms. Auth and Firestore App Check
-enforcement remain Unenforced. Production Firestore rules have now been
+enforcement remain Unenforced. On POCO cold launch, Google Play Integrity
+returned its token callback, but Firebase App Check token exchange failed with
+a generic `FirebaseException`; the native bridge omits the underlying service
+response. The exact cause remains unknown. Production Firestore rules have now been
 deployed and the active ruleset SHA-256 exactly matches local source at
 `31f4827c128dcc063a21f7de1dc0542db720dd45efce13b8d0ac3a63630f4cfa`. The six
 live composite index definitions match local source and all are READY. No
@@ -107,6 +113,8 @@ the only required physical QA device; Pad 7 is deferred.
 The detailed weighted tables below describe the previous 88.25% checkpoint.
 Refresh their evidence and recalculate the score only after the 1.4.0 candidate
 passes all final gates; historical rows are not proof of current-source
+behavior. Current dependency advisory status is tracked in
+[QUALITY_AUDIT.md](docs/QUALITY_AUDIT.md).
 behavior.
 
 After the signed-out About copy fix on 2026-10-22, the full Jest suite passed

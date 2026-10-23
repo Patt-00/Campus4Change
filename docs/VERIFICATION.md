@@ -22,6 +22,23 @@
   Skip opened Login, Sign up opened account creation, and an empty create
   submission displayed local validation. The form remained unsent. The manifest
   includes INTERNET and CAMERA and omits biometric/fingerprint permissions.
+- A repeat `adb -s Z9GMOVDMHQV8X84D install --no-streaming -r` on 2026-10-23
+  returned `Success`. The package reports version 1.4.0/code 7, and a post-
+  install pull has SHA-256
+  `e1c13ca9af40494302fcee8b717503d2e1f3f8a5b19d580368a27f859cd94b8a`, matching
+  the local signed APK. The install preserved existing app data.
+- A later cold launch reached `MainActivity` and showed signed-out Login. The
+  default native Firebase initializer logged that default options were absent,
+  then the explicitly configured `Campus4ChangeAppCheck` instance initialized.
+  Google Play Integrity returned its token callback, but Firebase App Check
+  exchange failed with a generic `FirebaseException`. The native bridge omits
+  the underlying response. Device connectivity reported validated Wi-Fi. This
+  does not verify a valid App Check token, and the failure cause remains unknown.
+- The signed-out Login → About route displays version 1.4.0, the peer-learning
+  objective, Firebase/shared-feature requirements, the generated UUID's
+  reference-only role, local-photo storage, and the no-push/no-live-calls limits.
+  Returning to Login retained the signed-out state; no account or cloud request
+  was created by this check.
 - On the installed candidate, tapping Continue with Google opened the
   Credential Manager account picker. Pressing Back returned to Login with the
   neutral message “Google sign-in was canceled. Choose an account to continue.”
@@ -39,7 +56,8 @@
   this candidate. No release tag or final 1.4.0 asset has been published.
 - Draft PR #1 CI run `39942899889` passed Jest, lint, Android unit tests,
   emulator rules/Auth suites, API 24 instrumentation, debug build, and release
-  packaging guard on `6101ee2`. Check PR #1 for CI on later candidate commits
+  packaging guard on `6101ee2`. Latest run `39948381988` passed both checks on
+  pushed head `7fc0d00`. Local documentation changes require a fresh CI run
   before merge. The active production Firestore ruleset is
   `7194f765-35ec-4ecd-b266-cca407e2a07c` and its hash matches local rules
   `31f4827c128dcc063a21f7de1dc0542db720dd45efce13b8d0ac3a63630f4cfa`. All

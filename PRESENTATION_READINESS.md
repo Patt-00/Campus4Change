@@ -7,41 +7,38 @@ teach, and supports study groups and messaging. Payments, live voice/video
 calls, operating-system push notifications, and iOS are outside this Android
 version's scope.
 
-The current app version is 1.3.0, Android version code 6. GitHub hosts the
-current source snapshot and signed, installable APK in the
+The current candidate is Campus4Change 1.4.0, Android version code 7. The only
+public installable asset is still the older signed APK in the
 [v1.3.0-preview.2 pre-release](https://github.com/Patt-00/Campus4Change/releases/tag/v1.3.0-preview.2).
-Download Campus4Change-v1.3.0-preview.2.apk from that page. Its SHA-256 is
-e83a7feeaf307d526b6bb34334badbc193f1e218259bfd2aeb8c55f1c1cfa330. It is a
-release-signed APK, not a debug APK, and it bundles the application so it does
-not need Metro. The AAB was validated and remains local. The source and APK
-are on the preview branch/tag; main remains at its earlier baseline and has
-not been updated for this pre-release.
+The signed 1.4.0 APK and AAB are built locally but have not been published.
+The 1.4.0 APK is installed on the POCO X4 GT, and the pulled APK hash matches
+the local artifact. Fresh launch, onboarding, signup navigation, empty-form
+validation, Google account-picker cancellation, and the signed-out About page
+have been checked without creating an account. The POCO is the only required
+physical test device; Pad 7 is deferred.
 
-The POCO X4 GT is the only device used in the latest release check. The
-installed APK hash matches the release asset exactly; package metadata reports
-version 1.3.0/code 6, and a fresh launch reached MainActivity without a fatal
-or React Native startup error in the captured log. Dismissing Google Credential
-Manager now returns to Login without a false error. Selecting the tested work
-account showed an organization screen-lock requirement; no lock was set and
-Firebase sign-in did not complete. Pad 7 was unavailable and no emulator was
-started in this release pass.
+The source branch has a draft PR to `main`. The latest pushed head, `7fc0d00`,
+passed both PR checks in CI run `39948381988`. The local documentation edits
+still need to be pushed and checked before merge. The last weighted completion
+estimate was 88.25% before the 1.4.0 release work and is not a current score.
+See [COMPLETION_AUDIT.md](COMPLETION_AUDIT.md) for the live gates.
 
-The codebase uses Firebase Authentication and Firestore and is configured for
-project campus4change. The live backend is not fully ready for a verified
-presentation flow: production Firestore rules are older than the current
-source and do not include Student ID claims; the replacement release signer
-is not registered for Firebase Google sign-in or Play Integrity; the App
-Check Console lists the Android app as Not registered, while Auth and
-Firestore App Check enforcement are currently Unenforced. Do not promise that
-all live sign-in and shared-data flows have passed on this APK. The current
-local source tests passed; live release authentication was not tested.
+Firebase Authentication and Cloud Firestore use project `campus4change`. The
+v4 release SHA-1 and SHA-256 are registered to the Android app, and the
+production Firestore rules and six composite indexes now match the checked-in
+source. Play Integrity App Check remains unregistered because its provider
+setup requires the project owner to accept the Google APIs and Play Integrity
+terms. Release Google sign-in has not been completed with a selected account,
+and Auth and Firestore App Check enforcement remain off. The POCO reached the
+Google Play Integrity service, but Firebase's App Check token exchange failed
+with a generic exception. The exact service response is unavailable. Do not
+promise a live login or shared-data flow until the POCO tests pass. The
+authorized production data reset remains pending after the encrypted backup
+and live-flow checks.
 
-The evidence-weighted completion estimate is 87.75%, not a teacher's grade.
-The pre-release contains the current snapshot, but the main branch, exact-source
-CI, production Firebase checks, current-source two-device verification, and
-school-laptop rehearsal remain open. See COMPLETION_AUDIT.md for the evidence
-and remaining gates. The Desktop presentation guide is
-~/Desktop/Campus4Change Presentation Guide.md.
+Payments, live voice/video calls, operating-system push notifications, and iOS
+are outside this Android version's scope. The Desktop presentation guide is
+`~/Desktop/Campus4Change Presentation Guide.md`.
 
 
 ## Application overview
@@ -57,21 +54,23 @@ and remaining gates. The Desktop presentation guide is
 - **Navigation:** `src/navigation/AppNavigator.jsx` routes Home, tutor search/details, Sessions, groups, Messages/Chat, Notifications, Profile, Preferences, Settings, and About.
 - **Authentication:** Firebase email/password and Android Credential Manager Google sign-in. Device-only accounts remain local to their device.
 - **Local storage:** Android native code encrypts the Firebase refresh token and device account data using Android Keystore-backed AES-GCM. Profile photo files remain app-private on the device.
-- **Cloud data:** Firestore stores owner-only private account state, separate Student ID claims, tutor profiles, groups/posts/replies/reports, participant session requests, participant slot locks, and group/session chat. Firestore rules are an authorization boundary. The current local Student ID claim rules are emulator-tested but absent from the active production ruleset; see [FIREBASE_SETUP.md](docs/FIREBASE_SETUP.md).
+- **Cloud data:** Firestore stores owner-only private account state, tutor profiles, groups/posts/replies/reports, participant session requests, participant slot locks, and group/session chat. Firebase UID remains the owner key. `accountUuid` is a random account reference, not a TIP enrollment check. Firestore rules are an authorization boundary and currently match the deployed ruleset; see [FIREBASE_SETUP.md](docs/FIREBASE_SETUP.md).
 - **Important integrations:** Firebase Auth, Firestore, Android Credential Manager, Firebase email verification, and Android system photo picker.
 
 ## Demonstration sequence
 
-Use two presenter-controlled student email accounts with inbox access. Do not add embedded demo credentials to the application.
+Use two presenter-controlled, email-verified test accounts with inbox access.
+Run the account steps sequentially on the POCO; only one physical device is in
+the current acceptance scope. Do not add demo credentials to the application.
 
-1. Launch on the learner device and sign in. Show required TIP profile fields: campus, course, year, and private digits-only Student ID.
-2. On the tutor device, sign in and publish a tutor profile with a course and subjects.
-3. On the learner device, open Find People, search a tutor, inspect the subjects/profile, and request a future one-hour session in a listed subject.
-4. On the tutor device, open Sessions and accept the incoming request. Return to the learner device and show the accepted booking and in-app notice.
-5. Open the participant session chat from each device and exchange one message in both directions.
-6. On one device, create a study group. On the other, discover and join it.
-7. Open group chat and send a short message from each device. Optionally add a study note or reply.
-8. Cancel the QA booking from the appropriate participant, verify the cancelled state on both accounts, and confirm its reserved time is available again.
+1. Launch on the POCO, sign in, and complete TIP setup with campus, course, and year. Show the generated Campus4Change UUID and explain that it does not verify TIP enrollment.
+2. Sign out, sign in to the tutor account, and publish a tutor profile with a course and subjects.
+3. Sign out and return to the learner account. Open Find People, search for the tutor, and request a future one-hour session in a listed subject.
+4. Sign in to the tutor account and accept the request in Sessions. Return to the learner account and confirm the accepted booking and in-app notice.
+5. Open the participant session chat from each account in turn and verify the sent message appears for both participants.
+6. Create a study group from one account. Sign in to the other account, discover the group, and join it.
+7. Open group chat from both accounts in turn and confirm a message or reply appears for each member.
+8. Cancel the QA booking from a participant account and confirm the cancelled state and released time slot.
 9. Show the floating notification opening its related Notifications detail, then review Settings and About.
 
 Expected results are a tutor profile visible to the learner, an incoming request visible to the tutor, an accepted booking visible in Upcoming, participant-only messages delivered, the joined group's messages visible to both members, and a cancelled booking with released slot reservations.
@@ -80,10 +79,10 @@ Expected results are a tutor profile visible to the learner, an incoming request
 
 ### Live Firebase presentation
 
-- Use the signed release only after its Firebase certificate registration, release sign-in/App Check, and production-rule checks pass. Until those gates are verified, use the local-emulator QA fallback below.
-- Provide two verified email accounts with inbox access and distinct Student IDs. Use a third account only if demonstrating outsider denial.
-- The active production ruleset differs from the local source. Live account setup requires an owner-authorized rules deployment; this task does not perform one. The six production composite indexes match the local definitions and are ready.
-- Both Android devices need working Wi-Fi or mobile data. POCO X4 GT and Pad 7 were used in the recent physical rehearsal.
+- Use the signed release for live Firebase only after Google sign-in and App Check pass on the POCO. The production Firestore rules and indexes match the repository. Until live checks pass, use the local-emulator QA fallback below.
+- Use verified email accounts with inbox access if demonstrating shared features. The app generates a UUID; it does not request or verify a Student ID.
+- Production Firestore rules and all six composite indexes now match the repository. The v4 release SHA fingerprints are registered for Google sign-in. Play Integrity App Check still needs the project owner to accept its terms and complete provider registration.
+- POCO X4 GT is the only device in the current-source acceptance check. Pad 7 testing is deferred. Do not describe the current candidate as passing a two-device live-Firebase rehearsal.
 - Use the standard Android install/launch instructions in [BUILDING.md](docs/BUILDING.md). A release update requires its dedicated signing identity.
 
 ### Local emulator fallback
@@ -104,13 +103,13 @@ No password, verification code, production API secret, or private signing creden
 
 | Risk | Effect | Response |
 | --- | --- | --- |
-| Live Firebase lacks the local Student ID claim rules | New account setup can fail when it tries to reserve an ID | Use local emulators for the demonstration. The active ruleset must be updated by an authorized project owner before live signup can pass. |
-| The v1.3.0 preview APK is now published, but the replacement release certificate remains unregistered in the 2026-10-22 read-only check | Google sign-in/App Check and release-signer behavior are unverified; production rules lack the current Student ID claim flow, and no live operation was attempted during the latest POCO launch | Use the preview APK to show the Android app. Do not promise live sign-in or shared cloud flows until the Firebase release checks pass. |
+| Play Integrity App Check is not registered yet | The POCO token exchange failed, so release attestation and enforced requests remain unverified | The project owner must review and accept the Google APIs and Play Integrity terms. Then verify a valid POCO token and expected request metrics before enabling enforcement. |
+| Live Google sign-in has not completed on the 1.4.0 candidate | Account setup and shared cloud flows are not yet verified with a real Google credential | The user selects a Google account on the POCO and completes any provider security prompts. Do not promise live sign-in until the signed candidate reaches the expected account route. |
+| The public v1.3.0-preview.2 APK predates the 1.4.0 candidate | The current UUID setup is not available from the public release download | Use the 1.4.0 APK only after it is published to GitHub; do not treat the local candidate as a public download. |
 | School network or Firebase service is unavailable | Shared live features cannot reach the backend | Use the local emulator setup above if the school laptop has the required SDK/JDK and the QA APK can be built. Rehearse it on the presentation machine before relying on it. |
-| Google sign-in with release signer and Play Integrity | Release-only authentication/attestation behavior is unknown | For a scoped walkthrough, use verified email/password accounts and report the release-only gates accurately. |
 | OS push or live calls | These functions are not implemented | Demonstrate the in-app notification and messaging flows; do not promise OS push, voice, or video. |
 
-The signed APK is available for the presentation. A full live multi-user demo still needs a networked rehearsal with the release certificate and current production Firestore rules.
+The public signed v1.3.0-preview.2 APK is available for download. The current signed 1.4.0 candidate is local and installed on the POCO, but is not published. A live multi-user rehearsal still needs Play Integrity terms acceptance, successful Google sign-in, data cleanup, and a final clean-start check.
 
 On 2026-10-22, the latest signed release APK (version 1.3.0/code 6) was
 rebuilt, verified, installed in place on POCO X4 GT, and cold-launched. The
