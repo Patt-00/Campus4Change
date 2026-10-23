@@ -105,6 +105,13 @@
   prior-version user-reported evidence, not an independent test of the signed
   1.4.0 candidate.
 
+### PR CI on documentation head, 2026-10-24
+
+- PR run [40011097178](https://github.com/Patt-00/Campus4Change/actions/runs/40011097178)
+  passed the `checks` and `api24-instrumentation` jobs on commit `ea5e1e9`.
+- The macOS clean-build job is manual-only and was skipped in this PR run. A
+  separate hosted macOS run passed earlier in the audit.
+
 ### POCO live sign-in and camera check, 2026-10-23
 
 - On the installed signed candidate, the user-selected Google tester account
