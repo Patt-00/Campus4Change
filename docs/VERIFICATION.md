@@ -1,5 +1,37 @@
 # Verification history
 
+## Release candidate 1.4.0 — 2026-10-23 (not published)
+
+- The signed `com.campus4change` candidate is version 1.4.0/code 7, min API 24,
+  target API 36. The APK SHA-256 is
+  `e1c13ca9af40494302fcee8b717503d2e1f3f8a5b19d580368a27f859cd94b8a`; the AAB
+  SHA-256 is `4f4339999355e4e5975d118d7317b38e530e461a7bb06cba437f94db5511d5bb`.
+  APK verification passed with signer SHA-1
+  `924a082893b2b1132479c8a9fcc346d9e55c0f2d` and SHA-256
+  `1a78f84ca75ce3041e5093ba9c2fa3de0334389e3431122e058d1dff41c66d10`. AAB
+  `jarsigner -verify`, ZIP integrity, and bundletool 1.18.3 validation passed.
+- The Firebase Android app registration now contains the v4 SHA-1 and SHA-256.
+  The App Check Console still shows the Android app as Not registered. Play
+  Integrity registration is paused at the Google APIs and Play Integrity terms
+  checkbox for the project owner to review and accept. Google sign-in has not
+  yet been tested with a selected account, and no Google/Firebase account was
+  created in this candidate check.
+- The APK installed on the POCO X4 GT (`Z9GMOVDMHQV8X84D`). The pulled
+  `/data/app/.../base.apk` SHA-256 matches the local APK exactly. A fresh launch
+  displayed the branded Get Started screen; Get Started opened Introduction,
+  Skip opened Login, Sign up opened account creation, and an empty create
+  submission displayed local validation. The form remained unsent. The manifest
+  includes INTERNET and CAMERA and omits biometric/fingerprint permissions.
+- GitHub's public v1.3.0-preview.2 asset remains unchanged and does not contain
+  this candidate. No release tag or final 1.4.0 asset has been published.
+- Draft PR #1 CI run `39942899889` passed Jest, lint, Android unit tests,
+  emulator rules/Auth suites, API 24 instrumentation, debug build, and release
+  packaging guard on `6101ee2`. The active production Firestore ruleset is
+  `7194f765-35ec-4ecd-b266-cca407e2a07c` and its hash matches local rules
+  `31f4827c128dcc063a21f7de1dc0542db720dd45efce13b8d0ac3a63630f4cfa`. All
+  six production index definitions match local source and are READY. Local
+  release-helper and documentation changes after `6101ee2` need another CI run.
+
 ## Latest local release v1.3.0 — 2026-10-22 (not published)
 
 - After the camera-result auto-resume source change, scripts/build-release.sh

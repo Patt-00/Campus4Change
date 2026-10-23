@@ -10,20 +10,27 @@ Updated 2026-10-23 after rechecking GitHub, Firebase CLI, the POCO, and the
 current worktree.
 
 - The UUID/auth source is pushed on `release/v1.3.0-preview.2` at
-  `4d8968adf586722e21bc5b4b741d9a4ee556c442`. The preview tag still points to
-  the older `55dcc571436d705827b7b069d6bb077350a7e6f5`; `main` is
-  `46fe89a534d98866dc981ef11fe64f24151e8bf4`, four commits behind, and no PR is
-  open. The latest passing CI run is still
-  [39829733295](https://github.com/Patt-00/Campus4Change/actions/runs/39829733295)
-  on `55dcc57`; the current source has no CI result yet.
-- Source metadata is versioned as 1.4.0/code 7 in the local candidate. The
-  published v1.3.0-preview.2 APK is still the older signed build at SHA-256
-  `e83a7feeaf307d526b6bb34334badbc193f1e218259bfd2aeb8c55f1c1cfa330`; no
-  signed 1.4.0 APK or AAB has been built.
-- The USB-connected POCO X4 GT (`Z9GMOVDMHQV8X84D`) remains on package
-  `com.campus4change`, version 1.3.0/code 6, last updated 2026-10-22. The new
-  UUID changes have not been installed or physically verified. Only this POCO
-  is in the test scope; the other ADB device is excluded and Pad 7 is deferred.
+  `4d8968adf586722e21bc5b4b741d9a4ee556c442`. Final candidate metadata and
+  audit updates are committed at `6101ee252c60a18337f73470247ae8f256202121`.
+  Draft PR [#1](https://github.com/Patt-00/Campus4Change/pull/1) targets `main`.
+  CI run [39942899889](https://github.com/Patt-00/Campus4Change/actions/runs/39942899889)
+  passed all jobs on `6101ee2`. The local release-helper fix and Firebase/build
+  guide updates are not yet pushed. The preview tag remains at
+  `55dcc571436d705827b7b069d6bb077350a7e6f5`; `main` remains at
+  `46fe89a534d98866dc981ef11fe64f24151e8bf4`.
+- The signed 1.4.0/code 7 candidate APK SHA-256 is
+  `e1c13ca9af40494302fcee8b717503d2e1f3f8a5b19d580368a27f859cd94b8a`; the
+  AAB SHA-256 is `4f4339999355e4e5975d118d7317b38e530e461a7bb06cba437f94db5511d5bb`.
+  The candidate was built with a new local v4 signer; APK signature, AAB
+  signature, ZIP integrity, and bundletool validation passed. It remains
+  unpublished. The
+  older v1.3.0-preview.2 APK remains the only public installable asset.
+- The USB-connected POCO X4 GT (`Z9GMOVDMHQV8X84D`) now has the candidate
+  `com.campus4change`, version 1.4.0/code 7. The installed base APK hash matches
+  the local release APK. A fresh launch showed the branded Get Started screen;
+  intro-to-login and signup navigation plus empty-form validation were checked
+  without creating an account. No Firebase data was changed. Only this POCO is
+  in test scope; the other ADB device is excluded and Pad 7 is deferred.
 - The 1.4.0 versioned source passes 337 Jest tests across 41 suites, ESLint,
   `git diff --check`, Firestore test-script syntax validation, and
   `:app:testDebugUnitTest` when Gradle is run with JDK 25. A first unit-test
@@ -31,18 +38,24 @@ current worktree.
   file major version 71; rerunning with the documented JDK 25 passed. The
   versioned debug APK has not yet been rebuilt. No local Android emulator is
   being used; CI provides the emulator suites.
-- Firebase CLI is now authorized as the selected project-owner account, and
-  its read-only project listing confirms `campus4change` / Campus4Change. No
-  production Firebase setting, rule, account, or document has been changed.
-  The new v4 signing key has not been generated, registered, or built yet.
-- The approved finalization data reset has not started. The required encrypted
-  local export must be created and integrity-checked first. The eventual reset
-  covers all Firebase Auth accounts and Firestore documents, including real
-  user data; the temporary backup will be deleted after release verification.
-- Google release sign-in and App Check remain unverified. The previously
-  installed release signer was not registered for Google sign-in/App Check,
-  and selecting the work account on POCO previously reached an organization
-  screen-lock requirement. No device security setting was changed.
+- Firebase CLI is authorized for the selected owner account, and the project
+  listing confirms `campus4change` / Campus4Change. The v4 SHA-1 and SHA-256
+  are registered on the Android app. Firestore rules were deployed after the
+  current rules/Auth emulator CI passed; the active ruleset is
+  `projects/campus4change/rulesets/7194f765-35ec-4ecd-b266-cca407e2a07c` and
+  its SHA-256 exactly matches local `firestore.rules` at
+  `31f4827c128dcc063a21f7de1dc0542db720dd45efce13b8d0ac3a63630f4cfa`. All
+  six live indexes are READY and match local definitions.
+- App Check Console still lists the Android app as Not registered. The Play
+  Integrity form is open at the Google APIs and Play Integrity terms checkbox;
+  user acceptance is required before saving registration. Authentication and
+  Firestore enforcement remain Unenforced. No Play Integrity request has been
+  tested from the candidate.
+- A local encrypted backup has been created and integrity-verified outside
+  Git. It contains metadata for 9 Auth accounts and 13 Firestore documents
+  across 8 collection paths, without password hashes or tokens. Plaintext
+  export files were removed from temporary storage. The approved full data
+  reset has not started; those live records still exist.
 - The last weighted estimate was 88.25% before the current source commit. It is
   a historical checkpoint and will be recalculated after the final acceptance
   gates are verified; it is not a current completion claim.
@@ -62,11 +75,20 @@ current worktree.
   for the already documented unsupported class-file version and was not used
   as the final verification result.
 - Reauthorized Firebase CLI for the project owner and confirmed the
-  `campus4change` project is available. This is access verification only; no
-  production writes have occurred.
-- Current-source CI, the new signer, Firebase alignment, local encrypted
-  backup, authorized data reset, POCO install/runtime checks, Mac/Termux build
-  checks, main merge, final tag/assets, and final email remain open.
+  `campus4change` project is available. Registered the v4 SHA fingerprints and
+  deployed the reviewed Firestore rules after emulator CI passed. No production
+  Auth accounts or Firestore documents were changed.
+- Created the v4 release key outside Git with mode 600; its password is stored
+  in GNOME Keyring under its dedicated account. The helper now defaults to v4
+  and exports the loaded password to `keytool` before key generation. Signed
+  APK/AAB builds pass; both Firebase SHA fingerprints were registered.
+- Created and verified the temporary encrypted local export before any live
+  deletion. The POCO first-run UI smoke passed with no Firebase account created.
+- CI run 39942899889 passed on `6101ee2`; the latest local helper/docs changes
+  still need to be pushed and checked. Play Integrity terms/registration and
+  token verification, live Google sign-in, production cleanup, broader POCO
+  feature checks, Mac/Termux builds, main merge, final tag/assets, and final
+  email remain open.
 
 ### UUID account migration and Google sign-in navigation, 2026-10-23
 

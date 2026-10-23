@@ -309,10 +309,14 @@ v1.2.0 GitHub release entries were removed after v1.2.2 was published. Their
 verified files remain in the local archive at
 /home/patt/Documents/Codex/Campus4Change-release-archive-2026-10-17. The current
 release is https://github.com/Patt-00/Campus4Change/releases/tag/v1.2.2.
-The local v1.3.0 APK and AAB were built with the replacement v3 signer. Its
-fingerprints and Firebase registration status are recorded in
-[FIREBASE_SETUP.md](FIREBASE_SETUP.md); the signed artifacts have not been
-published or installed on a device.
+The v1.3.0-preview.2 APK and local AAB used the previous v3 signer. The 1.4.0
+release candidate (version code 7) was built on 2026-10-23 with the new v4
+signer. The local signed APK SHA-256 is
+`e1c13ca9af40494302fcee8b717503d2e1f3f8a5b19d580368a27f859cd94b8a`; the AAB
+SHA-256 is `4f4339999355e4e5975d118d7317b38e530e461a7bb06cba437f94db5511d5bb`.
+The APK passed `apksigner verify`; the AAB passed `jarsigner -verify` and ZIP
+integrity checks. The APK is installed on the POCO X4 GT and the pulled package
+hash matches the local artifact. These candidate artifacts are not published.
 
 To build both release artifacts with the dedicated signer, run this helper
 from an interactive terminal at the repository root:
@@ -321,37 +325,34 @@ from an interactive terminal at the repository root:
 ./scripts/build-release.sh
 ```
 
-The helper defaults to `~/.android/keystores/campus4change-release-v3.jks`.
-It creates the key if needed, builds the APK and AAB, and prints their SHA-256
-hashes. Passwords can be entered at the hidden terminal prompts or read from
-the current user's GNOME Secret Service. Set `C4C_RELEASE_KEYRING_ACCOUNT`
-when the keyring item has an account attribute. Without that variable, the
-helper reads a service-only item when exactly one matches. If multiple items
-match, set the account variable or use the hidden prompts. The signing
-credentials are never printed, committed, or written to Gradle properties.
+The helper defaults to `~/.android/keystores/campus4change-release-v4.jks`,
+alias `campus4change-v4`, and GNOME Secret Service account
+`campus4change-release-v4`. It creates the key if needed, builds the APK and
+AAB, and prints their SHA-256 hashes. The signing password is loaded from
+GNOME Keyring on this workstation. The signing credentials are never printed,
+committed, or written to Gradle properties.
 
-On the Fedora workstation, rebuild with the local keyring entry using:
+On the Fedora workstation, rebuild using:
 
 ```sh
 DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/bus" \
-C4C_RELEASE_STORE_FILE="$HOME/.android/keystores/campus4change-release-v3.jks" \
-C4C_RELEASE_KEY_ALIAS=campus4change \
 ./scripts/build-release.sh
 ```
 
-The helper reads the GNOME Secret Service item named
-`campus4change-release-signing`. The command above uses a service-only item, so
-it works when exactly one matching keyring item exists. On other systems,
-provide the four `C4C_RELEASE_*` variables through that system's password
-manager or use the helper's hidden prompts. Never store signing passwords in
-the repository or shell history. Back up the JKS file and its password-manager
-entry to separate secure recovery locations. Losing either prevents future
-updates signed with this certificate. The helper does not publish artifacts or
-alter GitHub releases. A replacement release certificate must be registered
-with the Firebase Android app before Google sign-in and Play Integrity behavior
-can be verified. Existing installs signed with a different key require
-uninstalling first, which clears device-only state and app-private photos;
-Firebase-backed accounts and Firestore data remain in the cloud. See
+The helper uses the `campus4change-release-signing` service and the
+`campus4change-release-v4` account. On macOS or Termux, where GNOME Secret
+Service is unavailable, enter the passwords at the hidden prompts or provide
+the four `C4C_RELEASE_*` variables through the system password manager. Never
+store signing passwords in the repository or shell history. Keep the JKS file
+and its password-manager entry in separate secure recovery locations; losing
+either prevents future updates signed with this certificate. The helper does
+not publish artifacts or alter GitHub releases. The v4 SHA-1 is registered for
+Google sign-in and its SHA-256 is registered with the Firebase Android app;
+Play Integrity App Check registration is pending the required terms acceptance
+in Firebase Console. Existing installs signed with a different key must be
+uninstalled before this release can be installed, which clears device-only
+state and app-private photos. Firebase-backed accounts and Firestore data
+remain in the cloud unless explicitly deleted. See
 [Android app signing](https://developer.android.com/studio/publish/app-signing)
 and [Gradle release signing](https://developer.android.com/build/building-cmdline#sign_your_app).
 
@@ -359,8 +360,9 @@ PowerShell and CI should provide the same four variables through a secure
 secret store. Do not save passwords in `gradle.properties`, shell history, or
 the repository.
 
-The published v1.2.2 release has version code 5. Current source has version
-1.3.0, version code 6, and application ID `com.campus4change`.
+The published v1.2.2 release has version code 5, and the v1.3.0 preview uses
+version code 6. The current candidate is version 1.4.0/code 7 with application
+ID `com.campus4change`.
 
 An update requires a matching application ID and signing certificate. Use your machine's private debug key with `C4C_DEBUG_STORE_FILE` when updating an installation made with that key. The 1.3.0 emulator QA build was updated in place on the POCO X4 GT and Pad 7 with local app data preserved. It targets local Firebase emulators and is not a release. The publicly released v1.2.0 APK used the repository debug signing identity; the published v1.2.2 release uses the separate private signer created by `scripts/build-release.sh`. Moving an old installation to the release signer requires uninstalling it, which removes device-local state. Firebase-backed account state can be restored after signing in again, but local-only state and device-only profile photos cannot. Back up or migrate local-only state before reinstalling.
 

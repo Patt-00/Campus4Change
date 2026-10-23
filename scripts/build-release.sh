@@ -2,9 +2,10 @@
 set -Eeuo pipefail
 
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-key_alias="${C4C_RELEASE_KEY_ALIAS:-campus4change}"
+key_alias="${C4C_RELEASE_KEY_ALIAS:-campus4change-v4}"
 keystore_dir="${HOME}/.android/keystores"
-keystore_file="${C4C_RELEASE_STORE_FILE:-${keystore_dir}/campus4change-release-v3.jks}"
+keystore_file="${C4C_RELEASE_STORE_FILE:-${keystore_dir}/campus4change-release-v4.jks}"
+keyring_account="${C4C_RELEASE_KEYRING_ACCOUNT:-campus4change-release-v4}"
 
 umask 077
 [[ "$keystore_file" = /* ]] || {
@@ -20,28 +21,7 @@ command -v keytool >/dev/null || {
 
 keyring_service="campus4change-release-signing"
 keyring_password_loaded=false
-if [[ -n "${C4C_RELEASE_KEYRING_ACCOUNT:-}" ]]; then
-  command -v secret-tool >/dev/null || {
-    printf 'secret-tool is required when C4C_RELEASE_KEYRING_ACCOUNT is set.\n' >&2
-    exit 1
-  }
-  if [[ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]]; then
-    session_bus="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/bus"
-    [[ -S "$session_bus" ]] || {
-      printf 'No desktop Secret Service session bus is available.\n' >&2
-      exit 1
-    }
-    export DBUS_SESSION_BUS_ADDRESS="unix:path=$session_bus"
-  fi
-  if [[ -z "${C4C_RELEASE_STORE_PASSWORD:-}" ]]; then
-    C4C_RELEASE_STORE_PASSWORD="$(secret-tool lookup \
-      service "$keyring_service" \
-      account "$C4C_RELEASE_KEYRING_ACCOUNT")"
-    if [[ -n "$C4C_RELEASE_STORE_PASSWORD" ]]; then
-      keyring_password_loaded=true
-    fi
-  fi
-elif [[ -z "${C4C_RELEASE_STORE_PASSWORD:-}" ]] && command -v secret-tool >/dev/null; then
+if [[ -z "${C4C_RELEASE_STORE_PASSWORD:-}" ]] && command -v secret-tool >/dev/null; then
   if [[ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]]; then
     session_bus="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/bus"
     if [[ -S "$session_bus" ]]; then
@@ -49,16 +29,11 @@ elif [[ -z "${C4C_RELEASE_STORE_PASSWORD:-}" ]] && command -v secret-tool >/dev/
     fi
   fi
   if [[ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]]; then
-    service_match_count="$(secret-tool search service "$keyring_service" 2>/dev/null \
-      | awk '/^\[/ { count++ } END { print count + 0 }' || true)"
-    if [[ "$service_match_count" == 1 ]]; then
-      C4C_RELEASE_STORE_PASSWORD="$(secret-tool lookup service "$keyring_service" 2>/dev/null || true)"
-      if [[ -n "$C4C_RELEASE_STORE_PASSWORD" ]]; then
-        keyring_password_loaded=true
-      fi
-    elif [[ "$service_match_count" -gt 1 ]]; then
-      printf 'Multiple Secret Service items match %s; set C4C_RELEASE_KEYRING_ACCOUNT or use the hidden prompts.\n' \
-        "$keyring_service" >&2
+    C4C_RELEASE_STORE_PASSWORD="$(secret-tool lookup \
+      service "$keyring_service" \
+      account "$keyring_account" 2>/dev/null || true)"
+    if [[ -n "$C4C_RELEASE_STORE_PASSWORD" ]]; then
+      keyring_password_loaded=true
     fi
   fi
 fi
@@ -66,6 +41,7 @@ fi
 if [[ -n "${C4C_RELEASE_STORE_PASSWORD:-}" && -z "${C4C_RELEASE_KEY_PASSWORD:-}" ]]; then
   C4C_RELEASE_KEY_PASSWORD="$C4C_RELEASE_STORE_PASSWORD"
 fi
+export C4C_RELEASE_STORE_PASSWORD C4C_RELEASE_KEY_PASSWORD
 
 if [[ ! -f "$keystore_file" ]]; then
   printf 'Creating a new private release key at %s\n' "$keystore_file"

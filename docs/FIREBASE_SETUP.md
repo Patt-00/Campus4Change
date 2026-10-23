@@ -29,48 +29,46 @@ fingerprints (`5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25` /
 `FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C`). Do not register that public certificate with Firebase. Other developers need to use their own local debug key and add its SHA-1 to Firebase after authorization.
 
 The v1.2.2 release certificate SHA-1 and SHA-256 are registered to the Firebase
-Android app. The locally built v1.3.0 APK and AAB use a replacement signer with
-these fingerprints:
+Android app. The local v1.3.0 preview used a v3 replacement signer; its
+fingerprints remain unregistered. The 1.4.0/code 7 candidate uses the new v4
+signer:
 
-- SHA-1: `21:24:1E:9A:18:AB:85:31:F5:B3:83:A5:5D:87:14:C9:80:C8:07:D5`
-- SHA-256: `0C:65:24:06:CF:3B:60:51:A4:F9:65:70:80:7E:F7:38:D4:8A:48:80:2E:E1:0E:06:76:05:5D:61:FE:F5:9E:E7`
+- SHA-1: `92:4A:08:28:93:B2:B1:13:24:79:C8:A9:FC:C3:46:D9:E5:5C:0F:2D`
+- SHA-256: `1A:78:F8:4C:A7:5C:E3:04:1E:50:93:BA:9C:2F:A3:DE:03:34:38:9E:34:31:12:2E:05:8D:1D:FF:41:C6:6D:10`
 
-The read-only Firebase SHA list check on 2026-10-23 found this replacement
-certificate unregistered. On 2026-10-22, the signed app cold-launched on POCO,
-but its startup log showed App Check token failures. The exact server-side
-cause is unconfirmed, and Google sign-in and Play Integrity/App Check for this
-signer remain unverified. An authorized Firebase project owner must register
-both fingerprints before testing those release-only flows. The install did
-not change production configuration or Firebase Auth/Firestore data.
+On 2026-10-23, Firebase CLI confirmed both v4 fingerprints in the Android app
+registration. This enables the Google sign-in certificate check; live Google
+sign-in still needs a POCO end-to-end test. The Firebase App Check Console
+still shows the Android app as **Not registered**. Registration with Play
+Integrity is pending the project's acceptance of the Google APIs Terms and
+Play Integrity API Terms. For an APK distributed outside Google Play, configure
+Play Integrity to permit unrecognized app versions, require no Play license,
+and use the device-integrity verdict; see Firebase's [Play Integrity provider
+guide](https://firebase.google.com/docs/app-check/android/play-integrity-provider)
+and [Play Integrity configuration reference](https://firebase.google.com/docs/reference/appcheck/rest/v1/projects.apps.playIntegrityConfig).
+Release App Check and enforcement remain unverified.
 
-A read-only Firebase Console inspection on 2026-10-22 showed the Android app
-`com.campus4change` as **Not registered** under App Check. In the App Check
-APIs tab, both Authentication and Cloud Firestore were **Unenforced**. This
-confirms an App Check registration gap that is consistent with the observed
-token-request failures, but the current native bridge intentionally logs only
-the Firebase exception class, so the specific Play Integrity error remains
-unknown. No registration or enforcement setting was changed.
+A Firebase Console inspection on 2026-10-23 still shows the Android app
+`com.campus4change` as **Not registered** under App Check. Authentication and
+Cloud Firestore enforcement remain **Unenforced**. The release currently
+initializes the Play Integrity provider, but token exchange has not been
+verified with the v4 signer. Do not enable enforcement until the v4 POCO build
+obtains valid tokens and the API request metrics show expected release traffic.
 
 ### Current production state
 
-A read-only Rules API check on 2026-10-22 found that the active default
-Firestore release pointed to ruleset
-`projects/campus4change/rulesets/4f66efb8-d8d6-404c-83be-8a2b7b37588a`.
-Its `firestore.rules` source hashes to
-`867e1b314fb639608ef4fe6978892ee6d337536be27a65b01b76c066679ec0a8`.
-The local source at that time hashed to
-`25f0ec68a34ce0eb1964164dfa7fb9139413d99fa0ca1a5f323236bf4e302323`. That
-version contained a `studentIdClaims` path. The current worktree removes the
-Student ID claim client flow and the matching local rules. No production rules
-or authorization settings were changed, and production rules have not been
-rechecked against the current uncommitted source.
+The 2026-10-23 Firestore rules deployment is now active at ruleset
+`projects/campus4change/rulesets/7194f765-35ec-4ecd-b266-cca407e2a07c`. Its
+source hash exactly matches the checked-in `firestore.rules` file:
+`31f4827c128dcc063a21f7de1dc0542db720dd45efce13b8d0ac3a63630f4cfa`. The
+reviewed difference from the previous ruleset only factored existing owner
+state validation into a helper and corrected a comment; authorization behavior
+remained the same. GitHub CI run 39942899889 passed the current-source Firestore
+and Auth emulator suites before deployment. The deployment changed no data.
 
-A read-only Firestore index API recheck on 2026-10-22 returned six production
-composite indexes, all in `READY` state and matching all six definitions in
-`firestore.indexes.json`. No production index was modified.
-
-The last recorded rules deployment was on 2026-10-17. It added the optional
-allowlisted tutor avatar preset and did not change indexes. An earlier manual
+The 2026-10-23 index check found six production composite indexes, all in
+`READY` state. Their definitions match all six entries in
+`firestore.indexes.json`; no production indexes were changed. An earlier manual
 test recorded a permission-denied group update on a signed-in POCO account.
 This audit did not inspect, replay, or delete that pending device operation.
 See [VERIFICATION.md](VERIFICATION.md) for the dated observation.
@@ -96,11 +94,11 @@ their local UUID as the Campus4Change ID.
 
 After Firebase accepts a Google credential, a complete profile routes to Home
 and an incomplete profile routes to Account Setup. Dismissing the account picker
-returns to Login with a neutral cancellation message. The current JavaScript
-tests cover this session handoff; live sign-in with the replacement release
-certificate remains unverified because its SHA-1 is absent from Firebase's
-Android app registration. No production rule or Firebase setting has been
-changed for the local UUID update.
+returns to Login with a neutral cancellation message. The JavaScript tests cover
+this session handoff. The v4 SHA-1 is registered, but live sign-in with the
+signed 1.4.0 candidate has not yet been completed on POCO. The v4 SHA-256 is
+registered; Play Integrity registration and enforcement remain pending the
+required terms acceptance and token verification.
 See [Android's Credential Manager Google sign-in guide](https://developer.android.com/identity/sign-in/credential-manager-siwg-implementation)
 and [Firebase's Google sign-in guide for Android](https://firebase.google.com/docs/auth/android/google-signin)
 for the platform flow and token exchange.
@@ -167,16 +165,22 @@ configuration; the native App Check bridge receives only the Android app
 configuration.
 
 The Android Firebase app has the v1.2.2 release certificate SHA-1 and
-SHA-256 registered, along with authorized workstation debug fingerprints.
+SHA-256 registered, along with authorized workstation debug fingerprints and
+the v4 release candidate's SHA-1/SHA-256. The v4 fingerprints support Google
+sign-in and are present in Android app registration; the App Check Console
+still shows the Android app as **Not registered** pending Play Integrity terms
+acceptance and provider registration.
 A POCO X4 GT
 debug token was allowlisted for final-sprint QA, used to verify private-state
 sync, then revoked and removed from the local credential cache. Never commit
 debug tokens or include them in screenshots, reports, or CI logs. Release
-builds use Play Integrity and the v1.2.2 release SHA-256 is registered, but
-release attestation, request metrics, and enforcement have not been verified.
-Firestore Security Rules remain the primary authorization boundary. Accept the
-Google APIs and Play Integrity terms in Firebase Console only when you are
-ready to configure production App Check.
+builds use Play Integrity, but v4 release attestation, request metrics, and
+enforcement have not been verified. Firestore Security Rules remain the primary
+authorization boundary. The Firebase Console is open at the Play Integrity
+registration form, where the project owner must accept the Google APIs and
+Play Integrity terms before saving provider registration. For this
+GitHub-distributed APK, configure the app for off-Play installs and verify a
+valid token before enabling enforcement.
 
 ## Verify the Firestore rules locally
 

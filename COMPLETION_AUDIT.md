@@ -17,35 +17,48 @@ The older signed APK for version 1.3.0/code 6 is published in the
 as Campus4Change-v1.3.0-preview.2.apk. Its current SHA-256 is
 e83a7feeaf307d526b6bb34334badbc193f1e218259bfd2aeb8c55f1c1cfa330. It passed
 APK signature/package validation. The AAB passed signature and ZIP integrity
-checks and remains local. The POCO installed APK hash matches the updated
-artifact and a fresh launch reached MainActivity without a fatal startup
-marker.
+checks and remains local. At that earlier checkpoint, the POCO installed APK
+hash matched the v1.3.0 artifact and a fresh launch reached MainActivity.
 
-The UUID-based account and Google sign-in navigation source is pushed at
-`4d8968adf586722e21bc5b4b741d9a4ee556c442` on
-`release/v1.3.0-preview.2`. The tag and published APK still point to
-`55dcc571436d705827b7b069d6bb077350a7e6f5`; the installed POCO package is
-version 1.3.0/code 6 and predates the UUID source. Source metadata is now
-version 1.4.0/code 7, but no signed 1.4.0 APK/AAB has been built or installed.
-`main` remains at `46fe89a534d98866dc981ef11fe64f24151e8bf4`, four commits
-behind, with no open PR. The latest successful CI run is for `55dcc57`, not the
-current source.
+The UUID/auth source is pushed at `4d8968adf586722e21bc5b4b741d9a4ee556c442`;
+the 1.4.0 candidate metadata and audit refresh are at
+`6101ee252c60a18337f73470247ae8f256202121`. Draft PR
+[#1](https://github.com/Patt-00/Campus4Change/pull/1) targets `main`. CI run
+[39942899889](https://github.com/Patt-00/Campus4Change/actions/runs/39942899889)
+passed all jobs on `6101ee2`; local release-helper and Firebase/build-guide
+changes still need a follow-up run. The preview tag remains at
+`55dcc571436d705827b7b069d6bb077350a7e6f5`; `main` remains at
+`46fe89a534d98866dc981ef11fe64f24151e8bf4`.
+
+The v1.4.0/code 7 signed candidate APK SHA-256 is
+`e1c13ca9af40494302fcee8b717503d2e1f3f8a5b19d580368a27f859cd94b8a`; the AAB
+SHA-256 is `4f4339999355e4e5975d118d7317b38e530e461a7bb06cba437f94db5511d5bb`.
+Both were built with the new v4 signer and are unpublished. The candidate APK
+is installed on POCO; the pulled base APK hash matches the build artifact.
+A fresh launch displayed the branded Get Started screen. Intro-to-login,
+signup navigation, and empty-signup validation were checked without creating
+an account. The public pre-release remains the older v1.3.0/code 6 APK.
 
 The 1.4.0 versioned source passes 337 Jest tests across 41 suites, ESLint,
 `git diff --check`, rules-test script syntax validation, and
 `:app:testDebugUnitTest` with JDK 25. The first native test attempt used the
 workstation's default JDK 27 and failed with unsupported class file major
-version 71; the documented JDK 25 rerun passed. The 1.4.0 debug APK has not
-yet been rebuilt, and the Firestore emulator suite has not run on this PC; CI
-must provide current-source emulator evidence. Figma shows UUID setup and
-profile states and has no Student ID input or verification screen. These
-results do not verify live Google sign-in or production Firestore behavior.
+version 71; the documented JDK 25 rerun passed. The release APK passes
+`apksigner verify`; the AAB passes `jarsigner -verify` and ZIP integrity
+checks. Current-source Firestore/Auth emulator suites passed in PR CI run
+39942899889 on `6101ee2`; local release-helper/doc changes still need a
+follow-up CI run.
+Figma shows UUID setup and profile states and has no Student ID input or
+verification screen. These results do not verify live Google sign-in or
+production Firestore behavior.
 
 GitHub Actions run
 [39829733295](https://github.com/Patt-00/Campus4Change/actions/runs/39829733295)
 passed on preview commit `55dcc571436d705827b7b069d6bb077350a7e6f5`, including
-hosted API 24 instrumentation tests. No CI result exists yet for the current
-source; a PR to `main` is needed to trigger the repository workflow.
+hosted API 24 instrumentation tests. Draft PR #1's run
+[39942899889](https://github.com/Patt-00/Campus4Change/actions/runs/39942899889)
+passed both checks and hosted API 24 instrumentation on `6101ee2`. Later
+source/doc commits require a passing follow-up CI result before merge.
 
 The Google account-picker cancellation issue was reproduced on POCO and
 corrected: dismissing Credential Manager now returns to Login without a false
@@ -63,15 +76,22 @@ Commit `4d8968a` routes complete profiles to Home, incomplete profiles to
 Account Setup, and displays a neutral cancellation message. This JavaScript
 behavior does not prove a real Google token exchange.
 
-Firebase CLI access for the owner account is now verified, and a read-only
-project listing includes `campus4change`. The app remains configured for that
-project. The 1.4.0 source removes Student ID claims and migrates old Student ID
-values to generated account UUIDs. The replacement v3 release certificate was
-previously found absent from Google sign-in and App Check registration; a new
-v4 certificate has not yet been generated. App Check enforcement and rules
-parity must be rechecked before deployment. No production setting or data has
-been changed. Live release sign-in, App Check, the current-source POCO checks,
-the clean school-laptop rehearsal, and the authorized data reset remain open.
+Firebase CLI access for the owner account is verified, and the project is
+`campus4change`. The v4 release SHA-1 and SHA-256 have been added to the Android
+app registration. The App Check Console still shows the Android app as Not
+registered; the Play Integrity provider form is waiting for the user to accept
+the Google APIs and Play Integrity terms. Auth and Firestore App Check
+enforcement remain Unenforced. Production Firestore rules have now been
+deployed and the active ruleset SHA-256 exactly matches local source at
+`31f4827c128dcc063a21f7de1dc0542db720dd45efce13b8d0ac3a63630f4cfa`. The six
+live composite index definitions match local source and all are READY. No
+production user or Firestore document has been deleted.
+
+Before any deletion, an encrypted local export was verified. It contains
+metadata for 9 Auth accounts and 13 Firestore documents across 8 collection
+paths, with password hashes and tokens excluded. The plaintext export was
+removed from temporary storage. The selected full production reset, including
+real-user data, has not yet happened.
 
 The user selected a one-time pre-release reset of **all** Firebase Auth users
 and Firestore documents, including real-user data, after a temporary encrypted
