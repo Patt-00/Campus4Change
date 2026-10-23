@@ -56,9 +56,9 @@
   this candidate. No release tag or final 1.4.0 asset has been published.
 - Draft PR #1 CI run `39942899889` passed Jest, lint, Android unit tests,
   emulator rules/Auth suites, API 24 instrumentation, debug build, and release
-  packaging guard on `6101ee2`. Latest run `39948381988` passed both checks on
-  pushed head `7fc0d00`. Local documentation changes require a fresh CI run
-  before merge. The active production Firestore ruleset is
+  packaging guard on `6101ee2`. CI run `39948381988` passed both checks on
+  `7fc0d00`; run `39952360701` passed both checks on `1d5c451`. Confirm the
+  current PR head has passing checks before merge. The active production Firestore ruleset is
   `7194f765-35ec-4ecd-b266-cca407e2a07c` and its hash matches local rules
   `31f4827c128dcc063a21f7de1dc0542db720dd45efce13b8d0ac3a63630f4cfa`. All
   six production index definitions match local source and are READY. Local

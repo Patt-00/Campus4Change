@@ -102,7 +102,7 @@ cd android
 ./gradlew assembleDebug
 ```
 
-These commands build the local debug APK and need no release secrets. Release artifact tasks such as `assembleRelease`, `bundleRelease`, and `installRelease` fail early unless a dedicated keystore and all four `C4C_RELEASE_*` variables are configured. Use a release task only after setting up that signer. If your prompt already ends in `android`, run `cd ..` before `npm ci`, then return to `android`. The Gradle wrapper downloads Gradle itself, but it does **not** install npm packages.
+These commands build the local debug APK and need no release secrets. For a signed release, run `./scripts/build-release.sh` from the repository root. The helper reads the configured password from GNOME Keyring or asks for it through hidden terminal prompts, then sets the four signing variables for Gradle. Direct release tasks such as `assembleRelease`, `bundleRelease`, and `installRelease` require the dedicated keystore and all four `C4C_RELEASE_*` variables. If your prompt already ends in `android`, run `cd ..` before `npm ci`, then return to `android`. The Gradle wrapper downloads Gradle itself, but it does **not** install npm packages.
 
 The repository tracks `android/app/debug.keystore` for cross-clone debug APK
 compatibility. The repository is public, so do not register that shared

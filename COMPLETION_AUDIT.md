@@ -21,11 +21,12 @@ checks and remains local. At that earlier checkpoint, the POCO installed APK
 hash matched the v1.3.0 artifact and a fresh launch reached MainActivity.
 
 The UUID/auth source and 1.4.0 candidate are pushed on
-`release/v1.3.0-preview.2` through `7fc0d00589f31d5f388577a37caa47370b8ee64b`.
-Draft PR [#1](https://github.com/Patt-00/Campus4Change/pull/1) targets `main`.
-CI run [39948381988](https://github.com/Patt-00/Campus4Change/actions/runs/39948381988)
-passed both jobs on that head. Local documentation edits still need to be
-committed, pushed, and checked before merge. The preview tag remains at
+`release/v1.3.0-preview.2`, which includes documentation commit
+`1d5c4512e86768e0ba1500a80bcc86e2be3cf8e3`. Draft PR
+[#1](https://github.com/Patt-00/Campus4Change/pull/1) targets `main`. CI run
+[39952360701](https://github.com/Patt-00/Campus4Change/actions/runs/39952360701)
+passed both jobs on that head. Verify the current PR checks before merge. The
+preview tag remains at
 `55dcc571436d705827b7b069d6bb077350a7e6f5`; `main` remains at
 `46fe89a534d98866dc981ef11fe64f24151e8bf4`.
 
@@ -65,9 +66,12 @@ GitHub Actions run
 passed on preview commit `55dcc571436d705827b7b069d6bb077350a7e6f5`, including
 hosted API 24 instrumentation tests. Draft PR #1's run
 [39942899889](https://github.com/Patt-00/Campus4Change/actions/runs/39942899889)
-passed both checks and hosted API 24 instrumentation on `6101ee2`. The latest
-run `39948381988` passed both checks on `7fc0d00`; local documentation changes
-still need a new CI run before merge.
+passed both checks and hosted API 24 instrumentation on `6101ee2`. Run
+[39948381988](https://github.com/Patt-00/Campus4Change/actions/runs/39948381988)
+passed both checks on `7fc0d00`; run
+[39952360701](https://github.com/Patt-00/Campus4Change/actions/runs/39952360701)
+passed both checks on `1d5c451`. Confirm the current PR head is green before
+merge.
 
 The Google account-picker cancellation issue was reproduced on POCO and
 corrected: dismissing Credential Manager now returns to Login without a false

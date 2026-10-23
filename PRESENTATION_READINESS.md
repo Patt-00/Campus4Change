@@ -17,11 +17,11 @@ validation, Google account-picker cancellation, and the signed-out About page
 have been checked without creating an account. The POCO is the only required
 physical test device; Pad 7 is deferred.
 
-The source branch has a draft PR to `main`. The latest pushed head, `7fc0d00`,
-passed both PR checks in CI run `39948381988`. The local documentation edits
-still need to be pushed and checked before merge. The last weighted completion
-estimate was 88.25% before the 1.4.0 release work and is not a current score.
-See [COMPLETION_AUDIT.md](COMPLETION_AUDIT.md) for the live gates.
+The source branch has a draft PR to `main`. CI run `39952360701` passed both
+checks on head `1d5c451`. Check PR #1 for passing checks on its current head
+before merge. The last weighted completion estimate was 88.25% before the
+1.4.0 release work and is not a current score. See
+[COMPLETION_AUDIT.md](COMPLETION_AUDIT.md) for the live gates.
 
 Firebase Authentication and Cloud Firestore use project `campus4change`. The
 v4 release SHA-1 and SHA-256 are registered to the Android app, and the

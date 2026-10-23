@@ -40,7 +40,7 @@ npm start
 npm run android
 ```
 
-Set `sdk.dir` in the ignored `android/local.properties` file using the platform-specific steps in [BUILDING.md](docs/BUILDING.md). Use `assembleDebug` for a local Android build. The `assembleRelease` task requires the dedicated release keystore and all four `C4C_RELEASE_*` variables. The [Termux section](docs/BUILDING.md#termux) covers the additional setup for building on an ARM64 Android device.
+Set `sdk.dir` in the ignored `android/local.properties` file using the platform-specific steps in [BUILDING.md](docs/BUILDING.md). Use `assembleDebug` for a local Android build. Use `./scripts/build-release.sh` for a signed release; it loads the existing signing key and password through the configured secure credential store or hidden terminal prompts. Direct Gradle release tasks require the dedicated keystore and all four `C4C_RELEASE_*` variables. The [Termux section](docs/BUILDING.md#termux) covers the additional setup for building on an ARM64 Android device.
 
 Debug builds use a machine-local debug key. Release builds require the protected dedicated keystore and fail closed without it; see [BUILDING.md](docs/BUILDING.md). Android is the supported target. The iOS scaffold has no implementation for the native storage module.
 

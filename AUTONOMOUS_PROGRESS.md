@@ -9,11 +9,12 @@ or a production deployment.
 Updated 2026-10-23 after rechecking GitHub, Firebase Console, the POCO, and the
 current worktree.
 
-- Branch `release/v1.3.0-preview.2` is pushed through `7fc0d00589f31d5f388577a37caa47370b8ee64b`.
-  Draft PR [#1](https://github.com/Patt-00/Campus4Change/pull/1) targets
-  `main`. CI run [39948381988](https://github.com/Patt-00/Campus4Change/actions/runs/39948381988)
-  passed both checks on the latest pushed head. Local documentation changes
-  remain uncommitted and need their own CI run before merge. The preview
+- Branch `release/v1.3.0-preview.2` includes documentation commit
+  `1d5c4512e86768e0ba1500a80bcc86e2be3cf8e3`. Draft PR
+  [#1](https://github.com/Patt-00/Campus4Change/pull/1) targets `main`. CI run
+  [39952360701](https://github.com/Patt-00/Campus4Change/actions/runs/39952360701)
+  passed both checks on that head. Verify the PR checks on its current head
+  before merge. The preview
   tag remains at `55dcc571436d705827b7b069d6bb077350a7e6f5`; `main` remains at
   `46fe89a534d98866dc981ef11fe64f24151e8bf4`.
 - The signed 1.4.0/code 7 candidate APK SHA-256 is
