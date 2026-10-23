@@ -118,14 +118,15 @@ for the platform flow and token exchange.
 5. Register the Android package `com.campus4change` in Project settings. For
    Google sign-in, build with a private per-machine debug key and register that
    APK's SHA-1. On this workstation, `~/.android/debug.keystore` is selected
-   with `C4C_DEBUG_STORE_FILE` and its SHA-1 is registered. The v1.2.2 private release key SHA-1 and SHA-256 are registered. A future
-release-key rotation requires registering its new SHA-1 for Google sign-in
-and new SHA-256 for App Check before verifying that build. Do not add the
-public
-   repo-tracked debug key to Firebase. Each additional developer's private
-   debug key needs its own authorized SHA-1 entry. App Check Play Integrity
-   requires a valid release certificate and provider configuration; a
-   registered release SHA-256 alone does not verify release attestation.
+   with `C4C_DEBUG_STORE_FILE` and its SHA-1 is registered. The v1.2.2 and
+   v1.4.0/v4 release SHA-1 and SHA-256 fingerprints are registered to the
+   Android app. For future release-key rotation, register the new SHA-1 for
+   Google sign-in and new SHA-256 for App Check before verifying that build.
+   Do not add the public repository-tracked debug key to Firebase. Each
+   additional developer's private debug key needs its own authorized SHA-1
+   entry. App Check Play Integrity requires a valid release certificate and
+   provider configuration; a registered release SHA-256 alone does not verify
+   release attestation.
 6. Sign in to the Firebase CLI, select the same project, and deploy the
    checked-in Firestore rules and indexes only after reviewing and authorizing
    that live change:
