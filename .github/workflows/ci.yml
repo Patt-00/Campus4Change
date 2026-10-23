@@ -180,7 +180,7 @@ jobs:
           yes | "$sdkmanager" --licenses >/dev/null 2>&1 || true
           "$sdkmanager" \
             "platform-tools" \
-            "platforms;android-37" \
+            "platforms;android-37.0" \
             "build-tools;37.0.0" \
             "ndk;27.1.12297006"
           printf 'sdk.dir=%s\n' "$sdk_root" > android/local.properties
@@ -197,6 +197,8 @@ jobs:
         run: |
           apk="android/app/build/outputs/apk/debug/app-debug.apk"
           sdk_root="${ANDROID_HOME:-${HOME}/Library/Android/sdk}"
-          "$sdk_root/build-tools/37.0.0/aapt" dump badging "$apk" | grep '^package:'
+          metadata="$("$sdk_root/build-tools/37.0.0/aapt" dump badging "$apk" | sed -n '1p')"
+          printf '%s\n' "$metadata"
+          grep -Fq "package: name='com.campus4change' versionCode='7' versionName='1.4.0'" <<<"$metadata"
           "$sdk_root/build-tools/37.0.0/apksigner" verify --verbose "$apk"
           shasum -a 256 "$apk"
