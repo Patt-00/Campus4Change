@@ -11,8 +11,8 @@ current worktree.
 
 - Branch `release/v1.3.0-preview.2` has draft PR
   [#1](https://github.com/Patt-00/Campus4Change/pull/1) targeting `main`. PR CI
-  run [40011097178](https://github.com/Patt-00/Campus4Change/actions/runs/40011097178)
-  passed both required jobs on prior head `ea5e1e9`. Manual workflow run
+  run [40013220309](https://github.com/Patt-00/Campus4Change/actions/runs/40013220309)
+  passed both required jobs on prior head `b2c876f`. Manual workflow run
   [39966502505](https://github.com/Patt-00/Campus4Change/actions/runs/39966502505)
   passed, including a clean macOS build on earlier source. Verify CI on the
   current PR head before merge. The preview
