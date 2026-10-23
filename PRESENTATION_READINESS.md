@@ -7,35 +7,48 @@ teach, and supports study groups and messaging. Payments, live voice/video
 calls, operating-system push notifications, and iOS are outside this Android
 version's scope.
 
-The current candidate is Campus4Change 1.4.0, Android version code 7. The only
-public installable asset is still the older signed APK in the
+The intended deliverable is a signed APK for direct Android installation;
+Google Play publication and an Android App Bundle are not required for this
+project. The current candidate is Campus4Change 1.4.0, Android version code 7.
+The only public installable asset is still the older signed APK in the
 [v1.3.0-preview.2 pre-release](https://github.com/Patt-00/Campus4Change/releases/tag/v1.3.0-preview.2).
-The signed 1.4.0 APK and AAB are built locally but have not been published.
+The signed 1.4.0 APK is built locally but has not been published.
 The 1.4.0 APK is installed on the POCO X4 GT, and the pulled APK hash matches
 the local artifact. Fresh launch, onboarding, signup navigation, empty-form
 validation, Google account-picker cancellation, and the signed-out About page
 have been checked without creating an account. The POCO is the only required
 physical test device; Pad 7 is deferred.
 
-The source branch has a draft PR to `main`. CI run `39964691039` passed both
-checks on head `9bbdb82`; manual run `39966502505` also passed the clean
-macOS build. Check PR #1 for passing checks on its current head before merge.
-The last weighted completion estimate was 88.25% before the 1.4.0 release work
-and is not a current score. See
+The source branch has a draft PR to `main`. GitHub Actions run
+[40016696376](https://github.com/Patt-00/Campus4Change/actions/runs/40016696376)
+passed both required jobs, including API 24 instrumentation, on head
+`220123a`. Manual run `39966502505` also passed the clean macOS build. Check
+PR #1 for passing checks on its current head before merge. The last weighted
+completion estimate was 88.25% before the 1.4.0 release work and is not a
+current score. See
 [COMPLETION_AUDIT.md](COMPLETION_AUDIT.md) for the live gates.
 
 Firebase Authentication and Cloud Firestore use project `campus4change`. The
-v4 release SHA-1 and SHA-256 are registered to the Android app, and the
-production Firestore rules and six composite indexes now match the checked-in
-source. Play Integrity App Check remains unregistered because its provider
-setup requires the project owner to accept the Google APIs and Play Integrity
-terms. Release Google sign-in has not been completed with a selected account,
-and Auth and Firestore App Check enforcement remain off. The POCO reached the
-Google Play Integrity service, but Firebase's App Check token exchange failed
-with a generic exception. The exact service response is unavailable. Do not
-promise a live login or shared-data flow until the POCO tests pass. The
-authorized production data reset remains pending after the encrypted backup
-and live-flow checks.
+v4 release SHA-1 and SHA-256 are registered to the Android app. On 2026-10-23,
+the signed 1.4.0 candidate completed Google sign-in on POCO, saved the TIP
+account setup and interests, and reached Home. Production Firestore rules and
+all six composite indexes match the checked-in source. The user reports that
+two-device sync worked on v1.2.2; this is prior-version user-reported evidence.
+
+App Check is unregistered. App Check enforcement for Firebase Authentication
+and Firestore is off, so Firebase continues to accept their requests. The
+signed candidate logged a token-exchange failure, which leaves App Check
+attestation unverified. If App Check is enabled later, Firebase supports apps distributed outside
+Google Play without Play recognition or licensing. Its guide recommends the
+Device integrity verdict for that distribution channel.
+The 2026-10-24 read-only API check returned UNENFORCED for Firebase
+Authentication and Firestore. It also found no saved off-Play Play Integrity
+configuration. See [verification history](docs/VERIFICATION.md).
+The project owner must accept the provider terms before registration can be
+saved. See the [Play Integrity setup guide](https://firebase.google.com/docs/app-check/android/play-integrity-provider)
+and [App Check metrics guide](https://firebase.google.com/docs/app-check/monitor-metrics).
+The encrypted pre-launch backup is verified; the authorized production data
+reset is pending action-time confirmation and post-reset checks.
 
 Payments, live voice/video calls, operating-system push notifications, and iOS
 are outside this Android version's scope. The Desktop presentation guide is
@@ -80,10 +93,10 @@ Expected results are a tutor profile visible to the learner, an incoming request
 
 ### Live Firebase presentation
 
-- Use the signed release for live Firebase only after Google sign-in and App Check pass on the POCO. The production Firestore rules and indexes match the repository. Until live checks pass, use the local-emulator QA fallback below.
+- Use the signed 1.4.0 APK for live Firebase. POCO Google sign-in and account setup passed, and production Firestore rules and indexes match the repository. App Check is currently not registered and its enforcement is off; Firebase does not reject unverified requests, but attestation is not verified.
 - Use verified email accounts with inbox access if demonstrating shared features. The app generates a UUID; it does not request or verify a Student ID.
-- Production Firestore rules and all six composite indexes now match the repository. The v4 release SHA fingerprints are registered for Google sign-in. Play Integrity App Check still needs the project owner to accept its terms and complete provider registration.
-- POCO X4 GT is the only device in the current-source acceptance check. Pad 7 testing is deferred. Do not describe the current candidate as passing a two-device live-Firebase rehearsal.
+- Production Firestore rules and all six composite indexes match the repository. The v4 release SHA fingerprints are registered for Google sign-in. The user reports two-device sync on v1.2.2; do not label that as a new v1.4.0 two-device test.
+- POCO X4 GT is the only device in the current-source acceptance check. Pad 7 testing is deferred.
 - Use the standard Android install/launch instructions in [BUILDING.md](docs/BUILDING.md). A release update requires its dedicated signing identity.
 
 ### Local emulator fallback
@@ -104,13 +117,13 @@ No password, verification code, production API secret, or private signing creden
 
 | Risk | Effect | Response |
 | --- | --- | --- |
-| Play Integrity App Check is not registered yet | The POCO token exchange failed, so release attestation and enforced requests remain unverified | The project owner must review and accept the Google APIs and Play Integrity terms. Then verify a valid POCO token and expected request metrics before enabling enforcement. |
-| Live Google sign-in has not completed on the 1.4.0 candidate | Account setup and shared cloud flows are not yet verified with a real Google credential | The user selects a Google account on the POCO and completes any provider security prompts. Do not promise live sign-in until the signed candidate reaches the expected account route. |
+| App Check is not registered | The app is not attested by App Check; enforcement is off, so App Check does not reject Firebase requests | For this APK-only release, keep Firebase Authentication and Firestore usable with App Check enforcement off. If enabling App Check later, accept the provider terms, configure the outside-Google-Play verdicts, then verify valid metrics before enforcement. |
+| The user-reported two-device sync result is from v1.2.2 | A new two-device rehearsal on v1.4.0 is not independently recorded | Describe it as a user-tested v1.2.2 result. Demonstrate the current candidate on POCO and avoid attributing an untested current-build sync result to v1.4.0. |
 | The public v1.3.0-preview.2 APK predates the 1.4.0 candidate | The current UUID setup is not available from the public release download | Use the 1.4.0 APK only after it is published to GitHub; do not treat the local candidate as a public download. |
 | School network or Firebase service is unavailable | Shared live features cannot reach the backend | Use the local emulator setup above if the school laptop has the required SDK/JDK and the QA APK can be built. Rehearse it on the presentation machine before relying on it. |
 | OS push or live calls | These functions are not implemented | Demonstrate the in-app notification and messaging flows; do not promise OS push, voice, or video. |
 
-The public signed v1.3.0-preview.2 APK is available for download. The current signed 1.4.0 candidate is local and installed on the POCO, but is not published. A live multi-user rehearsal still needs Play Integrity terms acceptance, successful Google sign-in, data cleanup, and a final clean-start check.
+The public signed v1.3.0-preview.2 APK is available for download. The current signed 1.4.0 candidate is local and installed on the POCO, but is not published. Before publication, finish the authorized data reset, disposable-account check and cleanup, then verify the live counts are zero.
 
 On 2026-10-22, the latest signed release APK (version 1.3.0/code 6) was
 rebuilt, verified, installed in place on POCO X4 GT, and cold-launched. The

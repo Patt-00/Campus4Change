@@ -3992,3 +3992,63 @@ current worktree.
   and the `SPARSE_ALL` default in the
   [density reference](https://firebase.google.com/docs/firestore/reference/rest/Shared.Types/Density).
 - This was read-only. No indexes or production settings were changed.
+
+### APK-only release decision and current backend status, 2026-10-24
+
+- The user confirmed a signed, installable APK is sufficient; Google Play
+  publication and an AAB are not release requirements. Firebase's Play
+  Integrity provider supports apps distributed outside Google Play. For that
+  channel, its guide says Play recognition and licensing are not required and
+  lists Device integrity as the minimum verdict. See the linked Firebase guide
+  in `PRESENTATION_READINESS.md`.
+- The v4 signing SHA-1 and SHA-256 are registered. The signed 1.4.0 candidate
+  completed Google sign-in on POCO, saved TIP account setup and interests, and
+  reached Home. The production Firestore rules hash and all six index
+  definitions match the checked-in source.
+- The 2026-10-23 Firebase Console check showed App Check unregistered and its
+  enforcement off for Firebase Authentication and Cloud Firestore. A POCO token
+  exchange failed, so attestation is unverified. The signed candidate saved
+  Firebase profile data while enforcement was off. App Check remains an optional
+  integrity protection for this APK. Do not claim valid tokens or enforcement.
+- The user reports two-device sync worked on v1.2.2. Treat this as user-reported
+  prior-version evidence; no new two-device v1.4.0 session was submitted.
+- GitHub Actions run `40016696376` passed both required jobs, including API 24
+  instrumentation, for commit `220123a37a3d96f67770a051a274f8e05c28bc06`.
+- A fresh production backup was created at
+  `/home/patt/.local/share/campus4change-backups/2026-10-24/campus4change-prelaunch.tar.gz.gpg`.
+  AES-256 decryption and archive integrity checks passed. It contains metadata
+  for 9 Auth accounts and 13 Firestore documents across 8 collection paths;
+  password hashes, salts, and auth tokens were excluded. The backup is mode
+  600 and its SHA-256 is
+  `934044fc22cd5d4c3c6b6c88e70eaffbb05636df56430e0ea50347a5a3dad3f8`.
+- No production records were changed. The one-time reset remains pending the
+  user's action-time confirmation; retain the encrypted backup until the
+  disposable-account cleanup and zero-count checks pass.
+
+### Read-only production Firestore parity recheck, 2026-10-24
+
+- The active Firestore Rules API release points to ruleset
+  `projects/campus4change/rulesets/7194f765-35ec-4ecd-b266-cca407e2a07c`.
+  Its source SHA-256 is
+  `31f4827c128dcc063a21f7de1dc0542db720dd45efce13b8d0ac3a63630f4cfa`, exactly
+  matching the checked-in `firestore.rules` file.
+- Firebase CLI 15.33.0 returned six live composite indexes. After dropping the
+  implicit trailing `__name__` and Firestore's `SPARSE_ALL` default, all six
+  definitions match `firestore.indexes.json`.
+- This was read-only. No rules, indexes, authorization settings, or user data
+  changed.
+
+### Read-only App Check API recheck, 2026-10-24
+
+- The App Check API returned `UNENFORCED` for both
+  `identitytoolkit.googleapis.com` and `firestore.googleapis.com`.
+- The Android Play Integrity config has no saved off-Play settings. The API
+  returned `allowUnrecognizedVersion` unset, `requireLicensed` unset, and
+  `minDeviceRecognitionLevel: NO_INTEGRITY`. The last Console view showed the
+  provider draft unsaved because the project owner's terms checkbox was
+  unchecked.
+- The signed APK can use Firebase while both services remain Unenforced. A
+  valid App Check token is not verified. If the project owner later enables
+  App Check, save the off-Play settings, verify POCO tokens and request metrics,
+  and then consider enforcement.
+- This was read-only. No App Check configuration or enforcement setting changed.

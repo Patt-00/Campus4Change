@@ -37,27 +37,33 @@ signer:
 - SHA-256: `1A:78:F8:4C:A7:5C:E3:04:1E:50:93:BA:9C:2F:A3:DE:03:34:38:9E:34:31:12:2E:05:8D:1D:FF:41:C6:6D:10`
 
 On 2026-10-23, Firebase CLI confirmed both v4 fingerprints in the Android app
-registration. The signed 1.4.0 candidate completed Google sign-in on POCO on
-2026-10-23. The Firebase App Check Console still shows the Android app as
-**Not registered**. Registration with Play
-Integrity is pending the project's acceptance of the Google APIs Terms and
-Play Integrity API Terms. For an APK distributed outside Google Play, configure
-Play Integrity to permit unrecognized app versions, require no Play license,
-and use the device-integrity verdict; see Firebase's [Play Integrity provider
-guide](https://firebase.google.com/docs/app-check/android/play-integrity-provider)
-and [Play Integrity configuration reference](https://firebase.google.com/docs/reference/appcheck/rest/v1/projects.apps.playIntegrityConfig).
-Release App Check and enforcement remain unverified.
+registration. The signed 1.4.0 candidate completed Google sign-in on POCO,
+saved TIP account setup, and reached Home. The tester profile and interests
+were saved in Firestore. The Firebase App Check Console still shows the Android
+app as **Not registered**. Firebase Auth and Firestore accept requests while
+their App Check enforcement remains off. The candidate logged a token-exchange
+failure, so valid attestation is unverified. If you enable App Check later, use
+the outside-Google-Play settings: Play recognition and licensing are not
+required, and Device integrity is the minimum verdict. See Firebase's [Play Integrity provider guide](https://firebase.google.com/docs/app-check/android/play-integrity-provider),
+[metrics guide](https://firebase.google.com/docs/app-check/monitor-metrics), and
+[Play Integrity configuration reference](https://firebase.google.com/docs/reference/appcheck/rest/v1/projects.apps.playIntegrityConfig).
+Provider registration still requires the project owner's terms acceptance.
 
-A Firebase Console inspection on 2026-10-23 still shows the Android app
-`com.campus4change` as **Not registered** under App Check. Authentication and
-Cloud Firestore enforcement remain **Unenforced**. On a POCO cold launch, the
-named native App Check instance initialized and Google Play Integrity returned
-its token callback. Firebase App Check token exchange then failed with a
-generic `FirebaseException`; the native bridge does not expose the underlying
-service response. The Console still shows registration as unsaved. Do not
-enable enforcement until the project owner completes provider registration,
-the v4 POCO build obtains valid tokens, and the API request metrics show
-expected release traffic.
+The Firebase Console inspection on 2026-10-23 showed the Android app
+com.campus4change as **Not registered** under App Check. The read-only App Check
+API check on 2026-10-24 returned **Unenforced** for Firebase Authentication and
+Cloud Firestore. It also showed no saved off-Play Play Integrity configuration.
+
+The signed candidate's POCO request reached Google Play Integrity, but Firebase
+token exchange failed with a generic FirebaseException. The native bridge does
+not expose the underlying response, so valid App Check attestation is
+unverified. Firebase Auth and Firestore accept the candidate's requests while
+App Check enforcement remains off. App Check enforcement is optional for the
+requested direct APK distribution.
+
+If the project owner enables App Check later, review and accept the provider
+terms, save the outside-Google-Play settings, verify valid POCO tokens and
+request metrics, then consider enforcement.
 
 ### Current production state
 
@@ -99,10 +105,10 @@ their local UUID as the Campus4Change ID.
 After Firebase accepts a Google credential, a complete profile routes to Home
 and an incomplete profile routes to Account Setup. Dismissing the account picker
 returns to Login with a neutral cancellation message. The JavaScript tests cover
-this session handoff. The v4 SHA-1 is registered, but live sign-in with the
-signed 1.4.0 candidate has not yet been completed on POCO. The v4 SHA-256 is
-registered; Play Integrity registration and enforcement remain pending the
-required terms acceptance and token verification.
+this session handoff. The v4 SHA-1 and SHA-256 are registered. The signed 1.4.0
+candidate completed live Google sign-in and reached Home on POCO. Play Integrity
+App Check remains unregistered and unenforced; the project owner can complete
+its terms and token verification later if App Check protection is needed.
 See [Android's Credential Manager Google sign-in guide](https://developer.android.com/identity/sign-in/credential-manager-siwg-implementation)
 and [Firebase's Google sign-in guide for Android](https://firebase.google.com/docs/auth/android/google-signin)
 for the platform flow and token exchange.
@@ -152,9 +158,9 @@ for the platform flow and token exchange.
 Firebase `apiKey` and `androidApiKey` values are public client configuration:
 they identify the Firebase project and do not authorize access. Keep
 Firebase-provisioned keys restricted to Firebase APIs, and use separate,
-restricted keys for any non-Firebase Google APIs. Firestore rules and App Check
-enforce data access; never put service-account credentials or Admin SDK keys in
-the mobile app. See [Firebase API key guidance](https://firebase.google.com/docs/projects/api-keys).
+restricted keys for any non-Firebase Google APIs. Firestore rules enforce data access; App Check adds an app-integrity signal
+when registered and enforced. Never put service-account credentials or Admin
+SDK keys in the mobile app. See [Firebase API key guidance](https://firebase.google.com/docs/projects/api-keys).
 
 ## Android App Check
 
@@ -173,22 +179,19 @@ The Android Firebase app has the v1.2.2 release certificate SHA-1 and
 SHA-256 registered, along with authorized workstation debug fingerprints and
 the v4 release candidate's SHA-1/SHA-256. The v4 fingerprints support Google
 sign-in and are present in Android app registration; the App Check Console
-still shows the Android app as **Not registered** pending Play Integrity terms
-acceptance and provider registration. A POCO release request reached the
-Google Play Integrity service, but Firebase token exchange failed. The exact
-service response is not available in the redacted native log.
-A POCO X4 GT
-debug token was allowlisted for final-sprint QA, used to verify private-state
-sync, then revoked and removed from the local credential cache. Never commit
-debug tokens or include them in screenshots, reports, or CI logs. Release
-builds use Play Integrity. The v4 request produced a generic Firebase App Check
-token-exchange failure, so release attestation and request metrics remain
-unverified. Firestore Security Rules remain the primary
-authorization boundary. The Firebase Console is open at the Play Integrity
-registration form, where the project owner must accept the Google APIs and
-Play Integrity terms before saving provider registration. For this
-GitHub-distributed APK, configure the app for off-Play installs and verify a
-valid token before enabling enforcement.
+still shows the Android app as **Not registered**. A POCO release request
+reached the Google Play Integrity service, but Firebase token exchange failed.
+The exact service response is not available in the redacted native log. A POCO
+X4 GT debug token was allowlisted for final-sprint QA, used to verify
+private-state sync, then revoked and removed from the local credential cache.
+Never commit debug tokens or include them in screenshots, reports, or CI logs.
+Release builds use Play Integrity, but App Check enforcement is off, so this
+token failure does not block Firebase Auth or Firestore requests. Firestore
+Security Rules remain the primary authorization boundary. For this APK-only
+distribution, Play recognition and Play licensing are not required by the
+outside-Google-Play configuration; use Device integrity if App Check is
+registered later. The project owner must accept Firebase's terms before saving
+that optional provider configuration.
 
 ## Verify the Firestore rules locally
 

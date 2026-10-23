@@ -1317,3 +1317,32 @@ adapter/rules regression. Live redeployment and POCO collaboration checks follow
   [QUALITY_AUDIT.md](QUALITY_AUDIT.md).
 - The implementation branch had not yet been committed, pushed, or checked by
   its final GitHub Actions run when this record was written.
+
+## Current Firebase and distribution status, 2026-10-24
+
+The user selected a signed APK for direct installation. Google Play publication
+and an Android App Bundle are not required. The signed 1.4.0 candidate
+completed Google sign-in, UUID setup, Firestore profile saves, and Home routing
+on POCO. The user reports two-device sync worked on v1.2.2; this remains
+user-reported prior-version evidence.
+
+A read-only Firebase Rules API check found the active Firestore release points
+to ruleset 7194f765-35ec-4ecd-b266-cca407e2a07c. Its source hash,
+31f4827c128dcc063a21f7de1dc0542db720dd45efce13b8d0ac3a63630f4cfa, matches
+the checked-in rules. Firebase CLI 15.33.0 returned six live composite-index
+definitions. Removing Firestore's implicit trailing __name__ field and
+normalizing SPARSE_ALL produced an exact match with firestore.indexes.json.
+
+The 2026-10-23 Firebase Console check showed App Check unregistered. A POCO
+token exchange failed, so valid App Check attestation is unverified. App Check
+enforcement for Firebase Authentication and Cloud Firestore was off at that
+check, and the candidate's requests succeeded. The provider settings are optional for this APK release.
+No Firebase rules, indexes, enforcement settings, or records changed during
+these read-only checks.
+
+The 2026-10-24 App Check API read confirmed `UNENFORCED` for
+`identitytoolkit.googleapis.com` and `firestore.googleapis.com`. The Play
+Integrity config has no saved off-Play allowance: `allowUnrecognizedVersion`
+and `requireLicensed` are unset, and the minimum device level is
+`NO_INTEGRITY`. The Console draft's off-Play settings are not saved because
+the project owner's terms checkbox is still unchecked. No API write was made.

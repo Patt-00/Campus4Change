@@ -319,9 +319,10 @@ Their release certificate is public and must not be used for future releases.
 The v1.2.2 release uses a dedicated private signer. The v1.0.0, v1.1.0, and
 v1.2.0 GitHub release entries were removed after v1.2.2 was published. Their
 verified files remain in the local archive at
-/home/patt/Documents/Codex/Campus4Change-release-archive-2026-10-17. The current
-release is https://github.com/Patt-00/Campus4Change/releases/tag/v1.2.2.
-The v1.3.0-preview.2 APK and local AAB used the previous v3 signer. The 1.4.0
+/home/patt/Documents/Codex/Campus4Change-release-archive-2026-10-17. The latest public release is the v1.3.0-preview.2 pre-release:
+https://github.com/Patt-00/Campus4Change/releases/tag/v1.3.0-preview.2.
+The final 1.4.0 candidate remains local and unpublished. The v1.3.0-preview.2
+APK and local AAB used the previous v3 signer. The 1.4.0
 release candidate (version code 7) was built on 2026-10-23 with the new v4
 signer. The local signed APK SHA-256 is
 `e1c13ca9af40494302fcee8b717503d2e1f3f8a5b19d580368a27f859cd94b8a`; the AAB
@@ -330,7 +331,7 @@ The APK passed `apksigner verify`; the AAB passed `jarsigner -verify` and ZIP
 integrity checks. The APK is installed on the POCO X4 GT and the pulled package
 hash matches the local artifact. These candidate artifacts are not published.
 
-To build both release artifacts with the dedicated signer, run this helper
+To build the signed APK and accompanying Android App Bundle with the dedicated signer, run this helper
 from an interactive terminal at the repository root:
 
 ```sh
@@ -339,8 +340,9 @@ from an interactive terminal at the repository root:
 
 The helper defaults to `~/.android/keystores/campus4change-release-v4.jks`,
 alias `campus4change-v4`, and GNOME Secret Service account
-`campus4change-release-v4`. It requires this existing key, builds the APK and
-AAB, and prints their SHA-256 hashes. It fails closed if the keystore is
+`campus4change-release-v4`. It requires this existing key, builds both outputs, and prints their SHA-256
+hashes. The signed APK is the requested distribution artifact; publishing an
+Android App Bundle to Google Play is outside the current project scope. It fails closed if the keystore is
 missing; it will not silently create a different signer. Set
 `C4C_CREATE_RELEASE_KEY=1` only when the user explicitly authorizes a new key
 rotation and a unique key path/account have been selected. The signing password
@@ -363,9 +365,11 @@ store signing passwords in the repository or shell history. Keep the JKS file
 and its password-manager entry in separate secure recovery locations; losing
 either prevents future updates signed with this certificate. The helper does
 not publish artifacts or alter GitHub releases. The v4 SHA-1 is registered for
-Google sign-in and its SHA-256 is registered with the Firebase Android app;
-Play Integrity App Check registration is pending the required terms acceptance
-in Firebase Console. Existing installs signed with a different key must be
+Google sign-in and its SHA-256 is registered with the Firebase Android app.
+The signed candidate completed live Google sign-in on POCO. App Check remains
+unregistered and its token exchange is unverified. Firebase Auth and Firestore
+accept requests while App Check enforcement remains off. Existing installs
+signed with a different key must be
 uninstalled before this release can be installed, which clears device-only
 state and app-private photos. Firebase-backed accounts and Firestore data
 remain in the cloud unless explicitly deleted. See
