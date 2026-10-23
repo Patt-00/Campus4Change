@@ -24,23 +24,20 @@ const mockStore = {
     return true;
   }),
   discardProfilePhotoDraft: jest.fn(async () => true),
-  isStudentIdUnique: jest.fn(async () => true),
+  generateAccountUuid: jest.fn(async () => '00000000-0000-4000-8000-000000000002'),
   signIn: jest.fn(async () => {
     mockActiveUser = mockCurrent.id;
     return JSON.stringify(mockCurrent);
   }),
   signUp: jest.fn(async (name, email) => {
-    mockCurrent = { id: 'new-user', name, email, studentId: '' };
+    mockCurrent = {
+      id: 'new-user',
+      accountUuid: '00000000-0000-4000-8000-000000000002',
+      name,
+      email,
+    };
     mockActiveUser = mockCurrent.id;
     return JSON.stringify(mockCurrent);
-  }),
-  completeAccountSetup: jest.fn(async (expectedUserId, studentId, value) => {
-    if (expectedUserId !== mockActiveUser) {
-      throw new Error('The active account changed before profile setup.');
-    }
-    mockCurrent = { ...mockCurrent, studentId };
-    mockSaved[expectedUserId] = value;
-    return true;
   }),
   loadState: jest.fn(async expectedUserId => {
     if (expectedUserId !== mockActiveUser) {
@@ -67,7 +64,6 @@ jest.mock('../src/shared/backend/firebase', () => ({
   firebaseEnabled: false,
   firebaseSignIn: jest.fn(),
   firebaseSignUp: jest.fn(),
-  firebaseStudentIdClaimed: jest.fn(async () => false),
   firebaseSignOut: jest.fn(async () => {}),
   firebasePasswordReset: jest.fn(),
   loadCloudState: jest.fn(),
@@ -146,7 +142,7 @@ async function login() {
   await signInCurrentAccount();
 }
 async function signInCurrentAccount() {
-  await fill('Email or Student ID', mockCurrent.email);
+  await fill('Email', mockCurrent.email);
   await fill('Password', 'TestPass123');
   await press('SIGN IN');
 }
@@ -182,7 +178,7 @@ test('renders onboarding and rejects an empty sign-in form', async () => {
   expect(hasText('USE DEMO ACCOUNT')).toBe(false);
   expect(hasText('alex@campus.demo')).toBe(false);
   await press('SIGN IN');
-  expect(hasText('Enter your email or Student ID and password.')).toBe(true);
+  expect(hasText('Enter your email and password.')).toBe(true);
   expect(mockStore.signIn).not.toHaveBeenCalled();
 }, 15000);
 test('introduces novice, intermediate, and expert learners before account access', async () => {
@@ -252,7 +248,7 @@ test('a synchronously unavailable introduction bridge falls back to onboarding',
 test('shows an authentication failure without opening the app', async () => {
   await render();
   await completeIntroduction();
-  await fill('Email or Student ID', 'wrong@school.edu');
+  await fill('Email', 'wrong@school.edu');
   await fill('Password', 'wrongpass');
   mockStore.signIn.mockRejectedValueOnce(new Error('Incorrect password.'));
   await press('SIGN IN');
@@ -270,7 +266,7 @@ test('rejects saved data from another account and clears the native sign-in', as
   expect(mockStore.saveState).not.toHaveBeenCalled();
 });
 
-test('partial version-one profiles restore blank defaults before Home renders', async () => {
+test('partial version-one profiles restore safe defaults and remain in account setup', async () => {
   const savedState = makeQaState();
   delete savedState.profile.name;
   delete savedState.profile.interests;
@@ -283,17 +279,12 @@ test('partial version-one profiles restore blank defaults before Home renders', 
 
   await login();
 
-  const visibleText = renderer.root
-    .findAllByType(Text)
-    .map(node => node.props.children)
-    .flat(Infinity)
-    .filter(value => typeof value === 'string')
-    .join(' ');
-  expect(visibleText).toContain('Jordan');
-  expect(hasText('Quick Actions')).toBe(true);
-  expect(hasText('YOUR NEXT MATCH AWAITS')).toBe(true);
-  expect(hasText('Choose what to learn')).toBe(true);
-  expect(hasText('ADD INTERESTS')).toBe(true);
+  expect(hasText('Set up your account')).toBe(true);
+  expect(hasText('Quick Actions')).toBe(false);
+  const fullName = renderer.root
+    .findAllByType(TextInput)
+    .find(input => input.props.accessibilityLabel === 'Full name');
+  expect(fullName.props.value).toBe('Jordan Student');
   const restoredState = JSON.parse(mockSaved[qaAccount.id]);
   const restoredProfile = restoredState.profile;
   expect(restoredProfile.name).toBe('Jordan Student');
@@ -312,6 +303,8 @@ test('partial version-one profiles restore blank defaults before Home renders', 
 test('migrates a legacy TIP school value to a supported campus', async () => {
   const savedState = makeQaState();
   savedState.profile.school = 'TIP Manila';
+  savedState.profile.course = 'Computer Science';
+  savedState.profile.courseId = 'manila-computer-studies-computer-science';
   delete savedState.profile.campus;
   mockSaved[qaAccount.id] = JSON.stringify(savedState);
 
@@ -328,9 +321,9 @@ test('migrates a legacy TIP school value to a supported campus', async () => {
 test('partial personal profiles restore blank defaults and empty collections', async () => {
   const personal = {
     id: 'partial-student',
+    accountUuid: '00000000-0000-4000-8000-000000000004',
     name: 'Student User',
     email: 'student@school.edu',
-    studentId: '100',
   };
   mockCurrent = personal;
   const savedState = initialState(personal);
@@ -343,7 +336,7 @@ test('partial personal profiles restore blank defaults and empty collections', a
 
   await login();
 
-  expect(hasText('Complete your profile')).toBe(true);
+  expect(hasText('Set up your account')).toBe(true);
   const restoredState = JSON.parse(mockSaved[personal.id]);
   expect(restoredState.profile.interests).toEqual([]);
   expect(restoredState.profile.tutorSubjects).toEqual([]);
@@ -647,29 +640,28 @@ test('sign-up creates an account first and opens required profile setup', async 
     'TestPass123',
   );
   expect(hasText('Set up your account')).toBe(true);
-  expect(hasText('Student ID (private)')).toBe(true);
-  expect(mockStore.completeAccountSetup).not.toHaveBeenCalled();
+  expect(hasText('Your Campus4Change ID')).toBe(true);
+  expect(hasText('Student ID (private)')).toBe(false);
 });
 
-test('a legacy local account with a duplicate Student ID must resolve it during setup', async () => {
-  mockStore.isStudentIdUnique.mockResolvedValueOnce(false);
-
+test('a completed local profile shows its generated Campus4Change ID', async () => {
   await login();
-
-  expect(mockStore.isStudentIdUnique).toHaveBeenCalledWith(
-    qaAccount.id,
-    qaAccount.studentId,
-  );
-  expect(hasText('Set up your account')).toBe(true);
-  expect(hasText('Student ID (private)')).toBe(true);
+  expect(hasText('Set up your account')).toBe(false);
+  await press('Profile');
+  expect(hasText('Campus4Change ID')).toBe(true);
+  expect(hasText('Student ID (private)')).toBe(false);
   await ReactTestRenderer.act(async () => renderer.unmount());
 });
 
-test('custom interests can be added, deduplicated, removed, and reopened without requiring a campus', async () => {
+test('custom interests can be added, deduplicated, removed, and reopened after profile setup', async () => {
   mockCurrent = { ...qaAccount, id: 'fresh-user', name: 'New Student' };
+  const freshState = makeQaState(mockCurrent);
+  freshState.profile.interests = [];
+  freshState.profile.interestGroups = [];
+  mockSaved['fresh-user'] = JSON.stringify(freshState);
   await render();
   await completeIntroduction();
-  await fill('Email or Student ID', 'new@school.edu');
+  await fill('Email', 'new@school.edu');
   await fill('Password', 'TestPass123');
   await press('SIGN IN');
   expect(hasText('Choose what to learn')).toBe(true);
@@ -678,7 +670,9 @@ test('custom interests can be added, deduplicated, removed, and reopened without
   await press('ADD INTEREST');
   await fill('Add an interest', 'nursing care');
   await press('ADD INTEREST');
-  expect(hasText('That interest is already in your list.')).toBe(true);
+  expect(
+    hasText('That interest is already in your list for Computer Science.'),
+  ).toBe(true);
   await fill('Add an interest', 'Drawing');
   await press('ADD INTEREST');
   await press('Remove Drawing');
@@ -686,12 +680,12 @@ test('custom interests can be added, deduplicated, removed, and reopened without
   expect(hasText('Nursing care')).toBe(true);
   const saved = JSON.parse(mockSaved['fresh-user']);
   expect(saved.profile.interests).toEqual(['Nursing care']);
-  expect(saved.profile.campus).toBe('');
+  expect(saved.profile.campus).toBe('T.I.P. Quezon City');
   expect(saved.profile).not.toHaveProperty('school');
   await ReactTestRenderer.act(async () => renderer.unmount());
   await render();
   expect(hasText('Welcome back!')).toBe(true);
-  await fill('Email or Student ID', 'new@school.edu');
+  await fill('Email', 'new@school.edu');
   await fill('Password', 'TestPass123');
   await press('SIGN IN');
   expect(hasText('Nursing care')).toBe(true);

@@ -66,7 +66,7 @@ export function AboutScreen({
       <Text style={s.section}>Sign-in</Text>
       <Text style={s.text}>
         {firebaseConfigured
-          ? 'Firebase handles email/password and Google sign-in on Android, password reset, and verification emails. After signup, complete the required TIP account setup with your course, year level, campus, and Student ID. Student IDs stay private. A verified email is required for shared study groups, tutor listings, and session requests. Email verification confirms control of an address, not school affiliation; the app does not check a school-domain allowlist. Your Firebase refresh token is encrypted by Android Keystore.'
+          ? 'Firebase handles email/password and Google sign-in on Android, password reset, and verification emails. After signup, complete your TIP account setup with your course, year level, and campus. Campus4Change assigns a random account ID for reference; it does not verify school affiliation. A verified email is required for shared study groups, tutor listings, and session requests. Email verification confirms control of an address, not TIP enrollment; the app does not check a school-domain allowlist. Your Firebase refresh token is encrypted by Android Keystore.'
           : 'Passwords protect local accounts. School identity checks, email verification, and password recovery require an online service and are not available here.'}
       </Text>
     </Screen>

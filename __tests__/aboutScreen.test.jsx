@@ -38,12 +38,12 @@ test('Firebase About copy matches verified-email group access', async () => {
     'Firebase users with verified email addresses can share study-group details',
   );
   expect(copy).toContain('Google sign-in on Android');
-  expect(copy).toContain('complete the required TIP account setup');
-  expect(copy).toContain('Student IDs stay private');
+  expect(copy).toContain('complete your TIP account setup');
+  expect(copy).toContain('random account ID');
   expect(copy).not.toContain('must be unique');
   expect(copy).toContain('verification emails');
   expect(copy).toContain(
-    'Email verification confirms control of an address, not school affiliation',
+    'Email verification confirms control of an address, not TIP enrollment',
   );
   expect(copy).toContain('does not check a school-domain allowlist');
   expect(copy).toContain('Find a human tutor to explain a subject');

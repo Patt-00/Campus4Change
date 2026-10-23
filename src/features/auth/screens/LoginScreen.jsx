@@ -17,6 +17,7 @@ export function LoginScreen({ go, back, auth }) {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const [localOnly, setLocalOnly] = useState(false);
   const [moreOptionsOpen, setMoreOptionsOpen] = useState(
@@ -28,10 +29,15 @@ export function LoginScreen({ go, back, auth }) {
       return;
     }
     setError('');
+    setNotice('');
     setBusy(true);
     Keyboard.dismiss();
     try {
-      return await action();
+      const result = await action();
+      if (result === false) {
+        setNotice('Google sign-in was canceled. Choose an account to continue.');
+      }
+      return result;
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       return undefined;
@@ -41,11 +47,7 @@ export function LoginScreen({ go, back, auth }) {
   }
   function signIn() {
     if (!identifier.trim() || !password) {
-      setError(
-        auth.firebaseConfigured && !localOnly
-          ? 'Enter your email and password.'
-          : 'Enter your email or Student ID and password.',
-      );
+      setError('Enter your email and password.');
       return;
     }
     submit(() =>
@@ -85,13 +87,9 @@ export function LoginScreen({ go, back, auth }) {
         </Text>
       )}
       <Field
-        label={auth.firebaseConfigured && !localOnly ? 'Email' : 'Email or Student ID'}
+        label="Email"
         icon="@"
-        placeholder={
-          auth.firebaseConfigured && !localOnly
-            ? 'name@example.com'
-            : 'Enter your email or student ID'
-        }
+        placeholder="name@example.com"
         value={identifier}
         onChangeText={setIdentifier}
         autoCapitalize="none"
@@ -122,6 +120,7 @@ export function LoginScreen({ go, back, auth }) {
         </View>
       )}
       <ErrorText value={error} />
+      {notice ? <Text style={[s.muted, s.center]}>{notice}</Text> : null}
       <AppButton title="SIGN IN" busy={busy} onPress={signIn} />
       {auth.firebaseConfigured && !localOnly && (
         <>

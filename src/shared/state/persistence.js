@@ -4,9 +4,13 @@ export function stateForPersistence(state, { forCloud = false } = {}) {
   }
 
   let profile = state.profile;
-  if (forCloud && profile && typeof profile === 'object') {
-    const { profilePhotoUri, ...cloudProfile } = profile;
-    profile = cloudProfile;
+  if (profile && typeof profile === 'object') {
+    profile = { ...profile };
+    delete profile.studentId;
+    if (forCloud) {
+      const { profilePhotoUri, ...cloudProfile } = profile;
+      profile = cloudProfile;
+    }
   }
 
   return {

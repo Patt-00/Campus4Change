@@ -149,7 +149,6 @@ test('custom profile photos stay in device persistence and are excluded from clo
     id: 'student-1',
     name: 'Student',
     email: 'student@example.test',
-    studentId: 'S001',
   });
   state.profile.profilePhotoUri =
     'file:///data/user/0/com.campus4change/files/profile_photos/abc.jpg';

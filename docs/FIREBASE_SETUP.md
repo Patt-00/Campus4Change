@@ -35,7 +35,7 @@ these fingerprints:
 - SHA-1: `21:24:1E:9A:18:AB:85:31:F5:B3:83:A5:5D:87:14:C9:80:C8:07:D5`
 - SHA-256: `0C:65:24:06:CF:3B:60:51:A4:F9:65:70:80:7E:F7:38:D4:8A:48:80:2E:E1:0E:06:76:05:5D:61:FE:F5:9E:E7`
 
-The read-only Firebase SHA list check on 2026-10-22 found this replacement
+The read-only Firebase SHA list check on 2026-10-23 found this replacement
 certificate unregistered. On 2026-10-22, the signed app cold-launched on POCO,
 but its startup log showed App Check token failures. The exact server-side
 cause is unconfirmed, and Google sign-in and Play Integrity/App Check for this
@@ -53,16 +53,17 @@ unknown. No registration or enforcement setting was changed.
 
 ### Current production state
 
-A read-only Rules API recheck on 2026-10-22 confirmed that the active default
-Firestore release still points to ruleset
+A read-only Rules API check on 2026-10-22 found that the active default
+Firestore release pointed to ruleset
 `projects/campus4change/rulesets/4f66efb8-d8d6-404c-83be-8a2b7b37588a`.
 Its `firestore.rules` source hashes to
 `867e1b314fb639608ef4fe6978892ee6d337536be27a65b01b76c066679ec0a8`.
-The local source hashes to
-`25f0ec68a34ce0eb1964164dfa7fb9139413d99fa0ca1a5f323236bf4e302323`, so the
-live source still lacks the local `studentIdClaims` path. The local claim rules
-pass emulator tests. This check used read-only GET requests; it did not deploy
-rules or change production authorization.
+The local source at that time hashed to
+`25f0ec68a34ce0eb1964164dfa7fb9139413d99fa0ca1a5f323236bf4e302323`. That
+version contained a `studentIdClaims` path. The current worktree removes the
+Student ID claim client flow and the matching local rules. No production rules
+or authorization settings were changed, and production rules have not been
+rechecked against the current uncommitted source.
 
 A read-only Firestore index API recheck on 2026-10-22 returned six production
 composite indexes, all in `READY` state and matching all six definitions in
@@ -85,16 +86,21 @@ Authentication. The Android app uses the public Firebase Web client ID from
 `firebaseConfig.js` to request a Google ID token, then exchanges that token with
 Firebase. The ID is public client configuration; never put a Web client secret
 in the app. A Google account supplies its name and email. The account holder
-must complete TIP account setup with a course, year level, campus, and
-digits-only Student ID before entering the app. Student IDs stay in private
-account state and are reserved through owner-only Firestore claim documents so
-two Firebase accounts cannot claim the same new or changed ID. Older installed
-clients can keep syncing an unchanged ID until they are updated; a duplicate
-legacy ID must be changed during setup before it can be claimed. Google-to-
-Firebase sign-in has been completed on the POCO with a debug build.
-The matching Firestore rules must be deployed before Firebase accounts can use
-this uniqueness check. Device-only accounts are checked only against other
-accounts on the same device.
+must complete TIP account setup with a course, year level, and campus. Android
+generates a random version 4 UUID and the setup screen displays it for reference.
+The same UUID appears on Profile and is stored separately from the Firebase
+UID, which remains the Firestore owner key. The UUID does not prove TIP
+enrollment or replace Google/email authentication. Legacy Student ID values are
+discarded when old account state is read or saved. Device-only accounts use
+their local UUID as the Campus4Change ID.
+
+After Firebase accepts a Google credential, a complete profile routes to Home
+and an incomplete profile routes to Account Setup. Dismissing the account picker
+returns to Login with a neutral cancellation message. The current JavaScript
+tests cover this session handoff; live sign-in with the replacement release
+certificate remains unverified because its SHA-1 is absent from Firebase's
+Android app registration. No production rule or Firebase setting has been
+changed for the local UUID update.
 See [Android's Credential Manager Google sign-in guide](https://developer.android.com/identity/sign-in/credential-manager-siwg-implementation)
 and [Firebase's Google sign-in guide for Android](https://firebase.google.com/docs/auth/android/google-signin)
 for the platform flow and token exchange.
@@ -135,8 +141,10 @@ public
    If asked, choose the Firebase project you configured above. Check the
    selected project before deploying. Index creation may take several minutes.
 7. Build and run the Android app. Sign-up creates a Firebase account, and a
-   successful sign-in restores the account's Firestore state. No account or
-   sample listings are preloaded. Existing device-only accounts remain local.
+   successful sign-in restores the account's Firestore state. Account Setup
+   collects the user's TIP course, year, and campus, then shows the generated
+   Campus4Change UUID. No account or sample listings are preloaded. Existing
+   device-only accounts remain local.
 
 Firebase `apiKey` and `androidApiKey` values are public client configuration:
 they identify the Firebase project and do not authorize access. Keep

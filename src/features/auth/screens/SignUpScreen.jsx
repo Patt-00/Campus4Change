@@ -12,6 +12,7 @@ export function SignUpScreen({ go, back, auth }) {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const emailInput = useRef(null);
   const passwordInput = useRef(null);
   async function submit() {
@@ -19,6 +20,7 @@ export function SignUpScreen({ go, back, auth }) {
       return;
     }
     setError('');
+    setNotice('');
     if (
       name.trim().length < 2 ||
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ||
@@ -45,10 +47,14 @@ export function SignUpScreen({ go, back, auth }) {
       return;
     }
     setError('');
+    setNotice('');
     setBusy(true);
     Keyboard.dismiss();
     try {
-      await auth.signInWithGoogle();
+      const result = await auth.signInWithGoogle();
+      if (result === false) {
+        setNotice('Google sign-up was canceled. Choose an account to continue.');
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -72,8 +78,8 @@ export function SignUpScreen({ go, back, auth }) {
             onPress={submitGoogle}
           />
           <Text style={[s.muted, s.center, styles.googleHelper]}>
-            After signing in, complete your TIP profile and add your private
-            Student ID.
+            After signing in, complete your TIP profile. A random Campus4Change
+            ID will be created for your account.
           </Text>
           {!auth.googleSignInAvailable && (
             <Text style={[s.muted, s.center, styles.googleHelper]}>
@@ -128,11 +134,12 @@ export function SignUpScreen({ go, back, auth }) {
       />
 
       <ErrorText value={error} />
+      {notice ? <Text style={[s.muted, s.center]}>{notice}</Text> : null}
       <View style={s.gap} />
       <AppButton title="CREATE ACCOUNT" busy={busy} onPress={submit} />
       <Text style={[s.muted, s.center, styles.marginTop16]}>
         {auth.firebaseConfigured
-          ? 'After signup, add your TIP campus, course, year level, and Student ID. Email accounts receive a verification link; a verified email is required for shared features.'
+          ? 'After signup, add your TIP campus, course, and year level. Email accounts receive a verification link; a verified email is required for shared features.'
           : 'Your account and data stay on this device.'}
       </Text>
       <View style={styles.alignItemscentermarginTop24}>

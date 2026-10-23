@@ -265,10 +265,10 @@ class CampusStorageModule(private val context: ReactApplicationContext) :
         return savedUri
     }
 
-    private fun account(name: String, email: String, studentId: String, password: String, id: String = UUID.randomUUID().toString()): JSONObject {
+    private fun account(name: String, email: String, password: String, id: String = UUID.randomUUID().toString()): JSONObject {
         val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
         val hashParameters = CampusPasswordHash.currentParameters(Build.VERSION.SDK_INT)
-        return JSONObject().put("id", id).put("name", name).put("email", email).put("studentId", studentId)
+        return JSONObject().put("id", id).put("accountUuid", id).put("name", name).put("email", email)
             .put("salt", Base64.encodeToString(salt, Base64.NO_WRAP))
             .put("hash", Base64.encodeToString(CampusPasswordHash.derive(password, salt, hashParameters), Base64.NO_WRAP))
             .put("passwordHashAlgorithm", hashParameters.algorithm)
@@ -279,7 +279,6 @@ class CampusStorageModule(private val context: ReactApplicationContext) :
         LegacySeedIdentity.matchesAccount(
             account.optString("id"),
             account.optString("email"),
-            account.optString("studentId"),
         )
 
     private fun removeLegacySeedAccount() {
@@ -317,28 +316,30 @@ class CampusStorageModule(private val context: ReactApplicationContext) :
 
     private fun accounts(): JSONArray {
         removeLegacySeedAccount()
-        read("accounts")?.let { return JSONArray(it) }
-        return JSONArray()
-    }
-
-    private fun accountIdentities(list: JSONArray): List<LocalAccountIdentity> {
-        val identities = mutableListOf<LocalAccountIdentity>()
+        val list = read("accounts")?.let(::JSONArray) ?: return JSONArray()
+        var changed = false
         for (index in 0 until list.length()) {
-            val account = list.getJSONObject(index)
-            identities.add(
-                LocalAccountIdentity(
-                    account.optString("id"),
-                    account.optString("email"),
-                    account.optString("studentId"),
-                ),
-            )
+            val account = list.optJSONObject(index) ?: continue
+            val id = account.optString("id")
+            if (account.has("studentId")) {
+                account.remove("studentId")
+                changed = true
+            }
+            if (!CampusAccountUuid.isValid(account.optString("accountUuid"))) {
+                account.put(
+                    "accountUuid",
+                    if (CampusAccountUuid.isValid(id)) id else CampusAccountUuid.generate(),
+                )
+                changed = true
+            }
         }
-        return identities
+        if (changed) write("accounts", list.toString())
+        return list
     }
 
     private fun publicAccount(a: JSONObject): String = JSONObject().put("id", a.getString("id"))
         .put("name", a.getString("name")).put("email", a.getString("email"))
-        .put("studentId", a.getString("studentId")).toString()
+        .put("accountUuid", a.optString("accountUuid", a.getString("id"))).toString()
 
     private fun run(promise: Promise, block: () -> Any?) {
         worker.execute { try { promise.resolve(block()) } catch (e: Exception) { promise.reject("LOCAL_ACCOUNT", e.message ?: "Device storage failed.") } }
@@ -351,65 +352,24 @@ class CampusStorageModule(private val context: ReactApplicationContext) :
             val item = list.getJSONObject(i)
             require(!item.getString("email").equals(email.trim(), true)) { "An account already uses that email on this device." }
         }
-        val a = account(name.trim(), email.trim().lowercase(), "", password)
+        val a = account(name.trim(), email.trim().lowercase(), password)
         list.put(a); write("accounts", list.toString()); activeUser = a.getString("id")
         publicAccount(a)
     }
 
-    @ReactMethod fun isStudentIdUnique(expectedUserId: String, studentId: String, promise: Promise) = run(promise) {
-        requireActiveUser(expectedUserId)
-        LocalStudentIdUniqueness.isUniqueForAccount(
-            accountIdentities(accounts()),
-            expectedUserId,
-            studentId,
-        )
-    }
-
-    @ReactMethod fun completeAccountSetup(expectedUserId: String, studentId: String, value: String, promise: Promise) = run(promise) {
-        requireActiveUser(expectedUserId)
-        val normalizedStudentId = studentId.trim()
-        require(LocalStudentIdUniqueness.isValidStudentId(normalizedStudentId)) { "Enter a Student ID using digits only." }
-        val list = accounts()
-        val identities = accountIdentities(list)
-        val accountIndex = identities.indexOfFirst { it.id == expectedUserId }
-        require(accountIndex >= 0) { "The local account could not be found. Sign in again." }
-        require(
-            !LocalStudentIdUniqueness.hasConflict(
-                identities,
-                expectedUserId,
-                normalizedStudentId,
-            ),
-        ) {
-            "That Student ID is already in use on this device. Check the number and try again."
-        }
-
-        val parsedState = JSONObject(value)
-        val profile = parsedState.optJSONObject("profile")
-        require(
-            profile != null &&
-                profile.optString("id") == expectedUserId &&
-                profile.optString("studentId") == normalizedStudentId
-        ) { "The profile does not match the active account." }
-
-        val previousPhoto = profilePhotoUri(read("state_$expectedUserId"))
-        list.getJSONObject(accountIndex).put("studentId", normalizedStudentId)
-        val editor = prefs.edit()
-            .putString("accounts", encrypt(list.toString()))
-            .putString("state_$expectedUserId", encrypt(value))
-        check(editor.commit()) { "Could not save the completed profile on this device." }
-        val nextPhoto = profilePhotoUri(value)
-        if (previousPhoto != nextPhoto) cleanProfilePhotos(expectedUserId, nextPhoto)
-        true
+    @ReactMethod fun generateAccountUuid(promise: Promise) = run(promise) {
+        CampusAccountUuid.generate()
     }
 
     @ReactMethod fun signIn(identifier: String, password: String, promise: Promise) = run(promise) {
         val list = accounts()
-        val matchIndex = LocalStudentIdUniqueness.findSignInMatch(
-            accountIdentities(list),
-            identifier,
-        )
+        val normalizedEmail = identifier.trim()
+        val matchIndex = (0 until list.length()).firstOrNull { index ->
+            list.getJSONObject(index).optString("email")
+                .equals(normalizedEmail, ignoreCase = true)
+        } ?: -1
         val a = if (matchIndex >= 0) list.getJSONObject(matchIndex) else null
-        requireNotNull(a) { "Email/Student ID or password is incorrect." }
+        requireNotNull(a) { "Email or password is incorrect." }
         require(password.isNotEmpty() && password.length <= CampusPasswordHash.MAX_PASSWORD_LENGTH) { "Enter a password no longer than ${CampusPasswordHash.MAX_PASSWORD_LENGTH} characters." }
         val storedParameters = CampusPasswordHash.fromStoredMetadata(
             if (a.has("passwordHashAlgorithm")) a.getString("passwordHashAlgorithm") else null,
@@ -423,7 +383,7 @@ class CampusStorageModule(private val context: ReactApplicationContext) :
                 storedParameters,
                 Base64.decode(a.getString("hash"), Base64.NO_WRAP),
             ),
-        ) { "Email/Student ID or password is incorrect." }
+        ) { "Email or password is incorrect." }
         val currentParameters = CampusPasswordHash.currentParameters(Build.VERSION.SDK_INT)
         if (CampusPasswordHash.needsUpgrade(storedParameters, currentParameters)) {
             try {
@@ -432,7 +392,6 @@ class CampusStorageModule(private val context: ReactApplicationContext) :
                     account(
                         a.getString("name"),
                         a.getString("email"),
-                        a.getString("studentId"),
                         password,
                         a.getString("id"),
                     ),

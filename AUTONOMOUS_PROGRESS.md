@@ -6,22 +6,24 @@ or a production deployment.
 
 ## Current workspace
 
-- The current source snapshot is published on branch release/v1.3.0-preview.2
-  and tag v1.3.0-preview.2. The GitHub pre-release contains the current source
-  and signed installable APK. The default main branch remains at
-  46fe89a534d98866dc981ef11fe64f24151e8bf4; it has not been merged, and CI
-  has not run on the preview commit.
+- The previous source snapshot is published on branch
+  release/v1.3.0-preview.2 and tag v1.3.0-preview.2. The current worktree has
+  uncommitted UUID and Google sign-in navigation changes that are not in that
+  release. The default main branch remains at
+  46fe89a534d98866dc981ef11fe64f24151e8bf4; no changes were pushed.
+  GitHub Actions run [39829733295](https://github.com/Patt-00/Campus4Change/actions/runs/39829733295)
+  passed on the exact preview commit.
 - The Android app version is 1.3.0, version code 6, package
   com.campus4change, minimum API 24, target API 36. The signed release asset
   Campus4Change-v1.3.0-preview.2.apk has SHA-256 e83a7feeaf307d526b6bb34334badbc193f1e218259bfd2aeb8c55f1c1cfa330. Its manifest
   contains INTERNET and CAMERA permissions, without biometric or fingerprint
   permissions. The matching signed AAB SHA-256 is 3ae00c1033f7f82c1aed81353b70656b690542e872ebc78e4ab91060ef09ddb4; it remains
   local and is not attached to GitHub.
-- The POCO X4 GT was the only device used for this cycle. Its installed
-  base.apk hash matches the updated release artifact. Package metadata shows
-  version 1.3.0/code 6; a fresh launch reached MainActivity without a fatal
-  or React Native startup error in the captured log.
-- The Google account-picker cancellation defect was reproduced and fixed.
+- The installed POCO X4 GT package is still version 1.3.0/code 6 from the
+  previously published snapshot. Its last update was 2026-10-22. The current
+  UUID changes have not been built or installed on the device yet.
+- The published app's Google account-picker cancellation behavior was
+  reproduced and fixed in the earlier release cycle.
   Before the fix, dismissing Credential Manager produced a red generic
   sign-in failure message. The native log showed
   GetCredentialCancellationException. After the fix, dismissing the chooser
@@ -33,23 +35,98 @@ or a production deployment.
   Firebase Auth operation was confirmed. The user asked to use another email;
   multiple alternative Google accounts are available, and the exact account
   has not yet been selected.
-- Current validation passed 334 Jest tests across 40 suites, focused Google
-  auth screens (10 tests), full-project ESLint, the public Drive-link scan,
-  git diff --check, the Android testDebugUnitTest task, and the signed release
-  APK/AAB build. The release build completed with 126 Gradle tasks.
+- The published preview snapshot passed 334 Jest tests across 40 suites, the
+  focused Google auth screen suite (10 tests), full-project ESLint, the public
+  Drive-link scan, `git diff --check`, Android unit tests, and the signed
+  release APK/AAB build. That release build completed with 126 Gradle tasks.
+- GitHub Actions run [39829733295](https://github.com/Patt-00/Campus4Change/actions/runs/39829733295)
+  passed all jobs on the exact preview commit, including hosted API 24
+  instrumentation.
+- A focused session test verifies that a successful mocked Google account
+  calls the sign-in callback that `AppNavigator` uses to choose Account Setup
+  or Home. It does not verify the live Google credential exchange.
 - Firebase Authentication and Cloud Firestore are integrated and the APK is
-  configured for project campus4change. Production Firestore rules lack the
-  current Student ID claim flow. The replacement release SHA-1/SHA-256 are not
-  registered for Google sign-in/App Check. The App Check Console lists the
-  Android app as Not registered; Auth and Firestore App Check enforcement
+  configured for project campus4change. The current worktree removes Student
+  ID claim reads and writes; legacy Student ID values are stripped during
+  profile migration. A read-only Firebase CLI check on 2026-10-23
+  confirmed the replacement release SHA-1/SHA-256 remain absent from the Android
+  app registration. The 2026-10-22 App Check Console check listed the Android
+  app as Not registered; Auth and Firestore App Check enforcement
   are Unenforced. No production settings or data changed in this cycle.
 - Pad 7 was unavailable. Current-source two-device workflows, production
-  Firebase sign-in, release App Check, exact-source CI, and a clean
-  school-laptop rehearsal remain open. The evidence-weighted completion
-  estimate is 87.75%; see COMPLETION_AUDIT.md for remaining gates.
-- No emulator was started. The Redmi transport was not used.
+  Firebase sign-in, release App Check, and a clean school-laptop rehearsal
+  remain open. The evidence-weighted completion estimate is 88.25%; see
+  COMPLETION_AUDIT.md for remaining gates.
+- GitHub Actions ran the API 24 instrumentation emulator on a hosted runner.
+  No emulator was started on the user's PC. The Redmi transport was not used.
 
 ## Improvement cycles
+
+### UUID account migration and Google sign-in navigation, 2026-10-23
+
+- Replaced the user-entered Student ID flow with a random v4 UUID generated by
+  `CampusStorageModule`. Local accounts keep their native UUID, while Firebase
+  profiles store `accountUuid` separately from the Firebase UID used for
+  Firestore ownership. Account Setup and Profile show the UUID as selectable
+  text; the UI explains that it does not verify TIP enrollment.
+- Removed Student ID sign-in, setup, and edit controls; removed client claim
+  reads/writes and local `studentIdClaims` rules. Local and cloud-state
+  migrations drop legacy Student ID fields. No production rule or Firebase
+  setting changed.
+- `AppNavigator` now routes complete profiles to Home and incomplete TIP
+  profiles to Account Setup. A successful mocked Google session exercises the
+  same sign-in callback. Login and Sign Up show a neutral cancellation notice
+  when a user dismisses Google's account picker.
+- Updated the Figma Account Setup, Profile, Edit Profile, Sign-up, and About
+  designs. Removed the unused Student ID verification frame. Screenshots and a
+  structural readback confirmed the UUID card, removed edit field, and absence
+  of remaining Student ID text in the prototype.
+- Local verification passed 337 Jest tests across 41 suites, ESLint,
+  `:app:testDebugUnitTest`, `assembleDebug`, `node --check` for the rules test
+  script, and `git diff --check`. The rules emulator suite was not run because
+  no local emulator was started. The generated debug APK is local and was not
+  installed over the release app.
+- ADB listed only the POCO X4 GT. Its installed 1.3.0/code 6 release predates
+  these uncommitted changes, so physical verification of UUID setup and live
+  Google navigation remains open. The replacement release signer is still
+  absent from Firebase's Android app registration. No push or deployment was
+  performed.
+
+### Dependency advisory refresh, 2026-10-23
+
+- `npm audit --omit=dev` reports 20 high vulnerabilities and zero critical.
+  The full `npm audit` reports 20 high and 20 moderate vulnerabilities, with
+  zero critical. `npm view braces version` still returns 3.0.3.
+- The reviewed GitHub advisories list no patched releases for `braces` or
+  `sprintf-js`. npm's forced fixes propose React Native CLI 13.5.1 and Jest
+  25.0.0, which are incompatible downgrades from this project's current lines.
+- No dependency files changed. The advisory risk remains recorded in
+  [COMPLETION_AUDIT.md](COMPLETION_AUDIT.md).
+
+### Google sign-in session handoff verification, 2026-10-23
+
+- Before editing the test, `campusEmailVerification.test.jsx` passed 8 tests.
+  I added an assertion that a successful mocked Google account restores the
+  Firebase session and calls `onSignedIn` with the first-time user's profile
+  and unclaimed Student ID status.
+- The focused suite passed 8 tests after the assertion. The full Jest suite
+  passed 334 tests across 40 suites, `npm run lint` passed, and
+  `git diff --check` passed. No application source or release artifact changed.
+- This verifies the JavaScript account-to-navigation callback only. The POCO
+  work-account attempt still stops at Google's device-lock policy prompt, and
+  release Firebase sign-in remains unverified.
+
+### Preview-branch CI and Google sign-in configuration check, 2026-10-23
+
+- GitHub Actions run [39829733295](https://github.com/Patt-00/Campus4Change/actions/runs/39829733295)
+  passed on preview commit `55dcc571436d705827b7b069d6bb077350a7e6f5`.
+  The 334-test JavaScript suite, lint, Android unit tests, Auth and Firestore
+  emulator checks, release compile, debug build, and release signing guard
+  passed. Hosted API 24 instrumentation passed. No emulator ran on the user's
+  PC.
+- A read-only Firebase CLI check confirmed the current release APK's signing SHA-1 and SHA-256 are absent from the registered Android app fingerprints. Firebase's [Android Google sign-in guide](https://firebase.google.com/docs/auth/android/google-signin?authuser=002) requires the app SHA-1 to be registered. No Firebase setting or data changed.
+- The POCO remains on the Google sign-in flow. The authorized work account previously reached an organization prompt requiring a device lock. No lock setting was changed, and no Firebase sign-in completed. The user asked to use another account; its exact identity is still pending.
+- The preview branch and release tag remain at `55dcc571436d705827b7b069d6bb077350a7e6f5`; `main` remains unchanged.
 
 ### Google account-picker cancellation and work-account lock prompt, 2026-10-22
 

@@ -58,20 +58,18 @@ Google authentication uses Android Credential Manager in
 `firebase.js` exchanges the returned Google ID token with Firebase
 Authentication. The public Web client ID is configured in
 `shared/backend/firebaseConfig.js`. Google supplies a Firebase account name and
-email. After email/password or Google signup, the navigator gates the account
-on required TIP profile setup with a course, year level, campus, and digits-only
-Student ID. Student IDs remain in private profile state; a batch write reserves
-the ID in an owner-only `studentIdClaims/{studentId}` document alongside the
-profile update. The local Firestore rules require the matching claim for new
-and changed IDs, so two Firebase accounts cannot reserve the same ID. The live
-production ruleset does not yet include these claims; see
-[Firebase setup](FIREBASE_SETUP.md). Older installed
-clients may keep syncing an existing ID during migration, but cannot change it
-without the claim flow. Device-only accounts use an atomic encrypted-storage
-update and reject IDs held by another local account. Sign-out clears both
-Firebase's auth session and Credential Manager state. The approved Google
-account chooser and Firebase exchange passed a debug sign-in check on the POCO.
-Google sign-in with the published release certificate remains unverified.
+email. After email/password or Google signup, the navigator requires TIP course,
+year, and campus details. Android generates a random v4 UUID and stores it as
+`profile.accountUuid`; Firebase UID remains the private Firestore owner key.
+Account Setup displays the UUID and Profile keeps it available for reference.
+The UUID does not verify school enrollment. Local and cloud-state migration
+remove legacy Student ID fields, and persistence strips that field from future
+writes. Device-only accounts use their local UUID as the Campus4Change ID.
+Complete profiles route to Home, while incomplete profiles open Account Setup.
+Dismissing Google's account picker leaves Login open with a neutral message.
+Sign-out clears Firebase's auth session and Credential Manager state. Release
+Google sign-in remains unverified with the currently unregistered release
+certificate; see [Firebase setup](FIREBASE_SETUP.md).
 
 ## State and data flow
 
@@ -145,7 +143,7 @@ not part of this group-owner workflow.
 The tutor feature publishes only opted-in profiles under `tutorProfiles/{uid}`.
 Each listing contains a name, optional course/year, subjects, a bio, and one
 allowlisted avatar preset ID; it does not contain a custom photo, email, or
-Student ID. Only Firebase accounts with verified email
+Campus4Change account UUID. Only Firebase accounts with verified email
 addresses can discover these listings, and the owner can update or remove their
 profile. Email verification does not confirm school affiliation.
 `features/tutors/data/firestore.js` writes `tutorBookings/{bookingId}` requests
@@ -214,11 +212,14 @@ Account lifecycle tests also verify rejection of another account's saved state, 
 live reply updates, and listener cleanup for groups that are closed or no
 longer joined.
 
-`firebaseSignUp.test.js` exercises auth-state timing, confirms signup starts
-without a Student ID, and verifies profile state and unique ID claims are
-written atomically. `editProfileValidation.test.jsx` covers required account
-setup and duplicate-ID errors. The Firestore rules emulator checks that IDs
-cannot be claimed by two accounts and that claim records remain private.
+`firebaseSignUp.test.js` exercises auth-state timing, Firebase credential
+exchange, owner-scoped state writes, and removal of legacy Student ID fields.
+`useCampusSessionFirebase.test.jsx` covers Firebase session restoration, UUID
+migration, and profile persistence. `editProfileValidation.test.jsx` checks
+required TIP details and the absence of a Student ID field. `profileSetup.test.js`
+checks the profile-completeness rule that selects Home or Account Setup. The
+Firestore rules emulator checks owner-only state and rejects writes to the
+retired Student ID claim collection.
 
 Version 1.2.0 tests also cover custom-interest addition/removal/deduplication and reopening, optional TIP campus selection, empty directories, legacy saved-state compatibility, selected booking slots, group schedule validation, and About navigation before sign-in.
 

@@ -55,20 +55,6 @@ service cloud.firestore {
         return ownsUserData(userId);
       }
 
-      function hasStudentIdClaim() {
-        let studentId = request.resource.data.state.profile.get('studentId', '');
-        return studentId == ''
-          || (studentId is string
-            && studentId.matches('^[0-9]{1,32}$')
-            && existsAfter(/databases/$(database)/documents/studentIdClaims/$(studentId))
-            && getAfter(/databases/$(database)/documents/studentIdClaims/$(studentId)).data.uid == userId);
-      }
-
-      function keepsExistingStudentId() {
-        return resource.data.state.profile.get('studentId', '')
-          == request.resource.data.state.profile.get('studentId', '');
-      }
-
       function validPrivateState() {
         return request.resource.data.keys().hasAll(['state', 'updatedAt'])
           && request.resource.data.keys().hasOnly(['state', 'updatedAt'])
@@ -80,51 +66,7 @@ service cloud.firestore {
       }
 
       allow read, delete: if ownsDocument();
-      allow create: if ownsDocument()
-        && validPrivateState()
-        && hasStudentIdClaim();
-      allow update: if ownsDocument()
-        && validPrivateState()
-        && (hasStudentIdClaim() || keepsExistingStudentId());
-    }
-
-    // Student IDs stay private. A write-only, owner-bound claim document makes
-    // new and changed digits-only IDs unique without exposing an ID directory.
-    match /studentIdClaims/{studentId} {
-      function privateStatePath(uid) {
-        return /databases/$(database)/documents/users/$(uid)/private/state;
-      }
-
-      function stateClaimsStudentId(uid, id) {
-        let path = privateStatePath(uid);
-        return existsAfter(path)
-          && getAfter(path).data.state.profile.get('studentId', '') == id;
-      }
-
-      function stateNoLongerClaimsStudentId(uid, id) {
-        let path = privateStatePath(uid);
-        return existsAfter(path)
-          && getAfter(path).data.state.profile.get('studentId', '') != id;
-      }
-
-      function validClaim() {
-        return request.auth != null
-          && studentId.matches('^[0-9]{1,32}$')
-          && request.resource.data.keys().hasAll(['uid'])
-          && request.resource.data.keys().hasOnly(['uid'])
-          && request.resource.data.uid == request.auth.uid
-          && stateClaimsStudentId(request.auth.uid, studentId);
-      }
-
-      allow get: if request.auth != null && resource.data.uid == request.auth.uid;
-      allow list: if false;
-      allow create: if validClaim();
-      allow update: if request.auth != null
-        && resource.data.uid == request.auth.uid
-        && validClaim();
-      allow delete: if request.auth != null
-        && resource.data.uid == request.auth.uid
-        && stateNoLongerClaimsStudentId(request.auth.uid, studentId);
+      allow create, update: if ownsDocument() && validPrivateState();
     }
 
     // Private note messages live in small owner-only documents.
@@ -619,8 +561,8 @@ service cloud.firestore {
       }
     }
 
-    // A tutor listing exposes only the fields users need to choose a tutor
-    // tutor. Contact details and Student IDs stay in the owner's private data.
+    // A tutor listing exposes only the fields users need to choose a tutor.
+    // Contact details stay in the owner's private data.
     match /tutorProfiles/{tutorUid} {
       function validListing() {
         return request.resource.data.keys().hasAll([

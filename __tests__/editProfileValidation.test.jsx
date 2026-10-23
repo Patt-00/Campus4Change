@@ -65,7 +65,7 @@ test('normalizes legacy year labels and filters letters from year input', async 
   await ReactTestRenderer.act(async () => renderer.unmount());
 });
 
-test('normalizes legacy Student IDs and keeps the edited ID digits-only', async () => {
+test('profile editing removes the legacy Student ID field', async () => {
   const save = jest.fn();
   const back = jest.fn();
   let renderer;
@@ -82,26 +82,22 @@ test('normalizes legacy Student IDs and keeps the edited ID digits-only', async 
     );
   });
 
-  expect(findInput(renderer, 'Student ID (private)').props.value).toBe('2048');
-  await ReactTestRenderer.act(async () => {
-    findInput(renderer, 'Student ID (private)').props.onChangeText('A12-3B');
-  });
-  const studentIdInput = findInput(renderer, 'Student ID (private)');
-  expect(studentIdInput.props.value).toBe('123');
-  expect(studentIdInput.props.keyboardType).toBe('number-pad');
+  expect(findInput(renderer, 'Student ID (private)')).toBeUndefined();
   const saveButton = renderer.root
     .findAllByType(TouchableOpacity)
     .find(button => button.props.accessibilityLabel === 'SAVE CHANGES');
   await ReactTestRenderer.act(async () => saveButton.props.onPress());
   expect(save).toHaveBeenCalledWith(
-    expect.objectContaining({ studentId: '123', year: '3' }),
+    expect.objectContaining({ year: '3' }),
+    { requireCloud: false },
   );
+  expect(save.mock.calls[0][0]).not.toHaveProperty('studentId');
   expect(back).toHaveBeenCalledWith({ force: true });
 
   await ReactTestRenderer.act(async () => renderer.unmount());
 });
 
-test('account setup requires a numeric Student ID and TIP academic details', async () => {
+test('account setup shows the generated UUID and requires TIP academic details', async () => {
   const save = jest.fn(async () => true);
   const onComplete = jest.fn();
   let renderer;
@@ -112,20 +108,27 @@ test('account setup requires a numeric Student ID and TIP academic details', asy
           setup
           profile={{
             ...profile,
+            accountUuid: '00000000-0000-4000-8000-000000000010',
             course: '',
             courseId: '',
             campus: '',
             school: '',
-            studentId: '',
+            year: '',
           }}
           save={save}
           onComplete={onComplete}
+          firebaseAccount
         />
       </SafeAreaProvider>,
     );
   });
 
-  expect(findInput(renderer, 'Student ID (private)')).toBeDefined();
+  expect(findInput(renderer, 'Student ID (private)')).toBeUndefined();
+  expect(
+    renderer.root.findAllByType(Text).some(node =>
+      String(node.props.children).includes('00000000-0000-4000-8000-000000000010'),
+    ),
+  ).toBe(true);
   await ReactTestRenderer.act(async () => {
     await renderer.root
       .findAllByType(TouchableOpacity)
@@ -164,14 +167,12 @@ test('account setup requires a numeric Student ID and TIP academic details', asy
   expect(save).not.toHaveBeenCalled();
   expect(
     renderer.root.findAllByType(Text).some(node =>
-      String(node.props.children).includes('Enter your TIP Student ID.'),
+      String(node.props.children).includes('Enter your year level.'),
     ),
   ).toBe(true);
-
   await ReactTestRenderer.act(async () => {
-    findInput(renderer, 'Student ID (private)').props.onChangeText('ID-001234');
+    findInput(renderer, 'Year level').props.onChangeText('3');
   });
-  expect(findInput(renderer, 'Student ID (private)').props.value).toBe('001234');
   await ReactTestRenderer.act(async () => {
     await renderer.root
       .findAllByType(TouchableOpacity)
@@ -180,15 +181,16 @@ test('account setup requires a numeric Student ID and TIP academic details', asy
   });
 
   expect(save).toHaveBeenCalledWith(
-    expect.objectContaining({ studentId: '001234', courseId: expect.any(String), campus: expect.any(String) }),
+    expect.objectContaining({ courseId: expect.any(String), campus: expect.any(String), year: '3' }),
+    { requireCloud: true },
   );
   expect(onComplete).toHaveBeenCalledTimes(1);
   await ReactTestRenderer.act(async () => renderer.unmount());
 });
 
-test('a duplicate Student ID keeps account setup open with the backend error', async () => {
+test('a failed Firebase profile setup stays on the setup screen', async () => {
   const save = jest.fn(async () => {
-    throw new Error('That Student ID is already in use, or could not be verified.');
+    throw new Error('Could not save account profile.');
   });
   const onComplete = jest.fn();
   const program = getTipProgram(
@@ -202,7 +204,7 @@ test('a duplicate Student ID keeps account setup open with the backend error', a
           setup
           profile={{
             ...profile,
-            studentId: '2026000001',
+            accountUuid: '00000000-0000-4000-8000-000000000011',
             course: program.name,
             courseId: program.id,
             year: '3',
@@ -223,82 +225,9 @@ test('a duplicate Student ID keeps account setup open with the backend error', a
   expect(onComplete).not.toHaveBeenCalled();
   expect(
     renderer.root.findAllByType(Text).some(node =>
-      String(node.props.children).includes('That Student ID is already in use'),
+      String(node.props.children).includes('Could not save account profile.'),
     ),
   ).toBe(true);
-  await ReactTestRenderer.act(async () => renderer.unmount());
-});
-
-test('an unknown existing Student ID claim shows a read-only retry screen', async () => {
-  const save = jest.fn();
-  const retryStudentIdClaim = jest.fn(async () => 'unknown');
-  let renderer;
-  await ReactTestRenderer.act(async () => {
-    renderer = ReactTestRenderer.create(
-      <SafeAreaProvider>
-        <EditProfileScreen
-          setup
-          firebaseAccount
-          studentIdClaimStatus="unknown"
-          retryStudentIdClaim={retryStudentIdClaim}
-          profile={profile}
-          save={save}
-        />
-      </SafeAreaProvider>,
-    );
-  });
-
-  expect(renderer.root.findAllByType(TextInput)).toHaveLength(0);
-  expect(
-    renderer.root.findAllByType(Text).some(node =>
-      String(node.props.children).includes(
-        'Student ID verification is unavailable',
-      ),
-    ),
-  ).toBe(true);
-  expect(
-    renderer.root.findAllByType(TouchableOpacity).some(
-      button => button.props.accessibilityLabel === 'SAVE AND CONTINUE',
-    ),
-  ).toBe(false);
-
-  const retryButton = renderer.root
-    .findAllByType(TouchableOpacity)
-    .find(button => button.props.accessibilityLabel === 'RETRY VERIFICATION');
-  await ReactTestRenderer.act(async () => retryButton.props.onPress());
-
-  expect(retryStudentIdClaim).toHaveBeenCalledTimes(1);
-  expect(save).not.toHaveBeenCalled();
-  await ReactTestRenderer.act(async () => renderer.unmount());
-});
-
-test('a successful Student ID claim retry completes account setup', async () => {
-  const onComplete = jest.fn();
-  const retryStudentIdClaim = jest.fn(async () => 'claimed');
-  let renderer;
-  await ReactTestRenderer.act(async () => {
-    renderer = ReactTestRenderer.create(
-      <SafeAreaProvider>
-        <EditProfileScreen
-          setup
-          firebaseAccount
-          studentIdClaimStatus="unknown"
-          retryStudentIdClaim={retryStudentIdClaim}
-          onComplete={onComplete}
-          profile={profile}
-          save={jest.fn()}
-        />
-      </SafeAreaProvider>,
-    );
-  });
-
-  const retryButton = renderer.root
-    .findAllByType(TouchableOpacity)
-    .find(button => button.props.accessibilityLabel === 'RETRY VERIFICATION');
-  await ReactTestRenderer.act(async () => retryButton.props.onPress());
-
-  expect(retryStudentIdClaim).toHaveBeenCalledTimes(1);
-  expect(onComplete).toHaveBeenCalledTimes(1);
   await ReactTestRenderer.act(async () => renderer.unmount());
 });
 
@@ -344,6 +273,7 @@ test('replaces free-text school with a TIP-only campus picker and saves its choi
 
   expect(save).toHaveBeenCalledWith(
     expect.objectContaining({ campus: 'T.I.P. Quezon City' }),
+    { requireCloud: false },
   );
   expect(save.mock.calls[0][0]).not.toHaveProperty('school');
   await ReactTestRenderer.act(async () => renderer.unmount());

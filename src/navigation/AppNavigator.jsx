@@ -49,6 +49,7 @@ import { RouteTransition } from '../shared/components/RouteTransition';
 import { Screen } from '../shared/components/Screen';
 import { StatusBarSafeArea } from '../shared/components/StatusBarSafeArea';
 import { uid } from '../shared/data/utils';
+import { hasCompleteAccountProfile } from '../shared/data/profileSetup';
 import { useSharedGroups } from '../features/groups/hooks/useSharedGroups';
 import { useSharedGroupReports } from '../features/groups/hooks/useSharedGroupReports';
 import { useSharedTutors } from '../features/tutors/hooks/useSharedTutors';
@@ -129,20 +130,19 @@ export function AppNavigator() {
     retrySave,
     restoring,
     sessionType,
-    studentIdClaimStatus,
     emailVerified,
     emailVerificationMessage,
     emailVerificationToast,
     dismissVerificationToast,
-    retryStudentIdClaim,
   } =
     useCampusSession({
-      onSignedIn: (accountState, claimStatus) => {
+      onSignedIn: accountState => {
         startupRouteInitialized.current = true;
         setHistory([]);
         setTransitionDirection('forward');
-        const needsAccountSetup =
-          !accountState?.profile?.studentId || claimStatus !== 'claimed';
+        const needsAccountSetup = !hasCompleteAccountProfile(
+          accountState?.profile,
+        );
         setRoute({ page: needsAccountSetup ? 'Account Setup' : 'Home' });
       },
       onSignedOut: () => {
@@ -199,25 +199,23 @@ export function AppNavigator() {
       activeAccountId
         ? {
             page:
-              !state?.profile?.studentId ||
-              studentIdClaimStatus !== 'claimed'
+              !hasCompleteAccountProfile(state?.profile)
                 ? 'Account Setup'
                 : 'Home',
           }
         : { page: introductionComplete ? 'Login' : 'Onboarding' },
     );
-  }, [activeAccountId, introductionComplete, restoring, state, studentIdClaimStatus]);
+  }, [activeAccountId, introductionComplete, restoring, state]);
 
   useEffect(() => {
     if (
       route.page === 'Account Setup' &&
       !editFormDirty &&
-      state?.profile?.studentId &&
-      studentIdClaimStatus === 'claimed'
+      hasCompleteAccountProfile(state?.profile)
     ) {
       go('Home');
     }
-  }, [editFormDirty, go, route.page, state?.profile?.studentId, studentIdClaimStatus]);
+  }, [editFormDirty, go, route.page, state?.profile]);
 
   const syncUid =
     sessionType === 'firebase' && emailVerified ? state?.profile?.id : null;
@@ -411,7 +409,7 @@ export function AppNavigator() {
       if (
         state &&
         sessionType &&
-        (!state.profile.studentId || studentIdClaimStatus !== 'claimed')
+        !hasCompleteAccountProfile(state.profile)
       ) {
         return true;
       }
@@ -425,7 +423,7 @@ export function AppNavigator() {
       return true;
     });
     return () => listener.remove();
-  }, [back, history.length, route.page, sessionType, state, studentIdClaimStatus]);
+  }, [back, history.length, route.page, sessionType, state]);
   if (restoring || introductionComplete === null) {
     return (
       <StatusBarSafeArea style={s.safe}>
@@ -471,10 +469,7 @@ export function AppNavigator() {
   if (!state) {
     return renderTransition(<OnboardingScreen go={startFromOnboarding} />);
   }
-  if (
-    !state.profile.studentId ||
-    studentIdClaimStatus !== 'claimed'
-  ) {
+  if (!hasCompleteAccountProfile(state.profile)) {
     return renderTransition(
       <EditProfileScreen
         key="Account Setup"
@@ -482,8 +477,6 @@ export function AppNavigator() {
         onDirtyChange={setEditFormDirty}
         profile={state.profile}
         firebaseAccount={sessionType === 'firebase'}
-        studentIdClaimStatus={studentIdClaimStatus}
-        retryStudentIdClaim={retryStudentIdClaim}
         save={saveProfileUpdate}
         onComplete={() => go('Home')}
       />,

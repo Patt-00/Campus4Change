@@ -256,7 +256,7 @@ test('Firebase emulator mode skips App Check and connects Auth and Firestore loc
   );
 });
 
-test('signup listener receives the new account before Student ID setup', async () => {
+test('signup listener receives the new account before TIP profile setup', async () => {
   const firebase = require('../src/shared/backend/firebase');
   let observedAccount;
   firebase.watchFirebaseUser(user => {
@@ -273,14 +273,12 @@ test('signup listener receives the new account before Student ID setup', async (
     uid: 'new-firebase-user',
     name: 'Jamie Student',
     email: 'jamie@school.edu',
-    studentId: '',
     emailVerified: false,
   });
   expect(account).toMatchObject({
     id: 'new-firebase-user',
     name: 'Jamie Student',
     email: 'jamie@school.edu',
-    studentId: '',
     emailVerified: false,
     verificationEmailSent: true,
     displayNameSaved: true,
@@ -335,7 +333,6 @@ test('concurrent sign-up attempts cannot overwrite pending Firebase profile data
   expect(observedAccount).toMatchObject({
     uid: account.id,
     name: 'Jamie Student',
-    studentId: '',
   });
   expect(mockCreateUser).toHaveBeenCalledTimes(1);
 });
@@ -379,13 +376,11 @@ test('a profile metadata failure keeps the newly created account and submitted p
     id: 'new-firebase-user',
     name: 'Jamie Student',
     email: 'jamie@gmail.com',
-    studentId: '',
     displayNameSaved: false,
   });
   expect(observedAccount).toMatchObject({
     uid: account.id,
     name: 'Jamie Student',
-    studentId: '',
   });
   expect(mockAuth.currentUser.uid).toBe(account.id);
   expect(deleteUser).not.toHaveBeenCalled();
@@ -443,7 +438,6 @@ test('Google sign-in exchanges the Credential Manager ID token with Firebase', a
     name: 'Google Student',
     email: 'google.student@gmail.com',
     emailVerified: true,
-    studentId: '',
   });
 });
 
@@ -533,7 +527,7 @@ test('password reset still reports network failures', async () => {
   ).rejects.toThrow('Could not connect. Check your internet and try again.');
 });
 
-test('Student ID is absent from Firebase Auth accounts until profile setup', async () => {
+test('Firebase Auth account data does not expose a Student ID field', async () => {
   const firebase = require('../src/shared/backend/firebase');
   let observedAccount;
   firebase.watchFirebaseUser(user => {
@@ -545,7 +539,7 @@ test('Student ID is absent from Firebase Auth accounts until profile setup', asy
     'jamie@school.edu',
     'TestPassword123',
   );
-  expect(observedAccount.studentId).toBe('');
+  expect(observedAccount).not.toHaveProperty('studentId');
 
   await firebase.firebaseSignOut();
   expect(mockSignOut).toHaveBeenCalledWith(mockAuth);
@@ -557,7 +551,7 @@ test('Student ID is absent from Firebase Auth accounts until profile setup', asy
     displayName: account.name,
     emailVerified: false,
   });
-  expect(observedAccount.studentId).toBe('');
+  expect(observedAccount).not.toHaveProperty('studentId');
 });
 
 test('failed Firebase sign-out keeps the Firebase account recoverable', async () => {
@@ -584,7 +578,7 @@ test('failed Firebase sign-out keeps the Firebase account recoverable', async ()
     emailVerified: false,
   });
 
-  expect(observedAccount.studentId).toBe('');
+  expect(observedAccount).not.toHaveProperty('studentId');
   expect(mockClearGoogleCredentialState).not.toHaveBeenCalled();
 });
 
@@ -672,7 +666,7 @@ test('cloud state saves target the authenticated user document', async () => {
   });
 });
 
-test('Student ID claims and private profile state are reserved atomically', async () => {
+test('legacy Student ID data is stripped before private state is saved', async () => {
   const firebase = require('../src/shared/backend/firebase');
   mockAuth.currentUser = { uid: 'cloud-user', emailVerified: false };
   const state = {
@@ -687,43 +681,16 @@ test('Student ID claims and private profile state are reserved atomically', asyn
 
   await firebase.saveCloudState('cloud-user', state);
 
-  const writes = mockBatches[0].set.mock.calls;
-  expect(writes).toEqual([
-    [
-      { db: mockDb, path: 'studentIdClaims/2026101234' },
-      { uid: 'cloud-user' },
-    ],
-    [
-      { db: mockDb, path: 'users/cloud-user/private/state' },
-      { state, updatedAt: 'server-timestamp' },
-    ],
-  ]);
-  expect(mockSetDoc).not.toHaveBeenCalled();
-});
-
-test('a rejected Student ID claim returns a duplicate-ID message', async () => {
-  const firebase = require('../src/shared/backend/firebase');
-  mockAuth.currentUser = { uid: 'cloud-user', emailVerified: true };
-  mockWriteBatch.mockImplementationOnce(() => {
-    const batch = {
-      set: jest.fn(),
-      delete: jest.fn(),
-      commit: jest.fn().mockRejectedValue({ code: 'permission-denied' }),
-    };
-    mockBatches.push(batch);
-    return batch;
-  });
-
-  await expect(
-    firebase.saveCloudState('cloud-user', {
-      version: 1,
-      profile: { id: 'cloud-user', studentId: '2026101234' },
-      sessions: [],
-      groups: [],
-      conversations: [],
-      notices: [],
-    }),
-  ).rejects.toThrow('That Student ID is already in use');
+  const stateRef = { db: mockDb, path: 'users/cloud-user/private/state' };
+  expect(mockSetDoc).toHaveBeenCalledWith(
+    stateRef,
+    {
+      state: { ...state, profile: { id: 'cloud-user' } },
+      updatedAt: 'server-timestamp',
+    },
+  );
+  expect(mockWriteBatch).not.toHaveBeenCalled();
+  expect(state.profile).toHaveProperty('studentId', '2026101234');
 });
 
 test('private notes move to bounded owner-scoped documents instead of the state document', async () => {

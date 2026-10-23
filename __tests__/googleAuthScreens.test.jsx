@@ -74,7 +74,7 @@ test('login offers Google sign-in and calls the shared Firebase action', async (
   await ReactTestRenderer.act(async () => renderer.unmount());
 });
 
-test('login does not show an error when the Google account picker is dismissed', async () => {
+test('login explains when the Google account picker is dismissed', async () => {
   let renderer;
   await ReactTestRenderer.act(async () => {
     renderer = ReactTestRenderer.create(
@@ -97,13 +97,13 @@ test('login does not show an error when the Google account picker is dismissed',
     .findAllByType(Text)
     .map(node => node.props.children)
     .flat(Infinity);
-  expect(copy).not.toContain(
-    'Google sign-in did not complete. Try again or use email and password.',
+  expect(copy).toContain(
+    'Google sign-in was canceled. Choose an account to continue.',
   );
   await ReactTestRenderer.act(async () => renderer.unmount());
 });
 
-test('sign-up offers Google and moves Student ID collection to account setup', async () => {
+test('sign-up offers Google and assigns an account UUID during TIP profile setup', async () => {
   const signInWithGoogle = jest.fn(async () => true);
   let renderer;
   await ReactTestRenderer.act(async () => {
@@ -126,10 +126,10 @@ test('sign-up offers Google and moves Student ID collection to account setup', a
     .flat(Infinity)
     .filter(text => typeof text === 'string');
   expect(visibleText).toContain(
-    'After signing in, complete your TIP profile and add your private Student ID.',
+    'After signing in, complete your TIP profile. A random Campus4Change ID will be created for your account.',
   );
   expect(visibleText).toContain(
-    'After signup, add your TIP campus, course, year level, and Student ID. Email accounts receive a verification link; a verified email is required for shared features.',
+    'After signup, add your TIP campus, course, and year level. Email accounts receive a verification link; a verified email is required for shared features.',
   );
   expect(
     renderer.root
@@ -143,7 +143,7 @@ test('sign-up offers Google and moves Student ID collection to account setup', a
   await ReactTestRenderer.act(async () => renderer.unmount());
 });
 
-test('sign-up does not show an error when the Google account picker is dismissed', async () => {
+test('sign-up explains when the Google account picker is dismissed', async () => {
   let renderer;
   await ReactTestRenderer.act(async () => {
     renderer = ReactTestRenderer.create(
@@ -166,8 +166,8 @@ test('sign-up does not show an error when the Google account picker is dismissed
     .findAllByType(Text)
     .map(node => node.props.children)
     .flat(Infinity);
-  expect(copy).not.toContain(
-    'Google sign-in did not complete. Try again or use email and password.',
+  expect(copy).toContain(
+    'Google sign-up was canceled. Choose an account to continue.',
   );
   await ReactTestRenderer.act(async () => renderer.unmount());
 });
@@ -221,7 +221,7 @@ test('sign-up validation blocks incomplete details before calling Firebase', asy
   await ReactTestRenderer.act(async () => renderer.unmount());
 });
 
-test('sign-up allows a non-school email address and defers Student ID setup', async () => {
+test('sign-up allows a non-school email address and defers TIP profile setup', async () => {
   const signUp = jest.fn(async () => {});
   const renderer = await renderSignUp({
     firebaseConfigured: true,
@@ -329,19 +329,19 @@ test('Firebase login keeps existing device-only sign-in available without biomet
   expect(button(renderer, 'Back to Firebase sign-in')).toBeDefined();
   const identifier = renderer.root
     .findAllByType(TextInput)
-    .find(input => input.props.accessibilityLabel === 'Email or Student ID');
+    .find(input => input.props.accessibilityLabel === 'Email');
   const password = renderer.root
     .findAllByType(TextInput)
     .find(input => input.props.accessibilityLabel === 'Password');
   await ReactTestRenderer.act(async () => {
-    identifier.props.onChangeText('STU-1042');
+    identifier.props.onChangeText('student@campus.test');
     password.props.onChangeText('LocalPass123');
   });
   await ReactTestRenderer.act(async () =>
     button(renderer, 'SIGN IN').props.onPress(),
   );
 
-  expect(signInLocal).toHaveBeenCalledWith('STU-1042', 'LocalPass123');
+  expect(signInLocal).toHaveBeenCalledWith('student@campus.test', 'LocalPass123');
   expect(signIn).not.toHaveBeenCalled();
   expect(button(renderer, 'SIGN IN WITH BIOMETRICS')).toBeUndefined();
   await ReactTestRenderer.act(async () => renderer.unmount());

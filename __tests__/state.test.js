@@ -21,10 +21,10 @@ import {
 import { stateForPersistence } from '../src/shared/state/persistence';
 
 const account = {
-  id: 'student',
+  id: '00000000-0000-4000-8000-000000000008',
+  accountUuid: '00000000-0000-4000-8000-000000000008',
   name: 'Student',
   email: 's@school.edu',
-  studentId: '123',
 };
 const booking = {
   id: 'one',
@@ -56,6 +56,22 @@ test('booking conflicts include partial overlaps but allow adjacent sessions', (
     changes: { status: 'Cancelled' },
   });
   expect(hasConflict(state, booking.startsAt)).toBe(false);
+});
+
+test('legacy Student ID values are removed from local and cloud snapshots', () => {
+  const legacyState = initialState(account);
+  legacyState.profile.studentId = '123';
+
+  const local = stateForPersistence(legacyState);
+  const cloud = stateForPersistence(legacyState, { forCloud: true });
+
+  expect(local.profile).not.toHaveProperty('studentId');
+  expect(cloud.profile).not.toHaveProperty('studentId');
+  expect(legacyState.profile.studentId).toBe('123');
+});
+
+test('initial state keeps a valid generated account UUID in the profile', () => {
+  expect(initialState(account).profile.accountUuid).toBe(account.accountUuid);
 });
 test('pending shared requests reserve the student time until the tutor responds', () => {
   const startsAt = '2027-01-02T14:00:00.000Z';

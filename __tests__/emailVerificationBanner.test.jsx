@@ -44,7 +44,7 @@ jest.mock('../src/shared/state/useCampusSession', () => ({
     const R = require('react');
     R.useEffect(() => {
       if (mockSession?.sessionType) {
-        callbacks.onSignedIn(mockSession.state, mockSession.studentIdClaimStatus);
+        callbacks.onSignedIn(mockSession.state);
       }
     }, []);
     return mockSession;
@@ -117,13 +117,18 @@ jest.mock('react-native-safe-area-context', () => {
 });
 
 function makeSession(emailVerified, emailVerificationMessage = '') {
-  return {
-    state: initialState({
+  const state = initialState({
         id: 'firebase-student',
+        accountUuid: '00000000-0000-4000-8000-000000000012',
         name: 'Student',
         email: 'student@school.test',
-        studentId: '10001',
-      }),
+      });
+  state.profile.courseId = 'quezon-city-computer-studies-computer-science';
+  state.profile.course = 'Computer Science';
+  state.profile.year = '3';
+  state.profile.campus = 'T.I.P. Quezon City';
+  return {
+    state,
     saveError: '',
     auth: {
       firebaseConfigured: true,
@@ -135,7 +140,6 @@ function makeSession(emailVerified, emailVerificationMessage = '') {
     retrySave: jest.fn(),
     restoring: false,
     sessionType: 'firebase',
-    studentIdClaimStatus: 'claimed',
     emailVerified,
     emailVerificationMessage,
     emailVerificationToast: null,

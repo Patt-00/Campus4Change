@@ -2,9 +2,9 @@ import { dayAt, initialState } from '../src/shared/data/utils';
 
 export const qaAccount = {
   id: 'qa-student',
+  accountUuid: '00000000-0000-4000-8000-000000000001',
   name: 'Jordan Student',
   email: 'jordan@school.test',
-  studentId: '2048',
 };
 
 export function makeQaState(account = qaAccount) {
@@ -13,7 +13,8 @@ export function makeQaState(account = qaAccount) {
   const previous = dayAt(-7).toISOString();
 
   state.profile.course = 'BS Computer Science';
-  state.profile.year = '2nd Year';
+  state.profile.courseId = 'quezon-city-computer-studies-computer-science';
+  state.profile.year = '2';
   state.profile.campus = 'T.I.P. Quezon City';
   state.profile.interests = ['Calculus', 'Java', 'Machine Learning'];
   state.sessions = [
