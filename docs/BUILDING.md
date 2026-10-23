@@ -329,10 +329,13 @@ from an interactive terminal at the repository root:
 
 The helper defaults to `~/.android/keystores/campus4change-release-v4.jks`,
 alias `campus4change-v4`, and GNOME Secret Service account
-`campus4change-release-v4`. It creates the key if needed, builds the APK and
-AAB, and prints their SHA-256 hashes. The signing password is loaded from
-GNOME Keyring on this workstation. The signing credentials are never printed,
-committed, or written to Gradle properties.
+`campus4change-release-v4`. It requires this existing key, builds the APK and
+AAB, and prints their SHA-256 hashes. It fails closed if the keystore is
+missing; it will not silently create a different signer. Set
+`C4C_CREATE_RELEASE_KEY=1` only when the user explicitly authorizes a new key
+rotation and a unique key path/account have been selected. The signing password
+is loaded from GNOME Keyring on this workstation. Credentials are never
+printed, committed, or written to Gradle properties.
 
 On the Fedora workstation, rebuild using:
 
@@ -342,9 +345,10 @@ DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/bus" 
 ```
 
 The helper uses the `campus4change-release-signing` service and the
-`campus4change-release-v4` account. On macOS or Termux, where GNOME Secret
-Service is unavailable, enter the passwords at the hidden prompts or provide
-the four `C4C_RELEASE_*` variables through the system password manager. Never
+`campus4change-release-v4` account. On macOS or Termux, where this GNOME Keyring
+entry is unavailable, the release key must first be restored through a secure
+channel; then use a password manager or hidden prompts. Debug builds do not
+need the release key and are the normal platform-specific build check. Never
 store signing passwords in the repository or shell history. Keep the JKS file
 and its password-manager entry in separate secure recovery locations; losing
 either prevents future updates signed with this certificate. The helper does

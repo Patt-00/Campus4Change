@@ -25,8 +25,8 @@ the 1.4.0 candidate metadata and audit refresh are at
 `6101ee252c60a18337f73470247ae8f256202121`. Draft PR
 [#1](https://github.com/Patt-00/Campus4Change/pull/1) targets `main`. CI run
 [39942899889](https://github.com/Patt-00/Campus4Change/actions/runs/39942899889)
-passed all jobs on `6101ee2`; local release-helper and Firebase/build-guide
-changes still need a follow-up run. The preview tag remains at
+passed all jobs on `6101ee2`. Later candidate commits are checked through PR
+#1 before merge. The preview tag remains at
 `55dcc571436d705827b7b069d6bb077350a7e6f5`; `main` remains at
 `46fe89a534d98866dc981ef11fe64f24151e8bf4`.
 
@@ -37,7 +37,10 @@ Both were built with the new v4 signer and are unpublished. The candidate APK
 is installed on POCO; the pulled base APK hash matches the build artifact.
 A fresh launch displayed the branded Get Started screen. Intro-to-login,
 signup navigation, and empty-signup validation were checked without creating
-an account. The public pre-release remains the older v1.3.0/code 6 APK.
+an account. Canceling Credential Manager returned to Login with the neutral
+cancellation notice and no generic error. No account was selected, so live
+Google token exchange remains unverified. The public pre-release remains the
+older v1.3.0/code 6 APK.
 
 The 1.4.0 versioned source passes 337 Jest tests across 41 suites, ESLint,
 `git diff --check`, rules-test script syntax validation, and
@@ -46,8 +49,8 @@ workstation's default JDK 27 and failed with unsupported class file major
 version 71; the documented JDK 25 rerun passed. The release APK passes
 `apksigner verify`; the AAB passes `jarsigner -verify` and ZIP integrity
 checks. Current-source Firestore/Auth emulator suites passed in PR CI run
-39942899889 on `6101ee2`; local release-helper/doc changes still need a
-follow-up CI run.
+39942899889 on `6101ee2`; verify PR #1 checks for the latest candidate head
+before merge.
 The clean Termux clone at `6101ee2` also passed `npm ci` and Android debug APK
 assembly on POCO (92 Gradle tasks, 2m51s, JDK 17). The debug APK was not
 installed. A clean Mac build remains unverified.
@@ -60,8 +63,8 @@ GitHub Actions run
 passed on preview commit `55dcc571436d705827b7b069d6bb077350a7e6f5`, including
 hosted API 24 instrumentation tests. Draft PR #1's run
 [39942899889](https://github.com/Patt-00/Campus4Change/actions/runs/39942899889)
-passed both checks and hosted API 24 instrumentation on `6101ee2`. Later
-source/doc commits require a passing follow-up CI result before merge.
+passed both checks and hosted API 24 instrumentation on `6101ee2`; later
+candidate commits need green PR checks before merge.
 
 The Google account-picker cancellation issue was reproduced on POCO and
 corrected: dismissing Credential Manager now returns to Login without a false

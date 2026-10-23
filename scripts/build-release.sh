@@ -43,6 +43,12 @@ if [[ -n "${C4C_RELEASE_STORE_PASSWORD:-}" && -z "${C4C_RELEASE_KEY_PASSWORD:-}"
 fi
 export C4C_RELEASE_STORE_PASSWORD C4C_RELEASE_KEY_PASSWORD
 
+if [[ ! -f "$keystore_file" && "${C4C_CREATE_RELEASE_KEY:-}" != "1" ]]; then
+  printf 'Release keystore not found: %s\n' "$keystore_file" >&2
+  printf 'Restore the intended v4 keystore. Set C4C_CREATE_RELEASE_KEY=1 only for an explicitly approved key rotation.\n' >&2
+  exit 1
+fi
+
 if [[ ! -f "$keystore_file" ]]; then
   printf 'Creating a new private release key at %s\n' "$keystore_file"
   if [[ -n "${C4C_RELEASE_STORE_PASSWORD:-}" && -n "${C4C_RELEASE_KEY_PASSWORD:-}" ]]; then
@@ -78,7 +84,7 @@ umask 022
 
 cleanup() {
   unset C4C_RELEASE_STORE_FILE C4C_RELEASE_STORE_PASSWORD
-  unset C4C_RELEASE_KEY_ALIAS C4C_RELEASE_KEY_PASSWORD
+  unset C4C_RELEASE_KEY_ALIAS C4C_RELEASE_KEY_PASSWORD C4C_CREATE_RELEASE_KEY
   unset C4C_RELEASE_KEYRING_ACCOUNT
 }
 trap cleanup EXIT

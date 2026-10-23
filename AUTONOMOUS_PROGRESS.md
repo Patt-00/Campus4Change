@@ -14,8 +14,8 @@ current worktree.
   audit updates are committed at `6101ee252c60a18337f73470247ae8f256202121`.
   Draft PR [#1](https://github.com/Patt-00/Campus4Change/pull/1) targets `main`.
   CI run [39942899889](https://github.com/Patt-00/Campus4Change/actions/runs/39942899889)
-  passed all jobs on `6101ee2`. The local release-helper fix and Firebase/build
-  guide updates are not yet pushed. The preview tag remains at
+  passed all jobs on `6101ee2`. Later candidate commits are checked through
+  the current PR checks before merge. The preview tag remains at
   `55dcc571436d705827b7b069d6bb077350a7e6f5`; `main` remains at
   `46fe89a534d98866dc981ef11fe64f24151e8bf4`.
 - The signed 1.4.0/code 7 candidate APK SHA-256 is
@@ -29,8 +29,10 @@ current worktree.
   `com.campus4change`, version 1.4.0/code 7. The installed base APK hash matches
   the local release APK. A fresh launch showed the branded Get Started screen;
   intro-to-login and signup navigation plus empty-form validation were checked
-  without creating an account. No Firebase data was changed. Only this POCO is
-  in test scope; the other ADB device is excluded and Pad 7 is deferred.
+  without creating an account. Canceling the Google account picker returned to
+  Login with the neutral cancellation message and no generic failure. No
+  account was selected, and no Firebase data was changed. Only this POCO is in
+  test scope; the other ADB device is excluded and Pad 7 is deferred.
 - The 1.4.0 versioned source passes 337 Jest tests across 41 suites, ESLint,
   `git diff --check`, Firestore test-script syntax validation, and
   `:app:testDebugUnitTest` when Gradle is run with JDK 25. A first unit-test

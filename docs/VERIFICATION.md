@@ -22,6 +22,11 @@
   Skip opened Login, Sign up opened account creation, and an empty create
   submission displayed local validation. The form remained unsent. The manifest
   includes INTERNET and CAMERA and omits biometric/fingerprint permissions.
+- On the installed candidate, tapping Continue with Google opened the
+  Credential Manager account picker. Pressing Back returned to Login with the
+  neutral message “Google sign-in was canceled. Choose an account to continue.”
+  No generic failure appeared; no account was selected and no Firebase Auth
+  account was created. Live Google token exchange remains untested.
 - A separate clean clone of commit `6101ee252c60a18337f73470247ae8f256202121`
   was built from Termux on the POCO. Node.js 26.4.0, Git 2.56.0, and JDK 17.0.21
   were used with existing Termux SDK/NDK configuration. `npm ci` and
@@ -34,7 +39,8 @@
   this candidate. No release tag or final 1.4.0 asset has been published.
 - Draft PR #1 CI run `39942899889` passed Jest, lint, Android unit tests,
   emulator rules/Auth suites, API 24 instrumentation, debug build, and release
-  packaging guard on `6101ee2`. The active production Firestore ruleset is
+  packaging guard on `6101ee2`. Check PR #1 for CI on later candidate commits
+  before merge. The active production Firestore ruleset is
   `7194f765-35ec-4ecd-b266-cca407e2a07c` and its hash matches local rules
   `31f4827c128dcc063a21f7de1dc0542db720dd45efce13b8d0ac3a63630f4cfa`. All
   six production index definitions match local source and are READY. Local
