@@ -6,14 +6,13 @@ or a production deployment.
 
 ## Current workspace
 
-Updated 2026-10-23 after rechecking GitHub, Firebase Console, the POCO, and the
+Updated 2026-10-24 after rechecking GitHub, Firebase Console, the POCO, and the
 current worktree.
 
 - Branch `release/v1.3.0-preview.2` has draft PR
-  [#1](https://github.com/Patt-00/Campus4Change/pull/1) targeting `main`. The
-  latest verified PR CI run
-  [39968688244](https://github.com/Patt-00/Campus4Change/actions/runs/39968688244)
-  passed both checks on commit `07b558b`. Manual workflow run
+  [#1](https://github.com/Patt-00/Campus4Change/pull/1) targeting `main`. PR CI
+  run [40008634566](https://github.com/Patt-00/Campus4Change/actions/runs/40008634566)
+  passed both required jobs on commit `7642b1d`. Manual workflow run
   [39966502505](https://github.com/Patt-00/Campus4Change/actions/runs/39966502505)
   passed, including a clean macOS build on earlier source. Verify CI on the
   current PR head before merge. The preview

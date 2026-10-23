@@ -23,8 +23,8 @@ hash matched the v1.3.0 artifact and a fresh launch reached MainActivity.
 The UUID/auth source and 1.4.0 candidate are on
 `release/v1.3.0-preview.2`; draft PR
 [#1](https://github.com/Patt-00/Campus4Change/pull/1) targets `main`. CI run
-[39968688244](https://github.com/Patt-00/Campus4Change/actions/runs/39968688244)
-passed both checks on commit `07b558b`. Manual workflow run
+[40008634566](https://github.com/Patt-00/Campus4Change/actions/runs/40008634566)
+passed both required jobs on commit `7642b1d`. Manual workflow run
 [39966502505](https://github.com/Patt-00/Campus4Change/actions/runs/39966502505)
 passed the clean macOS build on the same source. Verify the current PR checks
 on its latest head before merge. The preview tag remains at
