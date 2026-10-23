@@ -75,10 +75,14 @@ java -version
 ```
 
 Android Studio's Gradle JDK setting does not set `JAVA_HOME` in a terminal.
-A clean-clone build on macOS has not yet been verified for version 1.4.0. Run
-the procedure on a Mac and record the Node.js, JDK, SDK, and Gradle results in
-[VERIFICATION.md](VERIFICATION.md) before reporting that platform check as
-passed.
+A clean checkout of commit `e5d06b5` passed on GitHub-hosted macOS 15.7.9 ARM64
+in [workflow run 39962382113](https://github.com/Patt-00/Campus4Change/actions/runs/39962382113).
+The job used Node.js 24.20.0, npm 11.19.0, Temurin JDK 17.0.21+9, and Gradle
+9.4.1. It installed Platform 37.0, Build Tools 37.0.0, and NDK 27.1.12297006;
+`npm ci` and `./gradlew assembleDebug` passed. `aapt` reported
+`com.campus4change`, version 1.4.0/code 7, and `apksigner verify` passed.
+This confirms the clean build on GitHub's macOS runner. It does not test the
+local SDK configuration on the user's Mac.
 
 ### Install dependencies and build
 
