@@ -22,6 +22,14 @@
   Skip opened Login, Sign up opened account creation, and an empty create
   submission displayed local validation. The form remained unsent. The manifest
   includes INTERNET and CAMERA and omits biometric/fingerprint permissions.
+- A separate clean clone of commit `6101ee252c60a18337f73470247ae8f256202121`
+  was built from Termux on the POCO. Node.js 26.4.0, Git 2.56.0, and JDK 17.0.21
+  were used with existing Termux SDK/NDK configuration. `npm ci` and
+  `./scripts/gradlew-termux.sh clean assembleDebug --no-daemon --max-workers=2
+  --console=plain` passed; Gradle completed 92 actionable tasks (90 executed,
+  2 up-to-date) in 2m51s. The generated debug APK reports package
+  `com.campus4change`, version 1.4.0/code 7, and `apksigner verify` passed. It
+  was not installed; the current-source POCO app remains the signed release.
 - GitHub's public v1.3.0-preview.2 asset remains unchanged and does not contain
   this candidate. No release tag or final 1.4.0 asset has been published.
 - Draft PR #1 CI run `39942899889` passed Jest, lint, Android unit tests,

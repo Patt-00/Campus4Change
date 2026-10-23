@@ -36,8 +36,13 @@ current worktree.
   `:app:testDebugUnitTest` when Gradle is run with JDK 25. A first unit-test
   attempt under the workstation's default JDK 27 failed with unsupported class
   file major version 71; rerunning with the documented JDK 25 passed. The
-  versioned debug APK has not yet been rebuilt. No local Android emulator is
-  being used; CI provides the emulator suites.
+  Fedora debug APK has not yet been rebuilt after the version bump. No local
+  Android emulator is being used; CI provides the emulator suites.
+- A fresh Termux clone at commit `6101ee252c60a18337f73470247ae8f256202121`
+  passed `npm ci` and `scripts/gradlew-termux.sh clean assembleDebug` on the
+  POCO. It completed 92 Gradle tasks in 2m51s using Node 26.4.0 and JDK 17.0.21;
+  package metadata is 1.4.0/code 7 and `apksigner verify` passed. The debug APK
+  was not installed. The Mac build check remains open.
 - Firebase CLI is authorized for the selected owner account, and the project
   listing confirms `campus4change` / Campus4Change. The v4 SHA-1 and SHA-256
   are registered on the Android app. Firestore rules were deployed after the
@@ -84,6 +89,9 @@ current worktree.
   APK/AAB builds pass; both Firebase SHA fingerprints were registered.
 - Created and verified the temporary encrypted local export before any live
   deletion. The POCO first-run UI smoke passed with no Firebase account created.
+- A clean Termux clone of the 1.4.0 source passed dependency installation and
+  debug assembly on POCO in 2m51s. The resulting debug APK was verified but not
+  installed; a Mac clean-clone build remains pending.
 - CI run 39942899889 passed on `6101ee2`; the latest local helper/docs changes
   still need to be pushed and checked. Play Integrity terms/registration and
   token verification, live Google sign-in, production cleanup, broader POCO

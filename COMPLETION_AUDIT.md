@@ -48,6 +48,9 @@ version 71; the documented JDK 25 rerun passed. The release APK passes
 checks. Current-source Firestore/Auth emulator suites passed in PR CI run
 39942899889 on `6101ee2`; local release-helper/doc changes still need a
 follow-up CI run.
+The clean Termux clone at `6101ee2` also passed `npm ci` and Android debug APK
+assembly on POCO (92 Gradle tasks, 2m51s, JDK 17). The debug APK was not
+installed. A clean Mac build remains unverified.
 Figma shows UUID setup and profile states and has no Student ID input or
 verification screen. These results do not verify live Google sign-in or
 production Firestore behavior.
