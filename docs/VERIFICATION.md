@@ -13,9 +13,8 @@
 - The Firebase Android app registration now contains the v4 SHA-1 and SHA-256.
   The App Check Console still shows the Android app as Not registered. Play
   Integrity registration is paused at the Google APIs and Play Integrity terms
-  checkbox for the project owner to review and accept. Google sign-in has not
-  yet been tested with a selected account, and no Google/Firebase account was
-  created in this candidate check.
+  checkbox for the project owner to review and accept. At this initial check, no
+  account was selected; the later live sign-in is recorded below.
 - The APK installed on the POCO X4 GT (`Z9GMOVDMHQV8X84D`). The pulled
   `/data/app/.../base.apk` SHA-256 matches the local APK exactly. A fresh launch
   displayed the branded Get Started screen; Get Started opened Introduction,
@@ -42,8 +41,8 @@
 - On the installed candidate, tapping Continue with Google opened the
   Credential Manager account picker. Pressing Back returned to Login with the
   neutral message “Google sign-in was canceled. Choose an account to continue.”
-  No generic failure appeared; no account was selected and no Firebase Auth
-  account was created. Live Google token exchange remains untested.
+  No generic failure appeared. That attempt did not select an account; the later
+  live sign-in check is recorded below.
 - A separate clean clone of commit `6101ee252c60a18337f73470247ae8f256202121`
   was built from Termux on the POCO. Node.js 26.4.0, Git 2.56.0, and JDK 17.0.21
   were used with existing Termux SDK/NDK configuration. `npm ci` and
@@ -76,6 +75,157 @@
   `7194f765-35ec-4ecd-b266-cca407e2a07c` and its hash matches local rules
   `31f4827c128dcc063a21f7de1dc0542db720dd45efce13b8d0ac3a63630f4cfa`. All
   six production index definitions match local source and are READY.
+
+### Read-only Firestore index parity check, 2026-10-23
+
+- The Firebase Console Indexes page showed all six manual indexes as Enabled.
+  Firebase CLI 15.33.0 returned six live definitions.
+- The API output included Firestore's implicit trailing `__name__` field and
+  `SPARSE_ALL` density. After normalizing those defaults, all six live
+  definitions matched `firestore.indexes.json`. Firebase documents automatic
+  `__name__` ordering in the
+  [index overview](https://firebase.google.com/docs/firestore/query-data/index-overview)
+  and the `SPARSE_ALL` default in the
+  [density reference](https://firebase.google.com/docs/firestore/reference/rest/Shared.Types/Density).
+- This was read-only. No indexes or production settings were changed.
+
+### Play Integrity settings prepared for sideloaded APK, 2026-10-24
+
+- The Firebase Console draft has **PLAY_RECOGNIZED** unchecked, **LICENSED**
+  disabled and unchecked, and minimum integrity set to **Device integrity**.
+  Firebase documents these options for apps distributed outside Google Play in
+  its [Play Integrity guide](https://firebase.google.com/docs/app-check/android/play-integrity-provider).
+- The combined Google APIs and Play Integrity terms checkbox remains
+  unchecked, leaving Save disabled. The Android app remains Not registered;
+  no App Check configuration has been saved.
+
+### User-reported v1.2.2 two-device sync, 2026-10-24
+
+- The user reports that two-device synchronization worked on v1.2.2. This is
+  prior-version user-reported evidence, not an independent test of the signed
+  1.4.0 candidate.
+
+### POCO live sign-in and camera check, 2026-10-23
+
+- On the installed signed candidate, the user-selected Google tester account
+  completed Firebase Authentication. The existing Auth record was reused. The
+  incomplete profile opened TIP Account Setup, displayed a generated UUID, and
+  saved a synthetic Computer Science profile for year 1 at T.I.P. Quezon City.
+  The app reached Home, and the profile setup appeared in Firestore Console.
+- Edit Profile requested camera permission. Choosing **While using the app**
+  opened Android's `OneShotCamera`; confirming a capture returned a local photo
+  to the editor. The saved photo remained after force-stop and cold launch. The
+  user confirmed that the phone had been placed flat, covering the rear camera
+  and causing the black preview and capture. The test photo was replaced with
+  the cyan avatar preset and saved.
+- Firebase App Check still lists the Android app as **Not registered**. Its
+  Play Integrity terms checkbox is unchecked, and Save is disabled. Registration
+  and valid release-token verification remain open.
+- PR #1 remains a draft at `07b558b7dd68fd7780e6d4c25f0ea943c499af13`; CI run
+  [39968688244](https://github.com/Patt-00/Campus4Change/actions/runs/39968688244)
+  passed both required checks. No code, production Firebase configuration, or
+  GitHub release state changed during this device check.
+
+### POCO live interest-based tutor recommendation, 2026-10-23
+
+- Learning Preferences on the signed candidate showed the Computer Science
+  topic catalog for T.I.P. Quezon City. Saving **Computer programming** and
+  **Object-oriented programming** as interests made Home report one tutor match.
+- Find People displayed a public tutor profile under **Recommended for your
+  interests** and showed both selected topics as matches. The profile and its
+  public session times opened. After force-stop and cold launch, Home still
+  displayed one tutor match. No booking or chat request was sent.
+- This verifies one account's live directory and recommendation path. The app
+  has not yet verified another account's view of a newly created tutor profile
+  or a request delivered between two users.
+
+### POCO live notification navigation, 2026-10-23
+
+- Home showed one unread notification. The Notifications page exposed the
+  unread state and **Mark all as read** action.
+- Tapping the individual item opened the related shared-group details page.
+  Returning to Notifications and Home showed the item read and the unread badge
+  at 0. No group post, chat message, or session request was created.
+- This verifies the release notification destination and read-state update on
+  one account. Two-account notification delivery remains unverified.
+
+### POCO release Group Session route, 2026-10-23
+
+- Study Groups opened the existing shared group on the signed candidate.
+  Group Details opened **Group Session** successfully.
+- The screen displayed **Agenda and notes**. No focus-timer control appeared in
+  the accessibility tree. No group content was changed.
+- This verifies the release navigation and Group Session layout for one group.
+  Creating or editing a shared session remains unverified.
+
+### POCO release session list empty states, 2026-10-23
+
+- My Sessions showed empty Upcoming, Requests, and Cancelled states for the
+  tester account.
+- The public tutor's **Request a Session** action opened Book a Session. The
+  form explained that a request remains pending until acceptance and that its
+  note is shared. It was closed without submission.
+- The user reports that two-device sync was tested and worked on v1.2.2. This
+  is prior-version user-reported evidence. The 1.4.0 request, acceptance, and
+  cancellation flow was not submitted to the public tutor on the current build.
+
+### POCO release tutor setup route, 2026-10-23
+
+- Profile → Tutor profile opened the Be a Tutor screen on the signed candidate.
+  It explained that published listings are visible to verified users and
+  showed the TIP core-topic suggestions.
+- The form was closed without selecting subjects or saving a listing. This
+  verifies route access only; publishing, editing, and removing a public tutor
+  profile remain unverified on this release.
+
+### POCO release unsaved profile exit confirmation, 2026-10-23
+
+- In Edit Profile, removing a saved interest and tapping Back displayed
+  **Discard unsaved changes?** with **Keep editing** and **Discard changes**.
+- Discarding returned to Profile. Home still showed the saved Computer
+  programming interest and one tutor match.
+- This verifies the release discard prompt and saved-interest preservation. No
+  profile changes were saved during the check.
+
+### POCO release profile identity fields, 2026-10-23
+
+- Profile displayed the **Campus4Change ID** label. Edit Profile showed Year
+  level and TIP campus fields, and no Student ID field.
+- The check read labels only and saved no profile changes.
+
+### POCO release Year level input validation, 2026-10-23
+
+- The Year level field contained `1`. Sending alphabetic input left its value
+  at `1`. Back returned to Profile without an unsaved-changes prompt.
+- The test saved no profile changes.
+
+### POCO release Google re-sign-in and UUID persistence, 2026-10-23
+
+- After sign-out, selecting the user-designated Google account in Credential
+  Manager returned to Home without reopening Account Setup.
+- A one-way digest comparison confirmed the Campus4Change ID matched before and
+  after sign-in. Home restored the saved Computer programming interest and one
+  tutor match. No additional Auth account was created.
+
+### POCO release Settings menu route, 2026-10-23
+
+- The Home menu showed Profile and Settings. Settings opened Learning
+  Preferences and About, displayed version 1.4.0, and showed no biometric
+  control.
+- This was a read-only route check; no settings were changed.
+
+### Read-only Firestore index parity check, 2026-10-23
+
+- The Firebase Console Indexes page showed all six manual indexes as Enabled.
+  Firebase CLI 15.33.0 returned six live definitions.
+- The API output included Firestore's implicit trailing `__name__` field and
+  `SPARSE_ALL` density. After normalizing those defaults, all six live
+  definitions matched `firestore.indexes.json`. Firebase documents automatic
+  `__name__` ordering in the
+  [index overview](https://firebase.google.com/docs/firestore/query-data/index-overview)
+  and the `SPARSE_ALL` default in the
+  [density reference](https://firebase.google.com/docs/firestore/reference/rest/Shared.Types/Density).
+- This was read-only. No indexes or production settings were changed.
 
 ## Latest local release v1.3.0 — 2026-10-22 (not published)
 
@@ -986,7 +1136,7 @@ Complete these manual checks on the exact release APK before demonstrating it.
 10. Add a custom interest, reject a duplicate with different letter case, remove an interest, and save. Check the home interest and tutor count.
 11. Create a separate account and confirm that interests and the TIP campus start blank, with an empty tutor directory and groups. Save preferences without selecting a campus.
 12. Enter your course, year, and select Quezon City or Manila as your TIP campus. Create and edit a tutor listing. With two email-verified Firebase accounts, confirm the listing appears to the other account and can be removed by its owner.
-13. Use disposable Firebase accounts on the Android debug build. Verify email/password and Google signup open Account Setup with the supplied name and email. Confirm setup displays a generated v4 UUID and requires TIP course, year, and campus, with no Student ID field. Save the profile and confirm complete profiles route to Home while incomplete profiles return to setup. Sign out and back in to verify the UUID stays the same; create a second account and confirm it receives a different UUID. Dismiss the Google account picker and confirm Login shows a neutral cancellation message. This current-source flow remains unverified on a physical device. Release Google sign-in also remains unverified until Firebase registers that release certificate.
+13. Use disposable Firebase accounts on the Android build. The 1.4.0 release candidate's Google sign-in, generated-UUID setup, complete-profile Home route, and UUID persistence after Google re-sign-in passed on POCO. Email/password signup, incomplete-profile restore, a second account's unique UUID, and cancellation behavior on the current release remain unverified on physical hardware. The user reports that two-device sync worked on v1.2.2; that is prior-version evidence. Local and emulator checks cover additional setup paths.
 14. Sign out and sign in again to check saved data. For an unverified email/password account, open Notifications and check that the verification item can resend the link and refresh verification status.
 
 Email-verified Firebase accounts share tutor profiles, session requests, current-member group chats, and tutor-session chats limited to their two participants. Device-only conversations remain private notes. Signed-in Firebase users share group details, memberships, posts, replies, and chat. About explains that email verification does not establish school affiliation.

@@ -9,14 +9,14 @@ or a production deployment.
 Updated 2026-10-23 after rechecking GitHub, Firebase Console, the POCO, and the
 current worktree.
 
-- Branch `release/v1.3.0-preview.2` includes documentation commit
-  `9bbdb824430e2e331f9511dbc4f03e256f4c5094`. Draft PR
-  [#1](https://github.com/Patt-00/Campus4Change/pull/1) targets `main`. CI run
-  [39964691039](https://github.com/Patt-00/Campus4Change/actions/runs/39964691039)
-  passed both PR checks on that head. Manual workflow run
+- Branch `release/v1.3.0-preview.2` has draft PR
+  [#1](https://github.com/Patt-00/Campus4Change/pull/1) targeting `main`. The
+  latest verified PR CI run
+  [39968688244](https://github.com/Patt-00/Campus4Change/actions/runs/39968688244)
+  passed both checks on commit `07b558b`. Manual workflow run
   [39966502505](https://github.com/Patt-00/Campus4Change/actions/runs/39966502505)
-  passed, including a clean macOS build on the same source. Verify the PR checks on its
-  current head before merge. The preview
+  passed, including a clean macOS build on earlier source. Verify CI on the
+  current PR head before merge. The preview
   tag remains at `55dcc571436d705827b7b069d6bb077350a7e6f5`; `main` remains at
   `46fe89a534d98866dc981ef11fe64f24151e8bf4`.
 - The signed 1.4.0/code 7 candidate APK SHA-256 is
@@ -31,11 +31,27 @@ current worktree.
   local release APK returned `Success`; a second pull confirmed the installed
   base APK SHA-256 matches the local artifact exactly. The earlier fresh launch
   showed the branded Get Started screen. Intro-to-login and signup navigation,
-  plus empty-form validation, were checked
-  without creating an account. Canceling the Google account picker returned to
-  Login with the neutral cancellation message and no generic failure. No
-  account was selected. Login → About displayed the current objective and data
-  boundaries and returned to signed-out Login. No Firebase data was changed.
+  empty-form validation, and neutral cancellation after dismissing the Google
+  account picker were checked first. In the later live test, the user-selected
+  tester account signed in through Firebase, reached TIP Account Setup, saved a
+  synthetic Computer Science profile for year 1 at T.I.P. Quezon City, and
+  reached Home with its generated UUID. The existing Auth account was reused.
+  After saving Computer programming and Object-oriented programming as interests,
+  Home showed one tutor match and Find People listed the public profile under
+  **Recommended for your interests** with both topics matched.
+  Opening the existing unread notification navigated to its related group
+  details; the Home badge changed from 1 unread to 0 after returning. No group
+  post, chat message, or session request was created.
+  My Sessions showed empty Upcoming, Requests, and Cancelled states. The only
+  available directory tutor belongs to another account, so no live request was
+  sent to avoid notifying a non-test user.
+  Profile → Tutor profile opened the Be a Tutor form with TIP topic suggestions.
+  I backed out without creating a public listing.
+  Camera permission, camera return, local photo save, and cold-start retention
+  also passed. The user confirmed the phone's flat position caused a black test
+  capture; the test photo was replaced with the cyan avatar preset. See
+  [verification evidence](docs/VERIFICATION.md). Login → About displayed the
+  current objective and data boundaries during the earlier signed-out check.
   Only this POCO is in test scope; the other ADB device is excluded and Pad 7
   is deferred.
 - The 1.4.0 versioned source passes 337 Jest tests across 41 suites, ESLint,
@@ -3834,3 +3850,146 @@ current worktree.
   Firestore, or GitHub setting changed. Release Google sign-in, production
   Student ID rule parity, Pad 7/two-device QA, final-source CI, and the
   school-laptop rehearsal remain open; progress stays at 86.25%.
+
+### POCO release Google sign-in and camera check, 2026-10-23
+
+- The signed 1.4.0/code 7 candidate on the POCO completed Google sign-in through
+  Firebase Authentication with the tester account selected by the user. The
+  existing Auth record was reused. The app routed the incomplete profile to TIP
+  Account Setup, displayed a generated UUID, saved the synthetic profile, and
+  opened Home. The profile setup appeared in Firestore Console.
+- In Edit Profile, **Take a Photo** displayed Android's camera permission
+  prompt. Choosing **While using the app** opened the system `OneShotCamera`.
+  The capture returned to the editor, and the saved photo remained after a
+  force-stop and cold launch. The user confirmed the phone's flat position
+  covered its rear camera and caused the black preview and test image. The
+  test image was replaced with the cyan avatar preset and saved.
+- This is single-device release evidence. App Check still lists Android as
+  **Not registered**; the Play Integrity terms checkbox is unchecked and Save
+  is disabled. App Check registration and valid release-token verification
+  remain open. No source code, production policy, rules, indexes, or GitHub
+  release state changed during this device check.
+
+### POCO live interest-based tutor recommendation, 2026-10-23
+
+- In the signed candidate, Learning Preferences listed the Computer Science
+  topics for T.I.P. Quezon City. Saving **Computer programming** and
+  **Object-oriented programming** updated the tester profile. Home displayed
+  one tutor match.
+- Find People displayed a public tutor profile in **Recommended for your
+  interests** and listed both selected topics as matches. Opening the profile
+  showed its public subjects, biography, and session times. After a force-stop
+  and cold launch, Home still showed one matching tutor. No booking or chat
+  request was sent.
+- This verifies a single-device live directory read and recommendation path.
+  It does not verify the other account's view of a new listing or a two-person
+  request flow. App Check registration remains open.
+
+### POCO live notification navigation, 2026-10-23
+
+- On the signed 1.4.0 candidate, Home showed one unread notification. Opening
+  Notifications showed its unread state and the Mark all as read action.
+- Tapping the individual notification opened the related shared-group details
+  page. Returning to Notifications and Home showed that the item was read and
+  the unread badge was 0. No group post, chat message, or session request was
+  created.
+- This verifies the release notification destination and read-state update on
+  one account. Two-account notification delivery remains unverified.
+
+### POCO release Group Session route, 2026-10-23
+
+- From the current signed candidate, Study Groups opened the user's existing
+  shared group. Group Details opened **Group Session** successfully.
+- The screen displayed **Agenda and notes**. No focus-timer control appeared in
+  the accessibility tree. The route was read-only; no group content changed.
+- This verifies the release navigation and Group Session layout for one group.
+  Creating or editing a shared session remains unverified.
+
+### POCO release session list empty states, 2026-10-23
+
+- My Sessions on the signed candidate showed no upcoming sessions, no requests,
+  and no cancelled sessions for the tester account.
+- The public tutor's **Request a Session** action opened Book a Session. The form
+  explained that the request remains pending until tutor acceptance and that
+  its note is shared. I backed out without submitting.
+- The user reports that two-device sync was tested and worked on v1.2.2. This
+  is prior-version user-reported evidence. The 1.4.0 request, acceptance, and
+  cancellation flow was not submitted to the public tutor on the current build.
+
+### POCO release tutor setup route, 2026-10-23
+
+- Profile → Tutor profile opened the Be a Tutor screen on the signed candidate.
+  The screen explained that published listings are visible to verified users
+  and showed the TIP core-topic suggestions.
+- The form was closed without selecting subjects or saving a listing. This
+  verifies the setup route only; publishing, editing, and deleting a public
+  tutor profile remain unverified on this release.
+
+### POCO release unsaved profile exit confirmation, 2026-10-23
+
+- In Edit Profile, I removed a saved interest from the draft and tapped Back.
+  The app displayed **Discard unsaved changes?** with **Keep editing** and
+  **Discard changes** actions.
+- **Discard changes** returned to Profile. Home still displayed the saved
+  Computer programming interest and one tutor match.
+- This verifies the discard confirmation and saved-interest preservation on the
+  signed release. No profile changes were saved during the check.
+
+### POCO release profile identity fields, 2026-10-23
+
+- Profile displayed the **Campus4Change ID** label. Edit Profile showed Year
+  level and TIP campus fields, and no Student ID field.
+- The check read labels only and saved no profile changes.
+
+### POCO release Year level input validation, 2026-10-23
+
+- In Edit Profile, the Year level field contained `1`. Sending alphabetic input
+  left its value at `1`. Back returned to Profile without an unsaved-changes
+  prompt.
+- The test saved no profile changes.
+
+### POCO release Google re-sign-in and UUID persistence, 2026-10-23
+
+- Profile displayed the generated Campus4Change ID before sign-out. The user-
+  designated Google account signed back in through Credential Manager and
+  returned to Home without reopening Account Setup.
+- A one-way digest comparison confirmed the Campus4Change ID matched before and
+  after sign-in. Home restored the saved Computer programming interest and one
+  tutor match. No additional Auth account was created.
+
+### POCO release Settings menu route, 2026-10-23
+
+- The signed app's Home menu showed Profile, Settings, and Close Menu. Settings
+  opened Learning Preferences and About, displayed version 1.4.0, and showed no
+  biometric control.
+- This was a read-only route check; no settings were changed.
+
+### Play Integrity settings prepared for sideloaded APK, 2026-10-24
+
+- Following the user's direction to support a downloadable APK outside Google
+  Play, the Firebase Console draft has **PLAY_RECOGNIZED** unchecked,
+  **LICENSED** disabled and unchecked, and minimum integrity set to **Device
+  integrity**. Firebase's Play Integrity guide lists those requirements for
+  apps distributed exclusively outside Google Play.
+- The combined Google APIs and Play Integrity terms checkbox remains
+  unchecked, so Save is disabled and Android App Check remains Not registered.
+  No production setting has been saved.
+
+### User-reported v1.2.2 two-device sync, 2026-10-24
+
+- The user reports that two-device synchronization worked on v1.2.2. This is
+  prior-version user-reported evidence; it is not a new physical retest of the
+  signed 1.4.0 candidate.
+
+### Read-only Firestore index parity check, 2026-10-23
+
+- The Firebase Console Indexes page showed all six manual indexes as Enabled.
+  Firebase CLI 15.33.0 returned six live definitions.
+- The REST output included Firestore's implicit trailing `__name__` field and
+  `SPARSE_ALL` density. After normalizing those defaults, all six live
+  definitions matched `firestore.indexes.json`. Firebase documents the
+  automatic `__name__` ordering in the
+  [index overview](https://firebase.google.com/docs/firestore/query-data/index-overview)
+  and the `SPARSE_ALL` default in the
+  [density reference](https://firebase.google.com/docs/firestore/reference/rest/Shared.Types/Density).
+- This was read-only. No indexes or production settings were changed.

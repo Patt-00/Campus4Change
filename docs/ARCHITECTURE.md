@@ -67,9 +67,11 @@ remove legacy Student ID fields, and persistence strips that field from future
 writes. Device-only accounts use their local UUID as the Campus4Change ID.
 Complete profiles route to Home, while incomplete profiles open Account Setup.
 Dismissing Google's account picker leaves Login open with a neutral message.
-Sign-out clears Firebase's auth session and Credential Manager state. Release
-Google sign-in remains unverified with the currently unregistered release
-certificate; see [Firebase setup](FIREBASE_SETUP.md).
+Sign-out clears Firebase's auth session and Credential Manager state. The
+v1.4.0 release candidate completed Google sign-in and UUID profile setup on the
+POCO on 2026-10-23. Firebase App Check still lists the Android app as
+unregistered; see [verification history](VERIFICATION.md) and
+[Firebase setup](FIREBASE_SETUP.md).
 
 ## State and data flow
 

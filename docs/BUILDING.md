@@ -127,10 +127,10 @@ $env:C4C_DEBUG_STORE_FILE = Join-Path $HOME '.android\debug.keystore'
 This setting applies only to that build; it is not stored in Git. Firebase has
 the current workstation's per-user debug SHA-1 and the v1.2.2 release
 SHA-1/SHA-256 registered. The v4 candidate's SHA-1 and SHA-256 are also
-registered to the Android app. Release Google sign-in still needs an end-to-end
-POCO test. Play Integrity App Check registration is pending the project owner's
-acceptance of the required terms; see [Firebase setup](FIREBASE_SETUP.md) for
-the current status.
+registered to the Android app. Release Google sign-in and UUID profile setup
+passed on POCO on 2026-10-23. Play Integrity App Check registration remains
+pending the project owner's terms acceptance; see [Firebase setup](FIREBASE_SETUP.md)
+for the current status.
 Other developers must use their own local key and authorize its SHA-1
 separately before testing Google sign-in. Switching between different debug
 keys prevents an in-place APK update; uninstalling the old APK removes

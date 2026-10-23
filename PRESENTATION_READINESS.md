@@ -164,8 +164,11 @@ The latest signed 1.3.0/code 6 release build includes all 49 catalog entries.
 The POCO-installed APK hash matches the local artifact and cold-launches to
 Login. The AAB passes signature, ZIP integrity, and bundletool validation.
 That build checkpoint preceded the v1.3.0-preview.2 publication. The current
-pre-release APK is downloadable from GitHub; release Firebase sign-in and Play
-Integrity/App Check remain unverified.
+downloadable GitHub pre-release remains v1.3.0/code 6; the local v1.4.0/code 7
+candidate is unpublished. On 2026-10-23, Google sign-in and UUID profile setup
+passed on the POCO using the user-selected tester account. App Check remains
+unregistered, and release-token verification is open. The dated evidence is in
+[verification history](docs/VERIFICATION.md).
 
 The latest camera recovery-route fix was verified on the POCO X4 GT with a
 local Auth/Firestore emulator account. After a one-time camera grant and a

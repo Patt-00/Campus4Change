@@ -37,9 +37,9 @@ signer:
 - SHA-256: `1A:78:F8:4C:A7:5C:E3:04:1E:50:93:BA:9C:2F:A3:DE:03:34:38:9E:34:31:12:2E:05:8D:1D:FF:41:C6:6D:10`
 
 On 2026-10-23, Firebase CLI confirmed both v4 fingerprints in the Android app
-registration. This enables the Google sign-in certificate check; live Google
-sign-in still needs a POCO end-to-end test. The Firebase App Check Console
-still shows the Android app as **Not registered**. Registration with Play
+registration. The signed 1.4.0 candidate completed Google sign-in on POCO on
+2026-10-23. The Firebase App Check Console still shows the Android app as
+**Not registered**. Registration with Play
 Integrity is pending the project's acceptance of the Google APIs Terms and
 Play Integrity API Terms. For an APK distributed outside Google Play, configure
 Play Integrity to permit unrecognized app versions, require no Play license,
