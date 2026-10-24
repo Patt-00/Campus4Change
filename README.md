@@ -64,6 +64,8 @@ On Windows PowerShell, run `.\gradlew.bat assembleDebug` from `android`. The deb
 
 The [build guide](docs/BUILDING.md) covers Windows, macOS, Linux, and Termux, including Android SDK setup and signed APK builds.
 
+For a copyable build request and agent workflow, see [AGENTS-BUILDING-GUIDE.md](AGENTS-BUILDING-GUIDE.md).
+
 ## Repository layout
 
 - `src/features/` contains the account, profile, tutor, group, session, message, and Settings features.
