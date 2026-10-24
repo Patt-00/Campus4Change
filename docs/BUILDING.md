@@ -188,9 +188,12 @@ sudo dnf install git curl unzip zip tar gcc gcc-c++ make
 
 ### Fedora 44 and JDK 17
 
-If DNF reports `No match for argument: java-17-openjdk-devel`, install Temurin JDK 17 under your home directory. The steps use Adoptium's [download API and checksum verification](https://adoptium.net/installation/ci-scripts).
+If DNF reports `No match for argument: java-17-openjdk-devel`, install Temurin JDK 17 under your home directory. The steps use Adoptium's [download API and checksum verification](https://adoptium.net/installation/ci-scripts). Run the block from an open Terminal prompt. It keeps the fail-fast commands in a child Bash and writes output to `$HOME/temurin17-install.log`.
 
 ```sh
+(
+  set +e
+  bash <<'INSTALL' 2>&1 | tee "$HOME/temurin17-install.log"
 set -euo pipefail
 jdk_api='https://api.adoptium.net/v3/binary/latest/17/ga/linux/x64/jdk/hotspot/normal/eclipse'
 jdk_url="$(curl -fsS -o /dev/null -w '%{redirect_url}' "$jdk_api")"
@@ -207,9 +210,17 @@ export JAVA_HOME="$jdk_install_dir"
 export PATH="$JAVA_HOME/bin:$PATH"
 java -version
 javac -version
+INSTALL
+  install_status=${PIPESTATUS[0]}
+  if [ "$install_status" -eq 0 ]; then
+    printf 'Temurin JDK 17 installed. Log: %s\n' "$HOME/temurin17-install.log"
+  else
+    printf 'Temurin JDK setup failed with status %s. Log: %s\n' "$install_status" "$HOME/temurin17-install.log"
+  fi
+)
 ```
 
-Keep using this Terminal window for the build, or set `JAVA_HOME` and `PATH` again in a new window. The version commands must report Java 17.
+The installer runs in a child Bash so a failure leaves your Terminal prompt open. The Linux environment block below sets `JAVA_HOME` for the build. The version commands must report Java 17.
 
 Install Node.js from the [official download page](https://nodejs.org/en/download). Use the SDK location shown by Android Studio. A common Linux SDK location is `$HOME/Android/Sdk`.
 
@@ -275,12 +286,16 @@ sh scripts/setup-termux-ndk.sh \
   "$HOME/termux-ndk-27.1.12297006"
 ```
 
-Create `android/local.properties` with paths on the phone:
+Generate `android/local.properties` from the Termux paths. This checks the copied NDK revision before writing the file:
 
-```properties
-sdk.dir=/data/data/com.termux/files/home/android-sdk
-cmake.dir=/data/data/com.termux/files/usr
-ndk.dir=/data/data/com.termux/files/home/termux-ndk-27.1.12297006
+```sh
+termux_sdk="$HOME/android-sdk"
+termux_ndk="$HOME/termux-ndk-27.1.12297006"
+test -f "$termux_ndk/package.xml"
+grep -Fx 'Pkg.Revision = 27.1.12297006' "$termux_ndk/source.properties"
+printf 'sdk.dir=%s\ncmake.dir=%s\nndk.dir=%s\n' \
+  "$termux_sdk" "$PREFIX" "$termux_ndk" > android/local.properties
+cat android/local.properties
 ```
 
 Termux may select JDK 21 by default. This Gradle build uses JDK 17, so set it explicitly. Termux's `libtermux-exec.so` also resolves Node command shims:
@@ -301,6 +316,12 @@ npm ci
 ```
 
 The Termux wrapper selects the ARM64 ABI, Termux `aapt2`, the compatible NDK directory, and Hermes through QEMU. The APK is written to `android/app/build/outputs/apk/debug/app-debug.apk`. A debug APK needs Metro. A signed release APK includes its JavaScript bundle and starts without Metro.
+
+Gradle may print `CXX5106` because Android documents `ndk.dir` as deprecated for standard NDK setup. This Termux configuration uses it to select the compatibility NDK. The warning is nonfatal when Gradle continues with build tasks. See Android's [NDK setup guidance](https://developer.android.com/studio/projects/install-ndk).
+
+### Fix a CXX1102 NDK path error
+
+If Gradle says the NDK path does not contain a valid NDK, compare the reported path with `ndk.dir` in `android/local.properties`. It must end exactly with `termux-ndk-27.1.12297006`, with no extra characters. The directory must contain `source.properties` with revision `27.1.12297006` and a `package.xml` file. Re-run the `printf` block above to regenerate the local properties file.
 
 The documented Termux build reused an existing SDK and compatible NDK. First-time SDK and NDK setup can require extra storage and package downloads. Release signing in Termux also requires the private v4 keystore and signing passwords.
 
@@ -327,6 +348,7 @@ The debug build uses the repository debug keystore. Do not register that public 
 - **`SDK location not found`:** create or correct `android/local.properties` with the SDK root path for this computer.
 - **No Java installation matches language version 17:** install JDK 17 and set `JAVA_HOME` to that installation in the same build terminal.
 - **`CANNOT LINK EXECUTABLE` in Termux:** run `pkg update` and `pkg upgrade`, then reinstall the named package if needed.
+- **`[CXX1102]` or `ndk.dir ... did not contain a valid NDK` in Termux:** check that `ndk.dir` has no characters after `27.1.12297006`, and confirm the compatible NDK folder contains `source.properties` and `package.xml`. Regenerate `android/local.properties` with the Termux `printf` block above.
 - **React Native cannot start from an ADB `run-as` shell in Termux:** set `LD_PRELOAD="$PREFIX/lib/libtermux-exec.so"` and add `$PREFIX/bin` to `PATH` before running Gradle.
 - **`INSTALL_FAILED_UPDATE_INCOMPATIBLE`:** the installed APK uses a different signing certificate. Back up local-only data before uninstalling it.
 - **`Unable to load script` on a debug build:** start Metro with `npm start` and relaunch. Use the signed release APK for a standalone installation.
