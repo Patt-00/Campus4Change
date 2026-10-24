@@ -180,20 +180,51 @@ sudo apt update
 sudo apt install git curl unzip zip build-essential openjdk-17-jdk
 ```
 
-Fedora users can install common build tools with:
+Fedora users can install the system build tools with:
 
 ```sh
-sudo dnf install git curl unzip zip gcc gcc-c++ make java-17-openjdk-devel
+sudo dnf install git curl unzip zip tar gcc gcc-c++ make
 ```
+
+### Fedora 44 and JDK 17
+
+If DNF reports `No match for argument: java-17-openjdk-devel`, install Temurin JDK 17 under your home directory. The steps use Adoptium's [download API and checksum verification](https://adoptium.net/installation/ci-scripts).
+
+```sh
+set -euo pipefail
+jdk_api='https://api.adoptium.net/v3/binary/latest/17/ga/linux/x64/jdk/hotspot/normal/eclipse'
+jdk_url="$(curl -fsS -o /dev/null -w '%{redirect_url}' "$jdk_api")"
+jdk_tmp="$(mktemp -d)"
+trap 'rm -rf "$jdk_tmp"' EXIT
+jdk_archive="$(basename "$jdk_url")"
+curl -fL "$jdk_url" -o "$jdk_tmp/$jdk_archive"
+curl -fsSL "${jdk_url}.sha256.txt" -o "$jdk_tmp/$jdk_archive.sha256.txt"
+(cd "$jdk_tmp" && sha256sum -c "$jdk_archive.sha256.txt")
+jdk_install_dir="$HOME/.local/jdks/temurin-17"
+mkdir -p "$jdk_install_dir"
+tar -xzf "$jdk_tmp/$jdk_archive" --strip-components=1 -C "$jdk_install_dir"
+export JAVA_HOME="$jdk_install_dir"
+export PATH="$JAVA_HOME/bin:$PATH"
+java -version
+javac -version
+```
+
+Keep using this Terminal window for the build, or set `JAVA_HOME` and `PATH` again in a new window. The version commands must report Java 17.
 
 Install Node.js from the [official download page](https://nodejs.org/en/download). Use the SDK location shown by Android Studio. A common Linux SDK location is `$HOME/Android/Sdk`.
 
 ```sh
 export ANDROID_HOME="$HOME/Android/Sdk"
 export ANDROID_SDK_ROOT="$ANDROID_HOME"
-export JAVA_HOME="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")"
+if [ -x "$HOME/.local/jdks/temurin-17/bin/javac" ]; then
+  export JAVA_HOME="$HOME/.local/jdks/temurin-17"
+else
+  export JAVA_HOME="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")"
+fi
+export PATH="$JAVA_HOME/bin:$PATH"
 printf 'sdk.dir=%s\n' "$ANDROID_HOME" > android/local.properties
 java -version
+javac -version
 ```
 
 Confirm that `java -version` reports JDK 17. Build a debug APK:
