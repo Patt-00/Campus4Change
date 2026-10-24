@@ -26,10 +26,13 @@ match.
 App Check remains unregistered, and the prior token exchange failed. Its
 enforcement for Firebase Authentication and Firestore is off, so requests
 continue. App Check attestation remains an optional, unverified security
-protection for this APK. The user reports two-device sync worked on v1.2.2. A fresh
-encrypted backup of 9 Auth account records and 13 Firestore documents across
-8 collection paths has been verified; deletion of production records remains
-pending action-time confirmation and post-reset verification.
+protection for this APK. The user reports two-device sync worked on v1.2.2. A
+verified encrypted pre-reset backup contains metadata for 9 Auth accounts and
+13 Firestore documents across 8 collection paths. The approved reset and
+disposable-account cleanup are complete. Firebase Auth now has 0 accounts and
+recursive Firestore inventory has 0 collection paths and 0 documents. The
+backup remains outside the repository until final release verification. See
+[verification history](docs/VERIFICATION.md).
 
 
 The older signed APK for version 1.3.0/code 6 is published in the
@@ -126,18 +129,19 @@ a generic `FirebaseException`; the native bridge omits the underlying service
 response. The exact cause remains unknown. Production Firestore rules have now been
 deployed and the active ruleset SHA-256 exactly matches local source at
 `31f4827c128dcc063a21f7de1dc0542db720dd45efce13b8d0ac3a63630f4cfa`. The six
-live composite index definitions match local source and all are READY. No
-production user or Firestore document has been deleted.
+live composite index definitions match local source and all are READY.
 
 Before any deletion, an encrypted local export was verified. It contains
 metadata for 9 Auth accounts and 13 Firestore documents across 8 collection
 paths, with password hashes and tokens excluded. The plaintext export was
-removed from temporary storage. The selected full production reset, including
-real-user data, has not yet happened.
+removed from temporary storage. After the user-authorized reset and disposable
+account cleanup, Auth export reports 0 accounts and recursive Firestore
+inventory reports 0 collection paths and 0 documents. The encrypted backup is
+retained outside the repository until final release verification.
 
 The user selected a one-time pre-release reset of **all** Firebase Auth users
-and Firestore documents, including real-user data, after a temporary encrypted
-local export has been verified. This reset has not been performed. The POCO is
+and Firestore documents, including real-user data, after verifying a temporary
+encrypted local export. The reset and post-QA cleanup are complete. The POCO is
 the only required physical QA device; Pad 7 is deferred.
 
 The detailed weighted tables below describe the previous 88.25% checkpoint.
@@ -426,10 +430,10 @@ The six category weights below follow the autonomous goal. Each category is spli
 1. **Critical bugs and crashes: PARTIALLY VERIFIED.** A Pad 7 test reproduced a camera result lost after Android revoked a one-time permission and killed the background app process. The prior POCO QA run verified recovery through the registered AndroidX result flow, profile save, and cold launch. POCO verified camera and gallery draft cleanup while preserving the prior avatar. On 2026-10-22, POCO also verified that discarding a second selected photo preserves a saved custom photo and its file hash across cold launch.
 2. **Missing required functionality: PARTIALLY VERIFIED.** The API 36 AVD passed virtual camera capture, profile save, avatar selection, and cold-launch persistence. Pad 7's previous build passed the permission denial fallback and a normal physical camera capture/save/cold-launch flow with a while-in-use grant. POCO verified photo-picker selection and cancellation, camera cancellation, one-time-permission recovery, camera and gallery draft cleanup, and saved-photo preservation after a replacement photo is discarded.
 3. **Incomplete features: PARTIALLY VERIFIED.** The signed 1.4.0/code 7 APK is built and installed on POCO with a matching hash. The older 1.3.0/code 6 APK remains the public Preview 2 asset. The 1.4.0 candidate completed release-key Google sign-in, generated-UUID TIP profile setup, Home routing, and Firestore saves. App Check registration and token verification remain open. Firebase Auth and Firestore accept requests while App Check enforcement is off, so attestation is an optional security enhancement for this APK. All-route UI/accessibility review and some current-source workflows remain unverified.
-4. **Backend and database: PARTIALLY VERIFIED.** The current production Firestore ruleset hash matches local source at 31f4827c128dcc063a21f7de1dc0542db720dd45efce13b8d0ac3a63630f4cfa; all six live composite indexes match the checked-in definitions. The signed candidate completed Google sign-in and saved the tester profile and interests. App Check is unregistered and its enforcement is off. Firebase Auth and Firestore accept the candidate requests. App Check attestation remains an optional security enhancement for direct APK distribution. A fresh AES-256 encrypted backup of 9 Auth accounts and 13 Firestore documents across 8 paths is verified. The production reset is pending the user's action-time confirmation.
+4. **Backend and database: PARTIALLY VERIFIED.** The current production Firestore ruleset hash matches local source at 31f4827c128dcc063a21f7de1dc0542db720dd45efce13b8d0ac3a63630f4cfa; all six live composite indexes match the checked-in definitions. The signed candidate completed Google sign-in and saved the tester profile and interests. App Check is unregistered and its enforcement is off. Firebase Auth and Firestore accept the candidate requests. App Check attestation remains an optional security enhancement for direct APK distribution. A fresh AES-256 encrypted backup of 9 Auth accounts and 13 Firestore documents across 8 paths is verified. The user-authorized data reset and test-data cleanup are complete; live Auth and Firestore inventories are empty.
 5. **UI/UX: PARTIALLY VERIFIED.** Branded launch, profile validation, notifications, settings, profile photos, and Figma states have implementation/tests and representative visual checks. The current-source POCO Settings and Learning Preferences routes are verified from the hamburger menu. Topic search, selection, custom interests, save, reopen persistence, separate Information Technology/Computer Science groups, and the floating verification-toast destination passed on current-source QA against local emulators; full all-route review remains open. The current POCO build verified post-fix Group Details and Group Post and now displays **1 member** for a one-member group. The current-source Group Session screen was opened on POCO and showed meetup details and agenda notes without a timer. The release flow reached Login after all three Introduction slides, and both release auth screens showed client-side validation for empty submissions. Recheck all routes, supported sizes, keyboard states, empty/error/success states, accessibility targets, and the remaining recent profile/group changes on the current build.
 6. **Performance and stability: PARTIALLY IMPLEMENTED.** `npm audit --omit=dev` rechecked on 2026-10-23 reports 20 high paths and zero critical. The full `npm audit` reports 20 high and 20 moderate vulnerabilities, with zero critical. Current release source-map inspection confirms the `braces` path is in build tooling and absent from the shipped JavaScript bundle. A lockfile-only update moves `launch-editor` to patched 2.14.2; the current release source map has no path for it. The remaining `braces@3.0.3` advisory lists no patched version. npm's suggested fixes downgrade React Native or CLI majors; no braces override is justified until a compatible upstream fix is available. Full app UI at API 24 also remains unverified.
-7. **Testing: PARTIALLY VERIFIED.** The signed 1.4.0 candidate passed POCO Google sign-in, UUID setup and persistence after re-sign-in, profile saves, camera capture and local-photo retention, profile discard and Year level validation, interest-based tutor recommendations, notification navigation, Settings, and Group Session navigation. The user reports that two-device sync worked on v1.2.2; this is prior-version user-reported evidence. The 1.4.0 booking request form was opened but not submitted to another account. App Check token exchange remains unverified and unenforced. GitHub Actions run 40022730763 passed both required jobs, including API 24 instrumentation, on commit dc33cf5.
+7. **Testing: PARTIALLY VERIFIED.** The signed 1.4.0 candidate passed POCO Google sign-in, UUID setup and persistence after re-sign-in, profile saves, camera capture and local-photo retention, profile discard and Year level validation, interest-based tutor recommendations, notification navigation, Settings, and Group Session navigation. Two verified disposable accounts exercised a tutor booking request, acceptance, and student cancellation; Session Details changed from UPCOMING to CANCELLED. The user reports that two-device sync worked on v1.2.2; this is prior-version user-reported evidence. App Check token exchange remains unverified and unenforced. GitHub Actions run 40022730763 passed both required jobs, including API 24 instrumentation, on commit dc33cf5.
 8. **GitHub synchronization: PARTIALLY IMPLEMENTED.** Draft PR #1 targets main. GitHub Actions run 40022730763 passed both required jobs, including API 24 instrumentation, on commit dc33cf59cfabf383d2cd11f38c44a4ffeca78c9b. Main remains at 46fe89a534d98866dc981ef11fe64f24151e8bf4, and v1.3.0-preview.2 remains the latest public release. The v1.4.0 APK is not published. Verify the current PR checks before merge.
 9. **Documentation: PARTIALLY VERIFIED.** README, architecture, Firebase, build, quality, verification, and presentation guides exist. The Desktop guide now reflects the live Google sign-in result, APK-only distribution scope, optional App Check state, and the v1.2.2 user-reported sync result. It needs the final GitHub download link after the APK is published. A clean Termux build and a clean GitHub-hosted macOS 15 build passed; the user's personal Mac failure remains unreproduced.
-10. **Presentation: IMPLEMENTED BUT UNVERIFIED.** The Desktop guide contains nontechnical and teacher-facing explanations, a demo flow, version details, and accurate Firebase limitations. It contains no app-embedded demo credentials. The clean-data reset and final public download remain open; a school-laptop rehearsal is useful but is not part of the APK acceptance scope.
+10. **Presentation: IMPLEMENTED BUT UNVERIFIED.** The Desktop guide contains nontechnical and teacher-facing explanations, a demo flow, version details, and accurate Firebase limitations. It contains no app-embedded demo credentials. The clean-data reset is complete; the final public download remains open. A school-laptop rehearsal is useful but is not part of the APK acceptance scope.

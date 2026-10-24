@@ -40,12 +40,16 @@ current worktree.
   **Recommended for your interests** with both topics matched.
   Opening the existing unread notification navigated to its related group
   details; the Home badge changed from 1 unread to 0 after returning. No group
-  post, chat message, or session request was created.
-  My Sessions showed empty Upcoming, Requests, and Cancelled states. The only
-  available directory tutor belongs to another account, so no live request was
-  sent to avoid notifying a non-test user.
+  post or chat message was created. The first My Sessions check showed empty
+  Upcoming, Requests, and Cancelled states. The only directory tutor then
+  available belonged to another account, so it was not contacted.
   Profile → Tutor profile opened the Be a Tutor form with TIP topic suggestions.
-  I backed out without creating a public listing.
+  I first backed out without creating a listing. Later, a temporary QA tutor
+  listing on the designated tester account was requested by a second verified
+  disposable account. The tutor accepted the Oct 25, 2:00-3:00 PM request; the
+  student cancelled it and Session Details showed **CANCELLED**. The QA listing
+  and all test data were removed afterward. See
+  [verification evidence](docs/VERIFICATION.md).
   Camera permission, camera return, local photo save, and cold-start retention
   also passed. The user confirmed the phone's flat position caused a black test
   capture; the test photo was replaced with the cyan avatar preset. See
@@ -87,11 +91,13 @@ current worktree.
   a generic `FirebaseException`. The bridge omits the underlying response, so
   the exact cause is unknown. Device connectivity currently reports validated
   Wi-Fi. This is not evidence of a valid Firebase App Check token.
-- A local encrypted backup has been created and integrity-verified outside
-  Git. It contains metadata for 9 Auth accounts and 13 Firestore documents
-  across 8 collection paths, without password hashes or tokens. Plaintext
-  export files were removed from temporary storage. The approved full data
-  reset has not started; those live records still exist.
+- The encrypted pre-reset backup remains outside Git with mode 600 and the
+  verified SHA-256 recorded in [verification evidence](docs/VERIFICATION.md).
+  After the approved reset and POCO booking QA, the two verified disposable
+  Auth accounts and all Firestore data were deleted. Auth export now reports
+  zero accounts; recursive Firestore REST traversal reports zero collection
+  paths and zero documents. The backup remains until final release
+  verification is complete.
 - The last weighted estimate was 88.25% before the current source commit. It is
   a historical checkpoint and will be recalculated after the final acceptance
   gates are verified; it is not a current completion claim.
@@ -4059,3 +4065,22 @@ current worktree.
   instrumentation on PR commit dc33cf59cfabf383d2cd11f38c44a4ffeca78c9b.
 - The workflow's clean macOS job was skipped. Manual run 39966502505 remains
   the evidence for the clean GitHub-hosted macOS build.
+
+### Production reset and POCO booking cancellation, 2026-10-24
+
+- Before cleanup, Firebase Auth export contained exactly the two verified
+  disposable QA accounts. Identity Platform batch deletion reported two
+  accounts requested, two deleted, and zero errors.
+- The live Firestore inventory contained 3 documents across 4 collection
+  paths. Firebase CLI recursively deleted all collections in the default
+  database. Auth export then reported 0 accounts; authenticated recursive
+  Firestore REST traversal found 0 collection paths and 0 documents.
+- On the POCO X4 GT (`Z9GMOVDMHQV8X84D`), the student reopened the accepted
+  **Computer programming** session, saw **UPCOMING**, and confirmed
+  cancellation. Session Details then displayed **CANCELLED**.
+- `pm clear com.campus4change` succeeded. A cold launch returned to
+  **GET STARTED** with no signed-in account or demo content.
+- Only the POCO was used. Pad 7 remained deferred and Redmi was excluded.
+  Firebase Auth providers, Firestore rules and indexes, and App Check
+  enforcement were not changed. The encrypted pre-reset backup remains
+  outside Git until final release verification.

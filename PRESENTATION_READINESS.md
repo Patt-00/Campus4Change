@@ -47,8 +47,10 @@ configuration. See [verification history](docs/VERIFICATION.md).
 The project owner must accept the provider terms before registration can be
 saved. See the [Play Integrity setup guide](https://firebase.google.com/docs/app-check/android/play-integrity-provider)
 and [App Check metrics guide](https://firebase.google.com/docs/app-check/monitor-metrics).
-The encrypted pre-launch backup is verified; the authorized production data
-reset is pending action-time confirmation and post-reset checks.
+The user-authorized data reset is complete. Firebase Auth export reports zero
+accounts, and recursive Firestore inventory reports zero collection paths and
+zero documents after disposable-account cleanup. The encrypted pre-launch
+backup remains outside the repository until release verification is complete.
 
 Payments, live voice/video calls, operating-system push notifications, and iOS
 are outside this Android version's scope. The Desktop presentation guide is
@@ -123,7 +125,7 @@ No password, verification code, production API secret, or private signing creden
 | School network or Firebase service is unavailable | Shared live features cannot reach the backend | Use the local emulator setup above if the school laptop has the required SDK/JDK and the QA APK can be built. Rehearse it on the presentation machine before relying on it. |
 | OS push or live calls | These functions are not implemented | Demonstrate the in-app notification and messaging flows; do not promise OS push, voice, or video. |
 
-The public signed v1.3.0-preview.2 APK is available for download. The current signed 1.4.0 candidate is local and installed on the POCO, but is not published. Before publication, finish the authorized data reset, disposable-account check and cleanup, then verify the live counts are zero.
+The public signed v1.3.0-preview.2 APK is available for download. The current signed 1.4.0 candidate is local and installed on the POCO, but is not published. The authorized reset, disposable-account cleanup, and zero-count checks are complete. Final publication remains open.
 
 On 2026-10-22, the latest signed release APK (version 1.3.0/code 6) was
 rebuilt, verified, installed in place on POCO X4 GT, and cold-launched. The

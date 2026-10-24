@@ -1350,3 +1350,27 @@ the project owner's terms checkbox is still unchecked. No API write was made.
 GitHub Actions run 40022730763 passed the checks job and API 24
 instrumentation on PR commit dc33cf59cfabf383d2cd11f38c44a4ffeca78c9b. The
 workflow skipped its clean macOS job; manual run 39966502505 covers that build.
+
+## Production reset and POCO booking cancellation, 2026-10-24
+
+After the approved one-time reset and disposable-account QA, Firebase Auth and
+the default Firestore database contain no test records. The encrypted pre-reset
+backup remains outside the repository until release verification is complete.
+
+Before cleanup, Firebase Auth export found exactly two verified disposable QA
+accounts. Identity Platform `accounts:batchDelete` reported two accounts
+requested, two deleted, and zero errors. A recursive Firestore REST inventory
+found 3 documents across 4 collection paths. Firebase CLI 15.33.0 then deleted
+all collections recursively from `campus4change` database `(default)`. A new
+Auth export reported 0 accounts, and a second authenticated recursive Firestore
+REST traversal reported 0 collection paths and 0 documents.
+
+On POCO X4 GT (`Z9GMOVDMHQV8X84D`, model `22041216G`), the student opened the
+accepted Computer programming session, saw **UPCOMING**, and confirmed
+cancellation. Session Details displayed **CANCELLED**. Clearing
+`com.campus4change` with `pm clear` succeeded; a cold launch returned to
+**GET STARTED** without a signed-in account or demo content. Pad 7 was deferred
+and Redmi was excluded.
+
+The reset changed Firebase Auth users and Firestore data only. It did not
+change Auth providers, Firestore rules or indexes, or App Check enforcement.
