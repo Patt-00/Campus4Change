@@ -9,10 +9,12 @@ let mockFirebaseSignOut;
 let mockLoadCloudState;
 let mockSaveCloudState;
 let mockGoogleSignIn;
+let mockSignedIn;
 let currentSession;
 const mockStore = {
   loadState: jest.fn(async () => null),
   saveState: jest.fn(async () => true),
+  generateAccountUuid: jest.fn(async () => '00000000-0000-4000-8000-000000000003'),
   setActiveUser: jest.fn(async () => true),
   signIn: jest.fn(),
   signOut: jest.fn(async () => true),
@@ -31,7 +33,6 @@ jest.mock('../src/shared/backend/firebase', () => ({
   firebaseSignIn: jest.fn(),
   firebaseSignOut: (...args) => mockFirebaseSignOut(...args),
   firebaseSignUp: jest.fn(),
-  firebaseStudentIdClaimed: jest.fn(async (_uid, studentId) => Boolean(studentId)),
   loadCloudState: (...args) => mockLoadCloudState(...args),
   saveCloudState: (...args) => mockSaveCloudState(...args),
   watchFirebaseUser: listener => {
@@ -48,7 +49,7 @@ jest.mock('../src/shared/state/storage', () => ({
 
 function Harness() {
   currentSession = useCampusSession({
-    onSignedIn: jest.fn(),
+    onSignedIn: (...args) => mockSignedIn(...args),
     onSignedOut: jest.fn(),
   });
   return null;
@@ -73,9 +74,9 @@ beforeEach(() => {
     id: 'google-student',
     name: 'Google Student',
     email: 'google.student@gmail.com',
-    studentId: '',
     emailVerified: true,
   }));
+  mockSignedIn = jest.fn();
   jest.clearAllMocks();
 });
 
@@ -100,10 +101,19 @@ test('Google sign-in enters the verified Firebase account with empty initial sta
     id: 'google-student',
     name: 'Google Student',
     email: 'google.student@gmail.com',
-    studentId: '',
+    accountUuid: '00000000-0000-4000-8000-000000000003',
     interests: [],
     tutorSubjects: [],
   });
+  expect(currentSession.state.profile).not.toHaveProperty('studentId');
+  expect(mockSignedIn).toHaveBeenCalledWith(
+    expect.objectContaining({
+      profile: expect.objectContaining({
+        id: 'google-student',
+        accountUuid: '00000000-0000-4000-8000-000000000003',
+      }),
+    }),
+  );
   expect(mockStore.setActiveUser).toHaveBeenCalledWith('google-student');
   await act(async () => renderer.unmount());
 });
@@ -194,7 +204,7 @@ test('Firebase cloud profiles missing optional fields restore account defaults',
     id: 'firebase-student',
     name: 'Cloud Student',
     email: 'student@school.test',
-    studentId: 'STU-1',
+    accountUuid: '00000000-0000-4000-8000-000000000003',
     course: '',
     year: '',
     campus: '',
@@ -202,6 +212,7 @@ test('Firebase cloud profiles missing optional fields restore account defaults',
     tutorSubjects: [],
     bio: '',
   });
+  expect(currentSession.state.profile).not.toHaveProperty('studentId');
   const savedCloudState = JSON.parse(mockStore.saveState.mock.calls.at(-1)[1]);
   expect(savedCloudState.profile.interests).toEqual([]);
   expect(savedCloudState.profile.tutorSubjects).toEqual([]);

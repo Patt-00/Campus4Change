@@ -3,6 +3,13 @@ export function uid(prefix) {
     prefix + '-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9)
   );
 }
+
+export function isAccountUuid(value) {
+  return typeof value === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      value,
+    );
+}
 export function dayAt(offset, hour = 14, minute = 0) {
   const d = new Date();
   d.setDate(d.getDate() + offset);
@@ -60,6 +67,11 @@ export function initialState(account) {
     pendingSharedActions: [],
     profile: {
       ...account,
+      accountUuid: isAccountUuid(account?.accountUuid)
+        ? account.accountUuid
+        : isAccountUuid(account?.id)
+          ? account.id
+          : '',
       course: '',
       courseId: '',
       year: '',

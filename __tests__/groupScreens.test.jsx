@@ -249,6 +249,75 @@ test('group post cards announce the note content and reply action', async () => 
   await act(async () => renderer.unmount());
 });
 
+test('group post reply summaries use singular wording for exactly one reply', async () => {
+  let renderer;
+  await act(async () => {
+    renderer = renderScreen(
+      <GroupDetailsScreen
+        back={jest.fn()}
+        go={jest.fn()}
+        group={{
+          id: 'group-one',
+          name: 'Calculus Circle',
+          members: 5,
+          joined: true,
+          shared: true,
+          postsLoaded: true,
+          meetup: '',
+          room: 'C-1',
+          posts: [
+            {
+              id: 'post-one',
+              author: 'Mika Santos',
+              text: 'One reply note.',
+              replies: [
+                { id: 'reply-one', author: 'Alex', text: 'I can help.' },
+              ],
+              createdAt: '2026-10-13T06:00:00.000Z',
+            },
+            {
+              id: 'post-two',
+              author: 'Jamie Lee',
+              text: 'Two reply note.',
+              replies: [
+                { id: 'reply-two', author: 'Alex', text: 'First reply.' },
+                { id: 'reply-three', author: 'Mika', text: 'Second reply.' },
+              ],
+              createdAt: '2026-10-14T06:00:00.000Z',
+            },
+          ],
+        }}
+        membership={jest.fn()}
+        addPost={jest.fn()}
+        message={jest.fn()}
+      />,
+    );
+  });
+
+  const textContent = value => {
+    if (Array.isArray(value)) return value.map(textContent).join('');
+    return typeof value === 'string' || typeof value === 'number'
+      ? String(value)
+      : '';
+  };
+  const postCards = renderer.root
+    .findAllByType(TouchableOpacity)
+    .filter(control => control.props.accessibilityLabel?.startsWith('Post by '));
+  expect(postCards).toHaveLength(2);
+  const replySummaries = postCards.map(card => {
+    const summary = card.findAllByType(Text).at(-1);
+    return textContent(summary.props.children).replace(/\s+/g, ' ').trim();
+  });
+
+  expect(replySummaries).toEqual(
+    expect.arrayContaining([
+      expect.stringMatching(/^1 reply\b/),
+      expect.stringMatching(/^2 replies\b/),
+    ]),
+  );
+  await act(async () => renderer.unmount());
+});
+
 test('post details expose older replies only to joined members', async () => {
   const loadMoreReplies = jest.fn();
   const props = {

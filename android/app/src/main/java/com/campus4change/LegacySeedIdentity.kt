@@ -4,12 +4,9 @@ package com.campus4change
 internal object LegacySeedIdentity {
     private const val ACCOUNT_ID = "demo"
     private const val ACCOUNT_EMAIL = "alex@campus.demo"
-    private const val ACCOUNT_STUDENT_ID = "DEMO"
-
-    fun matchesAccount(id: String, email: String, studentId: String): Boolean =
+    fun matchesAccount(id: String, email: String): Boolean =
         id == ACCOUNT_ID &&
-            email.equals(ACCOUNT_EMAIL, ignoreCase = true) &&
-            studentId == ACCOUNT_STUDENT_ID
+            email.equals(ACCOUNT_EMAIL, ignoreCase = true)
 
     fun matchesState(profileId: String, email: String): Boolean =
         profileId == ACCOUNT_ID && email.equals(ACCOUNT_EMAIL, ignoreCase = true)

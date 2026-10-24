@@ -1,6 +1,7 @@
 package com.campus4change
 
 import android.app.Activity
+import android.Manifest
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -12,6 +13,8 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import android.util.Log
+import android.content.pm.PackageManager
+import androidx.core.content.FileProvider
 import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.*
 import com.facebook.react.uimanager.ViewManager
@@ -20,6 +23,8 @@ import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
+import java.net.URLDecoder
+import java.net.URLEncoder
 import java.security.MessageDigest
 import java.security.KeyStore
 import java.security.SecureRandom
@@ -30,6 +35,75 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
+internal data class PendingProfilePhotoCapture(
+    val accountId: String,
+    val capturePath: String,
+    val captureUri: String,
+    val resultReady: Boolean = false,
+    val savedUri: String? = null,
+) {
+    fun serialize(): String = listOf(
+        "1",
+        encode(accountId),
+        encode(capturePath),
+        encode(captureUri),
+        if (resultReady) "1" else "0",
+        savedUri?.let(::encode) ?: "-",
+    ).joinToString("\n")
+
+    private fun encode(value: String): String = URLEncoder.encode(value, "UTF-8")
+
+    companion object {
+        fun deserialize(value: String?): PendingProfilePhotoCapture? = runCatching {
+            val fields = value?.split('\n', limit = 6) ?: return null
+            if (fields.size != 6 || fields[0] != "1") return null
+            val accountId = URLDecoder.decode(fields[1], "UTF-8")
+            val capturePath = URLDecoder.decode(fields[2], "UTF-8")
+            val captureUri = URLDecoder.decode(fields[3], "UTF-8")
+            val resultReady = when (fields[4]) {
+                "0" -> false
+                "1" -> true
+                else -> return null
+            }
+            val savedUri = if (fields[5] == "-") {
+                null
+            } else {
+                URLDecoder.decode(fields[5], "UTF-8").takeIf(String::isNotBlank)
+                    ?: return null
+            }
+            if (accountId.isBlank() || capturePath.isBlank() || captureUri.isBlank()) {
+                return null
+            }
+            PendingProfilePhotoCapture(
+                accountId = accountId,
+                capturePath = capturePath,
+                captureUri = captureUri,
+                resultReady = resultReady,
+                savedUri = savedUri,
+            )
+        }.getOrNull()
+    }
+}
+
+internal fun deleteUnusedProfilePhotos(
+    directory: File,
+    ownerFilePrefix: String,
+    keepUri: String?,
+): List<File> {
+    val keepPath = keepUri?.removePrefix("file://")
+    val failedDeletes = mutableListOf<File>()
+    directory.listFiles()
+        ?.filter { file ->
+            file.name.startsWith(ownerFilePrefix) && file.absolutePath != keepPath
+        }
+        ?.forEach { file ->
+            if (file.exists() && !file.delete() && file.exists()) {
+                failedDeletes.add(file)
+            }
+        }
+    return failedDeletes
+}
+
 /** Android-only local accounts, encrypted app state, and private profile photos. */
 class CampusStorageModule(private val context: ReactApplicationContext) :
     ReactContextBaseJavaModule(context), ActivityEventListener {
@@ -39,9 +113,13 @@ class CampusStorageModule(private val context: ReactApplicationContext) :
     @Volatile private var activeUser: String? = null
     private var pendingProfilePhotoPromise: Promise? = null
     private var pendingProfilePhotoUserId: String? = null
+    private var pendingProfilePhotoCaptureFile: File? = null
+    private var pendingProfilePhotoCaptureUri: Uri? = null
 
     private companion object {
-        const val PROFILE_PHOTO_REQUEST_CODE = 7341
+        const val PROFILE_PHOTO_REQUEST_CODE = ProfilePhotoCaptureContract.PHOTO_PICKER_REQUEST_CODE
+        const val PROFILE_CAMERA_REQUEST_CODE = ProfilePhotoCaptureContract.CAMERA_REQUEST_CODE
+        const val PENDING_PROFILE_PHOTO_KEY = "pending_profile_photo_capture_v1"
         const val PROFILE_PHOTO_MAX_EDGE = 512
         const val PROFILE_PHOTO_MAX_BYTES = 450_000
     }
@@ -111,10 +189,86 @@ class CampusStorageModule(private val context: ReactApplicationContext) :
         check(activeUser == expectedUserId) { "The active account changed. Please try again." }
     }
 
-    private fun account(name: String, email: String, studentId: String, password: String, id: String = UUID.randomUUID().toString()): JSONObject {
+    private fun pendingProfilePhotoCapture(): PendingProfilePhotoCapture? =
+        PendingProfilePhotoCapture.deserialize(read(PENDING_PROFILE_PHOTO_KEY))
+
+    private fun savePendingProfilePhotoCapture(capture: PendingProfilePhotoCapture) {
+        write(PENDING_PROFILE_PHOTO_KEY, capture.serialize())
+    }
+
+    private fun storedCameraActivityResult(): Int? {
+        val resultPreferences = context.getSharedPreferences(
+            ProfilePhotoCaptureContract.RESULT_PREFERENCES,
+            0,
+        )
+        return if (resultPreferences.contains(ProfilePhotoCaptureContract.RESULT_CODE_KEY)) {
+            resultPreferences.getInt(ProfilePhotoCaptureContract.RESULT_CODE_KEY, Activity.RESULT_CANCELED)
+        } else {
+            null
+        }
+    }
+
+    private fun clearCameraActivityResult() {
+        check(
+            context.getSharedPreferences(ProfilePhotoCaptureContract.RESULT_PREFERENCES, 0)
+                .edit()
+                .remove(ProfilePhotoCaptureContract.RESULT_CODE_KEY)
+                .commit(),
+        ) { "Could not clear the camera result." }
+    }
+
+    private fun profilePhotoCaptureFile(capture: PendingProfilePhotoCapture): File? =
+        runCatching {
+            val directory = File(context.cacheDir, "profile-photo-captures").canonicalFile
+            val file = File(capture.capturePath).canonicalFile
+            file.takeIf { it.parentFile == directory && it.extension == "jpg" }
+        }.getOrNull()
+
+    private fun clearPendingProfilePhotoRecovery(deleteCaptureFile: Boolean = true) {
+        val capture = pendingProfilePhotoCapture()
+        if (deleteCaptureFile && capture != null) {
+            profilePhotoCaptureFile(capture)?.delete()
+        }
+        check(prefs.edit().remove(PENDING_PROFILE_PHOTO_KEY).commit()) {
+            "Could not clear the pending profile photo."
+        }
+        clearCameraActivityResult()
+    }
+
+    private fun hasSavedProfilePhoto(expectedUserId: String, uri: String): Boolean =
+        runCatching {
+            val directory = File(context.filesDir, "profile_photos").canonicalFile
+            val file = File(Uri.parse(uri).path ?: return false).canonicalFile
+            file.parentFile == directory &&
+                file.name.startsWith(profilePhotoPrefix(expectedUserId)) &&
+                file.isFile
+        }.getOrDefault(false)
+
+    private fun resolvePendingProfilePhoto(
+        expectedUserId: String,
+        capture: PendingProfilePhotoCapture,
+    ): String {
+        requireActiveUser(expectedUserId)
+        check(capture.accountId == expectedUserId) {
+            "The active account changed. Choose the photo again."
+        }
+        capture.savedUri?.takeIf { hasSavedProfilePhoto(expectedUserId, it) }?.let {
+            return it
+        }
+        val captureFile = profilePhotoCaptureFile(capture)
+            ?: throw IllegalStateException("The pending camera photo is unavailable.")
+        check(capture.resultReady && captureFile.isFile && captureFile.length() > 0) {
+            "The camera did not return a photo. Try again."
+        }
+        val savedUri = saveProfilePhoto(expectedUserId, Uri.parse(capture.captureUri))
+        savePendingProfilePhotoCapture(capture.copy(savedUri = savedUri))
+        return savedUri
+    }
+
+    private fun account(name: String, email: String, password: String, id: String = UUID.randomUUID().toString()): JSONObject {
         val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
         val hashParameters = CampusPasswordHash.currentParameters(Build.VERSION.SDK_INT)
-        return JSONObject().put("id", id).put("name", name).put("email", email).put("studentId", studentId)
+        return JSONObject().put("id", id).put("accountUuid", id).put("name", name).put("email", email)
             .put("salt", Base64.encodeToString(salt, Base64.NO_WRAP))
             .put("hash", Base64.encodeToString(CampusPasswordHash.derive(password, salt, hashParameters), Base64.NO_WRAP))
             .put("passwordHashAlgorithm", hashParameters.algorithm)
@@ -125,7 +279,6 @@ class CampusStorageModule(private val context: ReactApplicationContext) :
         LegacySeedIdentity.matchesAccount(
             account.optString("id"),
             account.optString("email"),
-            account.optString("studentId"),
         )
 
     private fun removeLegacySeedAccount() {
@@ -163,28 +316,30 @@ class CampusStorageModule(private val context: ReactApplicationContext) :
 
     private fun accounts(): JSONArray {
         removeLegacySeedAccount()
-        read("accounts")?.let { return JSONArray(it) }
-        return JSONArray()
-    }
-
-    private fun accountIdentities(list: JSONArray): List<LocalAccountIdentity> {
-        val identities = mutableListOf<LocalAccountIdentity>()
+        val list = read("accounts")?.let(::JSONArray) ?: return JSONArray()
+        var changed = false
         for (index in 0 until list.length()) {
-            val account = list.getJSONObject(index)
-            identities.add(
-                LocalAccountIdentity(
-                    account.optString("id"),
-                    account.optString("email"),
-                    account.optString("studentId"),
-                ),
-            )
+            val account = list.optJSONObject(index) ?: continue
+            val id = account.optString("id")
+            if (account.has("studentId")) {
+                account.remove("studentId")
+                changed = true
+            }
+            if (!CampusAccountUuid.isValid(account.optString("accountUuid"))) {
+                account.put(
+                    "accountUuid",
+                    if (CampusAccountUuid.isValid(id)) id else CampusAccountUuid.generate(),
+                )
+                changed = true
+            }
         }
-        return identities
+        if (changed) write("accounts", list.toString())
+        return list
     }
 
     private fun publicAccount(a: JSONObject): String = JSONObject().put("id", a.getString("id"))
         .put("name", a.getString("name")).put("email", a.getString("email"))
-        .put("studentId", a.getString("studentId")).toString()
+        .put("accountUuid", a.optString("accountUuid", a.getString("id"))).toString()
 
     private fun run(promise: Promise, block: () -> Any?) {
         worker.execute { try { promise.resolve(block()) } catch (e: Exception) { promise.reject("LOCAL_ACCOUNT", e.message ?: "Device storage failed.") } }
@@ -197,65 +352,24 @@ class CampusStorageModule(private val context: ReactApplicationContext) :
             val item = list.getJSONObject(i)
             require(!item.getString("email").equals(email.trim(), true)) { "An account already uses that email on this device." }
         }
-        val a = account(name.trim(), email.trim().lowercase(), "", password)
+        val a = account(name.trim(), email.trim().lowercase(), password)
         list.put(a); write("accounts", list.toString()); activeUser = a.getString("id")
         publicAccount(a)
     }
 
-    @ReactMethod fun isStudentIdUnique(expectedUserId: String, studentId: String, promise: Promise) = run(promise) {
-        requireActiveUser(expectedUserId)
-        LocalStudentIdUniqueness.isUniqueForAccount(
-            accountIdentities(accounts()),
-            expectedUserId,
-            studentId,
-        )
-    }
-
-    @ReactMethod fun completeAccountSetup(expectedUserId: String, studentId: String, value: String, promise: Promise) = run(promise) {
-        requireActiveUser(expectedUserId)
-        val normalizedStudentId = studentId.trim()
-        require(LocalStudentIdUniqueness.isValidStudentId(normalizedStudentId)) { "Enter a Student ID using digits only." }
-        val list = accounts()
-        val identities = accountIdentities(list)
-        val accountIndex = identities.indexOfFirst { it.id == expectedUserId }
-        require(accountIndex >= 0) { "The local account could not be found. Sign in again." }
-        require(
-            !LocalStudentIdUniqueness.hasConflict(
-                identities,
-                expectedUserId,
-                normalizedStudentId,
-            ),
-        ) {
-            "That Student ID is already in use on this device. Check the number and try again."
-        }
-
-        val parsedState = JSONObject(value)
-        val profile = parsedState.optJSONObject("profile")
-        require(
-            profile != null &&
-                profile.optString("id") == expectedUserId &&
-                profile.optString("studentId") == normalizedStudentId
-        ) { "The profile does not match the active account." }
-
-        val previousPhoto = profilePhotoUri(read("state_$expectedUserId"))
-        list.getJSONObject(accountIndex).put("studentId", normalizedStudentId)
-        val editor = prefs.edit()
-            .putString("accounts", encrypt(list.toString()))
-            .putString("state_$expectedUserId", encrypt(value))
-        check(editor.commit()) { "Could not save the completed profile on this device." }
-        val nextPhoto = profilePhotoUri(value)
-        if (previousPhoto != nextPhoto) cleanProfilePhotos(expectedUserId, nextPhoto)
-        true
+    @ReactMethod fun generateAccountUuid(promise: Promise) = run(promise) {
+        CampusAccountUuid.generate()
     }
 
     @ReactMethod fun signIn(identifier: String, password: String, promise: Promise) = run(promise) {
         val list = accounts()
-        val matchIndex = LocalStudentIdUniqueness.findSignInMatch(
-            accountIdentities(list),
-            identifier,
-        )
+        val normalizedEmail = identifier.trim()
+        val matchIndex = (0 until list.length()).firstOrNull { index ->
+            list.getJSONObject(index).optString("email")
+                .equals(normalizedEmail, ignoreCase = true)
+        } ?: -1
         val a = if (matchIndex >= 0) list.getJSONObject(matchIndex) else null
-        requireNotNull(a) { "Email/Student ID or password is incorrect." }
+        requireNotNull(a) { "Email or password is incorrect." }
         require(password.isNotEmpty() && password.length <= CampusPasswordHash.MAX_PASSWORD_LENGTH) { "Enter a password no longer than ${CampusPasswordHash.MAX_PASSWORD_LENGTH} characters." }
         val storedParameters = CampusPasswordHash.fromStoredMetadata(
             if (a.has("passwordHashAlgorithm")) a.getString("passwordHashAlgorithm") else null,
@@ -269,7 +383,7 @@ class CampusStorageModule(private val context: ReactApplicationContext) :
                 storedParameters,
                 Base64.decode(a.getString("hash"), Base64.NO_WRAP),
             ),
-        ) { "Email/Student ID or password is incorrect." }
+        ) { "Email or password is incorrect." }
         val currentParameters = CampusPasswordHash.currentParameters(Build.VERSION.SDK_INT)
         if (CampusPasswordHash.needsUpgrade(storedParameters, currentParameters)) {
             try {
@@ -278,7 +392,6 @@ class CampusStorageModule(private val context: ReactApplicationContext) :
                     account(
                         a.getString("name"),
                         a.getString("email"),
-                        a.getString("studentId"),
                         password,
                         a.getString("id"),
                     ),
@@ -306,13 +419,56 @@ class CampusStorageModule(private val context: ReactApplicationContext) :
         activeUser = userId
         true
     }
+    @ReactMethod fun consumePendingProfilePhoto(expectedUserId: String, promise: Promise) = run(promise) {
+        requireActiveUser(expectedUserId)
+        val capture = pendingProfilePhotoCapture()
+        if (capture == null) {
+            clearCameraActivityResult()
+            return@run null
+        }
+        if (capture.accountId != expectedUserId) {
+            clearPendingProfilePhotoRecovery()
+            return@run null
+        }
+        val resultCode = storedCameraActivityResult()
+        if (!capture.resultReady && resultCode == Activity.RESULT_CANCELED) {
+            clearPendingProfilePhotoRecovery()
+            return@run null
+        }
+        val readyCapture = if (capture.resultReady) {
+            capture
+        } else if (resultCode == Activity.RESULT_OK) {
+            capture.copy(resultReady = true).also(::savePendingProfilePhotoCapture)
+        } else {
+            return@run null
+        }
+        clearCameraActivityResult()
+        resolvePendingProfilePhoto(expectedUserId, readyCapture)
+    }
+    @ReactMethod fun discardProfilePhotoDraft(expectedUserId: String, promise: Promise) = run(promise) {
+        requireActiveUser(expectedUserId)
+        val pendingCapture = pendingProfilePhotoCapture()
+        if (pendingCapture?.accountId == expectedUserId) {
+            clearPendingProfilePhotoRecovery()
+        }
+        cleanProfilePhotos(
+            expectedUserId,
+            profilePhotoUri(read("state_$expectedUserId")),
+        )
+        true
+    }
     @ReactMethod fun saveState(expectedUserId: String, value: String, promise: Promise) = run(promise) {
         requireActiveUser(expectedUserId)
         val previousPhoto = profilePhotoUri(read("state_$expectedUserId"))
         val parsed = JSONObject(value)
         val nextPhoto = profilePhotoUri(parsed.toString())
+        val pendingPhoto = pendingProfilePhotoCapture()
+            ?.takeIf { it.accountId == expectedUserId && it.resultReady }
         write("state_$expectedUserId", value)
-        if (previousPhoto != nextPhoto) {
+        if (pendingPhoto != null) {
+            cleanProfilePhotos(expectedUserId, nextPhoto)
+            clearPendingProfilePhotoRecovery()
+        } else if (previousPhoto != nextPhoto) {
             cleanProfilePhotos(expectedUserId, nextPhoto)
         }
         true
@@ -366,12 +522,13 @@ class CampusStorageModule(private val context: ReactApplicationContext) :
             }.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             pendingProfilePhotoPromise = promise
             pendingProfilePhotoUserId = expectedUserId
+            pendingProfilePhotoCaptureFile = null
+            pendingProfilePhotoCaptureUri = null
             activity.runOnUiThread {
                 try {
                     activity.startActivityForResult(intent, PROFILE_PHOTO_REQUEST_CODE)
                 } catch (error: Exception) {
-                    pendingProfilePhotoPromise = null
-                    pendingProfilePhotoUserId = null
+                    clearPendingProfilePhoto()
                     promise.reject("PROFILE_PHOTO", error.message ?: "Could not open the photo picker.")
                 }
             }
@@ -380,22 +537,94 @@ class CampusStorageModule(private val context: ReactApplicationContext) :
         }
     }
 
+    @ReactMethod fun captureProfilePhoto(expectedUserId: String, promise: Promise) {
+        var captureFile: File? = null
+        try {
+            requireActiveUser(expectedUserId)
+            check(pendingProfilePhotoPromise == null) { "Finish the current photo action first." }
+            val previousCapture = pendingProfilePhotoCapture()
+            if (previousCapture != null) {
+                check(previousCapture.resultReady) {
+                    "Finish the camera photo already in progress first."
+                }
+                clearPendingProfilePhotoRecovery()
+            }
+            val activity = context.currentActivity
+                ?: throw IllegalStateException("Open the app before taking a profile photo.")
+            val cameraActivity = activity as? MainActivity
+                ?: throw IllegalStateException("Open the app before taking a profile photo.")
+            check(activity.checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                "Allow camera access before taking a profile photo."
+            }
+
+            val captureDirectory = File(context.cacheDir, "profile-photo-captures")
+            check(captureDirectory.mkdirs() || captureDirectory.isDirectory) {
+                "Could not prepare temporary camera storage."
+            }
+            val outputFile = File(captureDirectory, "${UUID.randomUUID()}.jpg")
+            captureFile = outputFile
+            val captureUri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.profilephotos",
+                outputFile,
+            )
+            clearCameraActivityResult()
+            savePendingProfilePhotoCapture(
+                PendingProfilePhotoCapture(
+                    accountId = expectedUserId,
+                    capturePath = outputFile.absolutePath,
+                    captureUri = captureUri.toString(),
+                ),
+            )
+            pendingProfilePhotoPromise = promise
+            pendingProfilePhotoUserId = expectedUserId
+            pendingProfilePhotoCaptureFile = captureFile
+            pendingProfilePhotoCaptureUri = captureUri
+            cameraActivity.runOnUiThread {
+                try {
+                    cameraActivity.launchProfilePhotoCapture(captureUri) { success ->
+                        handleCameraActivityResult(
+                            if (success) Activity.RESULT_OK else Activity.RESULT_CANCELED,
+                        )
+                    }
+                } catch (error: Exception) {
+                    clearPendingProfilePhoto()
+                    clearPendingProfilePhotoRecovery()
+                    promise.reject("PROFILE_PHOTO", error.message ?: "Could not open the camera.")
+                }
+            }
+        } catch (error: Exception) {
+            captureFile?.delete()
+            if (pendingProfilePhotoCapture()?.accountId == expectedUserId) {
+                clearPendingProfilePhotoRecovery(deleteCaptureFile = false)
+            }
+            promise.reject("PROFILE_PHOTO", error.message ?: "Could not take this profile photo.")
+        }
+    }
+
+    private fun clearPendingProfilePhoto() {
+        pendingProfilePhotoPromise = null
+        pendingProfilePhotoUserId = null
+        pendingProfilePhotoCaptureFile = null
+        pendingProfilePhotoCaptureUri = null
+    }
+
     override fun onActivityResult(
         activity: Activity,
         requestCode: Int,
         resultCode: Int,
         data: Intent?,
     ) {
+        if (requestCode == PROFILE_CAMERA_REQUEST_CODE) {
+            handleCameraActivityResult(resultCode)
+            return
+        }
         if (requestCode != PROFILE_PHOTO_REQUEST_CODE) return
         val promise = pendingProfilePhotoPromise ?: return
         val expectedUserId = pendingProfilePhotoUserId
-        pendingProfilePhotoPromise = null
-        pendingProfilePhotoUserId = null
-        if (resultCode != Activity.RESULT_OK || data?.data == null) {
-            promise.resolve(null)
-            return
-        }
-        val uri = data.data ?: run {
+        val photoUri = data?.data
+        clearPendingProfilePhoto()
+        if (resultCode != Activity.RESULT_OK || photoUri == null) {
             promise.resolve(null)
             return
         }
@@ -405,33 +634,89 @@ class CampusStorageModule(private val context: ReactApplicationContext) :
         }
         worker.execute {
             try {
-                requireActiveUser(expectedUserId)
-                val savedPhotoUri = profilePhotoUri(read("state_$expectedUserId"))
-                cleanProfilePhotos(expectedUserId, savedPhotoUri)
-                val bitmap = decodeProfilePhoto(uri)
-                val bytes = compressProfilePhoto(bitmap)
-                if (bitmap.isRecycled.not()) bitmap.recycle()
-                require(bytes.size <= PROFILE_PHOTO_MAX_BYTES) {
-                    "Choose an image that can be reduced below 450 KB."
-                }
-                val destination = profilePhotoFile(expectedUserId)
-                check(destination.parentFile?.mkdirs() == true || destination.parentFile?.isDirectory == true) {
-                    "Could not prepare private photo storage on this device."
-                }
-                val temporary = File(destination.parentFile, destination.name + ".tmp")
-                FileOutputStream(temporary).use { output ->
-                    output.write(bytes)
-                    output.fd.sync()
-                }
-                check(temporary.renameTo(destination)) {
-                    temporary.delete()
-                    "Could not save the profile photo on this device."
-                }
-                promise.resolve("file://${destination.absolutePath}")
+                promise.resolve(saveProfilePhoto(expectedUserId, photoUri))
             } catch (error: Exception) {
                 promise.reject("PROFILE_PHOTO", error.message ?: "Could not save this profile photo.")
             }
         }
+    }
+
+    private fun handleCameraActivityResult(resultCode: Int) {
+        val promise = pendingProfilePhotoPromise
+        val previousCapture = pendingProfilePhotoCapture()
+        val expectedUserId = pendingProfilePhotoUserId ?: previousCapture?.accountId
+        val captureFile = pendingProfilePhotoCaptureFile
+            ?: previousCapture?.let(::profilePhotoCaptureFile)
+        val captureUri = pendingProfilePhotoCaptureUri
+            ?: previousCapture?.captureUri?.let(Uri::parse)
+        clearPendingProfilePhoto()
+
+        if (resultCode != Activity.RESULT_OK) {
+            clearPendingProfilePhotoRecovery()
+            promise?.resolve(null)
+            return
+        }
+        if (expectedUserId == null || captureFile == null || captureUri == null) {
+            clearPendingProfilePhotoRecovery()
+            promise?.reject("PROFILE_PHOTO", "The camera result could not be matched to your account.")
+            return
+        }
+
+        val pending = (previousCapture ?: PendingProfilePhotoCapture(
+            accountId = expectedUserId,
+            capturePath = captureFile.absolutePath,
+            captureUri = captureUri.toString(),
+        )).copy(resultReady = true)
+        try {
+            savePendingProfilePhotoCapture(pending)
+        } catch (error: Exception) {
+            clearPendingProfilePhotoRecovery()
+            promise?.reject("PROFILE_PHOTO", error.message ?: "Could not save the camera result.")
+            return
+        }
+        clearCameraActivityResult()
+
+        // The app process can be recreated while the external camera is open.
+        // Keep the encrypted result record so the profile editor can recover it.
+        if (promise == null) return
+
+        worker.execute {
+            try {
+                promise.resolve(resolvePendingProfilePhoto(expectedUserId, pending))
+            } catch (error: Exception) {
+                clearPendingProfilePhotoRecovery()
+                promise.reject("PROFILE_PHOTO", error.message ?: "Could not save this profile photo.")
+            }
+        }
+    }
+
+    private fun saveProfilePhoto(expectedUserId: String, uri: Uri): String {
+        requireActiveUser(expectedUserId)
+        val savedPhotoUri = profilePhotoUri(read("state_$expectedUserId"))
+        cleanProfilePhotos(expectedUserId, savedPhotoUri)
+        val bitmap = decodeProfilePhoto(uri)
+        val bytes = try {
+            compressProfilePhoto(bitmap)
+        } finally {
+            if (!bitmap.isRecycled) bitmap.recycle()
+        }
+        require(bytes.size <= PROFILE_PHOTO_MAX_BYTES) {
+            "Choose an image that can be reduced below 450 KB."
+        }
+        val destination = profilePhotoFile(expectedUserId)
+        check(destination.parentFile?.mkdirs() == true || destination.parentFile?.isDirectory == true) {
+            "Could not prepare private photo storage on this device."
+        }
+        val temporary = File(destination.parentFile, destination.name + ".tmp")
+        FileOutputStream(temporary).use { output ->
+            output.write(bytes)
+            output.fd.sync()
+        }
+        check(temporary.renameTo(destination)) {
+            temporary.delete()
+            "Could not save the profile photo on this device."
+        }
+        return "file://${destination.absolutePath}"
     }
 
     override fun onNewIntent(intent: Intent) = Unit
@@ -458,19 +743,13 @@ class CampusStorageModule(private val context: ReactApplicationContext) :
 
     private fun cleanProfilePhotos(expectedUserId: String, keepUri: String?) {
         val directory = File(context.filesDir, "profile_photos")
-        val keepPath = keepUri?.removePrefix("file://")
-        directory.listFiles()
-            ?.filter { file ->
-                file.name.startsWith(profilePhotoPrefix(expectedUserId)) &&
-                    file.absolutePath != keepPath
-            }
-            ?.forEach { file ->
-                if (file.exists()) {
-                    if (!file.delete()) {
-                        Log.w("CampusStorage", "Unused profile photo cleanup failed.")
-                    }
-                }
-            }
+        deleteUnusedProfilePhotos(
+            directory,
+            profilePhotoPrefix(expectedUserId),
+            keepUri,
+        ).forEach {
+            Log.w("CampusStorage", "Unused profile photo cleanup failed.")
+        }
     }
 
     private fun decodeProfilePhoto(uri: Uri): Bitmap {
@@ -533,8 +812,9 @@ class CampusStorageModule(private val context: ReactApplicationContext) :
     override fun invalidate() {
         context.removeActivityEventListener(this)
         pendingProfilePhotoPromise?.reject("PROFILE_PHOTO", "The app closed before photo selection finished.")
-        pendingProfilePhotoPromise = null
-        pendingProfilePhotoUserId = null
+        // The camera activity may still be writing into this file after the
+        // React bridge is recreated, so leave the encrypted request record intact.
+        clearPendingProfilePhoto()
         worker.shutdown()
         super.invalidate()
     }

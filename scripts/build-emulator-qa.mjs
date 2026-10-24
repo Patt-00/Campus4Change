@@ -13,6 +13,21 @@ const firebaseConfigPath = path.join(
 const originalFirebaseConfig = await readFile(firebaseConfigPath);
 const projectMarker = Buffer.from("projectId: 'campus4change'");
 const emulatorMarker = Buffer.from("firebaseEmulatorHost = ''");
+const emulatorHost = process.env.C4C_FIREBASE_EMULATOR_HOST || '127.0.0.1';
+const applicationIdSuffix = process.env.C4C_QA_APPLICATION_ID_SUFFIX?.trim() || '';
+const supportedEmulatorHosts = new Set(['127.0.0.1', '10.0.2.2']);
+const applicationIdSuffixPattern = /^\.[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)*$/;
+
+if (!supportedEmulatorHosts.has(emulatorHost)) {
+  throw new Error(
+    'C4C_FIREBASE_EMULATOR_HOST must be 127.0.0.1 (physical device with adb reverse) or 10.0.2.2 (Android Emulator).',
+  );
+}
+if (applicationIdSuffix && !applicationIdSuffixPattern.test(applicationIdSuffix)) {
+  throw new Error(
+    'C4C_QA_APPLICATION_ID_SUFFIX must start with a dot and use valid package segments, such as .qa.',
+  );
+}
 
 function countOccurrences(value, marker) {
   return value.toString().split(marker.toString()).length - 1;
@@ -30,9 +45,14 @@ if (
 const emulatorConfig = originalFirebaseConfig
   .toString()
   .replace("projectId: 'campus4change'", "projectId: 'demo-campus4change-rules'")
-  .replace("firebaseEmulatorHost = ''", "firebaseEmulatorHost = '127.0.0.1'");
+  .replace(emulatorMarker.toString(), `firebaseEmulatorHost = '${emulatorHost}'`);
 const gradleWrapper =
   process.platform === 'win32' ? 'gradlew.bat' : './gradlew';
+const gradleArguments = ['--no-daemon', '-Pc4cQaEmulators=true'];
+if (applicationIdSuffix) {
+  gradleArguments.push(`-Pc4cQaApplicationIdSuffix=${applicationIdSuffix}`);
+}
+gradleArguments.push(':app:assembleDebug');
 const childEnvironment = { ...process.env };
 const fedoraJavaHome = '/usr/lib/jvm/java-25-openjdk';
 if (
@@ -55,7 +75,7 @@ try {
   await writeFile(firebaseConfigPath, emulatorConfig);
   child = spawn(
     gradleWrapper,
-    ['--no-daemon', '-Pc4cQaEmulators=true', ':app:assembleDebug'],
+    gradleArguments,
     {
       cwd: path.join(projectRoot, 'android'),
       env: childEnvironment,
@@ -81,7 +101,12 @@ try {
       'android/app/build/outputs/apk/debug/app-debug.apk',
     )}`,
   );
-  console.log('Firebase emulator host: 127.0.0.1 (use adb reverse on physical devices).');
+  console.log(
+    `Firebase emulator host: ${emulatorHost}${
+      emulatorHost === '127.0.0.1' ? ' (use adb reverse on physical devices).' : '.'
+    }`,
+  );
+  console.log(`QA package ID: com.campus4change${applicationIdSuffix}`);
 } finally {
   if (child && child.exitCode === null && child.signalCode === null) {
     child.kill('SIGTERM');

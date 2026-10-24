@@ -14,14 +14,14 @@ import { initialState } from '../src/shared/data/utils';
 import { stateForPersistence } from '../src/shared/state/persistence';
 
 test('TIP undergraduate offerings are grouped by campus and college', () => {
-  expect(tipProgramCatalogVerifiedAt).toBe('2026-10-17');
-  expect(tipTopicSuggestionsVerifiedAt).toBe('2026-10-17');
+  expect(tipProgramCatalogVerifiedAt).toBe('2026-10-22');
+  expect(tipTopicSuggestionsVerifiedAt).toBe('2026-10-22');
   expect(tipProgramGroups.map(campus => campus.campus)).toEqual([
     'T.I.P. Manila',
     'T.I.P. Quezon City',
   ]);
-  expect(tipPrograms).toHaveLength(45);
-  expect(new Set(tipPrograms.map(program => program.id)).size).toBe(45);
+  expect(tipPrograms).toHaveLength(49);
+  expect(new Set(tipPrograms.map(program => program.id)).size).toBe(49);
   expect(tipPrograms.every(program => program.topicGroups.length === 2)).toBe(true);
   expect(tipPrograms.every(program => program.topicGroups.every(group => group.topics.length))).toBe(true);
   expect(
@@ -71,6 +71,40 @@ test('TIP undergraduate offerings are grouped by campus and college', () => {
     name: 'Logistics and Supply Chain Management',
     campus: 'T.I.P. Quezon City',
   });
+
+  expect(getTipProgram('manila-computer-studies-artificial-intelligence')).toMatchObject({
+    name: 'Artificial Intelligence',
+    campus: 'T.I.P. Manila',
+    college: 'College of Computer Studies',
+  });
+  expect(
+    getTipProgram('manila-computer-studies-artificial-intelligence').topicGroups[0].topics,
+  ).toContain('Responsible AI, ethics, and privacy');
+  expect(getTipProgram('manila-business-education-internal-auditing')).toMatchObject({
+    name: 'Internal Auditing',
+    campus: 'T.I.P. Manila',
+    college: 'College of Business Education',
+  });
+  expect(getTipProgram('quezon-city-engineering-architecture-design-and-technology')).toMatchObject({
+    name: 'Design and Technology',
+    campus: 'T.I.P. Quezon City',
+    college: 'College of Engineering and Architecture',
+  });
+  expect(
+    getTipProgram('quezon-city-engineering-architecture-design-and-technology').topicGroups[1].topics,
+  ).toContain('Product prototyping and iterative testing');
+  expect(getTipProgram('quezon-city-business-education-accounting-information-systems')).toMatchObject({
+    name: 'Accounting Information Systems',
+    campus: 'T.I.P. Quezon City',
+    college: 'College of Business Education',
+  });
+
+  const aiSearch = filterTipProgramGroups('Artificial Intelligence');
+  expect(aiSearch).toHaveLength(1);
+  expect(aiSearch[0].campus).toBe('T.I.P. Manila');
+  const designTechSearch = filterTipProgramGroups('Design and Technology');
+  expect(designTechSearch).toHaveLength(1);
+  expect(designTechSearch[0].campus).toBe('T.I.P. Quezon City');
 });
 
 test('older flat interests migrate into a course group and groups stay distinct', () => {
@@ -115,7 +149,6 @@ test('custom profile photos stay in device persistence and are excluded from clo
     id: 'student-1',
     name: 'Student',
     email: 'student@example.test',
-    studentId: 'S001',
   });
   state.profile.profilePhotoUri =
     'file:///data/user/0/com.campus4change/files/profile_photos/abc.jpg';

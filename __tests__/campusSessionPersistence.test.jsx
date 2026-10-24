@@ -4,16 +4,16 @@ import { useCampusSession } from '../src/shared/state/useCampusSession';
 
 const mockAccount = {
   id: 'firebase-student',
+  accountUuid: '00000000-0000-4000-8000-000000000005',
   name: 'Student',
   email: 'student@campus.test',
-  studentId: 'STU-1',
 };
 const mockStore = {
   loadState: jest.fn(async () => null),
   saveState: jest.fn(async () => {}),
+  generateAccountUuid: jest.fn(async () => '00000000-0000-4000-8000-000000000006'),
   setActiveUser: jest.fn(async () => {}),
   signIn: jest.fn(async () => mockAccount),
-  isStudentIdUnique: jest.fn(async () => true),
   signOut: jest.fn(async () => {}),
   signUp: jest.fn(),
 };

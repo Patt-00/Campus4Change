@@ -1,4 +1,5 @@
 import { NativeModules, Platform } from 'react-native';
+import { isAccountUuid } from '../data/utils';
 
 export function deviceStore() {
   if (Platform.OS !== 'android' || !NativeModules.CampusStorage) {
@@ -15,8 +16,22 @@ export function markIntroductionCompleted() {
   return deviceStore().markIntroductionCompleted();
 }
 
+export function discardProfilePhotoDraft(expectedUserId) {
+  return deviceStore().discardProfilePhotoDraft(expectedUserId);
+}
+
 export function parseAccount(value) {
-  return JSON.parse(value);
+  const account = JSON.parse(value);
+  const currentAccount = { ...account };
+  delete currentAccount.studentId;
+  return {
+    ...currentAccount,
+    accountUuid: isAccountUuid(account.accountUuid)
+      ? account.accountUuid
+      : isAccountUuid(account.id)
+        ? account.id
+        : '',
+  };
 }
 export function parseState(value) {
   const state = JSON.parse(value);

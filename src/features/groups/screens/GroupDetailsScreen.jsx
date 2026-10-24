@@ -30,7 +30,9 @@ export function GroupDetailsScreen({
   const meetupHasPassed = meetupIsValid && meetupStart.getTime() <= Date.now();
   return (
     <Screen title={group.name} back={back}>
-      <Text style={s.muted}>{group.members} members</Text>
+      <Text style={s.muted}>
+        {group.members} {group.members === 1 ? 'member' : 'members'}
+      </Text>
       <AppButton
         title={group.joined ? 'OPEN GROUP SESSION' : 'JOIN GROUP'}
         onPress={() =>
@@ -118,7 +120,11 @@ export function GroupDetailsScreen({
               <Text style={[s.text, styles.marginTop12]}>{p.text}</Text>
               <Text style={[s.muted, styles.fontSize9marginTop12]}>
                 {p.replies.length}
-                {p.hasMoreReplies ? '+' : ''} replies • {dateLabel(p.createdAt)}
+                {p.hasMoreReplies ? '+' : ''}
+                {p.replies.length === 1 && !p.hasMoreReplies
+                  ? ' reply'
+                  : ' replies'}{' '}
+                • {dateLabel(p.createdAt)}
               </Text>
             </TouchableOpacity>
           ))}

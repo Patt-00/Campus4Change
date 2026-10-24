@@ -67,6 +67,17 @@ export function ProfileScreen({
         ))}
       </View>
       <Text style={[s.section, styles.accountHeading]}>Account</Text>
+      {!!p.accountUuid && (
+        <View style={[s.card, styles.accountIdCard]}>
+          <Text style={s.label}>Campus4Change ID</Text>
+          <Text selectable style={styles.accountIdValue}>
+            {p.accountUuid}
+          </Text>
+          <Text style={[s.muted, styles.accountIdHint]}>
+            Long press to copy. This ID does not verify TIP enrollment.
+          </Text>
+        </View>
+      )}
       <View style={[s.card, styles.accountCard]}>
         {accountActions.map((action, index) => (
           <View key={action.label}>
@@ -143,6 +154,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   accountHeading: { marginTop: 20, marginBottom: 8 },
+  accountIdCard: { marginBottom: 10, padding: 14 },
+  accountIdValue: {
+    color: C.text,
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 15,
+    letterSpacing: 0.2,
+    marginTop: 5,
+  },
+  accountIdHint: { marginTop: 6 },
   accountCard: { paddingVertical: 4, paddingHorizontal: 12 },
   accountRow: { minHeight: 48, paddingVertical: 4 },
   accountDivider: { height: 1, backgroundColor: C.border },

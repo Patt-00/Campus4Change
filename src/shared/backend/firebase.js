@@ -44,9 +44,13 @@ const privateConversationMessageRefsByUid = new Map();
 const FIRESTORE_WRITE_BATCH_SIZE = 400;
 const MAX_PRIVATE_MESSAGE_ID_LENGTH = 80;
 const PRIVATE_MESSAGE_CACHE_KEY_PREFIX = 'firebase:privateMessageCache:';
-const ownedStudentIdsByUid = new Map();
 
 if (firebaseEnabled) {
+  const emulatorHost = firebaseEmulatorHost.trim();
+  if (emulatorHost && !__DEV__) {
+    throw new Error('Firebase emulators must never be enabled in a release app.');
+  }
+
   const { app: appSdk, auth: authSdk, firestore: firestoreSdk } = firebaseSdk();
   const webFirebaseConfig = { ...firebaseConfig };
   delete webFirebaseConfig.androidApiKey;
@@ -54,7 +58,11 @@ if (firebaseEnabled) {
   const app = appSdk.getApps().length
     ? appSdk.getApp()
     : appSdk.initializeApp(webFirebaseConfig);
-  initializeAndroidAppCheck(app, firebaseConfig);
+  // Emulator QA routes Auth and Firestore to local services. Skip the debug
+  // provider so it does not request a token for the demo project.
+  if (!emulatorHost) {
+    initializeAndroidAppCheck(app, firebaseConfig);
+  }
   try {
     auth = authSdk.initializeAuth(app, {
       persistence: authSdk.getReactNativePersistence(secureAuthStorage()),
@@ -66,16 +74,13 @@ if (firebaseEnabled) {
     auth = authSdk.getAuth(app);
   }
   db = firestoreSdk.getFirestore(app);
-  if (firebaseEmulatorHost.trim()) {
-    if (!__DEV__) {
-      throw new Error('Firebase emulators must never be enabled in a release app.');
-    }
+  if (emulatorHost) {
     authSdk.connectAuthEmulator(
       auth,
-      `http://${firebaseEmulatorHost}:9099`,
+      `http://${emulatorHost}:9099`,
       { disableWarnings: true },
     );
-    firestoreSdk.connectFirestoreEmulator(db, firebaseEmulatorHost, 8080);
+    firestoreSdk.connectFirestoreEmulator(db, emulatorHost, 8080);
   }
 }
 
@@ -263,7 +268,6 @@ export async function firebaseSignOut() {
   const uid = auth.currentUser?.uid;
   await firebaseSdk().auth.signOut(auth);
   if (uid) {
-    ownedStudentIdsByUid.delete(uid);
     privateMessageDocumentCacheByUid.delete(uid);
     privateConversationMessageRefsByUid.delete(uid);
   }
@@ -713,42 +717,6 @@ export async function loadCloudState(uid, cachedLocalState = null) {
   return { ...base, conversations };
 }
 
-export async function firebaseStudentIdClaimed(uid, studentId) {
-  const normalizedStudentId = String(studentId || '').trim();
-  if (!uid || auth?.currentUser?.uid !== uid) {
-    throw new Error('Sign in to verify your Student ID.');
-  }
-  if (!normalizedStudentId) {
-    return false;
-  }
-  if (!/^\d{1,32}$/.test(normalizedStudentId)) {
-    return false;
-  }
-
-  const firestore = firebaseSdk().firestore;
-  try {
-    const snapshot = await firestore.getDoc(
-      firestore.doc(db, 'studentIdClaims', normalizedStudentId),
-    );
-    const claimed = snapshot.exists() && snapshot.data()?.uid === uid;
-    if (claimed) {
-      ownedStudentIdsByUid.set(uid, normalizedStudentId);
-    } else if (ownedStudentIdsByUid.get(uid) === normalizedStudentId) {
-      ownedStudentIdsByUid.delete(uid);
-    }
-    return claimed;
-  } catch (error) {
-    if (error?.code === 'permission-denied') {
-      // Missing claims and claims owned by another account are both unreadable.
-      if (ownedStudentIdsByUid.get(uid) === normalizedStudentId) {
-        ownedStudentIdsByUid.delete(uid);
-      }
-      return false;
-    }
-    throw error;
-  }
-}
-
 export async function saveCloudState(uid, state) {
   if (!db || auth?.currentUser?.uid !== uid) {
     throw new Error('Sign in to save your Firebase account data.');
@@ -757,8 +725,11 @@ export async function saveCloudState(uid, state) {
     throw new Error('The account data is not valid for this Firebase user.');
   }
 
+  const cloudProfile = { ...state.profile };
+  delete cloudProfile.studentId;
   const cloudState = {
     ...state,
+    profile: cloudProfile,
     conversations: Array.isArray(state.conversations)
       ? state.conversations.map(conversation => ({ ...conversation, messages: [] }))
       : [],
@@ -822,52 +793,12 @@ export async function saveCloudState(uid, state) {
   changedConversations.forEach(conversation =>
     messageRefCache.set(conversation.id, conversation.messages),
   );
-  const studentId = String(cloudState.profile.studentId || '').trim();
-  if (studentId && !/^\d{1,32}$/.test(studentId)) {
-    throw new Error('Student ID must contain digits only.');
-  }
-  const previouslyClaimedStudentId = ownedStudentIdsByUid.get(uid) || '';
-  const claimsStudentId = Boolean(
-    studentId && previouslyClaimedStudentId !== studentId,
-  );
-  const releasesStudentId = Boolean(
-    previouslyClaimedStudentId && previouslyClaimedStudentId !== studentId,
-  );
   const stateRef = firestore.doc(db, 'users', uid, 'private', 'state');
   const stateDocument = {
     state: cloudState,
     updatedAt: firestore.serverTimestamp(),
   };
-
-  if (claimsStudentId || releasesStudentId) {
-    const batch = firestore.writeBatch(db);
-    if (claimsStudentId) {
-      batch.set(firestore.doc(db, 'studentIdClaims', studentId), { uid });
-    }
-    if (releasesStudentId) {
-      batch.delete(
-        firestore.doc(db, 'studentIdClaims', previouslyClaimedStudentId),
-      );
-    }
-    batch.set(stateRef, stateDocument);
-    try {
-      await batch.commit();
-    } catch (error) {
-      if (claimsStudentId && error?.code === 'permission-denied') {
-        throw new Error(
-          'That Student ID is already in use, or could not be verified. Check the number and try again.',
-        );
-      }
-      throw error;
-    }
-  } else {
-    await firestore.setDoc(stateRef, stateDocument);
-  }
-  if (studentId) {
-    ownedStudentIdsByUid.set(uid, studentId);
-  } else {
-    ownedStudentIdsByUid.delete(uid);
-  }
+  await firestore.setDoc(stateRef, stateDocument);
 }
 
 export function ensureFirebaseEnabled() {
@@ -891,7 +822,6 @@ function accountFromFirebaseUser(user) {
       'Student',
     email: user.email || '',
     emailVerified: Boolean(user.emailVerified),
-    studentId: '',
   };
 }
 

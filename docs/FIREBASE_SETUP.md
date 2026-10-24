@@ -28,28 +28,57 @@ repository-tracked debug keystore is public and has different SHA-1/SHA-256
 fingerprints (`5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25` /
 `FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C`). Do not register that public certificate with Firebase. Other developers need to use their own local debug key and add its SHA-1 to Firebase after authorization.
 
-The current v1.2.2 release certificate SHA-1 and SHA-256 are registered to
-the Firebase Android app. Google sign-in with that release key and Play Integrity
-attestation have not yet been verified. A future signing-key rotation requires
-registering the new certificate fingerprints before testing that build.
+The v1.2.2 release certificate SHA-1 and SHA-256 are registered to the Firebase
+Android app. The local v1.3.0 preview used a v3 replacement signer; its
+fingerprints remain unregistered. The 1.4.0/code 7 candidate uses the new v4
+signer:
+
+- SHA-1: `92:4A:08:28:93:B2:B1:13:24:79:C8:A9:FC:C3:46:D9:E5:5C:0F:2D`
+- SHA-256: `1A:78:F8:4C:A7:5C:E3:04:1E:50:93:BA:9C:2F:A3:DE:03:34:38:9E:34:31:12:2E:05:8D:1D:FF:41:C6:6D:10`
+
+On 2026-10-23, Firebase CLI confirmed both v4 fingerprints in the Android app
+registration. The signed 1.4.0 candidate completed Google sign-in on POCO,
+saved TIP account setup, and reached Home. The tester profile and interests
+were saved in Firestore. The Firebase App Check Console still shows the Android
+app as **Not registered**. Firebase Auth and Firestore accept requests while
+their App Check enforcement remains off. The candidate logged a token-exchange
+failure, so valid attestation is unverified. If you enable App Check later, use
+the outside-Google-Play settings: Play recognition and licensing are not
+required, and Device integrity is the minimum verdict. See Firebase's [Play Integrity provider guide](https://firebase.google.com/docs/app-check/android/play-integrity-provider),
+[metrics guide](https://firebase.google.com/docs/app-check/monitor-metrics), and
+[Play Integrity configuration reference](https://firebase.google.com/docs/reference/appcheck/rest/v1/projects.apps.playIntegrityConfig).
+Provider registration still requires the project owner's terms acceptance.
+
+The Firebase Console inspection on 2026-10-23 showed the Android app
+com.campus4change as **Not registered** under App Check. The read-only App Check
+API check on 2026-10-24 returned **Unenforced** for Firebase Authentication and
+Cloud Firestore. It also showed no saved off-Play Play Integrity configuration.
+
+The signed candidate's POCO request reached Google Play Integrity, but Firebase
+token exchange failed with a generic FirebaseException. The native bridge does
+not expose the underlying response, so valid App Check attestation is
+unverified. Firebase Auth and Firestore accept the candidate's requests while
+App Check enforcement remains off. App Check enforcement is optional for the
+requested direct APK distribution.
+
+If the project owner enables App Check later, review and accept the provider
+terms, save the outside-Google-Play settings, verify valid POCO tokens and
+request metrics, then consider enforcement.
 
 ### Current production state
 
-A read-only Rules API check on 2026-10-20 confirmed that the active default
-Firestore release points to ruleset
-`projects/campus4change/rulesets/4f66efb8-d8d6-404c-83be-8a2b7b37588a`.
-Its `firestore.rules` source hashes to
-`867e1b314fb639608ef4fe6978892ee6d337536be27a65b01b76c066679ec0a8`.
-The local source hashes to
-`25f0ec68a34ce0eb1964164dfa7fb9139413d99fa0ca1a5f323236bf4e302323`, so the
-current Student ID claim rules are not live. They pass local emulator tests.
-This audit does not deploy production rules or change authorization policy.
+The 2026-10-23 Firestore rules deployment is now active at ruleset
+`projects/campus4change/rulesets/7194f765-35ec-4ecd-b266-cca407e2a07c`. Its
+source hash exactly matches the checked-in `firestore.rules` file:
+`31f4827c128dcc063a21f7de1dc0542db720dd45efce13b8d0ac3a63630f4cfa`. The
+reviewed difference from the previous ruleset only factored existing owner
+state validation into a helper and corrected a comment; authorization behavior
+remained the same. GitHub CI run 39942899889 passed the current-source Firestore
+and Auth emulator suites before deployment. The deployment changed no data.
 
-The Rules API also returned six production composite indexes. Their definitions
-match `firestore.indexes.json`, and all six report `READY`.
-
-The last recorded rules deployment was on 2026-10-17. It added the optional
-allowlisted tutor avatar preset and did not change indexes. An earlier manual
+The 2026-10-23 index check found six production composite indexes, all in
+`READY` state. Their definitions match all six entries in
+`firestore.indexes.json`; no production indexes were changed. An earlier manual
 test recorded a permission-denied group update on a signed-in POCO account.
 This audit did not inspect, replay, or delete that pending device operation.
 See [VERIFICATION.md](VERIFICATION.md) for the dated observation.
@@ -65,16 +94,21 @@ Authentication. The Android app uses the public Firebase Web client ID from
 `firebaseConfig.js` to request a Google ID token, then exchanges that token with
 Firebase. The ID is public client configuration; never put a Web client secret
 in the app. A Google account supplies its name and email. The account holder
-must complete TIP account setup with a course, year level, campus, and
-digits-only Student ID before entering the app. Student IDs stay in private
-account state and are reserved through owner-only Firestore claim documents so
-two Firebase accounts cannot claim the same new or changed ID. Older installed
-clients can keep syncing an unchanged ID until they are updated; a duplicate
-legacy ID must be changed during setup before it can be claimed. Google-to-
-Firebase sign-in has been completed on the POCO with a debug build.
-The matching Firestore rules must be deployed before Firebase accounts can use
-this uniqueness check. Device-only accounts are checked only against other
-accounts on the same device.
+must complete TIP account setup with a course, year level, and campus. Android
+generates a random version 4 UUID and the setup screen displays it for reference.
+The same UUID appears on Profile and is stored separately from the Firebase
+UID, which remains the Firestore owner key. The UUID does not prove TIP
+enrollment or replace Google/email authentication. Legacy Student ID values are
+discarded when old account state is read or saved. Device-only accounts use
+their local UUID as the Campus4Change ID.
+
+After Firebase accepts a Google credential, a complete profile routes to Home
+and an incomplete profile routes to Account Setup. Dismissing the account picker
+returns to Login with a neutral cancellation message. The JavaScript tests cover
+this session handoff. The v4 SHA-1 and SHA-256 are registered. The signed 1.4.0
+candidate completed live Google sign-in and reached Home on POCO. Play Integrity
+App Check remains unregistered and unenforced; the project owner can complete
+its terms and token verification later if App Check protection is needed.
 See [Android's Credential Manager Google sign-in guide](https://developer.android.com/identity/sign-in/credential-manager-siwg-implementation)
 and [Firebase's Google sign-in guide for Android](https://firebase.google.com/docs/auth/android/google-signin)
 for the platform flow and token exchange.
@@ -94,14 +128,15 @@ for the platform flow and token exchange.
 5. Register the Android package `com.campus4change` in Project settings. For
    Google sign-in, build with a private per-machine debug key and register that
    APK's SHA-1. On this workstation, `~/.android/debug.keystore` is selected
-   with `C4C_DEBUG_STORE_FILE` and its SHA-1 is registered. The v1.2.2 private release key SHA-1 and SHA-256 are registered. A future
-release-key rotation requires registering its new SHA-1 for Google sign-in
-and new SHA-256 for App Check before verifying that build. Do not add the
-public
-   repo-tracked debug key to Firebase. Each additional developer's private
-   debug key needs its own authorized SHA-1 entry. App Check Play Integrity
-   requires a valid release certificate and provider configuration; a
-   registered release SHA-256 alone does not verify release attestation.
+   with `C4C_DEBUG_STORE_FILE` and its SHA-1 is registered. The v1.2.2 and
+   v1.4.0/v4 release SHA-1 and SHA-256 fingerprints are registered to the
+   Android app. For future release-key rotation, register the new SHA-1 for
+   Google sign-in and new SHA-256 for App Check before verifying that build.
+   Do not add the public repository-tracked debug key to Firebase. Each
+   additional developer's private debug key needs its own authorized SHA-1
+   entry. App Check Play Integrity requires a valid release certificate and
+   provider configuration; a registered release SHA-256 alone does not verify
+   release attestation.
 6. Sign in to the Firebase CLI, select the same project, and deploy the
    checked-in Firestore rules and indexes only after reviewing and authorizing
    that live change:
@@ -115,34 +150,48 @@ public
    If asked, choose the Firebase project you configured above. Check the
    selected project before deploying. Index creation may take several minutes.
 7. Build and run the Android app. Sign-up creates a Firebase account, and a
-   successful sign-in restores the account's Firestore state. No account or
-   sample listings are preloaded. Existing device-only accounts remain local.
+   successful sign-in restores the account's Firestore state. Account Setup
+   collects the user's TIP course, year, and campus, then shows the generated
+   Campus4Change UUID. No account or sample listings are preloaded. Existing
+   device-only accounts remain local.
 
-Firebase client settings identify the project; the API key is not an access
-control mechanism. Keep Firestore rules restrictive and never put service
-account credentials or Admin SDK keys in the mobile app.
+Firebase `apiKey` and `androidApiKey` values are public client configuration:
+they identify the Firebase project and do not authorize access. Keep
+Firebase-provisioned keys restricted to Firebase APIs, and use separate,
+restricted keys for any non-Firebase Google APIs. Firestore rules enforce data access; App Check adds an app-integrity signal
+when registered and enforced. Never put service-account credentials or Admin
+SDK keys in the mobile app. See [Firebase API key guidance](https://firebase.google.com/docs/projects/api-keys).
 
 ## Android App Check
 
-The app initializes Firebase App Check before the Firebase JavaScript SDK
+Live Firebase builds initialize App Check before the Firebase JavaScript SDK
 creates Auth or Firestore services. A custom JavaScript provider forwards token
 requests to the Android native Firebase SDK. Debug builds use Firebase's debug
-provider; release builds use Play Integrity. The native app registration ID and
-Android API key are stored in `firebaseConfig.js` separately from the Web app ID
-and Web API key. The JavaScript Firebase app receives only the Web configuration;
-the native App Check bridge receives only the Android app configuration.
+provider; release builds use Play Integrity. Debug builds configured for local
+Auth and Firestore emulators skip App Check initialization so they do not
+request a debug token for the demo project. The native app registration ID and
+Android API key are stored in `firebaseConfig.js` separately from the Web app
+ID and Web API key. The JavaScript Firebase app receives only the Web
+configuration; the native App Check bridge receives only the Android app
+configuration.
 
 The Android Firebase app has the v1.2.2 release certificate SHA-1 and
-SHA-256 registered, along with authorized workstation debug fingerprints.
-A POCO X4 GT
-debug token was allowlisted for final-sprint QA, used to verify private-state
-sync, then revoked and removed from the local credential cache. Never commit
-debug tokens or include them in screenshots, reports, or CI logs. Release
-builds use Play Integrity and the v1.2.2 release SHA-256 is registered, but
-release attestation, request metrics, and enforcement have not been verified.
-Firestore Security Rules remain the primary authorization boundary. Accept the
-Google APIs and Play Integrity terms in Firebase Console only when you are
-ready to configure production App Check.
+SHA-256 registered, along with authorized workstation debug fingerprints and
+the v4 release candidate's SHA-1/SHA-256. The v4 fingerprints support Google
+sign-in and are present in Android app registration; the App Check Console
+still shows the Android app as **Not registered**. A POCO release request
+reached the Google Play Integrity service, but Firebase token exchange failed.
+The exact service response is not available in the redacted native log. A POCO
+X4 GT debug token was allowlisted for final-sprint QA, used to verify
+private-state sync, then revoked and removed from the local credential cache.
+Never commit debug tokens or include them in screenshots, reports, or CI logs.
+Release builds use Play Integrity, but App Check enforcement is off, so this
+token failure does not block Firebase Auth or Firestore requests. Firestore
+Security Rules remain the primary authorization boundary. For this APK-only
+distribution, Play recognition and Play licensing are not required by the
+outside-Google-Play configuration; use Device integrity if App Check is
+registered later. The project owner must accept Firebase's terms before saving
+that optional provider configuration.
 
 ## Verify the Firestore rules locally
 
@@ -191,7 +240,8 @@ app build requires the Node.js engine range declared in `package.json`:
 For an Android debug build that tests Auth/Firestore from the app, set
 `firebaseEmulatorHost` to `127.0.0.1` in the local Firebase config while the
 emulators are running, then run `adb reverse tcp:9099 tcp:9099` and
-`adb reverse tcp:8080 tcp:8080`. Keep this value blank for every release build.
+`adb reverse tcp:8080 tcp:8080`. This mode skips App Check token requests. Keep
+the value blank for every release build.
 
 ## Current data boundary
 

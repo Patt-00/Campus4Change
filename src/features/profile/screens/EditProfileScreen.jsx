@@ -46,9 +46,6 @@ export function EditProfileScreen({
     campus:
       normalizeTipCampus(profile.campus) ||
       normalizeTipCampus(profile.school),
-    studentId: String(profile.studentId || '')
-      .replace(/\D/g, '')
-      .slice(0, 32),
     avatarId: profile.avatarId || 'cyan',
     photoUri: profile.profilePhotoUri || '',
     interestGroups: normalizeInterestGroups(
@@ -64,7 +61,6 @@ export function EditProfileScreen({
   const [customCourse, setCustomCourse] = useState(initialValues.customCourse);
   const [year, setYear] = useState(initialValues.year);
   const [campus, setCampus] = useState(initialValues.campus);
-  const [studentId, setStudentId] = useState(initialValues.studentId);
   const [avatarId, setAvatarId] = useState(initialValues.avatarId);
   const [photoUri, setPhotoUri] = useState(initialValues.photoUri);
   const [interestGroups, setInterestGroups] = useState(
@@ -82,7 +78,6 @@ export function EditProfileScreen({
     customCourse,
     year,
     campus,
-    studentId,
     avatarId,
     photoUri,
     interestGroups,
@@ -115,7 +110,6 @@ export function EditProfileScreen({
       setError('Enter a positive number for year level, or leave it blank.');
       return;
     }
-    const trimmedStudentId = studentId.trim();
     if (setup && (!courseId || !selectedProgram)) {
       setError('Choose your TIP course or program.');
       return;
@@ -130,19 +124,6 @@ export function EditProfileScreen({
     }
     if (setup && !campus) {
       setError('Choose your TIP campus.');
-      return;
-    }
-    if ((setup || firebaseAccount) && !trimmedStudentId) {
-      setError('Enter your TIP Student ID.');
-      return;
-    }
-    if (
-      !preferences &&
-      (firebaseAccount || setup) &&
-      trimmedStudentId &&
-      !/^\d+$/.test(trimmedStudentId)
-    ) {
-      setError('Student ID must contain digits only.');
       return;
     }
     const normalizedGroups = normalizeInterestGroups(
@@ -166,12 +147,10 @@ export function EditProfileScreen({
               campus,
               avatarId,
               profilePhotoUri: photoUri,
-              ...(firebaseAccount || setup
-                ? { studentId: trimmedStudentId }
-                : {}),
               interests,
               interestGroups: normalizedGroups,
             },
+        { requireCloud: setup && firebaseAccount },
       );
       if (setup) {
         onComplete?.();
@@ -194,9 +173,24 @@ export function EditProfileScreen({
     >
       {setup && (
         <Text style={s.muted}>
-          Add your TIP academic details and private Student ID to finish setting
-          up your account.
+          Add your TIP academic details to finish setting up your account.
         </Text>
+      )}
+      {setup && Boolean(profile.accountUuid) && (
+        <View style={[s.card, styles.accountIdCard]}>
+          <Text style={s.label}>Your Campus4Change ID</Text>
+          <Text
+            accessibilityLabel={`Campus4Change account ID ${profile.accountUuid}`}
+            selectable
+            style={styles.accountIdValue}
+          >
+            {profile.accountUuid}
+          </Text>
+          <Text style={[s.muted, styles.accountIdHint]}>
+            Generated for your account. Long press to copy it. This ID does not
+            verify TIP enrollment.
+          </Text>
+        </View>
       )}
       {!preferences && (
         <>
@@ -286,23 +280,6 @@ export function EditProfileScreen({
             </View>
             <Icon name="right" size={18} color={C.muted} />
           </TouchableOpacity>
-          {(firebaseAccount || setup) && (
-            <Field
-              label="Student ID (private)"
-              placeholder="Numbers only"
-              value={studentId}
-              onChangeText={value =>
-                setStudentId(value.replace(/\D/g, '').slice(0, 32))
-              }
-              keyboardType="number-pad"
-              maxLength={32}
-            />
-          )}
-          {(firebaseAccount || setup) && (
-            <Text style={[s.muted, styles.fieldHint]}>
-              Use the digits printed on your TIP ID.
-            </Text>
-          )}
         </>
       )}
 
@@ -365,6 +342,21 @@ export function EditProfileScreen({
 }
 
 const styles = StyleSheet.create({
+  accountIdCard: {
+    marginTop: 16,
+    marginBottom: 6,
+    padding: 14,
+  },
+  accountIdValue: {
+    color: C.text,
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 16,
+    letterSpacing: 0.3,
+    marginTop: 5,
+  },
+  accountIdHint: {
+    marginTop: 7,
+  },
   courseSelector: {
     minHeight: 62,
     flexDirection: 'row',

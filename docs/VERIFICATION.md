@@ -1,6 +1,277 @@
 # Verification history
 
-## Current release v1.2.2 — 2026-10-17
+## Release candidate 1.4.0 — 2026-10-23 (not published)
+
+- The signed `com.campus4change` candidate is version 1.4.0/code 7, min API 24,
+  target API 36. The APK SHA-256 is
+  `e1c13ca9af40494302fcee8b717503d2e1f3f8a5b19d580368a27f859cd94b8a`; the AAB
+  SHA-256 is `4f4339999355e4e5975d118d7317b38e530e461a7bb06cba437f94db5511d5bb`.
+  APK verification passed with signer SHA-1
+  `924a082893b2b1132479c8a9fcc346d9e55c0f2d` and SHA-256
+  `1a78f84ca75ce3041e5093ba9c2fa3de0334389e3431122e058d1dff41c66d10`. AAB
+  `jarsigner -verify`, ZIP integrity, and bundletool 1.18.3 validation passed.
+- The Firebase Android app registration now contains the v4 SHA-1 and SHA-256.
+  The App Check Console still shows the Android app as Not registered. Play
+  Integrity registration is paused at the Google APIs and Play Integrity terms
+  checkbox for the project owner to review and accept. At this initial check, no
+  account was selected; the later live sign-in is recorded below.
+- The APK installed on the POCO X4 GT (`Z9GMOVDMHQV8X84D`). The pulled
+  `/data/app/.../base.apk` SHA-256 matches the local APK exactly. A fresh launch
+  displayed the branded Get Started screen; Get Started opened Introduction,
+  Skip opened Login, Sign up opened account creation, and an empty create
+  submission displayed local validation. The form remained unsent. The manifest
+  includes INTERNET and CAMERA and omits biometric/fingerprint permissions.
+- A repeat `adb -s Z9GMOVDMHQV8X84D install --no-streaming -r` on 2026-10-23
+  returned `Success`. The package reports version 1.4.0/code 7, and a post-
+  install pull has SHA-256
+  `e1c13ca9af40494302fcee8b717503d2e1f3f8a5b19d580368a27f859cd94b8a`, matching
+  the local signed APK. The install preserved existing app data.
+- A later cold launch reached `MainActivity` and showed signed-out Login. The
+  default native Firebase initializer logged that default options were absent,
+  then the explicitly configured `Campus4ChangeAppCheck` instance initialized.
+  Google Play Integrity returned its token callback, but Firebase App Check
+  exchange failed with a generic `FirebaseException`. The native bridge omits
+  the underlying response. Device connectivity reported validated Wi-Fi. This
+  does not verify a valid App Check token, and the failure cause remains unknown.
+- The signed-out Login → About route displays version 1.4.0, the peer-learning
+  objective, Firebase/shared-feature requirements, the generated UUID's
+  reference-only role, local-photo storage, and the no-push/no-live-calls limits.
+  Returning to Login retained the signed-out state; no account or cloud request
+  was created by this check.
+- On the installed candidate, tapping Continue with Google opened the
+  Credential Manager account picker. Pressing Back returned to Login with the
+  neutral message “Google sign-in was canceled. Choose an account to continue.”
+  No generic failure appeared. That attempt did not select an account; the later
+  live sign-in check is recorded below.
+- A separate clean clone of commit `6101ee252c60a18337f73470247ae8f256202121`
+  was built from Termux on the POCO. Node.js 26.4.0, Git 2.56.0, and JDK 17.0.21
+  were used with existing Termux SDK/NDK configuration. `npm ci` and
+  `./scripts/gradlew-termux.sh clean assembleDebug --no-daemon --max-workers=2
+  --console=plain` passed; Gradle completed 92 actionable tasks (90 executed,
+  2 up-to-date) in 2m51s. The generated debug APK reports package
+  `com.campus4change`, version 1.4.0/code 7, and `apksigner verify` passed. It
+  was not installed; the current-source POCO app remains the signed release.
+- Manual workflow run
+  [39966502505](https://github.com/Patt-00/Campus4Change/actions/runs/39966502505)
+  built a clean checkout of current PR head `9bbdb82` on GitHub-hosted macOS 15.7.9
+  ARM64. Node.js 24.20.0, npm 11.19.0, Temurin JDK 17.0.21+9, and Gradle
+  9.4.1 were used. The job installed Platform 37.0, Build Tools 37.0.0, and NDK
+  27.1.12297006. `npm ci` and `./gradlew assembleDebug` passed in 2m. APK
+  metadata reports `com.campus4change`, version 1.4.0/code 7; `apksigner verify`
+  passed. The debug APK SHA-256 is
+  `ea5c3799d9370134218eeedd290a43c0229fb93df172e1ef752ad87a5d2b42e2`. The APK
+  was not installed. This verifies the hosted macOS build procedure, not the
+  user's personal Mac setup.
+- GitHub's public v1.3.0-preview.2 asset remains unchanged and does not contain
+  this candidate. No release tag or final 1.4.0 asset has been published.
+- Draft PR #1 CI run `39942899889` passed Jest, lint, Android unit tests,
+  emulator rules/Auth suites, API 24 instrumentation, debug build, and release
+  packaging guard on `6101ee2`. CI run `39948381988` passed both checks on
+  `7fc0d00`; run `39952360701` passed both checks on `1d5c451`. PR run
+  [39964691039](https://github.com/Patt-00/Campus4Change/actions/runs/39964691039)
+  passed both PR checks on `9bbdb82`. Manual run 39966502505 passed the clean
+  macOS 15 build on the same source. Confirm the current PR
+  head has passing checks before merge. The active production Firestore ruleset is
+  `7194f765-35ec-4ecd-b266-cca407e2a07c` and its hash matches local rules
+  `31f4827c128dcc063a21f7de1dc0542db720dd45efce13b8d0ac3a63630f4cfa`. All
+  six production index definitions match local source and are READY.
+
+### Read-only Firestore index parity check, 2026-10-23
+
+- The Firebase Console Indexes page showed all six manual indexes as Enabled.
+  Firebase CLI 15.33.0 returned six live definitions.
+- The API output included Firestore's implicit trailing `__name__` field and
+  `SPARSE_ALL` density. After normalizing those defaults, all six live
+  definitions matched `firestore.indexes.json`. Firebase documents automatic
+  `__name__` ordering in the
+  [index overview](https://firebase.google.com/docs/firestore/query-data/index-overview)
+  and the `SPARSE_ALL` default in the
+  [density reference](https://firebase.google.com/docs/firestore/reference/rest/Shared.Types/Density).
+- This was read-only. No indexes or production settings were changed.
+
+### Play Integrity settings prepared for sideloaded APK, 2026-10-24
+
+- The Firebase Console draft has **PLAY_RECOGNIZED** unchecked, **LICENSED**
+  disabled and unchecked, and minimum integrity set to **Device integrity**.
+  Firebase documents these options for apps distributed outside Google Play in
+  its [Play Integrity guide](https://firebase.google.com/docs/app-check/android/play-integrity-provider).
+- The combined Google APIs and Play Integrity terms checkbox remains
+  unchecked, leaving Save disabled. The Android app remains Not registered;
+  no App Check configuration has been saved.
+
+### User-reported v1.2.2 two-device sync, 2026-10-24
+
+- The user reports that two-device synchronization worked on v1.2.2. This is
+  prior-version user-reported evidence, not an independent test of the signed
+  1.4.0 candidate.
+
+### PR CI on documentation head, 2026-10-24
+
+- PR run [40011097178](https://github.com/Patt-00/Campus4Change/actions/runs/40011097178)
+  passed the `checks` and `api24-instrumentation` jobs on commit `ea5e1e9`.
+- PR run [40013220309](https://github.com/Patt-00/Campus4Change/actions/runs/40013220309)
+  passed both jobs on commit `b2c876f`.
+- PR run [40015230651](https://github.com/Patt-00/Campus4Change/actions/runs/40015230651)
+  passed both required jobs on commit `b13328d`.
+- The macOS clean-build job is manual-only and was skipped in this PR run. A
+  separate hosted macOS run passed earlier in the audit.
+
+### POCO live sign-in and camera check, 2026-10-23
+
+- On the installed signed candidate, the user-selected Google tester account
+  completed Firebase Authentication. The existing Auth record was reused. The
+  incomplete profile opened TIP Account Setup, displayed a generated UUID, and
+  saved a synthetic Computer Science profile for year 1 at T.I.P. Quezon City.
+  The app reached Home, and the profile setup appeared in Firestore Console.
+- Edit Profile requested camera permission. Choosing **While using the app**
+  opened Android's `OneShotCamera`; confirming a capture returned a local photo
+  to the editor. The saved photo remained after force-stop and cold launch. The
+  user confirmed that the phone had been placed flat, covering the rear camera
+  and causing the black preview and capture. The test photo was replaced with
+  the cyan avatar preset and saved.
+- Firebase App Check still lists the Android app as **Not registered**. Its
+  Play Integrity terms checkbox is unchecked, and Save is disabled. Registration
+  and valid release-token verification remain open.
+- PR #1 remains a draft at `07b558b7dd68fd7780e6d4c25f0ea943c499af13`; CI run
+  [39968688244](https://github.com/Patt-00/Campus4Change/actions/runs/39968688244)
+  passed both required checks. No code, production Firebase configuration, or
+  GitHub release state changed during this device check.
+
+### POCO live interest-based tutor recommendation, 2026-10-23
+
+- Learning Preferences on the signed candidate showed the Computer Science
+  topic catalog for T.I.P. Quezon City. Saving **Computer programming** and
+  **Object-oriented programming** as interests made Home report one tutor match.
+- Find People displayed a public tutor profile under **Recommended for your
+  interests** and showed both selected topics as matches. The profile and its
+  public session times opened. After force-stop and cold launch, Home still
+  displayed one tutor match. No booking or chat request was sent.
+- This verifies one account's live directory and recommendation path. The app
+  has not yet verified another account's view of a newly created tutor profile
+  or a request delivered between two users.
+
+### POCO live notification navigation, 2026-10-23
+
+- Home showed one unread notification. The Notifications page exposed the
+  unread state and **Mark all as read** action.
+- Tapping the individual item opened the related shared-group details page.
+  Returning to Notifications and Home showed the item read and the unread badge
+  at 0. No group post, chat message, or session request was created.
+- This verifies the release notification destination and read-state update on
+  one account. Two-account notification delivery remains unverified.
+
+### POCO release Group Session route, 2026-10-23
+
+- Study Groups opened the existing shared group on the signed candidate.
+  Group Details opened **Group Session** successfully.
+- The screen displayed **Agenda and notes**. No focus-timer control appeared in
+  the accessibility tree. No group content was changed.
+- This verifies the release navigation and Group Session layout for one group.
+  Creating or editing a shared session remains unverified.
+
+### POCO release session list empty states, 2026-10-23
+
+- My Sessions showed empty Upcoming, Requests, and Cancelled states for the
+  tester account.
+- The public tutor's **Request a Session** action opened Book a Session. The
+  form explained that a request remains pending until acceptance and that its
+  note is shared. It was closed without submission.
+- The user reports that two-device sync was tested and worked on v1.2.2. This
+  is prior-version user-reported evidence. The 1.4.0 request, acceptance, and
+  cancellation flow was not submitted to the public tutor on the current build.
+
+### POCO release tutor setup route, 2026-10-23
+
+- Profile → Tutor profile opened the Be a Tutor screen on the signed candidate.
+  It explained that published listings are visible to verified users and
+  showed the TIP core-topic suggestions.
+- The form was closed without selecting subjects or saving a listing. This
+  verifies route access only; publishing, editing, and removing a public tutor
+  profile remain unverified on this release.
+
+### POCO release unsaved profile exit confirmation, 2026-10-23
+
+- In Edit Profile, removing a saved interest and tapping Back displayed
+  **Discard unsaved changes?** with **Keep editing** and **Discard changes**.
+- Discarding returned to Profile. Home still showed the saved Computer
+  programming interest and one tutor match.
+- This verifies the release discard prompt and saved-interest preservation. No
+  profile changes were saved during the check.
+
+### POCO release profile identity fields, 2026-10-23
+
+- Profile displayed the **Campus4Change ID** label. Edit Profile showed Year
+  level and TIP campus fields, and no Student ID field.
+- The check read labels only and saved no profile changes.
+
+### POCO release Year level input validation, 2026-10-23
+
+- The Year level field contained `1`. Sending alphabetic input left its value
+  at `1`. Back returned to Profile without an unsaved-changes prompt.
+- The test saved no profile changes.
+
+### POCO release Google re-sign-in and UUID persistence, 2026-10-23
+
+- After sign-out, selecting the user-designated Google account in Credential
+  Manager returned to Home without reopening Account Setup.
+- A one-way digest comparison confirmed the Campus4Change ID matched before and
+  after sign-in. Home restored the saved Computer programming interest and one
+  tutor match. No additional Auth account was created.
+
+### POCO release Settings menu route, 2026-10-23
+
+- The Home menu showed Profile and Settings. Settings opened Learning
+  Preferences and About, displayed version 1.4.0, and showed no biometric
+  control.
+- This was a read-only route check; no settings were changed.
+
+### Read-only Firestore index parity check, 2026-10-23
+
+- The Firebase Console Indexes page showed all six manual indexes as Enabled.
+  Firebase CLI 15.33.0 returned six live definitions.
+- The API output included Firestore's implicit trailing `__name__` field and
+  `SPARSE_ALL` density. After normalizing those defaults, all six live
+  definitions matched `firestore.indexes.json`. Firebase documents automatic
+  `__name__` ordering in the
+  [index overview](https://firebase.google.com/docs/firestore/query-data/index-overview)
+  and the `SPARSE_ALL` default in the
+  [density reference](https://firebase.google.com/docs/firestore/reference/rest/Shared.Types/Density).
+- This was read-only. No indexes or production settings were changed.
+
+## Latest local release v1.3.0 — 2026-10-22 (not published)
+
+- After the camera-result auto-resume source change, scripts/build-release.sh
+  built local version 1.3.0/code 6 APK and AAB artifacts. The APK SHA-256 is
+  c2191dc45f42d5d9e2a4bbc63d515d1e045a3cbdd72af872b365c5d173fcc210; the
+  AAB SHA-256 is
+  98e8c92bef8ce215e64f540ce36fd388713d18d79afed3ab843f7b98962d349a.
+- The APK passed apksigner verify using the v3 release certificate (SHA-1
+  21241e9a18ab8531f5b383a55d8714c980c807d5, SHA-256
+  0c652406cf3b6051a4f96570807ef738d48a48802ee10e0676055d61fef59ee7). The
+  AAB passed jarsigner -verify, ZIP integrity, and Bundletool 1.18.3
+  validation. Its base manifest reports com.campus4change, version 1.3.0,
+  version code 6, min API 24, and target API 36. Both release manifests omit
+  `USE_BIOMETRIC` and `USE_FINGERPRINT`; AndroidX Credential Manager remains
+  installed for Google sign-in.
+- adb install -r updated POCO X4 GT in place. The installed certificate
+  matched, and the pulled base.apk SHA-256 matched the local APK exactly.
+  The cold launch foregrounded com.campus4change/.MainActivity on the
+  sign-in/account-creation screen; the sampled current-process logs contained
+  no fatal or React Native error markers. Existing app data was preserved.
+  The Login screen still shows Continue with Google and no biometric option.
+  The camera process-recreation route is verified on the separate QA build;
+  release camera capture and release Firebase sign-in were not tested.
+  Empty sign-in displayed its email/password validation, and empty account
+  creation displayed local name/email/password validation. Source control flow
+  returns before Firebase auth calls for both invalid submissions. Android
+  Back returned to Login; no credentials or account data were entered.
+- These artifacts are local only. The release certificate remains absent from
+  Firebase's registered SHA list, and release Google sign-in remains unverified.
+  The App Check Console lists the Android app as Not registered; Authentication
+  and Cloud Firestore enforcement are Unenforced. No production or GitHub state
+  changed.
+
+## Latest published release v1.2.2 — 2026-10-17
 
 - The private-signed release is published at
   https://github.com/Patt-00/Campus4Change/releases/tag/v1.2.2. The APK is
@@ -876,7 +1147,7 @@ Complete these manual checks on the exact release APK before demonstrating it.
 10. Add a custom interest, reject a duplicate with different letter case, remove an interest, and save. Check the home interest and tutor count.
 11. Create a separate account and confirm that interests and the TIP campus start blank, with an empty tutor directory and groups. Save preferences without selecting a campus.
 12. Enter your course, year, and select Quezon City or Manila as your TIP campus. Create and edit a tutor listing. With two email-verified Firebase accounts, confirm the listing appears to the other account and can be removed by its owner.
-13. Use disposable Firebase accounts on the Android debug build. Verify email/password and Google signup both open the required Account Setup screen with the supplied name and email, require TIP course, year, campus, and digits-only Student ID, and do not continue until the ID claim succeeds. Try the same ID with a second account and confirm it is rejected; then use a different ID and complete setup. Cancel the Google sheet once and confirm the auth screen stays usable. Repeat with the exact release signing certificate before distribution. This account-level flow has not yet been completed.
+13. Use disposable Firebase accounts on the Android build. The 1.4.0 release candidate's Google sign-in, generated-UUID setup, complete-profile Home route, and UUID persistence after Google re-sign-in passed on POCO. Email/password signup, incomplete-profile restore, a second account's unique UUID, and cancellation behavior on the current release remain unverified on physical hardware. The user reports that two-device sync worked on v1.2.2; that is prior-version evidence. Local and emulator checks cover additional setup paths.
 14. Sign out and sign in again to check saved data. For an unverified email/password account, open Notifications and check that the verification item can resend the link and refresh verification status.
 
 Email-verified Firebase accounts share tutor profiles, session requests, current-member group chats, and tutor-session chats limited to their two participants. Device-only conversations remain private notes. Signed-in Firebase users share group details, memberships, posts, replies, and chat. About explains that email verification does not establish school affiliation.
@@ -1046,3 +1317,60 @@ adapter/rules regression. Live redeployment and POCO collaboration checks follow
   [QUALITY_AUDIT.md](QUALITY_AUDIT.md).
 - The implementation branch had not yet been committed, pushed, or checked by
   its final GitHub Actions run when this record was written.
+
+## Current Firebase and distribution status, 2026-10-24
+
+The user selected a signed APK for direct installation. Google Play publication
+and an Android App Bundle are not required. The signed 1.4.0 candidate
+completed Google sign-in, UUID setup, Firestore profile saves, and Home routing
+on POCO. The user reports two-device sync worked on v1.2.2; this remains
+user-reported prior-version evidence.
+
+A read-only Firebase Rules API check found the active Firestore release points
+to ruleset 7194f765-35ec-4ecd-b266-cca407e2a07c. Its source hash,
+31f4827c128dcc063a21f7de1dc0542db720dd45efce13b8d0ac3a63630f4cfa, matches
+the checked-in rules. Firebase CLI 15.33.0 returned six live composite-index
+definitions. Removing Firestore's implicit trailing __name__ field and
+normalizing SPARSE_ALL produced an exact match with firestore.indexes.json.
+
+The 2026-10-23 Firebase Console check showed App Check unregistered. A POCO
+token exchange failed, so valid App Check attestation is unverified. App Check
+enforcement for Firebase Authentication and Cloud Firestore was off at that
+check, and the candidate's requests succeeded. The provider settings are optional for this APK release.
+No Firebase rules, indexes, enforcement settings, or records changed during
+these read-only checks.
+
+The 2026-10-24 App Check API read confirmed `UNENFORCED` for
+`identitytoolkit.googleapis.com` and `firestore.googleapis.com`. The Play
+Integrity config has no saved off-Play allowance: `allowUnrecognizedVersion`
+and `requireLicensed` are unset, and the minimum device level is
+`NO_INTEGRITY`. The Console draft's off-Play settings are not saved because
+the project owner's terms checkbox is still unchecked. No API write was made.
+
+GitHub Actions run 40022730763 passed the checks job and API 24
+instrumentation on PR commit dc33cf59cfabf383d2cd11f38c44a4ffeca78c9b. The
+workflow skipped its clean macOS job; manual run 39966502505 covers that build.
+
+## Production reset and POCO booking cancellation, 2026-10-24
+
+After the approved one-time reset and disposable-account QA, Firebase Auth and
+the default Firestore database contain no test records. The encrypted pre-reset
+backup remains outside the repository until release verification is complete.
+
+Before cleanup, Firebase Auth export found exactly two verified disposable QA
+accounts. Identity Platform `accounts:batchDelete` reported two accounts
+requested, two deleted, and zero errors. A recursive Firestore REST inventory
+found 3 documents across 4 collection paths. Firebase CLI 15.33.0 then deleted
+all collections recursively from `campus4change` database `(default)`. A new
+Auth export reported 0 accounts, and a second authenticated recursive Firestore
+REST traversal reported 0 collection paths and 0 documents.
+
+On POCO X4 GT (`Z9GMOVDMHQV8X84D`, model `22041216G`), the student opened the
+accepted Computer programming session, saw **UPCOMING**, and confirmed
+cancellation. Session Details displayed **CANCELLED**. Clearing
+`com.campus4change` with `pm clear` succeeded; a cold launch returned to
+**GET STARTED** without a signed-in account or demo content. Pad 7 was deferred
+and Redmi was excluded.
+
+The reset changed Firebase Auth users and Firestore data only. It did not
+change Auth providers, Firestore rules or indexes, or App Check enforcement.

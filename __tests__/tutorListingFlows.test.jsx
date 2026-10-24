@@ -290,6 +290,35 @@ test('shared tutor directory gives a real empty state without bundled listings',
   await act(async () => renderer.unmount());
 });
 
+test('unverified shared search does not show zero results for the locked directory', async () => {
+  let renderer;
+  await act(async () => {
+    renderer = renderScreen(
+      <TutorSearchScreen
+        go={jest.fn()}
+        back={jest.fn()}
+        list={[]}
+        initialQuery="computer"
+        sharedAccount
+        emailVerified={false}
+      />,
+    );
+  });
+
+  const labels = renderer.root
+    .findAllByType(Text)
+    .map(node => node.props.children)
+    .flat(Infinity)
+    .filter(value => typeof value === 'string');
+  const summary = labels.find(label =>
+    /^(People search results|Tutor directory)/.test(label),
+  );
+
+  expect(summary).toBe('Tutor directory');
+  expect(labels).toContain('Verify your email to browse tutors');
+  await act(async () => renderer.unmount());
+});
+
 test('tutor directory searches, applies availability and rating, and clears filters', async () => {
   const list = [
     {

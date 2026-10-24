@@ -11,6 +11,7 @@ const mockUnsubscribe = jest.fn();
 const mockStore = {
   loadState: jest.fn(),
   saveState: jest.fn(),
+  generateAccountUuid: jest.fn(async () => '00000000-0000-4000-8000-000000000009'),
   setActiveUser: jest.fn(),
   signIn: jest.fn(),
   signOut: jest.fn(),
@@ -30,7 +31,6 @@ jest.mock('../src/shared/backend/firebase', () => ({
   firebaseSignIn: jest.fn(),
   firebaseSignOut: (...args) => mockFirebaseSignOut(...args),
   firebaseSignUp: jest.fn(),
-  firebaseStudentIdClaimed: jest.fn(async (_uid, studentId) => Boolean(studentId)),
   loadCloudState: (...args) => mockLoadCloudState(...args),
   saveCloudState: (...args) => mockSaveCloudState(...args),
   watchFirebaseUser: (onUser, onError) => {
@@ -77,7 +77,6 @@ function firebaseUser(id) {
     name: `Student ${id}`,
     email: `${id}@example.test`,
     emailVerified: true,
-    studentId: '',
   };
 }
 
@@ -252,7 +251,6 @@ test('signup reports a recoverable Firebase display-name sync failure', async ()
     id: 'firebase-new',
     name: 'Jamie Student',
     email: 'jamie@gmail.com',
-    studentId: '',
     emailVerified: false,
     verificationEmailSent: true,
     displayNameSaved: false,
@@ -284,7 +282,6 @@ test('signup reports a recoverable Firebase display-name sync failure', async ()
   expect(currentSession.state.profile).toMatchObject({
     id: 'firebase-new',
     name: 'Jamie Student',
-    studentId: '',
   });
 });
 
@@ -387,7 +384,7 @@ test('hides the prior Firebase account and saves it locally before switching UID
   expect(currentSession.restoring).toBe(false);
 });
 
-test('a late restore failure cannot reset the next account ID claim', async () => {
+test('a late restore failure cannot corrupt the next account profile', async () => {
   let failOldRestore;
   mockLoadCloudState.mockImplementationOnce(
     () => new Promise((_resolve, reject) => { failOldRestore = reject; }),
@@ -398,54 +395,22 @@ test('a late restore failure cannot reset the next account ID claim', async () =
     await flush();
   });
   await act(async () => {
-    mockFirebaseObserver.onUser({
-      ...firebaseUser('firebase-b'),
-      studentId: '20002',
-    });
+    mockFirebaseObserver.onUser(firebaseUser('firebase-b'));
     await flush();
   });
-  expect(currentSession.studentIdClaimStatus).toBe('claimed');
   await act(async () => {
     failOldRestore(new Error('Old account restore failed.'));
     await flush();
   });
   expect(currentSession.state.profile.id).toBe('firebase-b');
-  expect(currentSession.studentIdClaimStatus).toBe('claimed');
+  expect(currentSession.state.profile.accountUuid).toBe(
+    '00000000-0000-4000-8000-000000000009',
+  );
   expect(currentSession.saveError).not.toBe('Old account restore failed.');
 });
 
-test('a rejected Student ID edit cannot mark the next account as conflicted', async () => {
-  await render();
-  await act(async () => {
-    mockFirebaseObserver.onUser({ ...firebaseUser('firebase-a'), studentId: '10001' });
-    await flush();
-  });
-  let rejectEdit;
-  mockSaveCloudState.mockImplementationOnce(
-    () => new Promise((_resolve, reject) => { rejectEdit = reject; }),
-  );
-  let edit;
-  await act(async () => {
-    edit = currentSession.saveProfileUpdate({ studentId: '30003' })
-      .catch(error => error.message);
-    await flush();
-  });
-  expect(rejectEdit).toBeDefined();
-  await act(async () => {
-    mockFirebaseObserver.onUser({ ...firebaseUser('firebase-b'), studentId: '20002' });
-    await flush();
-  });
-  await act(async () => {
-    rejectEdit(new Error('Student ID is already in use.'));
-    await edit;
-    await flush();
-  });
-  expect(currentSession.state.profile.id).toBe('firebase-b');
-  expect(currentSession.studentIdClaimStatus).toBe('claimed');
-});
-
-test.each(['success', 'conflict'])(
-  'a late cloud-write %s from the previous account cannot change the current ID claim',
+test.each(['success', 'failure'])(
+  'a late cloud-write %s from the previous account cannot replace the current profile',
   async outcome => {
     let finishOldWrite;
     let failOldWrite;
@@ -463,26 +428,24 @@ test.each(['success', 'conflict'])(
     expect(finishOldWrite).toBeDefined();
 
     await act(async () => {
-      mockFirebaseObserver.onUser({
-        ...firebaseUser('firebase-b'),
-        studentId: '20002',
-      });
+      mockFirebaseObserver.onUser(firebaseUser('firebase-b'));
       await flush();
     });
-    expect(currentSession.studentIdClaimStatus).toBe('claimed');
 
     await act(async () => {
       if (outcome === 'success') finishOldWrite(true);
-      else failOldWrite(new Error('Student ID is already in use.'));
+      else failOldWrite(new Error('Previous account save failed.'));
       await flush();
     });
     expect(currentSession.state.profile.id).toBe('firebase-b');
-    expect(currentSession.studentIdClaimStatus).toBe('claimed');
+    expect(currentSession.state.profile.accountUuid).toBe(
+      '00000000-0000-4000-8000-000000000009',
+    );
   },
 );
 
 test('profile edits persist locally while an earlier Firebase write waits for acknowledgement', async () => {
-  const account = { ...firebaseUser('firebase-a'), studentId: '10001' };
+  const account = firebaseUser('firebase-a');
   const local = makeQaState(account);
   local.updatedAt = 10;
   const cloud = makeQaState(account);
@@ -511,7 +474,6 @@ test('profile edits persist locally while an earlier Firebase write waits for ac
     mockFirebaseObserver.onUser(account);
     await flush();
   });
-  expect(currentSession.studentIdClaimStatus).toBe('claimed');
 
   if (!acknowledgeFirstWrite) {
     await act(async () => {
@@ -554,36 +516,36 @@ test('profile edits persist locally while an earlier Firebase write waits for ac
   );
 });
 
-test('Student ID changes stop when the previous claim cannot be checked', async () => {
-  const account = { ...firebaseUser('firebase-a'), studentId: '10001' };
+test('legacy Student ID data migrates to a generated account UUID', async () => {
+  const account = firebaseUser('firebase-a');
+  const cloud = makeQaState(account);
+  cloud.profile.studentId = '10001';
+  cloud.updatedAt = Date.now() + 10_000;
+  mockCloudStateForUser.set(account.uid, cloud);
   await render();
   await act(async () => {
     mockFirebaseObserver.onUser(account);
     await flush();
     await flush();
-  });
-  expect(currentSession.studentIdClaimStatus).toBe('claimed');
-  mockStore.saveState.mockClear();
-  mockSaveCloudState.mockClear();
-  const firebase = require('../src/shared/backend/firebase');
-  firebase.firebaseStudentIdClaimed.mockRejectedValueOnce(
-    new Error('Student ID claim check is offline.'),
-  );
-
-  let saveError;
-  await act(async () => {
-    try {
-      await currentSession.saveProfileUpdate({ studentId: '20002' });
-    } catch (error) {
-      saveError = error;
-    }
     await flush();
   });
 
-  expect(saveError).toEqual(new Error('Student ID claim check is offline.'));
-  expect(currentSession.state.profile.studentId).toBe('10001');
-  expect(mockStore.saveState).not.toHaveBeenCalled();
-  expect(mockSaveCloudState).not.toHaveBeenCalled();
+  expect(currentSession.state.profile.accountUuid).toBe(
+    '00000000-0000-4000-8000-000000000009',
+  );
+  expect(currentSession.state.profile).not.toHaveProperty('studentId');
+  expect(
+    JSON.parse(mockLocalStateForUser.get(account.uid)).profile,
+  ).not.toHaveProperty('studentId');
+  const migratedCloudState = mockSaveCloudState.mock.calls
+    .map(([, state]) => state)
+    .find(state => state.profile.id === account.uid);
+  expect(migratedCloudState.profile.accountUuid).toBe(
+    '00000000-0000-4000-8000-000000000009',
+  );
+  expect(migratedCloudState.profile).not.toHaveProperty('studentId');
+
+  await act(async () => renderer.unmount());
 });
 
 test('cloud save failure still signs Firebase out after the local snapshot is saved', async () => {
@@ -672,11 +634,11 @@ test('a first-device restore prefers the saved cloud profile over a newly genera
     await flush();
   });
   expect(currentSession.state.profile).toMatchObject({
-    name: 'Saved cloud student', studentId: '99002018', year: '2',
+    name: 'Saved cloud student', year: '2',
   });
-  expect(currentSession.studentIdClaimStatus).toBe('claimed');
+  expect(currentSession.state.profile).not.toHaveProperty('studentId');
   expect(JSON.parse(mockLocalStateForUser.get(account.uid)).profile.name).toBe('Saved cloud student');
-  expect(mockSaveCloudState.mock.calls.some(([, state]) => state.profile.studentId === '')).toBe(false);
+  expect(mockSaveCloudState.mock.calls.some(([, state]) => Object.hasOwn(state.profile, 'studentId'))).toBe(false);
 });
 
 test('a shared-feed update during first restore cannot turn the empty default into a real local edit', async () => {
@@ -693,6 +655,5 @@ test('a shared-feed update during first restore cannot turn the empty default in
   expect(currentSession.state.updatedAt).toBe(placeholderTime);
   await act(async () => { finishCloud(cloud); await flush(); });
   expect(currentSession.state.profile.name).toBe('Cloud profile during feed load');
-  expect(currentSession.state.profile.studentId).toBe('99103018');
-  expect(currentSession.studentIdClaimStatus).toBe('claimed');
+  expect(currentSession.state.profile).not.toHaveProperty('studentId');
 });

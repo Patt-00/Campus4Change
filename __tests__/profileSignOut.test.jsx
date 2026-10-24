@@ -23,9 +23,9 @@ test('Firebase sign-out explains when changes stayed only on the device', async 
   const alert = jest.spyOn(Alert, 'alert');
   const account = {
     id: 'firebase-student',
+    accountUuid: '00000000-0000-4000-8000-000000000007',
     name: 'Student',
     email: 'student@school.test',
-    studentId: 'STU-1',
   };
   let renderer;
   await act(async () => {

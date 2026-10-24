@@ -46,9 +46,23 @@ test('introduction completion uses the device-level native preference', async ()
   expect(bridge.markIntroductionCompleted).toHaveBeenCalledTimes(1);
 });
 
-test('parseAccount returns the stored account record', () => {
+test('parseAccount removes legacy Student ID and normalizes account UUID', () => {
   const account = { id: 'student', email: 'student@example.test' };
-  expect(parseAccount(JSON.stringify(account))).toEqual(account);
+  expect(parseAccount(JSON.stringify(account))).toEqual({
+    ...account,
+    accountUuid: '',
+  });
+
+  const legacyAccount = {
+    id: '550e8400-e29b-41d4-a716-446655440000',
+    email: 'student@example.test',
+    studentId: '1234',
+  };
+  expect(parseAccount(JSON.stringify(legacyAccount))).toEqual({
+    id: legacyAccount.id,
+    email: legacyAccount.email,
+    accountUuid: legacyAccount.id,
+  });
 });
 
 test('legacy version-one state defaults the pending action queue', () => {
