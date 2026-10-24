@@ -4,12 +4,12 @@ This guide builds the Android app from a clean clone on Windows, macOS, Linux, o
 
 ## Current release and required tools
 
-The signed Campus4Change 1.4.0 APK is available from the [GitHub release page](https://github.com/Patt-00/Campus4Change/releases/tag/v1.4.0).
+The signed Campus4Change 1.4.1 APK is available from the [GitHub release page](https://github.com/Patt-00/Campus4Change/releases/tag/v1.4.1).
 
 - Package: `com.campus4change`
-- Version: 1.4.0, Android version code 7
+- Version: 1.4.1, Android version code 8
 - Minimum Android version: API 24
-- APK SHA-256: `0e9ecd7fab8cf1440daa8c21b7ef9e59eb55a8e8c2ba4e036bca576fa6519aa1`
+- APK SHA-256: `6382073539e8c2bff06d2d190751632356ea615c1e2e9bf04b23ea20598f6c9d`
 - Release APK path after a local build: `android/app/build/outputs/apk/release/app-release.apk`
 
 Use the tool versions declared in the project:

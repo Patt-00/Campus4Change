@@ -4,13 +4,13 @@ Campus4Change is an Android peer-learning app for students at the Technological 
 
 ## Download
 
-Download the signed Android APK from the [Campus4Change v1.4.0 GitHub release](https://github.com/Patt-00/Campus4Change/releases/tag/v1.4.0).
+Download the signed Android APK from the [Campus4Change v1.4.1 GitHub release](https://github.com/Patt-00/Campus4Change/releases/tag/v1.4.1).
 
-- Direct APK: [Campus4Change 1.4.0](https://github.com/Patt-00/Campus4Change/releases/download/v1.4.0/app-release.apk)
+- Direct APK: [Campus4Change 1.4.1](https://github.com/Patt-00/Campus4Change/releases/download/v1.4.1/app-release.apk)
 - Package: `com.campus4change`
-- Version: 1.4.0, Android version code 7
+- Version: 1.4.1, Android version code 8
 - Minimum Android version: Android 7.0 (API 24)
-- APK SHA-256: `0e9ecd7fab8cf1440daa8c21b7ef9e59eb55a8e8c2ba4e036bca576fa6519aa1`
+- APK SHA-256: `6382073539e8c2bff06d2d190751632356ea615c1e2e9bf04b23ea20598f6c9d`
 
 The release is a signed APK. It includes the JavaScript bundle and does not need Metro. The app does not include demo accounts or seeded demo content.
 
@@ -29,6 +29,7 @@ For an update, Android requires the same application ID and signing certificate 
 - Session requests, tutor acceptance or decline, cancellation, and participant messaging.
 - Study-group discovery, shared details, posts, replies, and group chat.
 - Animated in-app notifications, separate Settings, and About information.
+- A short animated splash introduction that honors the device's reduced-motion setting.
 - Built-in avatars and optional profile photos from the system photo picker or camera. Profile photos stay on the device.
 
 ## Accounts and data

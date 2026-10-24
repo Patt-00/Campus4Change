@@ -143,6 +143,6 @@ jobs:
           sdk_root="${ANDROID_HOME:-${HOME}/Library/Android/sdk}"
           metadata="$("$sdk_root/build-tools/37.0.0/aapt" dump badging "$apk" | sed -n '1p')"
           printf '%s\n' "$metadata"
-          grep -Fq "package: name='com.campus4change' versionCode='7' versionName='1.4.0'" <<<"$metadata"
+          grep -Fq "package: name='com.campus4change' versionCode='8' versionName='1.4.1'" <<<"$metadata"
           "$sdk_root/build-tools/37.0.0/apksigner" verify --verbose "$apk"
           shasum -a 256 "$apk"
