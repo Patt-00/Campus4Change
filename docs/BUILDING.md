@@ -74,6 +74,12 @@ You can install Temurin JDK 17 from PowerShell with WinGet:
 winget install --id EclipseAdoptium.Temurin.17.JDK --exact
 ```
 
+If WinGet says the package is already installed but the prerequisite check cannot find a JDK 17, rerun the installer with `--force --interactive`. If Windows Installer offers maintenance options, choose Repair:
+
+```powershell
+winget install --id EclipseAdoptium.Temurin.17.JDK --exact --force --interactive
+```
+
 When installation finishes, close and reopen PowerShell before setting up the build environment.
 
 In Android Studio, complete the setup wizard and open **Tools > SDK Manager**. Install these packages:
@@ -93,11 +99,39 @@ Open PowerShell in the repository root. The following commands use the default A
 ```powershell
 $env:ANDROID_HOME = Join-Path $env:LOCALAPPDATA 'Android\Sdk'
 $env:ANDROID_SDK_ROOT = $env:ANDROID_HOME
-$jdk = Get-ChildItem -Path 'C:\Program Files\Eclipse Adoptium' -Directory -Filter 'jdk-17*' -ErrorAction SilentlyContinue | Select-Object -First 1
-if ($null -eq $jdk) {
-    Write-Error 'Temurin JDK 17 was not found. Install it with the WinGet command above, reopen PowerShell, then rerun this block.'
+$uninstallRoots = @(
+    'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*'
+    'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
+    'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*'
+)
+$registeredJdkRoots = foreach ($root in $uninstallRoots) {
+    Get-ItemProperty -Path $root -ErrorAction SilentlyContinue |
+        Where-Object { $_.DisplayName -match 'Temurin.*17' -and $_.InstallLocation } |
+        Select-Object -ExpandProperty InstallLocation
+}
+$jdkRoots = @(
+    $env:JAVA_HOME
+    [Environment]::GetEnvironmentVariable('JAVA_HOME', 'User')
+    [Environment]::GetEnvironmentVariable('JAVA_HOME', 'Machine')
+    $registeredJdkRoots
+    Get-ChildItem -Path 'C:\Program Files\Eclipse Adoptium' -Directory -Filter 'jdk-17*' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
+) | Where-Object { $_ } | Select-Object -Unique
+$jdkRoot = $null
+foreach ($candidate in $jdkRoots) {
+    $javaExe = Join-Path $candidate 'bin\java.exe'
+    $javacExe = Join-Path $candidate 'bin\javac.exe'
+    if ((Test-Path -LiteralPath $javaExe) -and (Test-Path -LiteralPath $javacExe)) {
+        $javaVersionOutput = (& $javaExe -version 2>&1 | Out-String)
+        if ($javaVersionOutput -match 'version "17\.') {
+            $jdkRoot = $candidate
+            break
+        }
+    }
+}
+if ($null -eq $jdkRoot) {
+    Write-Error 'JDK 17 was not found. Install or repair Temurin JDK 17, reopen PowerShell, and rerun this block.'
 } else {
-    $env:JAVA_HOME = $jdk.FullName
+    $env:JAVA_HOME = $jdkRoot
     $env:Path = "$env:JAVA_HOME\bin;$env:ANDROID_HOME\platform-tools;$env:Path"
 
     git --version
