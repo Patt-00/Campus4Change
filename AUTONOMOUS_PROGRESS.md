@@ -6,101 +6,59 @@ or a production deployment.
 
 ## Current workspace
 
-Updated 2026-10-24 after rechecking GitHub, Firebase Console, the POCO, and the
-current worktree.
+Updated 2026-10-24 after verifying the merged source, GitHub pre-release, POCO,
+Firebase counts, presentation guide, and email delivery.
 
-- Branch `release/v1.3.0-preview.2` has draft PR
-  [#1](https://github.com/Patt-00/Campus4Change/pull/1) targeting `main`. PR CI
-  run [40015230651](https://github.com/Patt-00/Campus4Change/actions/runs/40015230651)
-  passed both required jobs on prior head `b13328d`. Manual workflow run
-  [39966502505](https://github.com/Patt-00/Campus4Change/actions/runs/39966502505)
-  passed, including a clean macOS build on earlier source. Verify CI on the
-  current PR head before merge. The preview
-  tag remains at `55dcc571436d705827b7b069d6bb077350a7e6f5`; `main` remains at
-  `46fe89a534d98866dc981ef11fe64f24151e8bf4`.
-- The signed 1.4.0/code 7 candidate APK SHA-256 is
-  `e1c13ca9af40494302fcee8b717503d2e1f3f8a5b19d580368a27f859cd94b8a`; the
-  AAB SHA-256 is `4f4339999355e4e5975d118d7317b38e530e461a7bb06cba437f94db5511d5bb`.
-  The candidate was built with a new local v4 signer; APK signature, AAB
-  signature, ZIP integrity, and bundletool validation passed. It remains
-  unpublished. The
-  older v1.3.0-preview.2 APK remains the only public installable asset.
-- The USB-connected POCO X4 GT (`Z9GMOVDMHQV8X84D`, model `22041216G`) has the
-  signed candidate `com.campus4change`, version 1.4.0/code 7. Reinstalling the
-  local release APK returned `Success`; a second pull confirmed the installed
-  base APK SHA-256 matches the local artifact exactly. The earlier fresh launch
-  showed the branded Get Started screen. Intro-to-login and signup navigation,
-  empty-form validation, and neutral cancellation after dismissing the Google
-  account picker were checked first. In the later live test, the user-selected
-  tester account signed in through Firebase, reached TIP Account Setup, saved a
-  synthetic Computer Science profile for year 1 at T.I.P. Quezon City, and
-  reached Home with its generated UUID. The existing Auth account was reused.
-  After saving Computer programming and Object-oriented programming as interests,
-  Home showed one tutor match and Find People listed the public profile under
-  **Recommended for your interests** with both topics matched.
-  Opening the existing unread notification navigated to its related group
-  details; the Home badge changed from 1 unread to 0 after returning. No group
-  post or chat message was created. The first My Sessions check showed empty
-  Upcoming, Requests, and Cancelled states. The only directory tutor then
-  available belonged to another account, so it was not contacted.
-  Profile → Tutor profile opened the Be a Tutor form with TIP topic suggestions.
-  I first backed out without creating a listing. Later, a temporary QA tutor
-  listing on the designated tester account was requested by a second verified
-  disposable account. The tutor accepted the Oct 25, 2:00-3:00 PM request; the
-  student cancelled it and Session Details showed **CANCELLED**. The QA listing
-  and all test data were removed afterward. See
-  [verification evidence](docs/VERIFICATION.md).
-  Camera permission, camera return, local photo save, and cold-start retention
-  also passed. The user confirmed the phone's flat position caused a black test
-  capture; the test photo was replaced with the cyan avatar preset. See
-  [verification evidence](docs/VERIFICATION.md). Login → About displayed the
-  current objective and data boundaries during the earlier signed-out check.
-  Only this POCO is in test scope; the other ADB device is excluded and Pad 7
-  is deferred.
-- The 1.4.0 versioned source passes 337 Jest tests across 41 suites, ESLint,
-  `git diff --check`, Firestore test-script syntax validation, and
-  `:app:testDebugUnitTest` when Gradle is run with JDK 25. A first unit-test
-  attempt under the workstation's default JDK 27 failed with unsupported class
-  file major version 71; rerunning with the documented JDK 25 passed. The
-  Fedora debug APK has not yet been rebuilt after the version bump. No local
-  Android emulator is being used; CI provides the emulator suites.
-- A fresh Termux clone at commit `6101ee252c60a18337f73470247ae8f256202121`
-  passed `npm ci` and `scripts/gradlew-termux.sh clean assembleDebug` on the
-  POCO. It completed 92 Gradle tasks in 2m51s using Node 26.4.0 and JDK 17.0.21;
-  package metadata is 1.4.0/code 7 and `apksigner verify` passed. The debug APK
-  was not installed. Later changes through `7fc0d00` affect documentation and
-  the release helper, not app source or Android Gradle configuration. A clean
-  macOS 15 ARM64 hosted build passed in workflow run `39966502505` on commit
-  `9bbdb82`. This verifies the clean macOS build procedure on a GitHub-hosted
-  runner; the user's personal Mac environment has not been tested.
-- Firebase CLI is authorized for the selected owner account, and the project
-  listing confirms `campus4change` / Campus4Change. The v4 SHA-1 and SHA-256
-  are registered on the Android app. Firestore rules were deployed after the
-  current rules/Auth emulator CI passed; the active ruleset is
-  `projects/campus4change/rulesets/7194f765-35ec-4ecd-b266-cca407e2a07c` and
-  its SHA-256 exactly matches local `firestore.rules` at
-  `31f4827c128dcc063a21f7de1dc0542db720dd45efce13b8d0ac3a63630f4cfa`. All
-  six live indexes are READY and match local definitions.
-- The App Check page still lists the Android app as Not registered. The Play
-  Integrity form contains the v4 SHA-256 and is open at the Google APIs and
-  Play Integrity terms checkbox, which remains unchecked with Save disabled.
-  Project-owner acceptance is required before saving registration.
-  Authentication and Firestore enforcement remain Unenforced. On a POCO cold
-  launch, the named native App Check app initialized and Google Play Integrity
-  returned a token callback, but Firebase App Check token exchange failed with
-  a generic `FirebaseException`. The bridge omits the underlying response, so
-  the exact cause is unknown. Device connectivity currently reports validated
-  Wi-Fi. This is not evidence of a valid Firebase App Check token.
-- The encrypted pre-reset backup remains outside Git with mode 600 and the
-  verified SHA-256 recorded in [verification evidence](docs/VERIFICATION.md).
-  After the approved reset and POCO booking QA, the two verified disposable
-  Auth accounts and all Firestore data were deleted. Auth export now reports
-  zero accounts; recursive Firestore REST traversal reports zero collection
-  paths and zero documents. The backup remains until final release
-  verification is complete.
-- The last weighted estimate was 88.25% before the current source commit. It is
-  a historical checkpoint and will be recalculated after the final acceptance
-  gates are verified; it is not a current completion claim.
+- Pull request [#1](https://github.com/Patt-00/Campus4Change/pull/1) is merged
+  to `main` at `119c22defeb05f461a6b15f3a107ffeee749bc12`. GitHub Actions run
+  [40077193029](https://github.com/Patt-00/Campus4Change/actions/runs/40077193029)
+  passed the checks and API 24 instrumentation on the merged commit.
+- Signed APK pre-release [v1.4.0](https://github.com/Patt-00/Campus4Change/releases/tag/v1.4.0)
+  is public. Its package is `com.campus4change`, version 1.4.0/code 7, and
+  SHA-256 is `e1c13ca9af40494302fcee8b717503d2e1f3f8a5b19d580368a27f859cd94b8a`.
+  APK signature verification passed. A fresh release download matched the
+  local artifact hash. The release contains the signed installable APK only.
+- The full and production-only npm audits each report zero vulnerabilities.
+  Compatible lockfile fixes updated `body-parser`, `qs`, and `zod`; the signed
+  release helper rebuilt the APK and AAB with the same hashes as before the
+  tooling updates. No changed package appears in the release source map.
+- The latest full and production-only `npm audit` runs report 0 vulnerabilities.
+  Compatible lockfile patches updated `body-parser`, `qs`, and `zod`; the
+  source map contains no paths for those packages. The protected release helper
+  rebuilt the APK and AAB successfully. Both output hashes remained unchanged,
+  so the public APK and emailed SHA-256 remain valid.
+- Manual workflow run
+  [40075453885](https://github.com/Patt-00/Campus4Change/actions/runs/40075453885)
+  passed checks, Auth/Firestore emulator tests, API 24 instrumentation, and the
+  clean macOS build on source `5f8bdd8`. The PR-triggered API 24 attempt first
+  received HTTP 429 from Maven Central before tests started; its retry passed
+  in run [40075464037](https://github.com/Patt-00/Campus4Change/actions/runs/40075464037).
+- The signed 1.4.0 APK remains installed on POCO X4 GT. After `pm clear`, a cold
+  launch showed **GET STARTED**. POCO verification covered live Google sign-in,
+  generated UUID setup, Firestore profile and interest saves, tutor
+  recommendations, notification navigation, camera capture, Group Session,
+  and a two-account tutor request, acceptance, and student cancellation.
+  Session Details displayed **CANCELLED**. Only POCO was used for final QA;
+  Pad 7 was deferred and Redmi was excluded.
+- Firebase Auth has 0 accounts. Recursive Firestore inventory has 0 collection
+  paths and 0 documents. The rules and all six indexes still match source.
+  App Check remains unregistered and unenforced; token exchange is unverified.
+  No Firebase rules, indexes, providers, or enforcement settings were changed
+  during reset or cleanup.
+- The two encrypted pre-reset backups and temporary backup keyring entries
+  were removed after the public APK download and signature were verified. The
+  v4 release-signing key remains in the system keyring.
+- The Desktop guide at `~/Desktop/Campus4Change Presentation Guide.md` now
+  reflects the public pre-release, tested session flow, Firebase boundaries,
+  and download link. Gmail contains the guide as an attachment and the APK
+  download link.
+- Payments, live calls, and Google Play distribution are outside the requested
+  scope. The user reports that two-device synchronization worked on v1.2.2;
+  no new two-physical-device v1.4.0 test was performed. Pad 7 and the personal
+  Mac are not release blockers for the selected direct-APK delivery.
+
+The 88.25% weighted engineering estimate above remains a historical checkpoint
+from before 1.4.0 finalization, not the status of this scoped release goal.
 
 ## Improvement cycles
 

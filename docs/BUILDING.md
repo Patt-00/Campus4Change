@@ -14,7 +14,7 @@ The source supports PC Android tooling and a separate Termux build path. This is
 | Build Tools | 37.0.0 |
 | NDK | 27.1.12297006 |
 | CMake version | Not pinned by the Android project |
-| Current candidate app version / Android version code | 1.4.0 / 7 |
+| Current public pre-release app version / Android version code | 1.4.0 / 7 |
 
 Check `android/build.gradle`, the Gradle wrapper, and the npm lockfile for declarations. Hermes is enabled.
 
@@ -316,20 +316,20 @@ dedicated keystore file and all four environment variables are supplied:
 
 The published v1.0.0–v1.2.0 APKs were signed with the repository debug key.
 Their release certificate is public and must not be used for future releases.
-The v1.2.2 release uses a dedicated private signer. The v1.0.0, v1.1.0, and
+The v1.2.2 release used a dedicated private signer. The v1.0.0, v1.1.0, and
 v1.2.0 GitHub release entries were removed after v1.2.2 was published. Their
 verified files remain in the local archive at
-/home/patt/Documents/Codex/Campus4Change-release-archive-2026-10-17. The latest public release is the v1.3.0-preview.2 pre-release:
-https://github.com/Patt-00/Campus4Change/releases/tag/v1.3.0-preview.2.
-The final 1.4.0 candidate remains local and unpublished. The v1.3.0-preview.2
-APK and local AAB used the previous v3 signer. The 1.4.0
-release candidate (version code 7) was built on 2026-10-23 with the new v4
-signer. The local signed APK SHA-256 is
-`e1c13ca9af40494302fcee8b717503d2e1f3f8a5b19d580368a27f859cd94b8a`; the AAB
-SHA-256 is `4f4339999355e4e5975d118d7317b38e530e461a7bb06cba437f94db5511d5bb`.
-The APK passed `apksigner verify`; the AAB passed `jarsigner -verify` and ZIP
-integrity checks. The APK is installed on the POCO X4 GT and the pulled package
-hash matches the local artifact. These candidate artifacts are not published.
+/home/patt/Documents/Codex/Campus4Change-release-archive-2026-10-17. The latest
+public release is the signed v1.4.0 pre-release:
+https://github.com/Patt-00/Campus4Change/releases/tag/v1.4.0.
+
+The v1.4.0 APK (version code 7) was built with the v4 release signer. Its
+SHA-256 is `e1c13ca9af40494302fcee8b717503d2e1f3f8a5b19d580368a27f859cd94b8a`.
+The public release contains this signed installable APK, not a debug APK. It
+passed `apksigner verify`, and a downloaded copy matched the local hash. The
+APK is installed on the POCO X4 GT. Google Play and AAB publication are outside
+the requested distribution scope. The earlier v1.3.0-preview.2 APK used the
+previous v3 signer and remains available as an older preview.
 
 To build the signed APK and accompanying Android App Bundle with the dedicated signer, run this helper
 from an interactive terminal at the repository root:
@@ -381,8 +381,8 @@ secret store. Do not save passwords in `gradle.properties`, shell history, or
 the repository.
 
 The published v1.2.2 release has version code 5, and the v1.3.0 preview uses
-version code 6. The current candidate is version 1.4.0/code 7 with application
-ID `com.campus4change`.
+version code 6. The current signed pre-release is version 1.4.0/code 7 with
+application ID `com.campus4change`.
 
 An update requires a matching application ID and signing certificate. Use your machine's private debug key with `C4C_DEBUG_STORE_FILE` when updating an installation made with that key. The 1.3.0 emulator QA build was updated in place on the POCO X4 GT and Pad 7 with local app data preserved. It targets local Firebase emulators and is not a release. The publicly released v1.2.0 APK used the repository debug signing identity; the published v1.2.2 release uses the separate private signer created by `scripts/build-release.sh`. Moving an old installation to the release signer requires uninstalling it, which removes device-local state. Firebase-backed account state can be restored after signing in again, but local-only state and device-only profile photos cannot. Back up or migrate local-only state before reinstalling.
 

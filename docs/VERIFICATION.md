@@ -1374,3 +1374,52 @@ and Redmi was excluded.
 
 The reset changed Firebase Auth users and Firestore data only. It did not
 change Auth providers, Firestore rules or indexes, or App Check enforcement.
+
+## 1.4.0 pre-release publication and delivery, 2026-10-24
+
+PR #1 was merged to `main` at `119c22defeb05f461a6b15f3a107ffeee749bc12`.
+GitHub Actions run [40077193029](https://github.com/Patt-00/Campus4Change/actions/runs/40077193029)
+passed checks and API 24 instrumentation on the merged commit. Manual run
+[40075453885](https://github.com/Patt-00/Campus4Change/actions/runs/40075453885)
+passed checks, Firestore/Auth emulator tests, API 24 instrumentation, and the
+clean macOS build on source commit `5f8bdd8`. A PR-triggered API 24 attempt
+first failed before running tests because Maven Central returned HTTP 429 while
+Gradle resolved a dependency. The retry passed on the same source in run
+[40075464037](https://github.com/Patt-00/Campus4Change/actions/runs/40075464037).
+
+GitHub release tag `v1.4.0` is a pre-release targeting the merged `main`
+commit. It contains the signed Android APK, package `com.campus4change`,
+version 1.4.0/code 7. The release asset is labeled
+`Campus4Change-v1.4.0.apk`. Its published SHA-256 is
+`e1c13ca9af40494302fcee8b717503d2e1f3f8a5b19d580368a27f859cd94b8a`. The
+downloaded file matched that hash and passed `apksigner verify`; package
+metadata reports version code 7 and version 1.4.0. Google Play and AAB
+publication are outside the selected release scope.
+
+The updated Desktop presentation guide links to the pre-release and describes
+the tested Firebase, account, and session behavior. Gmail search confirmed
+that the guide was sent as an attachment with the APK download link.
+
+After the release download and signature checks passed, both encrypted
+pre-reset backups and their temporary Secret Service keyring entries were
+removed. The separate v4 release-signing key entry remains. Final read-only
+checks reported 0 Firebase Auth accounts, 0 Firestore collection paths, and 0
+Firestore documents. App Check remains unregistered and unenforced, as accepted
+for the direct APK release. No production authorization policy was changed.
+
+## Compatible dependency updates and signed rebuild, 2026-10-24
+
+The latest `npm audit --json` and `npm audit --omit=dev --json` both reported
+0 vulnerabilities. `npm audit fix` made compatible lockfile-only updates:
+`body-parser` 2.3.0 to 2.4.0, `qs` 6.16.0 to 6.16.1, and `zod` 4.6.5 to
+4.6.7. The package tree shows `body-parser` under React Native CLI server
+tooling and `zod` under ESLint tooling. The release JavaScript source map has
+no paths for `body-parser`, `qs`, or `zod`.
+
+`./scripts/build-release.sh` rebuilt the signed release artifacts with the v4
+keyring entry. APK and AAB signature/build tasks passed. The APK SHA-256
+remained `e1c13ca9af40494302fcee8b717503d2e1f3f8a5b19d580368a27f859cd94b8a`,
+and the AAB SHA-256 remained
+`4f4339999355e4e5975d118d7317b38e530e461a7bb06cba437f94db5511d5bb`. The
+published APK therefore remains byte-for-byte identical to the rebuilt
+release artifact.

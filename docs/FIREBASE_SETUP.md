@@ -30,14 +30,14 @@ fingerprints (`5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25` /
 
 The v1.2.2 release certificate SHA-1 and SHA-256 are registered to the Firebase
 Android app. The local v1.3.0 preview used a v3 replacement signer; its
-fingerprints remain unregistered. The 1.4.0/code 7 candidate uses the new v4
+fingerprints remain unregistered. The 1.4.0/code 7 pre-release uses the new v4
 signer:
 
 - SHA-1: `92:4A:08:28:93:B2:B1:13:24:79:C8:A9:FC:C3:46:D9:E5:5C:0F:2D`
 - SHA-256: `1A:78:F8:4C:A7:5C:E3:04:1E:50:93:BA:9C:2F:A3:DE:03:34:38:9E:34:31:12:2E:05:8D:1D:FF:41:C6:6D:10`
 
 On 2026-10-23, Firebase CLI confirmed both v4 fingerprints in the Android app
-registration. The signed 1.4.0 candidate completed Google sign-in on POCO,
+registration. The signed 1.4.0 pre-release completed Google sign-in on POCO,
 saved TIP account setup, and reached Home. The tester profile and interests
 were saved in Firestore. The Firebase App Check Console still shows the Android
 app as **Not registered**. Firebase Auth and Firestore accept requests while
@@ -106,7 +106,7 @@ After Firebase accepts a Google credential, a complete profile routes to Home
 and an incomplete profile routes to Account Setup. Dismissing the account picker
 returns to Login with a neutral cancellation message. The JavaScript tests cover
 this session handoff. The v4 SHA-1 and SHA-256 are registered. The signed 1.4.0
-candidate completed live Google sign-in and reached Home on POCO. Play Integrity
+pre-release completed live Google sign-in and reached Home on POCO. Play Integrity
 App Check remains unregistered and unenforced; the project owner can complete
 its terms and token verification later if App Check protection is needed.
 See [Android's Credential Manager Google sign-in guide](https://developer.android.com/identity/sign-in/credential-manager-siwg-implementation)
@@ -177,7 +177,7 @@ configuration.
 
 The Android Firebase app has the v1.2.2 release certificate SHA-1 and
 SHA-256 registered, along with authorized workstation debug fingerprints and
-the v4 release candidate's SHA-1/SHA-256. The v4 fingerprints support Google
+the v4 release certificate's SHA-1/SHA-256. The v4 fingerprints support Google
 sign-in and are present in Android app registration; the App Check Console
 still shows the Android app as **Not registered**. A POCO release request
 reached the Google Play Integrity service, but Firebase token exchange failed.

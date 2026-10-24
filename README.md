@@ -2,7 +2,7 @@
 
 Campus4Change is an Android peer-learning app for the TIP student community. It uses React Native CLI, JavaScript/JSX, and Hermes.
 
-The current source is the 1.4.0 release candidate (Android version code 7). It includes required TIP account setup, random Campus4Change account UUIDs, searchable tutor recommendations, animated in-app notices, and separate Settings. The UUID is an account reference, not a school identity check. Successful Google sign-in routes complete profiles to Home and incomplete profiles to setup; canceling the account picker shows a neutral message. The design follows the [Campus4Change prototype](https://www.figma.com/proto/i23zbYooPqV1EkTLXfnxMo/Campus4Change-Mobile-App-Prototype?node-id=1-2&starting-point-node-id=1%3A2); exact pixel matching is not claimed.
+The current source is the Campus4Change 1.4.0 pre-release (Android version code 7). It includes required TIP account setup, random Campus4Change account UUIDs, searchable tutor recommendations, animated in-app notices, and separate Settings. The UUID is an account reference, not a school identity check. Successful Google sign-in routes complete profiles to Home and incomplete profiles to setup; canceling the account picker shows a neutral message. The design follows the [Campus4Change prototype](https://www.figma.com/proto/i23zbYooPqV1EkTLXfnxMo/Campus4Change-Mobile-App-Prototype?node-id=1-2&starting-point-node-id=1%3A2); exact pixel matching is not claimed.
 
 ## Features
 
@@ -28,11 +28,11 @@ Email/password and Google accounts use Firebase Authentication, and private app 
 
 The account-state document stays private to its owner. Shared groups, tutor profiles, session requests, and slot locks use separate Firestore documents. Group chat is readable by current members; tutor-session chat is readable by its two participants. Device-only conversations remain private notes. Two verified temporary accounts completed tutor discovery, session request/accept/cancel, participant chat, group post/reply/chat, and notification-link checks on the POCO X4 GT; those QA accounts and their data were removed.
 
-The public [v1.3.0-preview.2 pre-release](https://github.com/Patt-00/Campus4Change/releases/tag/v1.3.0-preview.2) contains a signed APK for package com.campus4change, version 1.3.0/code 6. Its SHA-256 is e83a7feeaf307d526b6bb34334badbc193f1e218259bfd2aeb8c55f1c1cfa330. This APK does not include the UUID account flow.
+The signed [v1.4.0 pre-release APK](https://github.com/Patt-00/Campus4Change/releases/download/v1.4.0/app-release.apk) is available for package `com.campus4change`, version code 7. Its SHA-256 is `e1c13ca9af40494302fcee8b717503d2e1f3f8a5b19d580368a27f859cd94b8a`. See the [release page](https://github.com/Patt-00/Campus4Change/releases/tag/v1.4.0) for release details. The older [v1.3.0-preview.2 APK](https://github.com/Patt-00/Campus4Change/releases/tag/v1.3.0-preview.2) does not include the UUID account flow.
 
-The signed 1.4.0/code 7 candidate is installed on POCO X4 GT. Its pulled APK hash matches the local artifact. Its v4 fingerprints are registered for Firebase sign-in. On 2026-10-23, the candidate completed Google sign-in, saved TIP account setup and interests to Firestore, and reached Home. The user reports two-device sync worked on v1.2.2. That is user-reported evidence for a prior version.
+The 1.4.0 signed APK is installed on POCO X4 GT. Its pulled package hash matches the published artifact. Its v4 fingerprints are registered for Firebase sign-in. Live Google sign-in saved TIP account setup and interests to Firestore and reached Home. Two verified test accounts exercised tutor request, acceptance, and student cancellation. The user reports two-device sync worked on v1.2.2; that is user-reported evidence for a prior version.
 
-App Check remains unregistered, and a POCO token exchange failed. App Check attestation is unverified. App Check enforcement for Firebase Authentication and Cloud Firestore is off, so Firebase continues to accept their requests. OS push notifications and live calls are not implemented. Clearing app data removes encrypted local state and app-private profile photos. Firebase accounts and cloud data remain in Firebase. The 1.4.0 APK has not yet been published.
+App Check remains unregistered, and the POCO token exchange failed. App Check attestation is unverified. App Check enforcement for Firebase Authentication and Cloud Firestore is off, so Firebase accepts their requests. No demo account or seeded demo data is included. OS push notifications and live calls are not implemented. Clearing app data removes encrypted local state and app-private profile photos; it does not delete Firebase accounts or cloud data.
 
 ## Run and build
 

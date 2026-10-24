@@ -9,35 +9,33 @@ version's scope.
 
 The intended deliverable is a signed APK for direct Android installation;
 Google Play publication and an Android App Bundle are not required for this
-project. The current candidate is Campus4Change 1.4.0, Android version code 7.
-The only public installable asset is still the older signed APK in the
-[v1.3.0-preview.2 pre-release](https://github.com/Patt-00/Campus4Change/releases/tag/v1.3.0-preview.2).
-The signed 1.4.0 APK is built locally but has not been published.
-The 1.4.0 APK is installed on the POCO X4 GT, and the pulled APK hash matches
-the local artifact. Fresh launch, onboarding, signup navigation, empty-form
-validation, Google account-picker cancellation, and the signed-out About page
-have been checked without creating an account. The POCO is the only required
-physical test device; Pad 7 is deferred.
+project. The current release is Campus4Change 1.4.0, Android version code 7.
+The signed APK is available in the [v1.4.0 GitHub pre-release](https://github.com/Patt-00/Campus4Change/releases/tag/v1.4.0).
+Its SHA-256 is `e1c13ca9af40494302fcee8b717503d2e1f3f8a5b19d580368a27f859cd94b8a`.
+The downloaded asset matches the local build and passes APK signature
+verification. It is installed on the POCO X4 GT. Fresh launch, onboarding,
+signup navigation, empty-form validation, Google account-picker cancellation,
+signed-out About, live Google sign-in, UUID setup, Firebase profile saves, and
+accepted-session cancellation were checked on POCO. Pad 7 was deferred.
 
-The source branch has a draft PR to `main`. GitHub Actions run
-[40022730763](https://github.com/Patt-00/Campus4Change/actions/runs/40022730763)
-passed both required jobs, including API 24 instrumentation, on head
-`dc33cf5`. Manual run `39966502505` also passed the clean macOS build. Check
-PR #1 for passing checks on its current head before merge. The last weighted
-completion estimate was 88.25% before the 1.4.0 release work and is not a
-current score. See
-[COMPLETION_AUDIT.md](COMPLETION_AUDIT.md) for the live gates.
+PR #1 is merged to `main` at `119c22defeb05f461a6b15f3a107ffeee749bc12`.
+GitHub Actions run [40077193029](https://github.com/Patt-00/Campus4Change/actions/runs/40077193029)
+passed the checks and API 24 instrumentation on that commit. Manual run
+[40075453885](https://github.com/Patt-00/Campus4Change/actions/runs/40075453885)
+passed the clean macOS build on release source `5f8bdd8`. The older
+88.25% weighted checkpoint in [COMPLETION_AUDIT.md](COMPLETION_AUDIT.md) is
+historical, not a score for the published release.
 
 Firebase Authentication and Cloud Firestore use project `campus4change`. The
 v4 release SHA-1 and SHA-256 are registered to the Android app. On 2026-10-23,
-the signed 1.4.0 candidate completed Google sign-in on POCO, saved the TIP
+the signed 1.4.0 pre-release completed Google sign-in on POCO, saved the TIP
 account setup and interests, and reached Home. Production Firestore rules and
 all six composite indexes match the checked-in source. The user reports that
 two-device sync worked on v1.2.2; this is prior-version user-reported evidence.
 
 App Check is unregistered. App Check enforcement for Firebase Authentication
 and Firestore is off, so Firebase continues to accept their requests. The
-signed candidate logged a token-exchange failure, which leaves App Check
+signed pre-release logged a token-exchange failure, which leaves App Check
 attestation unverified. If App Check is enabled later, Firebase supports apps distributed outside
 Google Play without Play recognition or licensing. Its guide recommends the
 Device integrity verdict for that distribution channel.
@@ -49,8 +47,10 @@ saved. See the [Play Integrity setup guide](https://firebase.google.com/docs/app
 and [App Check metrics guide](https://firebase.google.com/docs/app-check/monitor-metrics).
 The user-authorized data reset is complete. Firebase Auth export reports zero
 accounts, and recursive Firestore inventory reports zero collection paths and
-zero documents after disposable-account cleanup. The encrypted pre-launch
-backup remains outside the repository until release verification is complete.
+zero documents after disposable-account cleanup. After the pre-release asset
+was downloaded and verified, both encrypted backups and their temporary
+keyring entries were removed. The v4 release-signing key remains in the system
+keyring.
 
 Payments, live voice/video calls, operating-system push notifications, and iOS
 are outside this Android version's scope. The Desktop presentation guide is
@@ -120,12 +120,14 @@ No password, verification code, production API secret, or private signing creden
 | Risk | Effect | Response |
 | --- | --- | --- |
 | App Check is not registered | The app is not attested by App Check; enforcement is off, so App Check does not reject Firebase requests | For this APK-only release, keep Firebase Authentication and Firestore usable with App Check enforcement off. If enabling App Check later, accept the provider terms, configure the outside-Google-Play verdicts, then verify valid metrics before enforcement. |
-| The user-reported two-device sync result is from v1.2.2 | A new two-device rehearsal on v1.4.0 is not independently recorded | Describe it as a user-tested v1.2.2 result. Demonstrate the current candidate on POCO and avoid attributing an untested current-build sync result to v1.4.0. |
-| The public v1.3.0-preview.2 APK predates the 1.4.0 candidate | The current UUID setup is not available from the public release download | Use the 1.4.0 APK only after it is published to GitHub; do not treat the local candidate as a public download. |
+| The user-reported two-device sync result is from v1.2.2 | A new two-device rehearsal on v1.4.0 is not independently recorded | Describe it as a user-tested v1.2.2 result. Demonstrate the current pre-release on POCO and avoid attributing an untested current-build sync result to v1.4.0. |
+| The v1.4.0 GitHub asset is a pre-release | The label distinguishes it from a stable or Play Store release | Present it as the signed v1.4.0 APK pre-release, not a Play Store release. |
 | School network or Firebase service is unavailable | Shared live features cannot reach the backend | Use the local emulator setup above if the school laptop has the required SDK/JDK and the QA APK can be built. Rehearse it on the presentation machine before relying on it. |
 | OS push or live calls | These functions are not implemented | Demonstrate the in-app notification and messaging flows; do not promise OS push, voice, or video. |
 
-The public signed v1.3.0-preview.2 APK is available for download. The current signed 1.4.0 candidate is local and installed on the POCO, but is not published. The authorized reset, disposable-account cleanup, and zero-count checks are complete. Final publication remains open.
+The signed v1.4.0 APK pre-release is publicly downloadable. The downloaded
+asset matches the verified local APK. The user-authorized reset, disposable
+account cleanup, and zero-count checks are complete.
 
 On 2026-10-22, the latest signed release APK (version 1.3.0/code 6) was
 rebuilt, verified, installed in place on POCO X4 GT, and cold-launched. The
@@ -175,15 +177,14 @@ private emulator state still held the original digits-only Student ID before
 cleanup.
 
 
-The latest signed 1.3.0/code 6 release build includes all 49 catalog entries.
-The POCO-installed APK hash matches the local artifact and cold-launches to
-Login. The AAB passes signature, ZIP integrity, and bundletool validation.
-That build checkpoint preceded the v1.3.0-preview.2 publication. The current
-downloadable GitHub pre-release remains v1.3.0/code 6; the local v1.4.0/code 7
-candidate is unpublished. On 2026-10-23, Google sign-in and UUID profile setup
-passed on the POCO using the user-selected tester account. App Check remains
-unregistered, and release-token verification is open. The dated evidence is in
-[verification history](docs/VERIFICATION.md).
+At the earlier 1.3.0/code 6 checkpoint, the POCO-installed APK hash matched
+the local artifact and cold-launched to Login. The AAB passed signature, ZIP
+integrity, and bundletool validation. That checkpoint preceded the
+v1.3.0-preview.2 publication. The local v1.4.0/code 7 APK was not yet published
+at that time. On 2026-10-23, Google sign-in and UUID profile setup passed on
+POCO using the user-selected tester account. These dated results are in
+[verification history](docs/VERIFICATION.md); the current v1.4.0 pre-release
+status appears at the top of this guide.
 
 The latest camera recovery-route fix was verified on the POCO X4 GT with a
 local Auth/Firestore emulator account. After a one-time camera grant and a
