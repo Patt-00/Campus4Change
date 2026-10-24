@@ -68,6 +68,14 @@ Use PowerShell on a Windows x64 computer. Install these tools before building:
 - [Eclipse Temurin JDK 17](https://adoptium.net/temurin/releases/?version=17&os=windows&arch=x64&package=jdk). Download the Windows x64 MSI. In the installer, enable the options to set `JAVA_HOME` and add Java to `PATH`.
 - [Android Studio](https://developer.android.com/studio) for the Android SDK and SDK Manager.
 
+You can install Temurin JDK 17 from PowerShell with WinGet:
+
+```powershell
+winget install --id EclipseAdoptium.Temurin.17.JDK --exact
+```
+
+When installation finishes, close and reopen PowerShell before setting up the build environment.
+
 In Android Studio, complete the setup wizard and open **Tools > SDK Manager**. Install these packages:
 
 - Android SDK Platform 37.0
@@ -85,31 +93,36 @@ Open PowerShell in the repository root. The following commands use the default A
 ```powershell
 $env:ANDROID_HOME = Join-Path $env:LOCALAPPDATA 'Android\Sdk'
 $env:ANDROID_SDK_ROOT = $env:ANDROID_HOME
-$jdk = Get-ChildItem -Path 'C:\Program Files\Eclipse Adoptium' -Directory -Filter 'jdk-17*' | Select-Object -First 1
-if ($null -eq $jdk) { throw 'JDK 17 was not found. Set $env:JAVA_HOME to the JDK 17 installation folder.' }
-$env:JAVA_HOME = $jdk.FullName
-$env:Path = "$env:JAVA_HOME\bin;$env:ANDROID_HOME\platform-tools;$env:Path"
+$jdk = Get-ChildItem -Path 'C:\Program Files\Eclipse Adoptium' -Directory -Filter 'jdk-17*' -ErrorAction SilentlyContinue | Select-Object -First 1
+if ($null -eq $jdk) {
+    Write-Error 'Temurin JDK 17 was not found. Install it with the WinGet command above, reopen PowerShell, then rerun this block.'
+} else {
+    $env:JAVA_HOME = $jdk.FullName
+    $env:Path = "$env:JAVA_HOME\bin;$env:ANDROID_HOME\platform-tools;$env:Path"
 
-git --version
-node --version
-npm --version
-java -version
-javac -version
-adb version
+    git --version
+    node --version
+    npm --version
+    java -version
+    javac -version
+    adb version
 
-$requiredSdkFiles = @(
-    (Join-Path $env:ANDROID_HOME 'platform-tools\adb.exe'),
-    (Join-Path $env:ANDROID_HOME 'platforms\android-37.0\android.jar'),
-    (Join-Path $env:ANDROID_HOME 'build-tools\37.0.0\aapt2.exe'),
-    (Join-Path $env:ANDROID_HOME 'ndk\27.1.12297006\source.properties')
-)
-foreach ($path in $requiredSdkFiles) {
-    if (-not (Test-Path -LiteralPath $path)) { throw "Required Android SDK file is missing: $path" }
+    $requiredSdkFiles = @(
+        (Join-Path $env:ANDROID_HOME 'platform-tools\adb.exe'),
+        (Join-Path $env:ANDROID_HOME 'platforms\android-37.0\android.jar'),
+        (Join-Path $env:ANDROID_HOME 'build-tools\37.0.0\aapt2.exe'),
+        (Join-Path $env:ANDROID_HOME 'ndk\27.1.12297006\source.properties')
+    )
+    foreach ($path in $requiredSdkFiles) {
+        if (-not (Test-Path -LiteralPath $path)) { throw "Required Android SDK file is missing: $path" }
+    }
+
+    $sdkPath = $env:ANDROID_HOME -replace '\\', '/'
+    "sdk.dir=$sdkPath" | Set-Content -LiteralPath .\android\local.properties -Encoding ascii
 }
-
-$sdkPath = $env:ANDROID_HOME -replace '\\', '/'
-"sdk.dir=$sdkPath" | Set-Content -LiteralPath .\android\local.properties -Encoding ascii
 ```
+
+Stop if the block reports that JDK 17 is missing. Install JDK 17, reopen PowerShell, and rerun the block before building.
 
 Confirm that `java -version` and `javac -version` report JDK 17, and that `node --version` reports a supported version. If the SDK file check fails, open Android Studio SDK Manager and install the missing package before continuing.
 
