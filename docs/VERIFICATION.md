@@ -1423,3 +1423,27 @@ and the AAB SHA-256 remained
 `4f4339999355e4e5975d118d7317b38e530e461a7bb06cba437f94db5511d5bb`. The
 published APK therefore remains byte-for-byte identical to the rebuilt
 release artifact.
+
+## Clean macOS and Termux builds of final lockfile source, 2026-10-24
+
+The source at main commit `5900ec084791a4e3c4e7854bb9bd8397f215a6a3` passed
+GitHub push workflow [40079501846](https://github.com/Patt-00/Campus4Change/actions/runs/40079501846)
+and manual workflow [40080388892](https://github.com/Patt-00/Campus4Change/actions/runs/40080388892).
+The manual workflow included a clean Android debug build on GitHub-hosted
+macOS 15 and API 24 instrumentation.
+
+A fresh Termux clone of that main commit was built on POCO X4 GT. It used Node.js
+26.4.0, npm 11.21.1, Git 2.56.0, and JDK 17.0.20. The installed default Java
+was 21.0.12; Gradle's Java 17 toolchain requirement was met by setting
+`JAVA_HOME` to Termux's installed JDK 17. ADB's app-scoped shell also required
+Termux's `libtermux-exec.so` preload for React Native's `npx` command. With
+those environment settings, `npm ci` installed 1,148 packages and reported
+zero vulnerabilities. `./scripts/gradlew-termux.sh clean assembleDebug
+--no-daemon --max-workers=2 --console=plain` completed 92 tasks, 84 executed
+and 8 up-to-date, in 2 minutes 29 seconds. `aapt2 dump badging` reported
+`com.campus4change`, version 1.4.0/code 7. Termux `apksigner verify --verbose`
+passed. The debug APK SHA-256 is
+`a7edaf5f79c72193389da98a3d4e8d652a7c7a39eb035fc16c77531697968191`. It was
+not installed. The fresh clone reused the existing SDK and Termux-compatible
+NDK paths, so first-time SDK/NDK setup was not tested. Gradle emitted CMake
+deprecation and hard-link fallback warnings, but the build passed.

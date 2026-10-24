@@ -31,13 +31,18 @@ The package paths and release rebuild are detailed in
 [QUALITY_AUDIT.md](docs/QUALITY_AUDIT.md) and
 [verification history](docs/VERIFICATION.md).
 
-The source is merged to `main` at `119c22defeb05f461a6b15f3a107ffeee749bc12`.
-GitHub Actions run [40077193029](https://github.com/Patt-00/Campus4Change/actions/runs/40077193029)
-passed checks and API 24 instrumentation on that commit. Manual run
-[40075453885](https://github.com/Patt-00/Campus4Change/actions/runs/40075453885)
-passed the clean macOS build on release source `5f8bdd8`. The earlier PR-run
-API 24 attempt received HTTP 429 from Maven Central before tests started; its
-retry passed in run [40075464037](https://github.com/Patt-00/Campus4Change/actions/runs/40075464037).
+PR #1 is merged to `main` at `119c22defeb05f461a6b15f3a107ffeee749bc12`.
+The final documentation and compatible dependency-lockfile update is commit
+`5900ec084791a4e3c4e7854bb9bd8397f215a6a3`. Push CI run
+[40079501846](https://github.com/Patt-00/Campus4Change/actions/runs/40079501846)
+passed checks and API 24 instrumentation on that source. Manual run
+[40080388892](https://github.com/Patt-00/Campus4Change/actions/runs/40080388892)
+passed checks, Auth/Firestore emulator tests, API 24 instrumentation, and the
+clean macOS build. A clean Termux clone of the same commit built and verified
+the 1.4.0/code 7 debug APK on POCO; see [build evidence](docs/BUILDING.md). An
+earlier PR-run API 24 attempt received HTTP 429 from Maven Central before tests
+started; its retry passed in run
+[40075464037](https://github.com/Patt-00/Campus4Change/actions/runs/40075464037).
 
 On POCO, live Google sign-in reached Home after generated UUID setup and saved
 profile and interest data. Two verified disposable accounts exercised a tutor

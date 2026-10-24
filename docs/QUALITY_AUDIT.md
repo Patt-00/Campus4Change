@@ -384,9 +384,12 @@ toast is development-only and does not appear in release builds.
 
 Campus4Change 1.4.0/code 7 is published as a signed GitHub pre-release and is
 installed on POCO X4 GT. Its downloaded APK matches the recorded SHA-256 and
-passes signature verification. PR #1 is merged to `main`; CI run 40077193029
-passed checks and API 24 instrumentation. Manual run 40075453885 passed the
-clean macOS build. The current signed release also completed live Google
+passes signature verification. PR #1 is merged to `main`; final lockfile and
+documentation commit `5900ec0` passed CI run [40079501846](https://github.com/Patt-00/Campus4Change/actions/runs/40079501846).
+Manual run [40080388892](https://github.com/Patt-00/Campus4Change/actions/runs/40080388892)
+passed the same checks plus the clean macOS build. A clean Termux clone of that
+commit also built and verified its debug APK on POCO. The current signed release
+completed live Google
 sign-in, generated UUID setup, Firestore profile saves, tutor discovery, and a
 two-account tutor request, acceptance, and cancellation on POCO.
 

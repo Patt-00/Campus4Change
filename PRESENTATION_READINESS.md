@@ -19,12 +19,16 @@ signed-out About, live Google sign-in, UUID setup, Firebase profile saves, and
 accepted-session cancellation were checked on POCO. Pad 7 was deferred.
 
 PR #1 is merged to `main` at `119c22defeb05f461a6b15f3a107ffeee749bc12`.
-GitHub Actions run [40077193029](https://github.com/Patt-00/Campus4Change/actions/runs/40077193029)
-passed the checks and API 24 instrumentation on that commit. Manual run
-[40075453885](https://github.com/Patt-00/Campus4Change/actions/runs/40075453885)
-passed the clean macOS build on release source `5f8bdd8`. The older
-88.25% weighted checkpoint in [COMPLETION_AUDIT.md](COMPLETION_AUDIT.md) is
-historical, not a score for the published release.
+Release source and the compatible dependency lockfile patches are at
+`5900ec084791a4e3c4e7854bb9bd8397f215a6a3`. Push CI run
+[40079501846](https://github.com/Patt-00/Campus4Change/actions/runs/40079501846)
+passed checks and API 24 instrumentation on that source. Manual run
+[40080388892](https://github.com/Patt-00/Campus4Change/actions/runs/40080388892)
+passed the same checks plus a clean GitHub-hosted macOS build. A clean Termux
+clone on the POCO built and verified the 1.4.0/code 7 debug APK; see
+[build evidence](docs/BUILDING.md). The older 88.25% weighted checkpoint in
+[COMPLETION_AUDIT.md](COMPLETION_AUDIT.md) is historical, not a score for the
+published release.
 
 Firebase Authentication and Cloud Firestore use project `campus4change`. The
 v4 release SHA-1 and SHA-256 are registered to the Android app. On 2026-10-23,

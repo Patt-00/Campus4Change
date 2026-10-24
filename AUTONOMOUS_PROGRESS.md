@@ -18,10 +18,6 @@ Firebase counts, presentation guide, and email delivery.
   SHA-256 is `e1c13ca9af40494302fcee8b717503d2e1f3f8a5b19d580368a27f859cd94b8a`.
   APK signature verification passed. A fresh release download matched the
   local artifact hash. The release contains the signed installable APK only.
-- The full and production-only npm audits each report zero vulnerabilities.
-  Compatible lockfile fixes updated `body-parser`, `qs`, and `zod`; the signed
-  release helper rebuilt the APK and AAB with the same hashes as before the
-  tooling updates. No changed package appears in the release source map.
 - The latest full and production-only `npm audit` runs report 0 vulnerabilities.
   Compatible lockfile patches updated `body-parser`, `qs`, and `zod`; the
   source map contains no paths for those packages. The protected release helper
@@ -33,6 +29,14 @@ Firebase counts, presentation guide, and email delivery.
   clean macOS build on source `5f8bdd8`. The PR-triggered API 24 attempt first
   received HTTP 429 from Maven Central before tests started; its retry passed
   in run [40075464037](https://github.com/Patt-00/Campus4Change/actions/runs/40075464037).
+- A final manual workflow run
+  [40080388892](https://github.com/Patt-00/Campus4Change/actions/runs/40080388892)
+  passed checks, Auth/Firestore emulator tests, API 24 instrumentation, and the
+  clean macOS build on final `main` commit `5900ec0`.
+- A fresh Termux clone of that same commit passed `npm ci` and
+  `./scripts/gradlew-termux.sh clean assembleDebug` on POCO in 2m29s. The
+  debug APK reports version 1.4.0/code 7 and passed Termux `apksigner verify`;
+  it was not installed. See [build evidence](docs/BUILDING.md).
 - The signed 1.4.0 APK remains installed on POCO X4 GT. After `pm clear`, a cold
   launch showed **GET STARTED**. POCO verification covered live Google sign-in,
   generated UUID setup, Firestore profile and interest saves, tutor

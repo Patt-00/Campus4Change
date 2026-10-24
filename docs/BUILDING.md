@@ -214,13 +214,13 @@ The original 1.2.0 Windows release verification used SDK/JDK tools in ignored `.
 - **A local `assembleRelease` fails for missing release signing values:** use `assembleDebug` for a local test APK. Release tasks require a dedicated keystore and all four `C4C_RELEASE_*` variables.
 - **Termux reports `CANNOT LINK EXECUTABLE "node"` or `CANNOT LINK EXECUTABLE "curl"`:** run `pkg update` and `pkg upgrade` before installing Node.js and the remaining build tools. Refreshing package indexes alone does not update the Termux base libraries.
 - **Termux reports no Java installation matching language version 17:** install `openjdk-17`, set `JAVA_HOME="$PREFIX/lib/jvm/java-17-openjdk"`, and run the Termux Gradle wrapper from the project root.
-- **Termux autolinking exits 126 with `react-native: Permission denied` from an ADB `run-as` shell:** run Gradle from the Termux app terminal. This check found `LD_PRELOAD` in the Termux environment but not in `run-as`; the `npx @react-native-community/cli config` command failed only in `run-as` and passed from Termux.
+- **Termux autolinking fails from an ADB `run-as` shell:** the shell needs Termux's `LD_PRELOAD` compatibility layer to resolve the React Native CLI shebang. Set `LD_PRELOAD="$PREFIX/lib/libtermux-exec.so"`, `PATH="$PREFIX/bin:$PATH"`, `PREFIX`, and `HOME` before running Gradle, or use the Termux app terminal.
 - **Termux reports `SDK location not found`:** set `sdk.dir` in `android/local.properties` to the SDK root on the phone. Install the required platform and Build Tools packages, prepare the separate Termux NDK path with `scripts/setup-termux-ndk.sh`, and point `ndk.dir` to that path.
 - **Gradle deprecation warning or Problems report:** read the actual failure under **What went wrong**. These messages alone do not mean the build failed.
 
 ## Termux
 
-Run these commands from the Termux app terminal on an ARM64 Android device. An ADB `run-as` shell does not inherit Termux's environment or network context, so it is not a faithful way to test this build path.
+Run these commands from the Termux app terminal on an ARM64 Android device. An ADB `run-as` shell starts without Termux's environment. If you use it for automation, set `HOME`, `PREFIX`, `PATH`, `JAVA_HOME`, and `LD_PRELOAD` before running Gradle.
 
 Update Termux's base packages before installing the build tools. This keeps packages such as Node.js, OpenSSL, and curl on compatible versions:
 
@@ -280,6 +280,8 @@ Use paths that exist on the phone. Do not copy `local.properties` between a phon
 ```sh
 npm ci
 export JAVA_HOME="$PREFIX/lib/jvm/java-17-openjdk"
+export PATH="$JAVA_HOME/bin:$PATH"
+export LD_PRELOAD="${LD_PRELOAD:-$PREFIX/lib/libtermux-exec.so}"
 ./scripts/gradlew-termux.sh assembleDebug --no-daemon --max-workers=2 --console=plain
 ```
 
@@ -290,6 +292,27 @@ A clean Termux debug build of the source at the 1.3.0/code 6 checkpoint passed o
 A fresh GitHub clone of commit `6101ee252c60a18337f73470247ae8f256202121` was then built in Termux on 2026-10-23. The clone used Node.js 26.4.0, Git 2.56.0, JDK 17.0.21, and the existing SDK/Termux NDK paths copied through the ignored `android/local.properties`. `npm ci` added 1,148 packages. `./scripts/gradlew-termux.sh clean assembleDebug --no-daemon --max-workers=2 --console=plain` passed 92 actionable tasks (90 executed, 2 up-to-date) in 2 minutes 51 seconds. APK metadata reports `com.campus4change`, version 1.4.0/code 7; Termux `apksigner verify` passed. The debug APK was not installed. The fresh clone reused existing SDK/NDK packages, so this does not verify first-time SDK/NDK setup.
 
 The APK is 41,322,431 bytes with SHA-256 `8f2e129f54ea80ca8c48d80fc9ef8cbdd0738ce62cebfd3f52dc2461d5d78ddf`. Package metadata reports `com.campus4change`, version 1.3.0, version code 6, minimum API 24, target API 36, and ABI `arm64-v8a`. `apksigner verify --verbose --print-certs` passed with the Termux debug certificate, SHA-1 `5e:8f:16:06:2e:a3:cd:2c:4a:0d:54:78:76:ba:a6:f3:8c:ab:f6:25` and SHA-256 `fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c`. Gradle, CMake, and NDK emitted deprecation and copy-fallback warnings, but the build completed. This verifies debug APK assembly and signing only; no Termux release build or on-device install/launch was performed. The debug APK normally requires Metro for its JavaScript bundle.
+
+A fresh clone of final `main` commit `5900ec084791a4e3c4e7854bb9bd8397f215a6a3`
+was built in Termux on the POCO X4 GT on 2026-10-24. It used Node.js 26.4.0,
+npm 11.21.1, Git 2.56.0, and JDK 17.0.20. Termux's default Java resolved to
+JDK 21, so the build explicitly selected the installed JDK 17 required by the
+Gradle toolchain. `npm ci` installed 1,148 packages and reported zero
+vulnerabilities. `./scripts/gradlew-termux.sh clean assembleDebug --no-daemon
+--max-workers=2 --console=plain` passed 92 tasks (84 executed, 8 up-to-date) in
+2 minutes 29 seconds. `aapt2 dump badging` reported
+`com.campus4change`, version 1.4.0/code 7. Termux `apksigner verify --verbose`
+passed. The debug APK SHA-256 is
+`a7edaf5f79c72193389da98a3d4e8d652a7c7a39eb035fc16c77531697968191`. It was not
+installed. The clone reused the existing SDK and Termux-compatible NDK paths,
+so this does not verify first-time SDK/NDK installation. Gradle emitted CMake
+deprecation and hard-link fallback warnings, but completed successfully.
+
+For a clean GitHub-hosted macOS 15 ARM64 debug build against the same source,
+workflow run [40080388892](https://github.com/Patt-00/Campus4Change/actions/runs/40080388892)
+passed package/version/signature checks, Android tests, and API 24
+instrumentation on commit `5900ec0`. This does not reproduce the user's
+personal Mac environment.
 
 The Termux build also uses a Termux-only CMake adjustment in `scripts/termux-prefab.cmake`. Termux Clang reports `aarch64-none-linux-android24`, while Gradle extracts React Native's Prefab package configs under `lib/aarch64-linux-android/cmake`. Without the adjustment, CMake can fail to find `ReactAndroidConfig.cmake` even though the file is present. The adjustment is enabled only by the Termux build flag; PC builds keep their normal configuration.
 
