@@ -1,72 +1,72 @@
 # Campus4Change
 
-Campus4Change is an Android peer-learning app for the TIP student community. It uses React Native CLI, JavaScript/JSX, and Hermes.
+Campus4Change is an Android peer-learning app for students at the Technological Institute of the Philippines. Students can find peer tutors, request scheduled sessions, join study groups, and continue discussions through in-app messaging.
 
-The current source is the Campus4Change 1.4.0 pre-release (Android version code 7). It includes required TIP account setup, random Campus4Change account UUIDs, searchable tutor recommendations, animated in-app notices, and separate Settings. The UUID is an account reference, not a school identity check. Successful Google sign-in routes complete profiles to Home and incomplete profiles to setup; canceling the account picker shows a neutral message. The design follows the [Campus4Change prototype](https://www.figma.com/proto/i23zbYooPqV1EkTLXfnxMo/Campus4Change-Mobile-App-Prototype?node-id=1-2&starting-point-node-id=1%3A2); exact pixel matching is not claimed.
+## Download
+
+Download the signed Android APK from the [Campus4Change v1.4.0 GitHub release](https://github.com/Patt-00/Campus4Change/releases/tag/v1.4.0).
+
+- Direct APK: [Campus4Change 1.4.0](https://github.com/Patt-00/Campus4Change/releases/download/v1.4.0/app-release.apk)
+- Package: `com.campus4change`
+- Version: 1.4.0, Android version code 7
+- Minimum Android version: Android 7.0 (API 24)
+- APK SHA-256: `0e9ecd7fab8cf1440daa8c21b7ef9e59eb55a8e8c2ba4e036bca576fa6519aa1`
+
+The release is a signed APK. It includes the JavaScript bundle and does not need Metro. The app does not include demo accounts or seeded demo content.
+
+## Install the APK
+
+Download the APK from the release link and open it on an Android 7.0 or newer device. If Android asks, allow the browser or file manager to install apps from that source, then confirm installation. Open Campus4Change and sign up with Google or email and password. Complete the TIP profile setup. Email verification is required for shared tutor, session, and group features.
+
+For an update, Android requires the same application ID and signing certificate as the installed copy. Uninstalling a differently signed copy removes local account data and local photos.
 
 ## Features
 
-- Splash screen, novice/intermediate/expert introduction, and login/signup screens.
-- Firebase email/password and Google sign-in/sign-up on Android, plus sign-in for existing device-only accounts, profile editing, and sign-out. New accounts complete TIP account setup with their course, year, and campus. The app generates a UUID and shows it during setup and on the Profile screen. Firebase UID remains the private owner key. Legacy Student ID values are removed when account state is read or saved.
-- Tutor directory, filters, editable student listings, and selected tutor profiles.
-- Bounded tutor and session history pages with load-more and latest-refresh controls.
-- Firebase users with verified email addresses can request a one-hour session; the tutor can accept or decline, and participants can cancel or mark an accepted session complete. Device-only bookings stay in a private schedule.
-- Study-group discovery and collaboration: Firebase accounts share group details, membership counts, posts, and replies. Device-only accounts keep their groups locally.
-- Members can report another member's shared post or reply; group owners can review reports and dismiss, hide, or restore content.
-- Booked-session workspace with tutor/schedule context and private notes; group sessions use a scheduled-session layout with agenda notes. Expired bookings are labeled as past due rather than shown as future sessions.
-- Conversation search, member-only Firebase group chats, tutor-session participant chats, private device notes, in-app notifications, and learning preferences.
-- Tutor profiles use course-grouped subject tags from the TIP catalog and publish to email-verified Firebase users or stay in the local device directory for device-only accounts.
-- Choose a profile photo from Android's system photo picker or select one of eight built-in color avatars. Custom photos stay in app-private storage on this device; the selected avatar preset can appear in a published tutor listing.
-- Browse 49 campus-specific TIP program listings grouped by campus and college. Each program has a searchable set of core-subject and specialization-area prompts; learning topics can be grouped under multiple programs, and custom courses and topics remain available. The prompts are suggestions based on TIP's published program materials, not a complete curriculum.
-- Learning topics remain editable after required account setup. The campus selector is limited to Quezon City and Manila.
-- Optional group meetup dates and times, with valid-date and future-time checks.
-- A separate Settings destination in the Home menu for learning preferences
-  and About/service details. Profile stays
-  focused on identity, tutor profile, and sign-out.
+- Firebase email/password and Google sign-in.
+- Required profile setup with TIP course, year level, and Quezon City or Manila campus choices.
+- A generated Campus4Change UUID for account reference. The UUID does not verify TIP enrollment.
+- Course-grouped learning interests, tutor search, recommendations, and tutor profiles.
+- Session requests, tutor acceptance or decline, cancellation, and participant messaging.
+- Study-group discovery, shared details, posts, replies, and group chat.
+- Animated in-app notifications, separate Settings, and About information.
+- Built-in avatars and optional profile photos from the system photo picker or camera. Profile photos stay on the device.
 
-Email/password and Google accounts use Firebase Authentication, and private app state syncs to that user's Firestore record. The deployed Firestore rules match the checked-in rules, and all six production composite indexes are READY and match `firestore.indexes.json`. Any Firebase account with a verified email can discover shared groups and tutor profiles, collaborate in groups, and exchange participant-only session requests; the app does not verify school affiliation. Tutor acceptance reserves two half-hour buckets for each participant atomically, preventing conflicts across tutors and student/tutor roles. Members can report another member's content without storing reporter identity; the group owner can review and reversibly hide or restore content. Pending group changes are saved locally and can be retried if the connection fails. Authentication is restored when the app reopens, and an encrypted device copy supports recovery after a cloud-sync failure. See [Firebase setup](docs/FIREBASE_SETUP.md).
+## Accounts and data
 
-The account-state document stays private to its owner. Shared groups, tutor profiles, session requests, and slot locks use separate Firestore documents. Group chat is readable by current members; tutor-session chat is readable by its two participants. Device-only conversations remain private notes. Two verified temporary accounts completed tutor discovery, session request/accept/cancel, participant chat, group post/reply/chat, and notification-link checks on the POCO X4 GT; those QA accounts and their data were removed.
+Firebase Authentication handles online accounts. Cloud Firestore stores private account state and shared tutor, session, and group data. Email-verified accounts can use shared features. The app does not verify school enrollment. The Android release uses Firebase project `campus4change`.
 
-The signed [v1.4.0 pre-release APK](https://github.com/Patt-00/Campus4Change/releases/download/v1.4.0/app-release.apk) is available for package `com.campus4change`, version code 7. Its SHA-256 is `e1c13ca9af40494302fcee8b717503d2e1f3f8a5b19d580368a27f859cd94b8a`. See the [release page](https://github.com/Patt-00/Campus4Change/releases/tag/v1.4.0) for release details. The older [v1.3.0-preview.2 APK](https://github.com/Patt-00/Campus4Change/releases/tag/v1.3.0-preview.2) does not include the UUID account flow.
+Firebase App Check is not registered or enforced for this Android release. Do not describe the app as App Check-attested. Clearing app data removes local account state and local photos, but it does not delete Firebase accounts or cloud records. A fork must configure its own Firebase project and review `firestore.rules` and `firestore.indexes.json` before deployment.
 
-The 1.4.0 signed APK is installed on POCO X4 GT. Its pulled package hash matches the published artifact. Its v4 fingerprints are registered for Firebase sign-in. Live Google sign-in saved TIP account setup and interests to Firestore and reached Home. Two verified test accounts exercised tutor request, acceptance, and student cancellation. The user reports two-device sync worked on v1.2.2; that is user-reported evidence for a prior version.
+Tutoring payments, live voice or video calls, operating-system push notifications, and iOS are outside this release's scope.
 
-App Check remains unregistered, and the POCO token exchange failed. App Check attestation is unverified. App Check enforcement for Firebase Authentication and Cloud Firestore is off, so Firebase accepts their requests. No demo account or seeded demo data is included. OS push notifications and live calls are not implemented. Clearing app data removes encrypted local state and app-private profile photos; it does not delete Firebase accounts or cloud data.
+## Technology
 
-## Run and build
+Campus4Change uses React Native CLI 0.87.1, React 19.2.3, JavaScript/JSX, and Hermes. Kotlin Android modules provide encrypted local storage and profile photo capture. Firebase Authentication and Cloud Firestore provide online sign-in and shared data.
 
-Install a Node.js version supported by React Native 0.87.1 (`^22.13.0 || ^24.3.0 || >=26.0.0`), JDK 17, and the SDK versions in [BUILDING.md](docs/BUILDING.md).
+## Build from source
+
+Install Node.js 22.13.0 or later within the supported range in `package.json`, JDK 17, Git, and Android Studio with the SDK packages listed in the [cross-platform build guide](docs/BUILDING.md).
+
+From the repository root:
 
 ```sh
 npm ci
-npm start
-# In another terminal:
-npm run android
 ```
 
-Set `sdk.dir` in the ignored `android/local.properties` file using the platform-specific steps in [BUILDING.md](docs/BUILDING.md). Use `assembleDebug` for a local Android build. Use `./scripts/build-release.sh` for a signed release; it loads the existing signing key and password through the configured secure credential store or hidden terminal prompts. Direct Gradle release tasks require the dedicated keystore and all four `C4C_RELEASE_*` variables. The [Termux section](docs/BUILDING.md#termux) covers the additional setup for building on an ARM64 Android device.
-
-Debug builds use a machine-local debug key. Release builds require the protected dedicated keystore and fail closed without it; see [BUILDING.md](docs/BUILDING.md). Android is the supported target. The iOS scaffold has no implementation for the native storage module.
-
-## Guides and checks
-
-- [Architecture and feature ownership](docs/ARCHITECTURE.md)
-- [Reproducible local emulator QA APK](docs/BUILDING.md#local-firebase-emulator-qa-build)
-- [Autonomous improvement progress](AUTONOMOUS_PROGRESS.md)
-- [Completion audit and weighted readiness estimate](COMPLETION_AUDIT.md)
-- [Presentation readiness walkthrough](PRESENTATION_READINESS.md)
-- [Firebase setup and data boundary](docs/FIREBASE_SETUP.md)
-- [Ongoing quality audit and open issues](docs/QUALITY_AUDIT.md)
-- [Final sprint completion gates](docs/FINAL_SPRINT.md)
-- [PC and Termux builds](docs/BUILDING.md)
-- [Figma coverage and limits](docs/FIGMA_COVERAGE.md)
-- [Verification and teacher walkthrough](docs/VERIFICATION.md)
+Create `android/local.properties` with the Android SDK path for your computer. To assemble a debug APK, run the Gradle wrapper from the `android` directory:
 
 ```sh
-npm run lint
-npm test -- --runInBand --testTimeout=15000
-git diff --check
+./gradlew assembleDebug
 ```
 
-Jest tests mock Android storage. They do not prove native encryption, APK installation, or visible device behavior.
+On Windows PowerShell, run `.\gradlew.bat assembleDebug` from `android`. The debug APK is written to `android/app/build/outputs/apk/debug/app-debug.apk`. To launch the debug app, start Metro with `npm start`, then run `npm run android` in another terminal.
+
+The [build guide](docs/BUILDING.md) covers Windows, macOS, Linux, and Termux, including Android SDK setup and signed APK builds.
+
+## Repository layout
+
+- `src/features/` contains the account, profile, tutor, group, session, message, and Settings features.
+- `src/shared/` contains shared state, Firebase configuration, theme values, and data helpers.
+- `android/` contains the Android project and native Kotlin modules.
+- `firestore.rules` and `firestore.indexes.json` define Firestore access and query indexes.
+- `docs/BUILDING.md` is the platform build guide.

@@ -6,10 +6,6 @@ apply plugin: "com.facebook.react"
  * By default you don't need to apply any configuration, just uncomment the lines you need.
  */
 react {
-    if (providers.gradleProperty("c4cQaEmulators").orNull == "true") {
-        debuggableVariants = []
-        extraPackagerArgs = ["--dev", "true"]
-    }
     /* Folders */
     //   The root of your project, i.e. where "package.json" lives. Default is '../..'
     // root = file("../../")
@@ -62,8 +58,7 @@ react {
 }
 
 // Track runtime configuration that lives outside the JavaScript source folder.
-// Version changes affect AboutScreen, and Firebase config selects production or
-// local emulators for a build.
+// Version changes affect AboutScreen, and Firebase config selects the backend.
 def appPackageJson = rootProject.file("../package.json")
 def appFirebaseConfig = rootProject.file("../src/shared/backend/firebaseConfig.js")
 tasks.configureEach { task ->
@@ -84,7 +79,7 @@ def releaseSigningValues = [
     keyAlias: System.getenv("C4C_RELEASE_KEY_ALIAS"),
     keyPassword: System.getenv("C4C_RELEASE_KEY_PASSWORD"),
 ]
-// Use a per-machine debug key for Google sign-in testing without registering
+// Use a per-machine debug key for Google sign-in development without registering
 // the public, repository-tracked debug certificate with Firebase.
 def debugSigningStorePath = System.getenv("C4C_DEBUG_STORE_FILE")?.trim()
 def debugSigningStoreFile = debugSigningStorePath
@@ -102,16 +97,6 @@ def releaseSigningConfigured = (
     } && new File(releaseSigningValues.storeFile ?: "").isAbsolute()
         && file(releaseSigningValues.storeFile ?: "").isFile()
 )
-def c4cQaEmulatorsEnabled = providers.gradleProperty("c4cQaEmulators").orNull == "true"
-def c4cQaApplicationIdSuffix = providers.gradleProperty("c4cQaApplicationIdSuffix").orNull
-if (c4cQaApplicationIdSuffix != null) {
-    if (!c4cQaEmulatorsEnabled) {
-        throw new GradleException("C4C QA application ID suffix requires the emulator-QA build flag.")
-    }
-    if (!(c4cQaApplicationIdSuffix ==~ /^\.[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)*$/)) {
-        throw new GradleException("C4C QA application ID suffix must start with a dot and use valid package segments.")
-    }
-}
 def appProject = project
 
 /**
@@ -137,7 +122,6 @@ android {
         applicationId "com.campus4change"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         versionCode 7
         versionName "1.4.0"
         externalNativeBuild {
@@ -167,9 +151,6 @@ android {
     }
     buildTypes {
         debug {
-            if (c4cQaApplicationIdSuffix != null) {
-                applicationIdSuffix c4cQaApplicationIdSuffix
-            }
             signingConfig signingConfigs.debug
         }
         release {
@@ -206,10 +187,6 @@ dependencies {
     implementation("androidx.credentials:credentials:1.6.0")
     implementation("androidx.credentials:credentials-play-services-auth:1.6.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
-    testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test:runner:1.7.0")
-    androidTestImplementation("androidx.test.ext:junit:1.3.0")
-
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {

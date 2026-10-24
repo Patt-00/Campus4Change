@@ -4,16 +4,9 @@
   "private": true,
   "scripts": {
     "android": "react-native run-android",
-    "android:qa-emulators": "node scripts/build-emulator-qa.mjs",
-    "ios": "react-native run-ios",
     "lint": "eslint .",
     "check:public-drive-links": "node scripts/check-public-drive-links.mjs",
-    "start": "react-native start --host 127.0.0.1",
-    "test": "jest",
-    "test:firebase-auth": "node scripts/firebase-auth-verification.test.mjs",
-    "test:firestore-rules": "node scripts/firestore-rules.test.mjs",
-    "test:booking-overlap": "node scripts/booking-overlap.test.mjs",
-    "test:group-client-rules": "node scripts/group-client-rules.test.mjs"
+    "start": "react-native start --host 127.0.0.1"
   },
   "dependencies": {
     "firebase": "^13.0.0",
@@ -25,25 +18,16 @@
     "@babel/core": "^7.25.2",
     "@babel/preset-env": "^7.25.3",
     "@babel/runtime": "^7.25.0",
-    "@firebase/rules-unit-testing": "^6.0.0",
     "@react-native-community/cli": "20.2.0",
     "@react-native-community/cli-platform-android": "20.2.0",
-    "@react-native-community/cli-platform-ios": "20.2.0",
     "@react-native/babel-preset": "0.87.1",
     "@react-native/eslint-config": "0.87.1",
-    "@react-native/jest-preset": "0.87.1",
     "@react-native/metro-config": "0.87.1",
     "eslint": "^8.19.0",
-    "jest": "^30.5.2",
-    "prettier": "2.8.8",
-    "react-test-renderer": "19.2.3"
+    "prettier": "2.8.8"
   },
   "overrides": {
-    "@grpc/grpc-js": "1.14.6",
-    "@react-native/jest-preset": {
-      "babel-jest": "30.5.2",
-      "jest-environment-node": "30.5.2"
-    }
+    "@grpc/grpc-js": "1.14.6"
   },
   "engines": {
     "node": "^22.13.0 || ^24.3.0 || >=26.0.0"

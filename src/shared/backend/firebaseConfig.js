@@ -18,9 +18,6 @@ export const firebaseConfig = {
 export const googleWebClientId =
   '722562628798-m5c0fbquq68a2ml7eabkukjq2putlkuv.apps.googleusercontent.com';
 
-// Set this only while using local Auth and Firestore emulators.
-export const firebaseEmulatorHost = '';
-
 const requiredValues = ['apiKey', 'authDomain', 'projectId', 'appId'];
 
 export function isFirebaseConfigured(config = firebaseConfig) {
