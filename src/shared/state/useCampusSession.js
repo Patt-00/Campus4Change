@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { initialState, isAccountUuid } from '../data/utils';
+import { readableErrorText } from '../data/readableError';
 import {
   firebaseEnabled,
   firebaseCheckEmailVerification,
@@ -132,7 +133,7 @@ function stringList(value, fallback) {
 }
 
 function errorText(error) {
-  return error instanceof Error ? error.message : String(error);
+  return readableErrorText(error);
 }
 
 function sessionAccountId(session) {

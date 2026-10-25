@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { readableErrorText } from '../../../shared/data/readableError';
 import {
   createTutorBooking,
   removeTutorProfile,
@@ -17,14 +18,14 @@ function listenerErrorText(error) {
   if (error?.code === 'failed-precondition' && /index/i.test(error.message || '')) {
     return 'Shared data is temporarily unavailable. Please try again shortly.';
   }
-  return error instanceof Error ? error.message : String(error);
+  return readableErrorText(error);
 }
 
 function actionErrorText(error) {
   if (error?.code === 'permission-denied') {
     return 'This change could not be saved. Verify your email and try again, or wait a few seconds if you just sent a session request.';
   }
-  return error instanceof Error ? error.message : String(error);
+  return readableErrorText(error);
 }
 
 export function useSharedTutors({ uid, enabled, profile }) {

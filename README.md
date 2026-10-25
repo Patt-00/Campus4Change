@@ -4,13 +4,13 @@ Campus4Change is an Android peer-learning app for students at the Technological 
 
 ## Download
 
-Download the signed Android APK from the [Campus4Change v1.4.1 GitHub release](https://github.com/Patt-00/Campus4Change/releases/tag/v1.4.1).
+Download the signed Android APK from the [Campus4Change v1.4.2 GitHub release](https://github.com/Patt-00/Campus4Change/releases/tag/v1.4.2).
 
-- Direct APK: [Campus4Change 1.4.1](https://github.com/Patt-00/Campus4Change/releases/download/v1.4.1/app-release.apk)
+- Direct APK: [Campus4Change 1.4.2](https://github.com/Patt-00/Campus4Change/releases/download/v1.4.2/app-release.apk)
 - Package: `com.campus4change`
-- Version: 1.4.1, Android version code 8
+- Version: 1.4.2, Android version code 10
 - Minimum Android version: Android 7.0 (API 24)
-- APK SHA-256: `6382073539e8c2bff06d2d190751632356ea615c1e2e9bf04b23ea20598f6c9d`
+- APK SHA-256: `2f6ba497719571cf062bbb64f879cc773dd935e68a8d6f1c44f5424821f1d8c5`
 
 The release is a signed APK. It includes the JavaScript bundle and does not need Metro. The app does not include demo accounts or seeded demo content.
 
@@ -36,7 +36,7 @@ For an update, Android requires the same application ID and signing certificate 
 
 Firebase Authentication handles online accounts. Cloud Firestore stores private account state and shared tutor, session, and group data. Email-verified accounts can use shared features. The app does not verify school enrollment. The Android release uses Firebase project `campus4change`.
 
-Firebase App Check is not registered or enforced for this Android release. Do not describe the app as App Check-attested. Clearing app data removes local account state and local photos, but it does not delete Firebase accounts or cloud records. A fork must configure its own Firebase project and review `firestore.rules` and `firestore.indexes.json` before deployment.
+Release builds request Firebase App Check tokens through Play Integrity. As checked on 2026-10-26, the Play Integrity API is enabled, the Android app accepts off-Play installs, and it requires device integrity. Firebase Authentication and Cloud Firestore App Check enforcement remain off; Firestore rules control access. No Cloud Billing account is linked to the Firebase project. These settings live in Firebase and Google Cloud, outside this repository. See the [Firebase App Check Play Integrity guide](https://firebase.google.com/docs/app-check/android/play-integrity-provider). Clearing app data removes local account state and local photos, but it does not delete Firebase accounts or cloud records. A fork must configure its own Firebase project and review `firestore.rules` and `firestore.indexes.json` before deployment.
 
 Tutoring payments, live voice or video calls, operating-system push notifications, and iOS are outside this release's scope.
 
@@ -52,6 +52,8 @@ From the repository root:
 
 ```sh
 npm ci
+npm run lint
+npm test
 ```
 
 Create `android/local.properties` with the Android SDK path for your computer. To assemble a debug APK, run the Gradle wrapper from the `android` directory:

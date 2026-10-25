@@ -50,6 +50,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Focused JavaScript behavior tests
+        run: npm test
+
       - name: Check for public Google Drive links
         run: npm run check:public-drive-links
 
@@ -143,6 +146,6 @@ jobs:
           sdk_root="${ANDROID_HOME:-${HOME}/Library/Android/sdk}"
           metadata="$("$sdk_root/build-tools/37.0.0/aapt" dump badging "$apk" | sed -n '1p')"
           printf '%s\n' "$metadata"
-          grep -Fq "package: name='com.campus4change' versionCode='8' versionName='1.4.1'" <<<"$metadata"
+          grep -Fq "package: name='com.campus4change' versionCode='10' versionName='1.4.2'" <<<"$metadata"
           "$sdk_root/build-tools/37.0.0/apksigner" verify --verbose "$apk"
           shasum -a 256 "$apk"

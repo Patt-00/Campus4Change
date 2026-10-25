@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { readableErrorText } from '../../../shared/data/readableError';
 import {
   sendSharedMessage,
   watchSharedMessages,
@@ -78,9 +79,7 @@ export function useSharedMessages({
         listenerError => {
           if (active) {
             setError(
-              listenerError instanceof Error
-                ? listenerError.message
-                : 'Could not load this chat.',
+              readableErrorText(listenerError, 'Could not load this chat.'),
             );
             setLoading(false);
           }
@@ -92,11 +91,7 @@ export function useSharedMessages({
         subscription,
       };
     } catch (listenerError) {
-      setError(
-        listenerError instanceof Error
-          ? listenerError.message
-          : 'Could not load this chat.',
-      );
+      setError(readableErrorText(listenerError, 'Could not load this chat.'));
       setLoading(false);
     }
 
@@ -158,9 +153,7 @@ export function useSharedMessages({
     } catch (loadError) {
       if (subscriptionRef.current?.subscription === current.subscription) {
         setError(
-          loadError instanceof Error
-            ? loadError.message
-            : 'Could not load older messages.',
+          readableErrorText(loadError, 'Could not load older messages.'),
         );
       }
     } finally {

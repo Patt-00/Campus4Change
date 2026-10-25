@@ -11,6 +11,7 @@ import { AppButton } from '../../../shared/components/AppButton';
 import { Screen } from '../../../shared/components/Screen';
 import { Empty, ErrorText, Field, Link } from '../../../shared/components/UI';
 import { timeLabel } from '../../../shared/data/utils';
+import { readableErrorText } from '../../../shared/data/readableError';
 import { conversationMessages, messageText } from '../data/conversation';
 
 import { C } from '../../../shared/theme/colors';
@@ -56,9 +57,7 @@ export function ChatScreen({
           ? conversation.kind === 'group'
             ? 'Only current group members can send messages, and group contributions are limited to one every five seconds.'
             : 'Only the tutor-session participants can send messages. Wait briefly and try again.'
-          : error instanceof Error
-            ? error.message
-            : 'Could not send the message. Check your connection and retry.',
+          : readableErrorText(error, 'Could not send the message. Try again.'),
       );
     } finally {
       setBusy(false);

@@ -4,6 +4,7 @@ import { AppButton } from '../../../shared/components/AppButton';
 import { Screen } from '../../../shared/components/Screen';
 import { Avatar, Chip, ErrorText, Field } from '../../../shared/components/UI';
 import { dayAt } from '../../../shared/data/utils';
+import { readableErrorText } from '../../../shared/data/readableError';
 
 import { s } from '../../../shared/theme/styles';
 import { bookingSlots as slots } from '../data/booking';
@@ -73,9 +74,7 @@ export function BookingScreen({
       );
     } catch (saveError) {
       setError(
-        saveError instanceof Error
-          ? saveError.message
-          : 'Could not save this session. Try again.',
+        readableErrorText(saveError, 'Could not save this session. Try again.'),
       );
     } finally {
       setSaving(false);

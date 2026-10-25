@@ -1,15 +1,16 @@
 {
   "name": "Campus4Change",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "private": true,
   "scripts": {
     "android": "react-native run-android",
     "lint": "eslint .",
+    "test": "node --test",
     "check:public-drive-links": "node scripts/check-public-drive-links.mjs",
     "start": "react-native start --host 127.0.0.1"
   },
   "dependencies": {
-    "firebase": "^13.0.0",
+    "firebase": "^13.1.0",
     "react": "19.2.3",
     "react-native": "0.87.1",
     "react-native-safe-area-context": "^5.5.2"

@@ -49,6 +49,7 @@ import { RouteTransition } from '../shared/components/RouteTransition';
 import { Screen } from '../shared/components/Screen';
 import { StatusBarSafeArea } from '../shared/components/StatusBarSafeArea';
 import { uid } from '../shared/data/utils';
+import { readableErrorText } from '../shared/data/readableError';
 import { hasCompleteAccountProfile } from '../shared/data/profileSetup';
 import { useSharedGroups } from '../features/groups/hooks/useSharedGroups';
 import { useSharedGroupReports } from '../features/groups/hooks/useSharedGroupReports';
@@ -356,9 +357,7 @@ export function AppNavigator() {
     } catch (error) {
       Alert.alert(
         'Could not discard changes',
-        error instanceof Error
-          ? error.message
-          : 'Please try again before leaving your profile.',
+        readableErrorText(error, 'Please try again before leaving your profile.'),
       );
     }
   }, [activeAccountId, navigateBack, route.page]);

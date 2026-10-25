@@ -8,6 +8,7 @@ import {
   normalizeInterestGroups,
 } from '../../../shared/data/interestGroups';
 import { InterestEditor } from '../components/InterestEditor';
+import { readableErrorText } from '../../../shared/data/readableError';
 import { s } from '../../../shared/theme/styles';
 
 export function BeTutorScreen({
@@ -50,9 +51,10 @@ export function BeTutorScreen({
       back();
     } catch (saveError) {
       setError(
-        saveError instanceof Error
-          ? saveError.message
-          : 'Could not save this tutor profile. Try again.',
+        readableErrorText(
+          saveError,
+          'Could not save this tutor profile. Try again.',
+        ),
       );
     } finally {
       setSaving(false);

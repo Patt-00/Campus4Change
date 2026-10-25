@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { uid as createId } from '../../../shared/data/utils';
+import { readableErrorText } from '../../../shared/data/readableError';
 import {
   syncSharedGroupAction,
   watchSharedGroupPosts,
@@ -10,7 +11,7 @@ const EMPTY_GROUPS = [];
 const EMPTY_ACTIONS = [];
 
 function errorText(error) {
-  return error instanceof Error ? error.message : String(error);
+  return readableErrorText(error);
 }
 
 function groupActionErrorText(error, operation) {

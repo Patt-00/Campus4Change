@@ -9,6 +9,7 @@ import {
   normalizeInterestGroups,
 } from '../../../shared/data/interestGroups';
 import { getTipProgram } from '../../../shared/data/tipPrograms';
+import { readableErrorText } from '../../../shared/data/readableError';
 import {
   getTipCampusLabel,
   normalizeTipCampus,
@@ -159,7 +160,7 @@ export function EditProfileScreen({
       }
     } catch (saveError) {
       setError(
-        saveError instanceof Error ? saveError.message : String(saveError),
+        readableErrorText(saveError, 'Could not save your profile. Try again.'),
       );
     } finally {
       setSaving(false);

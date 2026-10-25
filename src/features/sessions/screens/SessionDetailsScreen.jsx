@@ -9,6 +9,7 @@ import {
   Link,
 } from '../../../shared/components/UI';
 import { dateLabel, timeRange } from '../../../shared/data/utils';
+import { readableErrorText } from '../../../shared/data/readableError';
 import { canRescheduleSession, sessionTimingStatus } from '../data/status';
 import { useSessionClock } from '../hooks/useSessionClock';
 
@@ -43,7 +44,7 @@ export function SessionDetailsScreen({
       }
     } catch (error) {
       setActionError(
-        error instanceof Error ? error.message : 'Could not update this request.',
+        readableErrorText(error, 'Could not update this request.'),
       );
     } finally {
       setBusyAction('');

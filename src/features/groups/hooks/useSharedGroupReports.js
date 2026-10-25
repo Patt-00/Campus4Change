@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { readableErrorText } from '../../../shared/data/readableError';
 import { watchSharedGroupReports } from '../data/firestore';
 
 function errorText(error) {
-  return error instanceof Error ? error.message : String(error);
+  return readableErrorText(error);
 }
 
 export function useSharedGroupReports({ uid, groupId, enabled }) {
