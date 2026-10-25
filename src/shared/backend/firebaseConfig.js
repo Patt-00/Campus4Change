@@ -3,14 +3,10 @@
 // Firestore Security Rules instead of relying on these values as secrets.
 export const firebaseConfig = {
   apiKey: 'AIzaSyCAGFqPzSeJMMoem8mCV0xRUJIeIEwi5hI',
-  androidApiKey: 'AIzaSyDY6a9YEXMgiOy87Zk9IDHiconYXKY0u2o',
   authDomain: 'campus4change.firebaseapp.com',
   projectId: 'campus4change',
-  storageBucket: 'campus4change.firebasestorage.app',
   messagingSenderId: '722562628798',
   appId: '1:722562628798:web:8670cd83eb25b3ca7132ef',
-  // Native App Check uses the Android app registration ID for this package.
-  androidAppId: '1:722562628798:android:5c20a4828a4478337132ef',
 };
 
 // Public OAuth audience used by Android Credential Manager. This is the

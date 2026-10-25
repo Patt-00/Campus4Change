@@ -34,9 +34,11 @@ For an update, Android requires the same application ID and signing certificate 
 
 ## Accounts and data
 
-Firebase Authentication handles online accounts. Cloud Firestore stores private account state and shared tutor, session, and group data. Email-verified accounts can use shared features. The app does not verify school enrollment. The Android release uses Firebase project `campus4change`.
+Firebase Authentication handles online accounts. Cloud Firestore stores private account state and shared tutor, session, and group data. The app does not configure Cloud Functions, Firebase Storage, or App Check. Profile photos stay in app-private storage. Email-verified accounts can use shared features. The app does not verify school enrollment. The Android release uses Firebase project `campus4change`.
 
-Firebase App Check is not registered or enforced for this Android release. Do not describe the app as App Check-attested. Clearing app data removes local account state and local photos, but it does not delete Firebase accounts or cloud records. A fork must configure its own Firebase project and review `firestore.rules` and `firestore.indexes.json` before deployment.
+Keep this class project on Firebase's Spark plan. Email or Google Authentication and Firestore can use their no-cost Spark access; Firestore stops serving when its free quota is reached. Linking a Cloud Billing account switches the project to Blaze, which can charge usage above free quotas. See [Firebase pricing plans](https://firebase.google.com/docs/projects/billing/firebase-pricing-plans) and [Cloud Firestore pricing](https://firebase.google.com/docs/firestore/pricing).
+
+Clearing app data removes local account state and local photos, but it does not delete Firebase accounts or cloud records. A fork must configure its own Firebase project and review `firestore.rules` and `firestore.indexes.json` before deployment.
 
 Tutoring payments, live voice or video calls, operating-system push notifications, and iOS are outside this release's scope.
 

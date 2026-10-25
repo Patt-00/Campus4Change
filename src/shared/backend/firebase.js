@@ -1,5 +1,4 @@
 import { NativeModules, Platform } from 'react-native';
-import { initializeAndroidAppCheck } from './appCheck';
 import {
   firebaseConfig,
   googleWebClientId,
@@ -47,12 +46,9 @@ const PRIVATE_MESSAGE_CACHE_KEY_PREFIX = 'firebase:privateMessageCache:';
 if (firebaseEnabled) {
   const { app: appSdk, auth: authSdk, firestore: firestoreSdk } = firebaseSdk();
   const webFirebaseConfig = { ...firebaseConfig };
-  delete webFirebaseConfig.androidApiKey;
-  delete webFirebaseConfig.androidAppId;
   const app = appSdk.getApps().length
     ? appSdk.getApp()
     : appSdk.initializeApp(webFirebaseConfig);
-  initializeAndroidAppCheck(app, firebaseConfig);
   try {
     auth = authSdk.initializeAuth(app, {
       persistence: authSdk.getReactNativePersistence(secureAuthStorage()),
