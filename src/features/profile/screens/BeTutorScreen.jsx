@@ -8,6 +8,12 @@ import {
   normalizeInterestGroups,
 } from '../../../shared/data/interestGroups';
 import { InterestEditor } from '../components/InterestEditor';
+import { AvailabilityEditor } from '../../tutors/components/AvailabilityEditor';
+import {
+  getDeviceTimeZone,
+  normalizeAvailability,
+  normalizeTimeZone,
+} from '../../tutors/data/availability';
 import { readableErrorText } from '../../../shared/data/readableError';
 import { s } from '../../../shared/theme/styles';
 
@@ -28,6 +34,12 @@ export function BeTutorScreen({
     ),
   );
   const [bio, setBio] = useState(profile.bio);
+  const [availability, setAvailability] = useState(() =>
+    normalizeAvailability(profile.tutorAvailability),
+  );
+  const timeZone = normalizeTimeZone(
+    profile.tutorTimeZone || getDeviceTimeZone(),
+  );
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -42,6 +54,8 @@ export function BeTutorScreen({
       const result = await save({
         tutorSubjects,
         tutorSubjectGroups: groups,
+        tutorAvailability: availability,
+        tutorTimeZone: timeZone,
         bio: tutorSubjects.length ? bio.trim() : '',
       });
       if (typeof result === 'string' || result?.error) {
@@ -87,6 +101,17 @@ export function BeTutorScreen({
         itemPlural="subjects"
         defaultGroupName="Other subjects"
         maxItems={10}
+      />
+
+      <Text style={s.section}>Weekly availability</Text>
+      <Text style={[s.muted, styles.intro]}>
+        Choose the days and hours when you can teach. Students will see one-hour
+        start times within these ranges.
+      </Text>
+      <AvailabilityEditor
+        value={availability}
+        onChange={setAvailability}
+        timeZone={timeZone}
       />
 
       <Text style={s.section}>Introduction</Text>

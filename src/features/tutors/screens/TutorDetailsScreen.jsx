@@ -6,8 +6,9 @@ import { Avatar, Chip } from '../../../shared/components/UI';
 
 import { s } from '../../../shared/theme/styles';
 
-import { bookingSlots } from '../data/booking';
+import { formatAvailabilitySummary } from '../data/availability';
 export function TutorDetailsScreen({ go, back, tutor, message }) {
+  const availability = formatAvailabilitySummary(tutor.availability);
   return (
     <Screen title="Tutor Profile" back={back}>
       <View style={styles.alignItemscenterpaddingTop8}>
@@ -42,28 +43,18 @@ export function TutorDetailsScreen({ go, back, tutor, message }) {
       {!tutor.own && (
         <>
           <Text style={s.section}>
-            {tutor.shared ? 'Request a time' : 'Booking times'}
+            {tutor.shared ? 'Weekly availability' : 'Booking times'}
           </Text>
           {tutor.shared && (
             <Text style={s.muted}>
-              Times are requested from this tutor and need their acceptance.
+              {availability.length
+                ? `Times use the tutor's time zone (${tutor.timeZone || 'Asia/Manila'}) and appear in your local time when booking. Requests need tutor approval.`
+                : 'This tutor has not posted weekly hours. You can still suggest a time for their approval.'}
             </Text>
           )}
-          <View style={s.wrap}>
-            {bookingSlots.map((time, slot) => (
-              <Chip
-                key={time.label}
-                label={time.label}
-                onPress={() =>
-                  go({
-                    page: 'Book Session',
-                    tutorId: tutor.id,
-                    slot,
-                  })
-                }
-              />
-            ))}
-          </View>
+          {availability.map(time => (
+            <Text key={time} style={s.text}>{time}</Text>
+          ))}
           <View style={s.bigGap} />
           <AppButton
             title={tutor.shared ? 'REQUEST A SESSION' : 'BOOK SESSION'}

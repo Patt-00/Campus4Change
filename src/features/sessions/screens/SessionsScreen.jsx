@@ -83,6 +83,13 @@ export function SessionsScreen({
             <Text style={s.muted}>
               {contactLabel}
             </Text>
+            {session.shared && session.incoming && session.status === 'Pending' && session.timeType && (
+              <Text style={styles.requestType}>
+                {session.timeType === 'custom'
+                  ? 'Custom time request'
+                  : 'Tutor availability request'}
+              </Text>
+            )}
           </View>
           {session.status === 'Completed' && !session.shared ? (
             <Text style={[s.link, styles.rateAction]}>
@@ -239,4 +246,10 @@ const styles = StyleSheet.create({
   historyCard: { minHeight: 88, paddingVertical: 12 },
   sessionRow: { gap: 10 },
   rateAction: { maxWidth: 72, textAlign: 'right' },
+  requestType: {
+    color: C.cyan,
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 12,
+    marginTop: 3,
+  },
 });

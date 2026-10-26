@@ -144,7 +144,7 @@ export function HomeScreen({
         />
       )}
       <View style={[s.card, styles.match]}>
-        <Text style={styles.eyebrow}>YOUR NEXT MATCH AWAITS</Text>
+        <Text style={styles.eyebrow}>RECOMMENDED STUDY CONNECTIONS</Text>
         <View style={[s.row, styles.matchRow]}>
           <View style={s.grow}>
             <Text style={[s.name, s.blue]}>

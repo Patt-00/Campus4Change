@@ -1,5 +1,6 @@
 import { firebaseServicesForUser } from '../../../shared/backend/firebase';
 import { getAvatarPreset } from '../../../shared/data/avatarPresets';
+import { normalizeAvailability, normalizeTimeZone } from './availability';
 
 const PROFILE_PAGE_SIZE = 20;
 const BOOKING_PAGE_SIZE = 100;
@@ -27,11 +28,12 @@ function mapTutor(snapshot, uid) {
     year: profile.year,
     avatarId: getAvatarPreset(profile.avatarId).id,
     subjects: profile.subjects,
+    availability: normalizeAvailability(profile.availability),
+    timeZone: normalizeTimeZone(profile.timeZone),
     rating: 0,
     sessions: 0,
     response: 0,
     available: true,
-    availability: 'Accepting session requests',
     about: profile.bio,
     updatedAt: isoTime(profile.updatedAt),
   };
@@ -60,6 +62,7 @@ export function mapTutorBooking(snapshot, uid) {
     subject: booking.subject,
     startsAt: isoTime(booking.startsAt),
     slotBuckets: booking.slotBuckets,
+    timeType: booking.timeType || '',
     note: booking.note,
     status: appStatus(booking.status),
     remoteStatus: booking.status,
@@ -269,20 +272,28 @@ export async function saveTutorProfile(uid, profile) {
   const subjects = [...subjectsByKey.values()].slice(0, 10);
   const name = String(profile.name || 'Student').trim().slice(0, 100);
   const bio = String(profile.bio || '').trim().slice(0, 1000);
+  const availability = normalizeAvailability(profile.availability);
+  const timeZone = normalizeTimeZone(profile.timeZone);
   if (!subjects.length || bio.length < 10) {
     throw new Error('Add a subject and an introduction of at least 10 characters.');
   }
-  await setDoc(doc(db, 'tutorProfiles', uid), {
-    uid,
-    name,
-    course: String(profile.course || '').trim().slice(0, 100),
-    year: String(profile.year || '').trim().slice(0, 40),
-    avatarId: getAvatarPreset(profile.avatarId).id,
-    subjects,
-    bio,
-    visibility: 'listed',
-    updatedAt: serverTimestamp(),
-  });
+  await setDoc(
+    doc(db, 'tutorProfiles', uid),
+    {
+      uid,
+      name,
+      course: String(profile.course || '').trim().slice(0, 100),
+      year: String(profile.year || '').trim().slice(0, 40),
+      avatarId: getAvatarPreset(profile.avatarId).id,
+      subjects,
+      availability,
+      timeZone,
+      bio,
+      visibility: 'listed',
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
 }
 
 export async function removeTutorProfile(uid) {
@@ -291,7 +302,15 @@ export async function removeTutorProfile(uid) {
   await deleteDoc(doc(db, 'tutorProfiles', uid));
 }
 
-export async function createTutorBooking(uid, studentName, tutor, subject, startsAt, note) {
+export async function createTutorBooking(
+  uid,
+  studentName,
+  tutor,
+  subject,
+  startsAt,
+  note,
+  timeType = 'custom',
+) {
   const { db, firestore } = firebaseServicesForUser(uid);
   const { Timestamp, collection, doc, serverTimestamp, writeBatch } = firestore;
   if (!tutor?.shared || !tutor.id || tutor.id === uid) {
@@ -307,6 +326,9 @@ export async function createTutorBooking(uid, studentName, tutor, subject, start
   if (!tutor.subjects?.includes(subject)) {
     throw new Error('Choose one of this tutor’s listed subjects.');
   }
+  if (!['availability', 'custom'].includes(timeType)) {
+    throw new Error('Choose a valid session request type.');
+  }
   const firstBucket = Math.floor(start.getTime() / SLOT_BUCKET_MS);
   const slotBuckets = [firstBucket, firstBucket + 1];
   const booking = {
@@ -317,6 +339,7 @@ export async function createTutorBooking(uid, studentName, tutor, subject, start
     subject: String(subject).trim().slice(0, 100),
     startsAt: Timestamp.fromDate(start),
     slotBuckets,
+    timeType,
     note: String(note || '').trim().slice(0, 2000),
     status: 'pending',
     participantUids: [uid, tutor.id],
@@ -343,6 +366,7 @@ export async function createTutorBooking(uid, studentName, tutor, subject, start
     subject: booking.subject,
     startsAt: start.toISOString(),
     slotBuckets,
+    timeType,
     note: booking.note,
     status: 'Pending',
     remoteStatus: 'pending',

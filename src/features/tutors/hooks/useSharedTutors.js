@@ -190,9 +190,17 @@ export function useSharedTutors({ uid, enabled, profile }) {
     [runAction, uid],
   );
   const requestSession = useCallback(
-    (tutor, subject, startsAt, note) =>
+    (tutor, subject, startsAt, note, timeType) =>
       runAction(() =>
-        createTutorBooking(uid, profile?.name, tutor, subject, startsAt, note),
+        createTutorBooking(
+          uid,
+          profile?.name,
+          tutor,
+          subject,
+          startsAt,
+          note,
+          timeType,
+        ),
       ),
     [profile?.name, runAction, uid],
   );

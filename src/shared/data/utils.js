@@ -82,6 +82,8 @@ export function initialState(account) {
       profilePhotoUri: '',
       tutorSubjects: [],
       tutorSubjectGroups: [],
+      tutorAvailability: {},
+      tutorTimeZone: '',
       bio: '',
     },
     sessions: [],

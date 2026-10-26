@@ -564,6 +564,39 @@ service cloud.firestore {
     // A tutor listing exposes only the fields users need to choose a tutor.
     // Contact details stay in the owner's private data.
     match /tutorProfiles/{tutorUid} {
+      function validAvailabilityWindow(window) {
+        return window is map
+          && window.keys().hasAll(['startMinute', 'endMinute'])
+          && window.keys().hasOnly(['startMinute', 'endMinute'])
+          && window.startMinute is int
+          && window.endMinute is int
+          && window.startMinute >= 360
+          && window.endMinute <= 1320
+          && window.startMinute % 30 == 0
+          && window.endMinute % 30 == 0
+          && window.endMinute - window.startMinute >= 60;
+      }
+
+      function validAvailabilityDay(schedule, day) {
+        return !(day in schedule)
+          || validAvailabilityWindow(schedule[day]);
+      }
+
+      function validAvailability(data) {
+        return !('availability' in data)
+          || (data.availability is map
+            && data.availability.keys().hasOnly([
+              'sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'
+            ])
+            && validAvailabilityDay(data.availability, 'sun')
+            && validAvailabilityDay(data.availability, 'mon')
+            && validAvailabilityDay(data.availability, 'tue')
+            && validAvailabilityDay(data.availability, 'wed')
+            && validAvailabilityDay(data.availability, 'thu')
+            && validAvailabilityDay(data.availability, 'fri')
+            && validAvailabilityDay(data.availability, 'sat'));
+      }
+
       function validListing() {
         return request.resource.data.keys().hasAll([
             'uid', 'name', 'course', 'year', 'subjects', 'bio',
@@ -571,7 +604,7 @@ service cloud.firestore {
           ])
           && request.resource.data.keys().hasOnly([
             'uid', 'name', 'course', 'year', 'subjects', 'bio',
-            'visibility', 'updatedAt', 'avatarId'
+            'visibility', 'updatedAt', 'avatarId', 'availability', 'timeZone'
           ])
           && request.resource.data.uid == tutorUid
           && request.resource.data.name is string
@@ -588,6 +621,11 @@ service cloud.firestore {
             || request.resource.data.avatarId in [
               'cyan', 'blue', 'green', 'violet', 'gold', 'rose', 'teal', 'slate'
             ])
+          && validAvailability(request.resource.data)
+          && (!('timeZone' in request.resource.data)
+            || (request.resource.data.timeZone is string
+              && request.resource.data.timeZone.size() > 0
+              && request.resource.data.timeZone.size() <= 64))
           && request.resource.data.bio is string
           && request.resource.data.bio.size() >= 10
           && request.resource.data.bio.size() <= 1000
@@ -705,9 +743,11 @@ service cloud.firestore {
           ])
           && data.keys().hasOnly([
             'studentUid', 'tutorUid', 'studentName', 'tutorName',
-            'subject', 'startsAt', 'slotBuckets', 'note', 'status', 'participantUids',
+            'subject', 'startsAt', 'slotBuckets', 'timeType', 'note', 'status', 'participantUids',
             'createdAt', 'updatedAt'
           ])
+          && (!('timeType' in data)
+            || data.timeType in ['availability', 'custom'])
           && data.studentUid == request.auth.uid
           && data.tutorUid is string
           && data.tutorUid != request.auth.uid

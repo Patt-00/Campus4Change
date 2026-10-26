@@ -11,13 +11,13 @@ Campus4Change helps students at the Technological Institute of the Philippines f
 
 ## Download
 
-Download the signed Android APK from the [Campus4Change v1.4.2 GitHub release](https://github.com/Patt-00/Campus4Change/releases/tag/v1.4.2).
+Download the signed Android APK from the [Campus4Change v1.4.3 GitHub release](https://github.com/Patt-00/Campus4Change/releases/tag/v1.4.3).
 
-- Direct APK: [Campus4Change 1.4.2](https://github.com/Patt-00/Campus4Change/releases/download/v1.4.2/app-release.apk)
+- Direct APK: [Campus4Change 1.4.3](https://github.com/Patt-00/Campus4Change/releases/download/v1.4.3/app-release.apk)
 - Package: `com.campus4change`
-- Version: 1.4.2, Android version code 10
+- Version: 1.4.3, Android version code 11
 - Minimum Android version: Android 7.0 (API 24)
-- APK SHA-256: `2f6ba497719571cf062bbb64f879cc773dd935e68a8d6f1c44f5424821f1d8c5`
+- APK SHA-256: `4f9a2618cfa7b9c62cd382f13f8c2b75abc6be4c865fc26e34d51893c13f73b4`
 
 The release is a signed APK. It includes the JavaScript bundle and does not need Metro. The app does not include demo accounts or seeded demo content.
 
@@ -33,10 +33,11 @@ For an update, Android requires the same application ID and signing certificate 
 - Required profile setup with TIP course, year level, and Quezon City or Manila campus choices.
 - A generated Campus4Change UUID for account reference. The UUID does not verify TIP enrollment.
 - Course-grouped learning interests, tutor search, recommendations, and tutor profiles.
+- Tutors can set weekly hours for each weekday. Students can request a posted time or suggest a custom time for tutor approval.
 - Session requests, tutor acceptance or decline, cancellation, and participant messaging.
 - Study-group discovery, shared details, posts, replies, and group chat.
 - Animated in-app notifications, separate Settings, and About information.
-- A short animated splash introduction that honors the device's reduced-motion setting.
+- An animated startup screen on cold launch that honors the device's reduced-motion setting.
 - Built-in avatars and optional profile photos from the system photo picker or camera. Profile photos stay on the device.
 
 ## Accounts and data

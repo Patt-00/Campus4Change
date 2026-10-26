@@ -1,12 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   BackHandler,
-  Image,
   NativeModules,
-  StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import { HomeScreen } from '../features/home/screens/HomeScreen';
@@ -47,7 +43,7 @@ import { AppButton } from '../shared/components/AppButton';
 import { Empty, NoticeBanner } from '../shared/components/UI';
 import { RouteTransition } from '../shared/components/RouteTransition';
 import { Screen } from '../shared/components/Screen';
-import { StatusBarSafeArea } from '../shared/components/StatusBarSafeArea';
+import { StartupSplash } from '../shared/components/StartupSplash';
 import { uid } from '../shared/data/utils';
 import { readableErrorText } from '../shared/data/readableError';
 import { hasCompleteAccountProfile } from '../shared/data/profileSetup';
@@ -94,20 +90,10 @@ const tutorStatusPages = new Set([
   'Chat',
   'Be a Tutor',
 ]);
-const restoreStyles = StyleSheet.create({
-  content: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 28,
-  },
-  logo: { width: 260, height: 260, marginBottom: 20 },
-  message: { marginTop: 16 },
-});
-
 export function AppNavigator() {
   const [route, setRoute] = useState({ page: 'Onboarding' });
   const [introductionComplete, setIntroductionComplete] = useState(null);
+  const [startupAnimationComplete, setStartupAnimationComplete] = useState(false);
   const [history, setHistory] = useState([]);
   const [transitionDirection, setTransitionDirection] = useState('forward');
   const [editFormDirty, setEditFormDirty] = useState(false);
@@ -116,6 +102,10 @@ export function AppNavigator() {
   const routeRef = useRef(route);
   routeRef.current = route;
   const routeKey = JSON.stringify(route);
+  const completeStartupAnimation = useCallback(
+    () => setStartupAnimationComplete(true),
+    [],
+  );
   const renderTransition = children => (
     <RouteTransition key={routeKey} direction={transitionDirection}>
       {children}
@@ -423,23 +413,16 @@ export function AppNavigator() {
     });
     return () => listener.remove();
   }, [back, history.length, route.page, sessionType, state]);
-  if (restoring || introductionComplete === null) {
+  if (
+    !startupAnimationComplete ||
+    restoring ||
+    introductionComplete === null
+  ) {
     return (
-      <StatusBarSafeArea style={s.safe}>
-        <View style={restoreStyles.content}>
-          <Image
-            source={require('../shared/assets/campus4change-logo.png')}
-            style={restoreStyles.logo}
-            resizeMode="contain"
-            accessible
-            accessibilityLabel="Campus4Change logo"
-          />
-          <ActivityIndicator color="#52d6e8" size="large" />
-          <Text style={[s.muted, s.center, restoreStyles.message]}>
-            {restoring ? 'Restoring your account...' : 'Preparing your app...'}
-          </Text>
-        </View>
-      </StatusBarSafeArea>
+      <StartupSplash
+        message={restoring ? 'Restoring your account...' : 'Preparing your app...'}
+        onComplete={completeStartupAnimation}
+      />
     );
   }
   if (route.page === 'Onboarding') {
@@ -627,8 +610,7 @@ export function AppNavigator() {
             back={back}
             tutor={tutor}
             session={session}
-            initialSlot={route.slot}
-            onSave={(subject, startsAt, note) => {
+            onSave={(subject, startsAt, note, timeType) => {
               if (tutor.id === ownId) {
                 return 'Choose another tutor. You cannot book yourself.';
               }
@@ -640,7 +622,7 @@ export function AppNavigator() {
               }
               if (tutor.shared) {
                 return sharedTutors
-                  .requestSession(tutor, subject, startsAt, note)
+                  .requestSession(tutor, subject, startsAt, note, timeType)
                   .then(result => {
                     if (result?.error) {
                       return result.error;
@@ -1064,6 +1046,8 @@ export function AppNavigator() {
                 ? await sharedTutors.publishProfile({
                     ...state.profile,
                     tutorSubjects: profile.tutorSubjects,
+                    availability: profile.tutorAvailability,
+                    timeZone: profile.tutorTimeZone,
                     bio: profile.bio,
                   })
                 : await sharedTutors.unpublishProfile();

@@ -71,6 +71,24 @@ export function SessionDetailsScreen({
       <Text style={[s.section, styles.marginTop0]}>Schedule</Text>
       <Text style={s.text}>{dateLabel(session.startsAt)}</Text>
       <Text style={s.text}>{timeRange(session.startsAt)}</Text>
+      {session.shared && session.status === 'Pending' && session.timeType && (
+        <View style={styles.requestTypeCard}>
+          <Text style={s.name}>
+            {session.timeType === 'custom'
+              ? 'Custom time request'
+              : 'Tutor availability request'}
+          </Text>
+          <Text style={s.muted}>
+            {session.timeType === 'custom'
+              ? session.incoming
+                ? 'The student suggested this time. Confirm that it works before accepting.'
+                : 'You suggested this time. The tutor must accept before it is scheduled.'
+              : session.incoming
+                ? 'The student selected a time from your posted weekly hours.'
+                : 'You selected a time from the tutor’s posted weekly hours.'}
+          </Text>
+        </View>
+      )}
       <Text style={s.section}>{session.incoming ? 'Student' : 'Tutor'}</Text>
       <View style={s.row}>
         <Avatar
@@ -249,5 +267,14 @@ const styles = StyleSheet.create({
   },
   alignItemscenter: {
     alignItems: 'center',
+  },
+  requestTypeCard: {
+    backgroundColor: C.chip,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 12,
+    gap: 4,
+    marginTop: 12,
+    padding: 12,
   },
 });
