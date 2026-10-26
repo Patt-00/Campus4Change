@@ -1,6 +1,13 @@
+<p align="center">
+  <img src="src/shared/assets/campus4change-logo.png" width="220" alt="Campus4Change" />
+</p>
+
 # Campus4Change
 
-Campus4Change is an Android peer-learning app for students at the Technological Institute of the Philippines. Students can find peer tutors, request scheduled sessions, join study groups, and continue discussions through in-app messaging.
+[![Build and lint](https://github.com/Patt-00/Campus4Change/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Patt-00/Campus4Change/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/Patt-00/Campus4Change)](https://github.com/Patt-00/Campus4Change/releases/latest)
+
+Campus4Change helps students at the Technological Institute of the Philippines find peer tutors, request sessions, join study groups, and message participants.
 
 ## Download
 
@@ -46,7 +53,7 @@ Campus4Change uses React Native CLI 0.87.1, React 19.2.3, JavaScript/JSX, and He
 
 ## Build from source
 
-Install Node.js 22.13.0 or later within the supported range in `package.json`, JDK 17, Git, and Android Studio with the SDK packages listed in the [cross-platform build guide](docs/BUILDING.md).
+Install a supported Node.js version, JDK 17, Git, and Android Studio with the SDK packages listed in the [cross-platform build guide](docs/BUILDING.md). Check the `engines` field in `package.json` for accepted Node.js versions.
 
 From the repository root:
 
