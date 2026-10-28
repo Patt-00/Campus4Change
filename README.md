@@ -17,7 +17,7 @@ Download the signed Android APK from the [Campus4Change v1.4.4 GitHub release](h
 - Package: `com.campus4change`
 - Version: 1.4.4, Android version code 12
 - Minimum Android version: Android 7.0 (API 24)
-- APK SHA-256: `4f9a2618cfa7b9c62cd382f13f8c2b75abc6be4c865fc26e34d51893c13f73b4`
+- APK SHA-256: `bb18ef8071c3d8932973ff0bb1bd2f950f1aa7b00b352c9882f1936b8c684f92`
 
 The release is a signed APK. It includes the JavaScript bundle and does not need Metro. The app does not include demo accounts or seeded demo content.
 

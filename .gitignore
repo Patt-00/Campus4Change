@@ -30,6 +30,8 @@ build/
 local.properties
 *.iml
 *.hprof
+.c4c-build-env.sh
+.c4c-build-env.ps1
 .cxx/
 *.keystore
 *.jks

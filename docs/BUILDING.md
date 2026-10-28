@@ -9,7 +9,7 @@ The signed Campus4Change 1.4.4 APK is available from the [GitHub release page](h
 - Package: `com.campus4change`
 - Version: 1.4.4, Android version code 12
 - Minimum Android version: API 24
-- APK SHA-256: `4f9a2618cfa7b9c62cd382f13f8c2b75abc6be4c865fc26e34d51893c13f73b4`
+- APK SHA-256: `bb18ef8071c3d8932973ff0bb1bd2f950f1aa7b00b352c9882f1936b8c684f92`
 - Release APK path after a local build: `android/app/build/outputs/apk/release/app-release.apk`
 
 Use the tool versions declared in the project:
@@ -58,6 +58,43 @@ sdk.dir=/absolute/path/to/Android/Sdk
 ```
 
 The Android Gradle Plugin reads the SDK path from `local.properties`. See [Android local build properties](https://developer.android.com/build#local-properties).
+
+## Automated prerequisite setup
+
+The repository includes setup scripts for Bash platforms and Windows PowerShell. Run them from the repository root. The check mode reports missing tools without installing packages or writing project configuration. It may query the Android SDK repository to inspect license status. See [scripts/SCRIPT.md](../scripts/SCRIPT.md) for script behavior, generated files, package details, and troubleshooting.
+
+On macOS, Linux, or Termux, check the current environment with:
+
+~~~sh
+./scripts/setup-build.sh --check
+~~~
+
+Install supported missing prerequisites and configure the Android SDK with:
+
+~~~sh
+./scripts/setup-build.sh --setup
+source ./.c4c-build-env.sh
+~~~
+
+On Windows PowerShell, use:
+
+~~~powershell
+.\scripts\setup-build.ps1 -Check
+.\scripts\setup-build.ps1 -Setup
+. .\.c4c-build-env.ps1
+~~~
+
+Setup installs host packages through apt, dnf, Homebrew, Termux pkg, or WinGet when that package manager is available. Linux setup uses checksum-verified Node.js 24 and Temurin 17 downloads when the distribution does not provide compatible packages. Windows setup uses WinGet for Git, Node.js LTS, and Temurin 17 when those tools are missing. Termux setup installs the ARM64 build packages and prepares the compatible NDK directory.
+
+When the Windows script runs through SSH, it refuses to launch WinGet installers if Git, Node.js, or JDK 17 are missing, since package installers may open Windows UI. Install missing host tools from an interactive PowerShell session, then rerun the script over SSH. SDK command-line tools download and license-status checks use the command line.
+
+If Android SDK Command-line Tools are missing, setup downloads the platform-specific Google package and verifies its SHA-256 checksum before unpacking it. The pinned package build is 15859902; update the version and checksum together when Google publishes a newer package. See the [Android Studio downloads page](https://developer.android.com/studio/) for current command-line tools.
+
+Both scripts use Android SDK Manager to install Platform 37.0, Build Tools 37.0.0, NDK 27.1.12297006, and CMake 3.22.1. Check mode tests license status with input closed and reports any license that remains unaccepted. Setup mode stops before SDK package installation and prints the interactive command for you to review and accept it. The scripts never auto-accept licenses. Setup runs **npm ci** only when the React Native package is missing from **node_modules**.
+
+Setup writes **android/local.properties** and an ignored environment file for the current repository. It preserves existing local NDK and CMake settings except on Termux, where it sets the documented compatibility paths. The scripts do not build an APK or use release-signing credentials.
+
+The setup scripts do not open Android Studio. On Termux, setup installs the command-line tools package, then prepares the compatible NDK directory. SDK license acceptance still requires your input in the terminal.
 
 ## Windows
 
