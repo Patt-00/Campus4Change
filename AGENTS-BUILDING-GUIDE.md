@@ -1,6 +1,6 @@
 # Campus4Change build prompt and agent guide
 
-This file covers building the Android app as a debug APK or a signed release APK. Use [docs/BUILDING.md](docs/BUILDING.md) for operating-system prerequisites and platform setup.
+Use this guide with [docs/BUILDING.md](docs/BUILDING.md) to build a debug or signed release APK with the repository scripts.
 
 ## Prompt for the user
 
@@ -9,94 +9,75 @@ Copy this prompt and fill in the bracketed choices:
 ```text
 Build Campus4Change from this checkout.
 
-Build type: [debug APK / signed release APK]
+APK type: [debug / signed release]
 Environment: [Windows / macOS / Linux / Termux]
 
-Read AGENTS-BUILDING-GUIDE.md and docs/BUILDING.md first. Preserve my existing files and changes. Build the selected APK, verify its package, version, signature as applicable, and SHA-256, then report the artifact path and results. Do not install, upload, publish, or push the artifact unless I ask. For a signed release, use the existing v4 signing key. Do not create or rotate a key. If the key is missing or cannot be unlocked, stop and tell me what is needed. Never ask me to send passwords in chat.
+Read AGENTS-BUILDING-GUIDE.md, docs/BUILDING.md, and scripts/SCRIPT.md first. Preserve my existing files and changes. Use the checked-in APK build script for the selected type. Verify the APK signature and SHA-256, then report the artifact path and build result. Do not install, upload, publish, or push the APK unless I ask. For a release APK, use the existing v4 signing key. Do not create or rotate a key. If the key is missing or cannot be unlocked, stop and report what is needed. Never ask me to send passwords in chat.
 ```
 
 ## Guide for the agent
 
-### Keep the task to building
-
-- Build only the requested Android variant. Do not change application code or version numbers to make a build pass.
-- Do not discard local changes, reset the repository, clean unrelated directories, install the APK, or publish it unless the user asks.
-- Run `npm ci` from the repository root, never from `android`.
-- Do not add or run tests as part of this build-only task unless the user asks.
-- Check the exact platform instructions in [docs/BUILDING.md](docs/BUILDING.md), including the Termux-specific NDK setup.
-
 ### Check the checkout and prerequisites
 
-1. Inspect `git status --short --branch` and the repository root. Preserve any existing changes.
-2. Confirm Node.js matches the `engines` entry in `package.json`, Java reports JDK 17, and the Android SDK is configured as described in `docs/BUILDING.md`.
-3. Confirm `android/local.properties` points to this machine's SDK. On Termux, confirm its `ndk.dir` points to the compatible NDK and its `source.properties` reports `27.1.12297006`.
-4. Install dependencies from the repository root:
+1. Inspect `git status --short --branch` and the repository root. Preserve all existing changes.
+2. Run the setup script's check mode for the current shell:
 
-```sh
-npm ci
-```
+   ```sh
+   ./scripts/setup-build.sh --check
+   ```
+
+   ```powershell
+   .\scripts\setup-build.ps1 -Check
+   ```
+
+3. If a prerequisite is missing, run the matching setup mode. Setup installs supported tools, installs `npm` dependencies when React Native is absent from `node_modules`, and writes local SDK configuration.
+4. If Android SDK licenses remain unaccepted, open an interactive terminal. Run the `sdkmanager --licenses` command printed by setup, review the terms, and accept them yourself. Setup scripts never accept licenses automatically.
+5. Load the generated environment file in the build terminal when needed:
+
+   ```sh
+   source ./.c4c-build-env.sh
+   ```
+
+   ```powershell
+   . .\.c4c-build-env.ps1
+   ```
+
+See [scripts/SCRIPT.md](scripts/SCRIPT.md) for setup behavior and platform-specific details.
 
 ### Build a debug APK
 
-On Windows PowerShell, run from the repository root:
+From the repository root, run the command for the current shell:
+
+```sh
+./scripts/build-apk.sh --debug
+```
 
 ```powershell
-Push-Location .\android
-.\gradlew.bat --no-daemon assembleDebug
-Pop-Location
+.\scripts\build-apk.ps1 -Mode Debug
 ```
 
-On macOS or Linux, run from the repository root:
-
-```sh
-cd android
-./gradlew --no-daemon assembleDebug
-cd ..
-```
-
-On Termux, run the Termux wrapper from the repository root:
-
-```sh
-./scripts/gradlew-termux.sh clean assembleDebug --no-daemon --max-workers=2 --console=plain
-```
-
-The debug APK is written to `android/app/build/outputs/apk/debug/app-debug.apk`. Debug builds require Metro when launching the app. A physical-device install or launch is a separate step and requires the user's request.
+The Bash script selects the Termux Gradle wrapper on Termux. The debug APK is written to `android/app/build/outputs/apk/debug/app-debug.apk`. A debug build requires Metro when launched. Installing or launching the APK is a separate action and needs the user's request.
 
 ### Build a signed release APK
 
-Release builds require the existing private v4 keystore. Its default path is `~/.android/keystores/campus4change-release-v4.jks`, and its alias is `campus4change-v4`. The keystore and passwords are not in the repository.
-
-On macOS or Linux, run the release helper interactively from the repository root:
+From the repository root, run the command for the current shell:
 
 ```sh
-./scripts/build-release.sh
+./scripts/build-apk.sh --release
 ```
-
-The helper reads the password from GNOME Secret Service when available; otherwise it prompts without echoing the password. It builds the release APK and a local App Bundle. The APK is written to `android/app/build/outputs/apk/release/app-release.apk`. This task does not upload or publish either artifact.
-
-On Windows, follow the **Signed APK on Windows** section in [docs/BUILDING.md](docs/BUILDING.md). It uses process-scoped signing variables and hidden password prompts.
-
-After setting the four `C4C_RELEASE_*` variables with that secure helper, build the APK from the repository root:
 
 ```powershell
-Push-Location .\android
-.\gradlew.bat --no-daemon assembleRelease
-Pop-Location
+.\scripts\build-apk.ps1 -Mode Release
 ```
 
-The Termux guide documents a debug build. A signed release build in Termux has not been verified for this project; use the Windows, macOS, or Linux release steps instead.
+The release APK is written to `android/app/build/outputs/apk/release/app-release.apk`. Release builds require the existing v4 keystore, normally `~/.android/keystores/campus4change-release-v4.jks`, with alias `campus4change-v4`. Set `C4C_RELEASE_STORE_FILE` and `C4C_RELEASE_KEY_ALIAS` in the current process only when the key uses a different path or alias.
 
-If the v4 keystore is missing or inaccessible, stop and report the problem. Never set `C4C_CREATE_RELEASE_KEY=1` during a normal build; that option creates a new signing identity and requires explicit user authorization for key rotation.
+Bash reads the store password from GNOME Secret Service when available, then prompts without echoing it if needed. PowerShell uses secure password prompts and will not prompt over SSH. Keep the keystore and passwords out of the repository and chat.
 
-### Verify and report the artifact
+The APK build wrappers refuse to create or rotate a keystore. Do not set `C4C_CREATE_RELEASE_KEY=1` or use a key-rotation path unless the user explicitly authorizes that change.
 
-For the requested APK, verify that the file exists and is non-empty. Read its package name and version from the APK and compare them with `android/app/build.gradle`. For a release APK, run `apksigner verify --verbose` with the Android Build Tools version installed on the machine. Calculate the SHA-256 with `sha256sum` on Unix-like systems or `Get-FileHash -Algorithm SHA256` in PowerShell.
+### Verify and report the APK
 
-Report:
+Both APK build scripts verify the APK signature and print the artifact path and SHA-256 hash. Read the package name and version from the APK, then compare them with `android/app/build.gradle`.
 
-- Build variant and operating system.
-- Whether Gradle succeeded and any relevant warnings.
-- APK path, package name, version name, and version code.
-- Release signature verification result, when building a release.
-- APK SHA-256.
-- Whether the APK was installed or launched. Do not claim device verification unless it was separately requested and performed.
+Report the build variant, operating system, Gradle result, APK path, package name, version name, version code, signature verification result, and SHA-256. Mention relevant warnings. State whether the APK was installed or launched only when you performed that separate action.
