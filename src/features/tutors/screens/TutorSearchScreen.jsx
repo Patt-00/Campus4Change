@@ -41,7 +41,6 @@ export function TutorSearchScreen({
   const [subject, setSubject] = useState('');
   const [showSubjects, setShowSubjects] = useState(false);
   const [available, setAvailable] = useState(false);
-  const [top, setTop] = useState(false);
   const subjectsByKey = new Map();
   list.flatMap(tutor => tutor.subjects).forEach(value => {
     const normalizedSubject = value.trim().replace(/\s+/g, ' ');
@@ -53,16 +52,14 @@ export function TutorSearchScreen({
   const subjects = [...subjectsByKey.values()].sort((a, b) =>
     a.localeCompare(b),
   );
-  const filteredResults = filterTutors(list, query, subject, available, top);
-  const recommendations = top
-    ? []
-    : recommendTutorMatches(filteredResults, interests);
+  const filteredResults = filterTutors(list, query, subject, available);
+  const recommendations = recommendTutorMatches(filteredResults, interests);
   const recommendedIds = new Set(recommendations.map(tutor => tutor.id));
   const results = [
     ...recommendations,
     ...filteredResults.filter(tutor => !recommendedIds.has(tutor.id)),
   ];
-  const filtered = !!query.trim() || !!subject || available || top;
+  const filtered = !!query.trim() || !!subject || available;
   const directoryLocked = sharedAccount && !emailVerified && !list.length;
   return (
     <Screen title="Find People" back={back} go={go} tab="Home">
@@ -93,14 +90,6 @@ export function TutorSearchScreen({
             onPress={() => setAvailable(!available)}
           />
 
-          {!sharedAccount && (
-            <Chip
-              label="Top rated"
-              color={C.yellow}
-              selected={top}
-              onPress={() => setTop(!top)}
-            />
-          )}
         </View>
       )}
       {showSubjects && (
@@ -128,7 +117,6 @@ export function TutorSearchScreen({
             setQuery('');
             setSubject('');
             setAvailable(false);
-            setTop(false);
           }}
         />
       )}
@@ -169,10 +157,6 @@ export function TutorSearchScreen({
       {results.map((t, index) => {
         const isRecommended = recommendedIds.has(t.id);
         const previous = results[index - 1];
-        const rating =
-          Number.isFinite(t.rating) && t.rating > 0
-            ? `Rating ${t.rating.toFixed(1)} stars`
-            : 'No rating yet';
         const listing = t.own ? 'Your listing' : 'Community tutor';
         return (
           <React.Fragment key={t.id}>
@@ -186,7 +170,7 @@ export function TutorSearchScreen({
             )}
             <TouchableOpacity
               accessibilityRole="button"
-              accessibilityLabel={`${t.name}. ${[t.course, t.year].filter(Boolean).join(', ')}. Subjects: ${(t.subjects || []).join(', ')}.${isRecommended ? ` Matches your interests: ${t.matchedInterests.join(', ')}.` : ''} ${rating}. ${listing}. View profile.`}
+              accessibilityLabel={`${t.name}. ${[t.course, t.year].filter(Boolean).join(', ')}. Subjects: ${(t.subjects || []).join(', ')}.${isRecommended ? ` Matches your interests: ${t.matchedInterests.join(', ')}.` : ''} ${listing}. View profile.`}
               accessibilityHint="Opens this public tutor profile."
               style={s.card}
               onPress={() => go({ page: 'Tutor Details', tutorId: t.id })}
@@ -211,9 +195,6 @@ export function TutorSearchScreen({
                     </Text>
                   )}
                   <Text style={s.muted}>{(t.subjects || []).join(' · ')}</Text>
-                  {Number.isFinite(t.rating) && t.rating > 0 && (
-                    <Text style={s.star}>★ {t.rating.toFixed(1)}</Text>
-                  )}
                   {t.own && <Text style={[s.muted, s.blue]}>Your listing</Text>}
                 </View>
               </View>

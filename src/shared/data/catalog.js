@@ -13,7 +13,6 @@ function ownTutorProfile(state) {
       avatarId: profile.avatarId,
       profilePhotoUri: profile.profilePhotoUri,
       subjects: profile.tutorSubjects,
-      rating: 0,
       sessions: 0,
       response: 0,
       available: true,

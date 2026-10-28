@@ -361,6 +361,15 @@ class CampusStorageModule(private val context: ReactApplicationContext) :
         CampusAccountUuid.generate()
     }
 
+    @ReactMethod fun copyToClipboard(label: String, text: String, promise: Promise) = run(promise) {
+        require(text.isNotBlank()) { "There is no ID to copy." }
+        val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+            as? android.content.ClipboardManager
+            ?: error("The clipboard is unavailable.")
+        clipboard.setPrimaryClip(android.content.ClipData.newPlainText(label.take(64), text))
+        true
+    }
+
     @ReactMethod fun signIn(identifier: String, password: String, promise: Promise) = run(promise) {
         val list = accounts()
         val normalizedEmail = identifier.trim()

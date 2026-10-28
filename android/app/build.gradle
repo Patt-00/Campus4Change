@@ -122,8 +122,8 @@ android {
         applicationId "com.campus4change"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 11
-        versionName "1.4.3"
+        versionCode 12
+        versionName "1.4.4"
         externalNativeBuild {
             cmake {
                 arguments "-DANDROID_PLATFORM=android-24", "-DCMAKE_SYSTEM_VERSION=24"

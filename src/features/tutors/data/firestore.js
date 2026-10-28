@@ -30,7 +30,6 @@ function mapTutor(snapshot, uid) {
     subjects: profile.subjects,
     availability: normalizeAvailability(profile.availability),
     timeZone: normalizeTimeZone(profile.timeZone),
-    rating: 0,
     sessions: 0,
     response: 0,
     available: true,

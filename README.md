@@ -11,11 +11,11 @@ Campus4Change helps students at the Technological Institute of the Philippines f
 
 ## Download
 
-Download the signed Android APK from the [Campus4Change v1.4.3 GitHub release](https://github.com/Patt-00/Campus4Change/releases/tag/v1.4.3).
+Download the signed Android APK from the [Campus4Change v1.4.4 GitHub release](https://github.com/Patt-00/Campus4Change/releases/tag/v1.4.4).
 
-- Direct APK: [Campus4Change 1.4.3](https://github.com/Patt-00/Campus4Change/releases/download/v1.4.3/app-release.apk)
+- Direct APK: [Campus4Change 1.4.4](https://github.com/Patt-00/Campus4Change/releases/download/v1.4.4/app-release.apk)
 - Package: `com.campus4change`
-- Version: 1.4.3, Android version code 11
+- Version: 1.4.4, Android version code 12
 - Minimum Android version: Android 7.0 (API 24)
 - APK SHA-256: `4f9a2618cfa7b9c62cd382f13f8c2b75abc6be4c865fc26e34d51893c13f73b4`
 
@@ -32,9 +32,11 @@ For an update, Android requires the same application ID and signing certificate 
 - Firebase email/password and Google sign-in.
 - Required profile setup with TIP course, year level, and Quezon City or Manila campus choices.
 - A generated Campus4Change UUID for account reference. The UUID does not verify TIP enrollment.
+- A copyable account ID on the profile screen.
 - Course-grouped learning interests, tutor search, recommendations, and tutor profiles.
 - Tutors can set weekly hours for each weekday. Students can request a posted time or suggest a custom time for tutor approval.
 - Session requests, tutor acceptance or decline, cancellation, and participant messaging.
+- A single session details screen with booking information and completion controls.
 - Study-group discovery, shared details, posts, replies, and group chat.
 - Animated in-app notifications, separate Settings, and About information.
 - An animated startup screen on cold launch that honors the device's reduced-motion setting.

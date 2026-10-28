@@ -23,7 +23,6 @@ import { GroupStudyRoomScreen } from '../features/groups/screens/GroupStudyRoomS
 import { GroupReportsScreen } from '../features/groups/screens/GroupReportsScreen';
 import { GroupsScreen } from '../features/groups/screens/GroupsScreen';
 import { SessionDetailsScreen } from '../features/sessions/screens/SessionDetailsScreen';
-import { SessionWorkspaceScreen } from '../features/sessions/screens/SessionWorkspaceScreen';
 import { SessionsScreen } from '../features/sessions/screens/SessionsScreen';
 import { ChatScreen } from '../features/messages/screens/ChatScreen';
 import { MessagesScreen } from '../features/messages/screens/MessagesScreen';
@@ -85,7 +84,6 @@ const tutorStatusPages = new Set([
   'Booking Confirmed',
   'Sessions',
   'Session Details',
-  'Session Workspace',
   'Messages',
   'Chat',
   'Be a Tutor',
@@ -726,7 +724,6 @@ export function AppNavigator() {
               }
               return sharedTutors.updateRequest(session.id, action);
             }}
-            privateNotes={state.roomNotes?.[session.id] ?? ''}
             message={
               session.shared
                 ? () => {
@@ -740,11 +737,31 @@ export function AppNavigator() {
                       });
                     }
                   }
-                : () => message(sessionTutor)
+                : undefined
             }
-            rate={rating =>
-              dispatch({ type: 'session', id: session.id, changes: { rating } })
-            }
+            complete={async () => {
+              if (!canCompleteSession(session)) {
+                return {
+                  error:
+                    'A session can be completed only after its scheduled start time.',
+                };
+              }
+              if (session.shared) {
+                const result = await sharedTutors.updateRequest(
+                  session.id,
+                  'complete',
+                );
+                if (result?.error) return result;
+              } else {
+                dispatch({
+                  type: 'session',
+                  id: session.id,
+                  changes: { status: 'Completed' },
+                });
+              }
+              back();
+              return undefined;
+            }}
           />
         );
       }
@@ -1064,80 +1081,6 @@ export function AppNavigator() {
       break;
     case 'Create':
       screen = <CreateScreen go={go} />;
-      break;
-    case 'Session Workspace':
-      if (session && sessionTutor) {
-        screen = (
-          <SessionWorkspaceScreen
-            key={session.id}
-            back={back}
-            session={session}
-            tutor={sessionTutor}
-            message={
-              session.shared
-                ? () => {
-                    const sharedConversation = sharedMessages.conversations.find(
-                      candidate => candidate.bookingId === session.id,
-                    );
-                    if (sharedConversation) {
-                      go({
-                        page: 'Chat',
-                        conversationId: sharedConversation.id,
-                      });
-                    }
-                  }
-                : () => message(sessionTutor)
-            }
-            initialNotes={
-              state.roomNotes?.[session.id] ??
-              (session.shared ? '' : session.note)
-            }
-            onDraft={text =>
-              dispatch({ type: 'roomDraft', id: session.id, text })
-            }
-            save={notes => {
-              if (session.shared) {
-                dispatch({ type: 'roomDraft', id: session.id, text: notes });
-              } else {
-                dispatch({ type: 'roomDraft', id: session.id });
-                dispatch({
-                  type: 'session',
-                  id: session.id,
-                  changes: { note: notes },
-                });
-              }
-              back();
-            }}
-            complete={async notes => {
-              if (!canCompleteSession(session)) {
-                return {
-                  error:
-                    'A session can be completed only after its scheduled start time.',
-                };
-              }
-              if (session.shared) {
-                dispatch({ type: 'roomDraft', id: session.id, text: notes });
-                const result = await sharedTutors.updateRequest(
-                  session.id,
-                  'complete',
-                );
-                if (result?.error) {
-                  return result;
-                }
-              } else {
-                dispatch({ type: 'roomDraft', id: session.id });
-                dispatch({
-                  type: 'session',
-                  id: session.id,
-                  changes: { note: notes, status: 'Completed' },
-                });
-              }
-              back();
-              return undefined;
-            }}
-          />
-        );
-      }
       break;
     case 'Group Session':
       if (group?.joined) {

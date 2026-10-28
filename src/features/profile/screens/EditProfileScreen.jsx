@@ -18,6 +18,7 @@ import { C } from '../../../shared/theme/colors';
 import { s } from '../../../shared/theme/styles';
 import { InterestEditor } from '../components/InterestEditor';
 import { ProfileAvatarEditor } from '../components/ProfileAvatarEditor';
+import { AccountIdCard } from '../components/AccountIdCard';
 import { TipProgramPicker } from '../components/TipProgramPicker';
 import { TipCampusPicker } from '../components/TipCampusPicker';
 
@@ -177,22 +178,6 @@ export function EditProfileScreen({
           Add your TIP academic details to finish setting up your account.
         </Text>
       )}
-      {setup && Boolean(profile.accountUuid) && (
-        <View style={[s.card, styles.accountIdCard]}>
-          <Text style={s.label}>Your Campus4Change ID</Text>
-          <Text
-            accessibilityLabel={`Campus4Change account ID ${profile.accountUuid}`}
-            selectable
-            style={styles.accountIdValue}
-          >
-            {profile.accountUuid}
-          </Text>
-          <Text style={[s.muted, styles.accountIdHint]}>
-            Generated for your account. Long press to copy it. This ID does not
-            verify TIP enrollment.
-          </Text>
-        </View>
-      )}
       {!preferences && (
         <>
           {!setup && (
@@ -281,6 +266,14 @@ export function EditProfileScreen({
             </View>
             <Icon name="right" size={18} color={C.muted} />
           </TouchableOpacity>
+          {setup && Boolean(profile.accountUuid) && (
+            <AccountIdCard
+              accountUuid={profile.accountUuid}
+              label="Your Campus4Change ID"
+              showEnrollmentHint
+              style={styles.accountIdCard}
+            />
+          )}
         </>
       )}
 
@@ -344,19 +337,9 @@ export function EditProfileScreen({
 
 const styles = StyleSheet.create({
   accountIdCard: {
-    marginTop: 16,
-    marginBottom: 6,
-    padding: 14,
-  },
-  accountIdValue: {
-    color: C.text,
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 16,
-    letterSpacing: 0.3,
-    marginTop: 5,
-  },
-  accountIdHint: {
-    marginTop: 7,
+    marginTop: 8,
+    marginBottom: 4,
+    padding: 10,
   },
   courseSelector: {
     minHeight: 62,

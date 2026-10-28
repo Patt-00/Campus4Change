@@ -294,19 +294,17 @@ export function BookingScreen({ back, tutor, session, onSave }) {
             }. Sessions last one hour.`
           : 'Times appear in your device time zone. Sessions last one hour.'}
       </Text>
-      <Text style={s.section}>
-        {tutor.shared ? 'Note for the tutor' : 'Session note'}
-      </Text>
-      <Field
-        placeholder={
-          tutor.shared
-            ? 'This note is shared with the tutor.'
-            : 'Example: I need help with integration by parts.'
-        }
-        multiline
-        value={note}
-        onChangeText={setNote}
-      />
+      {tutor.shared && (
+        <>
+          <Text style={s.section}>Message to the tutor</Text>
+          <Field
+            placeholder="Add a short note about what you want help with (optional)."
+            multiline
+            value={note}
+            onChangeText={setNote}
+          />
+        </>
+      )}
 
       <ErrorText value={error} />
       <View style={s.bigGap} />

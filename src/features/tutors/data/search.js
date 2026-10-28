@@ -50,7 +50,7 @@ export function recommendTutorMatches(list, interests) {
     );
 }
 
-export function filterTutors(list, query, subject, available, top) {
+export function filterTutors(list, query, subject, available) {
   const q = normalizedTopic(query);
   const selectedSubject = normalizedTopic(subject);
   return list
@@ -65,6 +65,5 @@ export function filterTutors(list, query, subject, available, top) {
         (!selectedSubject ||
           t.subjects.some(x => normalizedTopic(x) === selectedSubject)) &&
         (!available || t.available),
-    )
-    .sort((a, b) => (top ? b.rating - a.rating : 0));
+    );
 }

@@ -56,7 +56,7 @@ export function AboutScreen({
       <Text style={s.section}>Connecting with the community</Text>
       <Text style={s.text}>
         {firebaseConfigured && cloudSession
-          ? 'Firebase users with verified email addresses can share study-group details, membership, posts, replies, group chats, tutor listings, and session requests. Chat messages are delivered only to current group members or the participants in a tutor request. A request stays pending until the tutor responds. Notes in booked sessions stay private, and group-session notes are shared only when posted. Push notifications and live calls are not available.'
+          ? 'Firebase users with verified email addresses can share study-group details, membership, posts, replies, group chats, tutor listings, and session requests. Chat messages are delivered only to current group members or the participants in a tutor request. A request stays pending until the tutor responds. A note attached to a session request is visible to its participants. Group notes are shared only when posted. Push notifications and live calls are not available.'
           : deviceOnlyAccount && firebaseConfigured
             ? 'This device-only account stays private. Firebase users with verified email addresses can share study-group details, membership, posts, replies, group chats, tutor listings, and session requests. Chat messages are delivered only to current group members or tutor-request participants. Group-session notes from this device-only account stay on this device; push notifications and live calls are not available.'
             : firebaseConfigured

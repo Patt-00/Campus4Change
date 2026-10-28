@@ -6,6 +6,7 @@ import { s } from '../../../shared/theme/styles';
 import { C } from '../../../shared/theme/colors';
 
 import { Icon } from '../../../shared/components/Icon';
+import { AccountIdCard } from '../components/AccountIdCard';
 
 export function ProfileScreen({
   go,
@@ -15,10 +16,6 @@ export function ProfileScreen({
   firebaseConfigured,
 }) {
   const p = state.profile;
-  const rated = state.sessions.filter(x => x.rating);
-  const rating = rated.length
-    ? (rated.reduce((sum, x) => sum + x.rating, 0) / rated.length).toFixed(1)
-    : '—';
   const stats = [
     {
       label: 'Sessions',
@@ -29,11 +26,6 @@ export function ProfileScreen({
       label: 'Groups',
       value: state.groups.filter(g => g.joined).length,
       color: C.green,
-    },
-    {
-      label: 'Rating given',
-      value: rating,
-      color: C.yellow,
     },
   ];
   const accountActions = [
@@ -57,6 +49,12 @@ export function ProfileScreen({
             'Add your course and year level'}
         </Text>
         {!!p.campus && <Text style={[s.muted, s.center]}>{p.campus}</Text>}
+        {!!p.accountUuid && (
+          <AccountIdCard
+            accountUuid={p.accountUuid}
+            style={styles.accountIdCard}
+          />
+        )}
       </View>
       <View style={[s.card, s.row, styles.statsCard]}>
         {stats.map(x => (
@@ -67,17 +65,6 @@ export function ProfileScreen({
         ))}
       </View>
       <Text style={[s.section, styles.accountHeading]}>Account</Text>
-      {!!p.accountUuid && (
-        <View style={[s.card, styles.accountIdCard]}>
-          <Text style={s.label}>Campus4Change ID</Text>
-          <Text selectable style={styles.accountIdValue}>
-            {p.accountUuid}
-          </Text>
-          <Text style={[s.muted, styles.accountIdHint]}>
-            Long press to copy. This ID does not verify TIP enrollment.
-          </Text>
-        </View>
-      )}
       <View style={[s.card, styles.accountCard]}>
         {accountActions.map((action, index) => (
           <View key={action.label}>
@@ -154,15 +141,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   accountHeading: { marginTop: 20, marginBottom: 8 },
-  accountIdCard: { marginBottom: 10, padding: 14 },
-  accountIdValue: {
-    color: C.text,
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 15,
-    letterSpacing: 0.2,
-    marginTop: 5,
-  },
-  accountIdHint: { marginTop: 6 },
+  accountIdCard: { alignSelf: 'stretch', marginTop: 14, marginBottom: 4 },
   accountCard: { paddingVertical: 4, paddingHorizontal: 12 },
   accountRow: { minHeight: 48, paddingVertical: 4 },
   accountDivider: { height: 1, backgroundColor: C.border },

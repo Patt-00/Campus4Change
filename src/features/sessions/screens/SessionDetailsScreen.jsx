@@ -2,15 +2,14 @@ import React, { useState } from 'react';
 import { Alert, Text, View, StyleSheet } from 'react-native';
 import { AppButton } from '../../../shared/components/AppButton';
 import { Screen } from '../../../shared/components/Screen';
-import {
-  Avatar,
-  Chip,
-  ErrorText,
-  Link,
-} from '../../../shared/components/UI';
+import { Avatar, Chip, ErrorText, Link } from '../../../shared/components/UI';
 import { dateLabel, timeRange } from '../../../shared/data/utils';
 import { readableErrorText } from '../../../shared/data/readableError';
-import { canRescheduleSession, sessionTimingStatus } from '../data/status';
+import {
+  canCompleteSession,
+  canRescheduleSession,
+  sessionTimingStatus,
+} from '../data/status';
 import { useSessionClock } from '../hooks/useSessionClock';
 
 import { C } from '../../../shared/theme/colors';
@@ -22,15 +21,15 @@ export function SessionDetailsScreen({
   session,
   tutor,
   cancel,
-  rate,
   message,
   respond,
-  privateNotes = '',
+  complete,
 }) {
   const [busyAction, setBusyAction] = useState('');
   const [actionError, setActionError] = useState('');
   const now = useSessionClock(session);
   const timingStatus = sessionTimingStatus(session, now);
+  const canComplete = canCompleteSession(session, now);
   async function updateRequest(action) {
     if (!respond || busyAction) {
       return;
@@ -52,95 +51,72 @@ export function SessionDetailsScreen({
   }
   return (
     <Screen title="Session Details" back={back}>
-      <View style={s.row}>
-        <Text style={[s.heading, s.grow]}>{session.subject}</Text>
-        <Chip
-          label={timingStatus.toUpperCase()}
-          color={
-            timingStatus === 'Cancelled' ||
-            timingStatus === 'Declined' ||
-            timingStatus === 'Past due'
-              ? C.danger
-              : timingStatus === 'In progress'
+      <View style={[s.card, styles.summaryCard]}>
+        <View style={s.row}>
+          <View style={s.grow}>
+            <Text style={s.label}>
+              {session.shared ? 'SESSION REQUEST' : 'SESSION'}
+            </Text>
+            <Text style={s.heading}>{session.subject}</Text>
+          </View>
+          <Chip
+            label={timingStatus.toUpperCase()}
+            color={
+              timingStatus === 'Cancelled' ||
+              timingStatus === 'Declined' ||
+              timingStatus === 'Past due'
+                ? C.danger
+                : timingStatus === 'In progress'
                 ? C.green
                 : C.cyan
-          }
-        />
-      </View>
-      <View style={s.divider} />
-      <Text style={[s.section, styles.marginTop0]}>Schedule</Text>
-      <Text style={s.text}>{dateLabel(session.startsAt)}</Text>
-      <Text style={s.text}>{timeRange(session.startsAt)}</Text>
-      {session.shared && session.status === 'Pending' && session.timeType && (
-        <View style={styles.requestTypeCard}>
-          <Text style={s.name}>
-            {session.timeType === 'custom'
-              ? 'Custom time request'
-              : 'Tutor availability request'}
-          </Text>
-          <Text style={s.muted}>
-            {session.timeType === 'custom'
-              ? session.incoming
-                ? 'The student suggested this time. Confirm that it works before accepting.'
-                : 'You suggested this time. The tutor must accept before it is scheduled.'
-              : session.incoming
-                ? 'The student selected a time from your posted weekly hours.'
-                : 'You selected a time from the tutor’s posted weekly hours.'}
-          </Text>
+            }
+          />
         </View>
-      )}
-      <Text style={s.section}>{session.incoming ? 'Student' : 'Tutor'}</Text>
-      <View style={s.row}>
-        <Avatar
-          name={session.incoming ? session.studentName : tutor.name}
-          variant={session.incoming ? 'avatar' : 'tutor'}
-          avatarId={session.incoming ? undefined : tutor.avatarId}
-          photoUri={session.incoming ? undefined : tutor.profilePhotoUri}
-        />
-        <View>
-          <Text style={s.name}>
-            {session.incoming ? session.studentName || 'Student' : tutor.name}
+        <View style={s.divider} />
+        <Text style={s.section}>When</Text>
+        <Text style={s.name}>{dateLabel(session.startsAt)}</Text>
+        <Text style={s.muted}>{timeRange(session.startsAt)}</Text>
+        {session.shared && session.timeType && (
+          <Text style={[s.muted, styles.requestType]}>
+            {session.timeType === 'custom'
+              ? 'Suggested time'
+              : 'Tutor availability'}
           </Text>
-          {message && (
+        )}
+        <Text style={s.section}>{session.incoming ? 'Learner' : 'Tutor'}</Text>
+        <View style={s.row}>
+          <Avatar
+            name={session.incoming ? session.studentName : tutor.name}
+            variant={session.incoming ? 'avatar' : 'tutor'}
+            avatarId={session.incoming ? undefined : tutor.avatarId}
+            photoUri={session.incoming ? undefined : tutor.profilePhotoUri}
+          />
+          <View style={s.grow}>
+            <Text style={s.name}>
+              {session.incoming ? session.studentName || 'Student' : tutor.name}
+            </Text>
+            {!session.incoming && !!tutor.course && (
+              <Text style={s.muted}>{tutor.course}</Text>
+            )}
+          </View>
+          {session.shared && message && (
             <Link
-              label={
-                session.shared
-                  ? session.incoming
-                    ? 'Message student'
-                    : 'Message tutor'
-                  : 'Open private notes'
-              }
+              label={session.incoming ? 'Message learner' : 'Message tutor'}
               onPress={message}
             />
           )}
         </View>
       </View>
+      {session.shared && !!session.note?.trim() && (
+        <View style={s.card}>
+          <Text style={s.label}>REQUEST NOTE</Text>
+          <Text style={[s.text, styles.note]}>{session.note}</Text>
+        </View>
+      )}
       {session.shared && (
-        <Text style={s.muted}>
-          Session requests sync between both students. Messages in this session
-          chat are delivered to both participants.
+        <Text style={[s.muted, styles.participantHint]}>
+          Request updates and messages are shared with the session participants.
         </Text>
-      )}
-      <Text style={s.section}>Session workspace</Text>
-      <View style={s.card}>
-        <Text style={s.muted}>
-          Review the booking and keep session notes here. Live calls are not
-          available yet.
-        </Text>
-      </View>
-      {!!session.note && (
-        <>
-          <Text style={s.section}>
-            {session.shared ? 'Request note (shared)' : 'Session note'}
-          </Text>
-          <Text style={s.text}>{session.note}</Text>
-        </>
-      )}
-      {!!session.shared && !!privateNotes && (
-        <>
-          <Text style={s.section}>Your private notes</Text>
-          <Text style={s.text}>{privateNotes}</Text>
-        </>
       )}
       {session.status === 'Pending' && session.incoming && (
         <>
@@ -185,16 +161,6 @@ export function SessionDetailsScreen({
       )}
       {session.status === 'Upcoming' && (
         <>
-          <AppButton
-            title="OPEN SESSION WORKSPACE"
-            onPress={() =>
-              go({
-                page: 'Session Workspace',
-                sessionId: session.id,
-              })
-            }
-          />
-
           {canRescheduleSession(session, now) && !session.shared && (
             <AppButton
               title="RESCHEDULE"
@@ -238,43 +204,46 @@ export function SessionDetailsScreen({
           </View>
         </>
       )}
-      {session.status === 'Completed' && !session.shared && (
+      {canComplete && (
         <>
-          <Text style={s.section}>
-            {session.rating
-              ? 'Your rating: ★ ' + session.rating
-              : 'Rate your tutor'}
-          </Text>
-          <View style={s.wrap}>
-            {[1, 2, 3, 4, 5].map(n => (
-              <Chip
-                label={'★ ' + n}
-                key={n}
-                selected={session.rating === n}
-                color={C.yellow}
-                onPress={() => rate(n)}
-              />
-            ))}
-          </View>
+          <ErrorText value={actionError} />
+          <AppButton
+            title="MARK SESSION COMPLETE"
+            busy={busyAction === 'complete'}
+            disabled={Boolean(busyAction)}
+            onPress={async () => {
+              if (!complete || busyAction) return;
+              setBusyAction('complete');
+              setActionError('');
+              try {
+                const result = await complete();
+                if (result?.error) setActionError(result.error);
+              } catch (error) {
+                setActionError(
+                  readableErrorText(error, 'Could not complete the session.'),
+                );
+              } finally {
+                setBusyAction('');
+              }
+            }}
+          />
         </>
+      )}
+      {session.status === 'Upcoming' && !canComplete && (
+        <Text style={[s.muted, s.center, styles.completionHint]}>
+          You can mark the session complete after its scheduled start time.
+        </Text>
       )}
     </Screen>
   );
 }
 const styles = StyleSheet.create({
-  marginTop0: {
-    marginTop: 0,
-  },
+  summaryCard: { padding: 16 },
   alignItemscenter: {
     alignItems: 'center',
   },
-  requestTypeCard: {
-    backgroundColor: C.chip,
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 12,
-    gap: 4,
-    marginTop: 12,
-    padding: 12,
-  },
+  requestType: { marginTop: 4 },
+  note: { marginTop: 8 },
+  participantHint: { marginTop: 4 },
+  completionHint: { marginTop: 12 },
 });

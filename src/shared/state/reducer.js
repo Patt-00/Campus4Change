@@ -35,15 +35,6 @@ export function reducer(state, action) {
       ) {
         return state;
       }
-      if (
-        action.changes.rating !== undefined &&
-        (current.status !== 'Completed' ||
-          !Number.isInteger(action.changes.rating) ||
-          action.changes.rating < 1 ||
-          action.changes.rating > 5)
-      ) {
-        return state;
-      }
       return {
         ...state,
         sessions: state.sessions.map(s =>

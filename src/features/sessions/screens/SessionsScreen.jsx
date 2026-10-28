@@ -91,13 +91,7 @@ export function SessionsScreen({
               </Text>
             )}
           </View>
-          {session.status === 'Completed' && !session.shared ? (
-            <Text style={[s.link, styles.rateAction]}>
-              {session.rating ? 'Rated ★ ' + session.rating : 'Rate tutor'}
-            </Text>
-          ) : (
-            <Icon name="right" size={18} color={C.muted} />
-          )}
+          <Icon name="right" size={18} color={C.muted} />
         </View>
       </TouchableOpacity>
     );
@@ -245,7 +239,6 @@ const styles = StyleSheet.create({
   upcomingCard: { minHeight: 88, paddingVertical: 12 },
   historyCard: { minHeight: 88, paddingVertical: 12 },
   sessionRow: { gap: 10 },
-  rateAction: { maxWidth: 72, textAlign: 'right' },
   requestType: {
     color: C.cyan,
     fontFamily: 'Inter-SemiBold',
