@@ -2,6 +2,22 @@
 set -Eeuo pipefail
 
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+artifact_mode=both
+case "$#" in
+  0) ;;
+  1)
+    case "$1" in
+      --apk-only) artifact_mode=apk ;;
+      --apk-and-bundle) artifact_mode=both ;;
+      --help|-h)
+        printf 'Usage: %s [--apk-only|--apk-and-bundle]\n' "$0"
+        exit 0
+        ;;
+      *) printf 'Unknown option: %s\nUsage: %s [--apk-only|--apk-and-bundle]\n' "$1" "$0" >&2; exit 2 ;;
+    esac
+    ;;
+  *) printf 'Usage: %s [--apk-only|--apk-and-bundle]\n' "$0" >&2; exit 2 ;;
+esac
 key_alias="${C4C_RELEASE_KEY_ALIAS:-campus4change-v4}"
 keystore_dir="${HOME}/.android/keystores"
 keystore_file="${C4C_RELEASE_STORE_FILE:-${keystore_dir}/campus4change-release-v4.jks}"
@@ -115,17 +131,32 @@ export C4C_RELEASE_STORE_PASSWORD
 export C4C_RELEASE_KEY_ALIAS="$key_alias"
 export C4C_RELEASE_KEY_PASSWORD
 
-(cd "$repo_root/android" && ./gradlew --no-daemon assembleRelease bundleRelease)
+release_tasks=(assembleRelease)
+if [[ "$artifact_mode" == both ]]; then release_tasks+=(bundleRelease); fi
+if [[ "${PREFIX:-}" == /data/data/com.termux/files/usr ]]; then
+  (cd "$repo_root" && ./scripts/gradlew-termux.sh --no-daemon --max-workers=2 --console=plain "${release_tasks[@]}")
+else
+  (cd "$repo_root/android" && ./gradlew --no-daemon "${release_tasks[@]}")
+fi
 
 apk="$repo_root/android/app/build/outputs/apk/release/app-release.apk"
 aab="$repo_root/android/app/build/outputs/bundle/release/app-release.aab"
-[[ -s "$apk" && -s "$aab" ]] || {
-  printf 'Gradle finished without both expected release artifacts.\n' >&2
+if [[ ! -s "$apk" || ( "$artifact_mode" == both && ! -s "$aab" ) ]]; then
+  printf 'Gradle finished without the expected release artifact(s).\n' >&2
   exit 1
-}
+fi
 
-printf '\nRelease artifacts built:\n%s\n%s\n\nSHA-256:\n' "$apk" "$aab"
-sha256sum "$apk" "$aab"
+printf '\nRelease APK built:\n%s\n' "$apk"
+if [[ "$artifact_mode" == both ]]; then printf 'Release App Bundle built:\n%s\n' "$aab"; fi
+printf '\nSHA-256:\n'
+if command -v sha256sum >/dev/null 2>&1; then
+  if [[ "$artifact_mode" == both ]]; then sha256sum "$apk" "$aab"; else sha256sum "$apk"; fi
+elif command -v shasum >/dev/null 2>&1; then
+  if [[ "$artifact_mode" == both ]]; then shasum -a 256 "$apk" "$aab"; else shasum -a 256 "$apk"; fi
+else
+  printf 'Install sha256sum or shasum to print artifact hashes.\n' >&2
+  exit 1
+fi
 if [[ "$keyring_password_loaded" == true ]]; then
   printf '\nVerify the signing certificate; the password was read from GNOME Secret Service and was not printed.\n'
 else

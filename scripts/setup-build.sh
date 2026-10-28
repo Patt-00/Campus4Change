@@ -413,6 +413,15 @@ else export JAVA_HOME; fi
 if ! sdkmanager_path="$(find_sdkmanager)"; then install_sdk_command_line_tools || exit 1; fi
 sdkmanager_path="$(find_sdkmanager)" || { note "Android SDK Manager is still unavailable after setup."; exit 1; }
 mkdir -p "$sdk_root"
+if [[ ! -f "$repo_root/node_modules/react-native/package.json" ]]; then
+  note "Installing JavaScript dependencies from package-lock.json."
+  (cd "$repo_root" && npm ci)
+else
+  pass "JavaScript dependencies are already installed."
+fi
+write_local_properties
+write_environment_file
+
 license_log_file="${TMPDIR:-/tmp}/campus4change-sdk-licenses-$$.log"
 note "Checking SDK license status without accepting any license terms."
 if check_sdk_license_status; then
@@ -430,10 +439,6 @@ fi
 "$sdkmanager_path" --sdk_root="$sdk_root" --install "platform-tools" "platforms;android-37.0" "build-tools;37.0.0" "ndk;27.1.12297006" "cmake;3.22.1"
 
 if "$termux"; then setup_termux_ndk; fi
-if [[ ! -f "$repo_root/node_modules/react-native/package.json" ]]; then
-  (cd "$repo_root" && npm ci)
-else pass "JavaScript dependencies already exist."; fi
-
 if ! jdk_home_for_17 >/dev/null ||
   [[ ! -f "$sdk_root/platforms/android-37.0/android.jar" ]] ||
   [[ ! -f "$sdk_root/build-tools/37.0.0/aapt2" ]] ||
@@ -441,8 +446,6 @@ if ! jdk_home_for_17 >/dev/null ||
   note "One or more prerequisites are still missing. Review the messages and rerun --check."
   exit 1
 fi
-write_local_properties
-write_environment_file
 printf '\nSetup is complete. Load the environment with: source ./.c4c-build-env.sh\n'
 if "$termux"; then
   printf 'Then build from the repository root with: ./scripts/gradlew-termux.sh --no-daemon assembleDebug\n'

@@ -133,7 +133,8 @@ function Confirm-SdkLicensesAlreadyAccepted {
         return
     }
     if ($script:SdkLicenseOutput -match '(?i)not accepted|review licenses that have not been accepted|accept the license agreements') {
-        throw 'Some Android SDK licenses remain unaccepted. Run sdkmanager --licenses in an interactive terminal, review and accept them, then rerun setup. This script did not accept them.'
+        $licenseCommand = '& "{0}" "--sdk_root={1}" --licenses' -f $script:SdkManager, $sdkRoot
+        throw "Some Android SDK licenses remain unaccepted. Run this command in an interactive PowerShell terminal, review and accept the licenses, then rerun setup:`n$licenseCommand`nThis script did not accept them."
     }
     throw 'Android SDK license status could not be checked.'
 }
@@ -218,10 +219,9 @@ if (-not $Setup) {
 if (-not $SdkManager) {
     throw 'Install Android SDK Command-line Tools (latest) in Android Studio, then rerun setup.'
 }
-Write-Status 'Checking SDK license status without accepting any license terms.'
-Confirm-SdkLicensesAlreadyAccepted
-& $SdkManager "--sdk_root=$sdkRoot" --install 'platform-tools' 'platforms;android-37.0' 'build-tools;37.0.0' 'ndk;27.1.12297006' 'cmake;3.22.1'
-if ($LASTEXITCODE -ne 0) { throw 'Android SDK packages did not finish installing.' }
+if (-not (Test-SupportedNode) -or -not (Get-Command npm -ErrorAction SilentlyContinue)) {
+    throw 'Install a supported Node.js and npm version, then rerun setup.'
+}
 if (-not (Test-Path (Join-Path $repoRoot 'node_modules\react-native\package.json'))) {
     Push-Location $repoRoot
     try { & npm ci; if ($LASTEXITCODE -ne 0) { throw 'npm ci failed.' } } finally { Pop-Location }
@@ -246,6 +246,11 @@ $envLines = @(
     '$env:Path = "$env:JAVA_HOME\bin;$env:ANDROID_HOME\platform-tools;$env:Path"'
 )
 $envLines | Set-Content -LiteralPath (Join-Path $repoRoot '.c4c-build-env.ps1') -Encoding ascii
+
+Write-Status 'Checking SDK license status without accepting any license terms.'
+Confirm-SdkLicensesAlreadyAccepted
+& $SdkManager "--sdk_root=$sdkRoot" --install 'platform-tools' 'platforms;android-37.0' 'build-tools;37.0.0' 'ndk;27.1.12297006' 'cmake;3.22.1'
+if ($LASTEXITCODE -ne 0) { throw 'Android SDK packages did not finish installing.' }
 Check-Prerequisites
 if ($Missing.Count -gt 0) { throw "Setup finished with $($Missing.Count) missing prerequisite(s)." }
 Write-Host ''

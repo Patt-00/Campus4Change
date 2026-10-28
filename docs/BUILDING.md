@@ -90,11 +90,37 @@ When the Windows script runs through SSH, it refuses to launch WinGet installers
 
 If Android SDK Command-line Tools are missing, setup downloads the platform-specific Google package and verifies its SHA-256 checksum before unpacking it. The pinned package build is 15859902; update the version and checksum together when Google publishes a newer package. See the [Android Studio downloads page](https://developer.android.com/studio/) for current command-line tools.
 
-Both scripts use Android SDK Manager to install Platform 37.0, Build Tools 37.0.0, NDK 27.1.12297006, and CMake 3.22.1. Check mode tests license status with input closed and reports any license that remains unaccepted. Setup mode stops before SDK package installation and prints the interactive command for you to review and accept it. The scripts never auto-accept licenses. Setup runs **npm ci** only when the React Native package is missing from **node_modules**.
+Both scripts use Android SDK Manager to install Platform 37.0, Build Tools 37.0.0, NDK 27.1.12297006, and CMake 3.22.1. Check mode tests license status with input closed and reports any license that remains unaccepted. Setup installs npm dependencies and writes local SDK configuration before checking licenses. It stops before SDK package installation if a license remains unaccepted, then prints the interactive command for you to review and accept it. The scripts never auto-accept licenses. Setup runs **npm ci** only when the React Native package is missing from **node_modules**.
 
 Setup writes **android/local.properties** and an ignored environment file for the current repository. It preserves existing local NDK and CMake settings except on Termux, where it sets the documented compatibility paths. The scripts do not build an APK or use release-signing credentials.
 
 The setup scripts do not open Android Studio. On Termux, setup installs the command-line tools package, then prepares the compatible NDK directory. SDK license acceptance still requires your input in the terminal.
+
+## Build debug and release APKs
+
+Run the setup script for your platform first. If it stops because an Android SDK license is pending, review and accept the license in an interactive terminal, then rerun setup. The APK build scripts check prerequisites, build the selected variant, verify its signature, and print the APK's SHA-256 hash.
+
+On macOS, Linux, or Termux, run one of these commands from the repository root:
+
+```sh
+./scripts/build-apk.sh --debug
+./scripts/build-apk.sh --release
+./scripts/build-apk.sh --both
+```
+
+On Windows PowerShell, run one of these commands from the repository root:
+
+```powershell
+.\scripts\build-apk.ps1 -Mode Debug
+.\scripts\build-apk.ps1 -Mode Release
+.\scripts\build-apk.ps1 -Mode Both
+```
+
+Debug mode creates `android/app/build/outputs/apk/debug/app-debug.apk`. Release mode creates `android/app/build/outputs/apk/release/app-release.apk`. Both mode builds the debug APK first, then the signed release APK. A debug APK requires Metro when launched. A release APK includes the JavaScript bundle.
+
+Release builds require the existing v4 keystore. The Bash script prompts for passwords without echoing them, or reads the store password from GNOME Secret Service when available. The PowerShell script uses secure password prompts. These APK scripts refuse to create a replacement keystore. Keep the keystore and passwords out of the repository.
+
+Termux uses the Bash script and its Termux Gradle wrapper. The Termux release build also requires the existing v4 keystore to be available to Termux.
 
 ## Windows
 
@@ -129,81 +155,31 @@ In Android Studio, complete the setup wizard and open **Tools > SDK Manager**. I
 
 An Android Virtual Device is optional for building. You can use a physical Android device for app testing. Keep an internet connection during the first build so npm and Gradle can download project dependencies. Reopen PowerShell after installing Node.js and JDK 17 so the updated `PATH` and `JAVA_HOME` values load.
 
-### Check Windows prerequisites
+### Set up the Windows build environment
 
-Open PowerShell in the repository root. The following commands use the default Android SDK path and Temurin install folder. If Android Studio or Temurin is installed elsewhere, replace the paths with the locations shown by those installers.
+Open PowerShell in the repository root. Check the installed tools and Android SDK packages:
 
 ```powershell
-$env:ANDROID_HOME = Join-Path $env:LOCALAPPDATA 'Android\Sdk'
-$env:ANDROID_SDK_ROOT = $env:ANDROID_HOME
-$uninstallRoots = @(
-    'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*'
-    'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
-    'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*'
-)
-$registeredJdkRoots = foreach ($root in $uninstallRoots) {
-    Get-ItemProperty -Path $root -ErrorAction SilentlyContinue |
-        Where-Object { $_.DisplayName -match 'Temurin.*17' -and $_.InstallLocation } |
-        Select-Object -ExpandProperty InstallLocation
-}
-$jdkRoots = @(
-    $env:JAVA_HOME
-    [Environment]::GetEnvironmentVariable('JAVA_HOME', 'User')
-    [Environment]::GetEnvironmentVariable('JAVA_HOME', 'Machine')
-    $registeredJdkRoots
-    Get-ChildItem -Path 'C:\Program Files\Eclipse Adoptium' -Directory -Filter 'jdk-17*' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
-) | Where-Object { $_ } | Select-Object -Unique
-$jdkRoot = $null
-foreach ($candidate in $jdkRoots) {
-    $javaExe = Join-Path $candidate 'bin\java.exe'
-    $javacExe = Join-Path $candidate 'bin\javac.exe'
-    if ((Test-Path -LiteralPath $javaExe) -and (Test-Path -LiteralPath $javacExe)) {
-        $javaVersionOutput = (& $javaExe -version 2>&1 | Out-String)
-        if ($javaVersionOutput -match 'version "17\.') {
-            $jdkRoot = $candidate
-            break
-        }
-    }
-}
-if ($null -eq $jdkRoot) {
-    Write-Error 'JDK 17 was not found. Install or repair Temurin JDK 17, reopen PowerShell, and rerun this block.'
-} else {
-    $env:JAVA_HOME = $jdkRoot
-    $env:Path = "$env:JAVA_HOME\bin;$env:ANDROID_HOME\platform-tools;$env:Path"
-
-    git --version
-    node --version
-    npm --version
-    java -version
-    javac -version
-    adb version
-
-    $requiredSdkFiles = @(
-        (Join-Path $env:ANDROID_HOME 'platform-tools\adb.exe'),
-        (Join-Path $env:ANDROID_HOME 'platforms\android-37.0\android.jar'),
-        (Join-Path $env:ANDROID_HOME 'build-tools\37.0.0\aapt2.exe'),
-        (Join-Path $env:ANDROID_HOME 'ndk\27.1.12297006\source.properties')
-    )
-    foreach ($path in $requiredSdkFiles) {
-        if (-not (Test-Path -LiteralPath $path)) { throw "Required Android SDK file is missing: $path" }
-    }
-
-    $sdkPath = $env:ANDROID_HOME -replace '\\', '/'
-    "sdk.dir=$sdkPath" | Set-Content -LiteralPath .\android\local.properties -Encoding ascii
-}
+.\scripts\setup-build.ps1 -Check
 ```
 
-Stop if the block reports that JDK 17 is missing. Install JDK 17, reopen PowerShell, and rerun the block before building.
-
-Confirm that `java -version` and `javac -version` report JDK 17, and that `node --version` reports a supported version. If the SDK file check fails, open Android Studio SDK Manager and install the missing package before continuing.
-
-Install JavaScript dependencies and assemble a debug APK:
+Install supported prerequisites and write local SDK configuration:
 
 ```powershell
-npm ci
-Push-Location .\android
-.\gradlew.bat --no-daemon assembleDebug
-Pop-Location
+.\scripts\setup-build.ps1 -Setup
+```
+
+The `[missing]` lines printed at the start of `-Setup` describe the pre-setup scan. Setup installs missing npm dependencies and writes `android/local.properties` before checking SDK licenses. If it stops because a license remains unaccepted, run the PowerShell command printed by the script, review and accept the terms, then run `-Setup` again.
+
+Load the generated paths in the current PowerShell session:
+
+```powershell
+. .\.c4c-build-env.ps1
+```
+Build a debug APK from the repository root:
+
+```powershell
+.\scripts\build-apk.ps1 -Mode Debug
 ```
 
 To start the app on a connected Android device, start Metro in one PowerShell window:
@@ -220,43 +196,13 @@ npm run android
 
 The debug APK is written to `android\app\build\outputs\apk\debug\app-debug.apk`.
 
-### Signed APK on Windows
-
-A release update must use the existing v4 keystore. The private keystore is not in GitHub. Obtain it through a secure channel before building. Do not create another key for an update to the same package.
-
-Set the keystore path and alias in the current PowerShell process. The following helper prompts for passwords without echoing them:
+Build a signed release APK from the repository root:
 
 ```powershell
-function Set-ProcessSecret {
-    param([string]$Name, [string]$Prompt)
-    $secret = Read-Host -Prompt $Prompt -AsSecureString
-    $pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secret)
-    try {
-        $plainText = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($pointer)
-        [Environment]::SetEnvironmentVariable($Name, $plainText, 'Process')
-    } finally {
-        [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer)
-        $secret.Dispose()
-    }
-}
-
-$env:C4C_RELEASE_STORE_FILE = Join-Path $HOME '.android\keystores\campus4change-release-v4.jks'
-$env:C4C_RELEASE_KEY_ALIAS = 'campus4change-v4'
-try {
-    Set-ProcessSecret -Name 'C4C_RELEASE_STORE_PASSWORD' -Prompt 'Keystore password'
-    Set-ProcessSecret -Name 'C4C_RELEASE_KEY_PASSWORD' -Prompt 'Key password'
-    Push-Location .\android
-    try {
-        .\gradlew.bat --no-daemon assembleRelease
-    } finally {
-        Pop-Location
-    }
-} finally {
-    Remove-Item Env:C4C_RELEASE_STORE_FILE, Env:C4C_RELEASE_STORE_PASSWORD, Env:C4C_RELEASE_KEY_ALIAS, Env:C4C_RELEASE_KEY_PASSWORD -ErrorAction SilentlyContinue
-}
+.\scripts\build-apk.ps1 -Mode Release
 ```
 
-Set `C4C_RELEASE_STORE_FILE` to the location of the existing v4 keystore if it differs. Never store the keystore or passwords in the repository, terminal history, or a committed PowerShell file. The release APK is written to `android\app\build\outputs\apk\release\app-release.apk`.
+The wrapper asks for the existing v4 keystore passwords securely. Set `C4C_RELEASE_STORE_FILE` and `C4C_RELEASE_KEY_ALIAS` in the current PowerShell process only when the keystore is stored somewhere else. Keep the keystore and passwords out of the repository and terminal history. The release APK is written to `android\app\build\outputs\apk\release\app-release.apk`.
 
 ## macOS
 
@@ -270,23 +216,28 @@ printf 'sdk.dir=%s\n' "$ANDROID_HOME" > android/local.properties
 java -version
 ```
 
-Install dependencies and assemble a debug APK:
+Run the setup script from the repository root to install missing JavaScript dependencies and save the build environment:
 
 ```sh
-npm ci
-cd android
-./gradlew --no-daemon assembleDebug
+./scripts/setup-build.sh --setup
+source ./.c4c-build-env.sh
+```
+
+Build a debug APK from the repository root:
+
+```sh
+./scripts/build-apk.sh --debug
 ```
 
 Run `cd ..` to return to the repository root. Start Metro with `npm start` in one terminal. In another terminal, run `npm run android` to install and launch the debug app.
 
-To build the signed release, run the helper from an interactive terminal at the repository root:
+Build a signed release APK from an interactive terminal at the repository root:
 
 ```sh
-./scripts/build-release.sh
+./scripts/build-apk.sh --release
 ```
 
-The helper reads the release password from GNOME Secret Service when available. Otherwise, it prompts without echoing the password. The helper builds both an APK and a local App Bundle. This project publishes the APK only. It requires the existing v4 keystore at `~/.android/keystores/campus4change-release-v4.jks` or an absolute path in `C4C_RELEASE_STORE_FILE`.
+The wrapper reads the release password from GNOME Secret Service when available. Otherwise, it prompts without echoing the password. It builds the APK only and requires the existing v4 keystore at `~/.android/keystores/campus4change-release-v4.jks` or an absolute path in `C4C_RELEASE_STORE_FILE`.
 
 ## Linux
 
@@ -355,22 +306,26 @@ java -version
 javac -version
 ```
 
-Confirm that `java -version` reports JDK 17. Build a debug APK:
+Run the setup script from the repository root to install missing JavaScript dependencies and save the build environment:
 
 ```sh
-npm ci
-cd android
-./gradlew --no-daemon assembleDebug
+./scripts/setup-build.sh --setup
+source ./.c4c-build-env.sh
 ```
 
-Return to the repository root and build a signed release APK:
+Confirm that `java -version` reports JDK 17. Build a debug APK from the repository root:
 
 ```sh
-cd ..
-./scripts/build-release.sh
+./scripts/build-apk.sh --debug
 ```
 
-The helper reads the key password from GNOME Keyring when available. Other Linux desktops use its hidden password prompts. The existing v4 keystore must be available at `~/.android/keystores/campus4change-release-v4.jks` or through `C4C_RELEASE_STORE_FILE`.
+Build a signed release APK from the repository root:
+
+```sh
+./scripts/build-apk.sh --release
+```
+
+The wrapper reads the store password from GNOME Secret Service when available. Other Linux desktops use hidden password prompts. The existing v4 keystore must be available at `~/.android/keystores/campus4change-release-v4.jks` or through `C4C_RELEASE_STORE_FILE`.
 
 ## Termux
 
@@ -425,11 +380,10 @@ java -version
 node --version
 ```
 
-From the repository root, install dependencies and build a debug APK:
+From the repository root, build a debug APK:
 
 ```sh
-npm ci
-./scripts/gradlew-termux.sh clean assembleDebug --no-daemon --max-workers=2 --console=plain
+./scripts/build-apk.sh --debug
 ```
 
 The Termux wrapper selects the ARM64 ABI, Termux `aapt2`, the compatible NDK directory, and Hermes through QEMU. The APK is written to `android/app/build/outputs/apk/debug/app-debug.apk`. A debug APK needs Metro. A signed release APK includes its JavaScript bundle and starts without Metro.

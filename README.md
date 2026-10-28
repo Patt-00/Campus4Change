@@ -56,25 +56,27 @@ Campus4Change uses React Native CLI 0.87.1, React 19.2.3, JavaScript/JSX, and He
 
 ## Build from source
 
-Install a supported Node.js version, JDK 17, Git, and Android Studio with the SDK packages listed in the [cross-platform build guide](docs/BUILDING.md). Check the `engines` field in `package.json` for accepted Node.js versions.
+Install a supported Node.js version, JDK 17, Git, and Android SDK packages listed in the [cross-platform build guide](docs/BUILDING.md). The setup scripts can install supported prerequisites and write local Android SDK configuration.
 
-From the repository root:
-
-```sh
-npm ci
-npm run lint
-npm test
-```
-
-Create `android/local.properties` with the Android SDK path for your computer. To assemble a debug APK, run the Gradle wrapper from the `android` directory:
+From the repository root, run the setup script for your shell:
 
 ```sh
-./gradlew assembleDebug
+./scripts/setup-build.sh --setup
+source ./.c4c-build-env.sh
 ```
 
-On Windows PowerShell, run `.\gradlew.bat assembleDebug` from `android`. The debug APK is written to `android/app/build/outputs/apk/debug/app-debug.apk`. To launch the debug app, start Metro with `npm start`, then run `npm run android` in another terminal.
+On Windows PowerShell:
 
-The [build guide](docs/BUILDING.md) covers Windows, macOS, Linux, and Termux, including Android SDK setup and signed APK builds.
+```powershell
+.\scripts\setup-build.ps1 -Setup
+. .\.c4c-build-env.ps1
+```
+
+Build a debug APK with `./scripts/build-apk.sh --debug` or `./scripts/build-apk.ps1 -Mode Debug`. Build a signed release APK with `./scripts/build-apk.sh --release` or `./scripts/build-apk.ps1 -Mode Release`. Release builds require the existing private v4 keystore and its passwords. The scripts print the APK path and SHA-256 hash after verifying its signature.
+
+Run source checks from the repository root with `npm run lint` and `npm test`.
+
+The [build guide](docs/BUILDING.md) covers Windows, macOS, Linux, and Termux setup and APK builds. The [script guide](scripts/SCRIPT.md) explains script modes, outputs, signing requirements, and troubleshooting.
 
 For a copyable build request and agent workflow, see [AGENTS-BUILDING-GUIDE.md](AGENTS-BUILDING-GUIDE.md).
 

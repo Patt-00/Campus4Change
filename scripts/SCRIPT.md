@@ -1,15 +1,17 @@
-# Setup scripts for Campus4Change
+# Build scripts for Campus4Change
 
-This guide documents the prerequisite setup scripts in this folder. Use them to check a computer before building Campus4Change 1.4.4, install supported tools, and write local Android SDK configuration.
+This guide covers the setup and APK build scripts in this folder. The setup scripts check and prepare a computer for Campus4Change 1.4.4. The build scripts assemble and verify debug or signed release APKs.
 
-The scripts do not build an APK. Use the platform build commands in [docs/BUILDING.md](../docs/BUILDING.md) after setup.
+For platform installation steps and build prerequisites, see [docs/BUILDING.md](../docs/BUILDING.md).
 
 ## Script files
 
 - **setup-build.sh** supports macOS, Linux, and Termux.
 - **setup-build.ps1** supports Windows PowerShell.
+- **build-apk.sh** builds APKs on macOS, Linux, and Termux.
+- **build-apk.ps1** builds APKs on Windows PowerShell.
 
-Both scripts discover the repository root from their own location. Run them from the repository root for predictable output and follow-up build commands.
+Each script discovers the repository root from its own location. Run scripts from the repository root so their output and follow-up commands are easy to find.
 
 ## Modes
 
@@ -50,6 +52,34 @@ On Windows PowerShell:
 ```
 
 The generated environment files are ignored by Git. Source the correct file in each new terminal before running Gradle if Java or Android SDK paths are not set globally.
+
+### APK build modes
+
+The build scripts run the setup script's check mode before Gradle. Resolve missing prerequisites and accept any pending SDK licenses before building.
+
+On macOS, Linux, or Termux, choose one mode:
+
+```sh
+./scripts/build-apk.sh --debug
+./scripts/build-apk.sh --release
+./scripts/build-apk.sh --both
+```
+
+On Windows PowerShell, choose one mode:
+
+```powershell
+.\scripts\build-apk.ps1 -Mode Debug
+.\scripts\build-apk.ps1 -Mode Release
+.\scripts\build-apk.ps1 -Mode Both
+```
+
+Both wrappers default to debug mode when no mode is specified.
+
+Debug mode builds `android/app/build/outputs/apk/debug/app-debug.apk`. Release mode builds `android/app/build/outputs/apk/release/app-release.apk`. Both mode builds each APK in order. The scripts verify the APK signature and print its SHA-256 hash.
+
+Release mode uses the existing v4 keystore and refuses to create a replacement key. Bash reads signing passwords from GNOME Secret Service when available, then prompts without echoing them if needed. PowerShell prompts for those passwords as secure input and refuses to prompt over SSH. Both scripts keep the passwords out of source files. Release mode stops if the keystore or signing credentials are missing.
+
+On Termux, `build-apk.sh` selects `scripts/gradlew-termux.sh` for debug and release builds. On desktop systems, it invokes the Android Gradle wrapper. A debug APK needs Metro when launched. A release APK includes the JavaScript bundle and can start without Metro.
 
 ## Requirements the scripts check
 
@@ -116,7 +146,7 @@ The scripts currently pin Google Command-line Tools build 15859902 and verify it
 
 Google publishes current command-line tools versions and checksums on the [Android Studio downloads page](https://developer.android.com/studio/). Update the pinned archive names and hashes together when that page publishes a newer package.
 
-The setup scripts never accept SDK licenses. They check license status with input closed. If a license is missing, setup stops before installing SDK packages and tells the user to accept it manually in an interactive terminal.
+The setup scripts never accept SDK licenses. They check license status with input closed. Setup installs missing npm dependencies and writes local SDK configuration before checking licenses. If a license is missing, setup stops before installing SDK packages and tells the user to accept it manually in an interactive terminal.
 
 On Bash, the interactive command is:
 
@@ -140,33 +170,14 @@ Bash setup writes .c4c-build-env.sh. PowerShell setup writes .c4c-build-env.ps1.
 
 Setup does not change source files, Firebase data, Firestore rules, or release signing configuration. It does not install the app, build an APK, create a release key, or change production settings.
 
-## Build after setup
+## Build outputs
 
-For a debug APK on macOS, Linux, or Windows, install JavaScript dependencies if needed, then run Gradle from android:
+The build scripts write APKs to these paths:
 
-```sh
-npm ci
-cd android
-./gradlew --no-daemon assembleDebug
-```
+- Debug APK: `android/app/build/outputs/apk/debug/app-debug.apk`
+- Signed release APK: `android/app/build/outputs/apk/release/app-release.apk`
 
-On Windows PowerShell, use:
-
-```powershell
-npm ci
-Push-Location .\android
-.\gradlew.bat --no-daemon assembleDebug
-Pop-Location
-```
-
-For Termux, build from the repository root:
-
-```sh
-npm ci
-./scripts/gradlew-termux.sh clean assembleDebug --no-daemon --max-workers=2 --console=plain
-```
-
-The debug APK is written to android/app/build/outputs/apk/debug/app-debug.apk. Debug builds need Metro when launched. A signed release APK requires the existing v4 release keystore and signing passwords. Setup scripts do not build or sign release APKs.
+For a release APK and App Bundle, run `scripts/build-release.sh` directly on macOS, Linux, or Termux. The helper supports `--apk-only` and `--apk-and-bundle`; its default builds both artifacts. The PowerShell wrapper builds an APK only.
 
 ## Troubleshooting
 
@@ -184,7 +195,9 @@ Setup downloads Google's command-line tools package for the current platform. It
 
 ### Setup reports an unaccepted SDK license
 
-The script did not accept the license. Open an interactive terminal, run the sdkmanager --licenses command for your platform, review and accept the terms, then rerun setup.
+The setup script leaves license decisions to you. Open an interactive terminal, run the `sdkmanager --licenses` command for your platform, review and accept the terms, then rerun setup. On Windows, `setup-build.ps1 -Setup` prints a PowerShell command with the selected SDK path. Setup installs missing npm dependencies and writes `android/local.properties` before reaching this license gate.
+
+The initial `[missing]` lines in `-Setup` output describe the environment before setup starts. If setup stops before installing npm dependencies or writing `android/local.properties`, update the checkout from `main` and rerun `setup-build.ps1 -Setup`.
 
 ### Setup reports an existing incomplete tool directory
 
