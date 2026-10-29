@@ -146,17 +146,19 @@ The scripts currently pin Google Command-line Tools build 15859902 and verify it
 
 Google publishes current command-line tools versions and checksums on the [Android Studio downloads page](https://developer.android.com/studio/). Update the pinned archive names and hashes together when that page publishes a newer package.
 
-The setup scripts never accept SDK licenses. They check license status with input closed. Setup installs missing npm dependencies and writes local SDK configuration before checking licenses. If a license is missing, setup stops before installing SDK packages and tells the user to accept it manually in an interactive terminal.
+The setup scripts never accept SDK licenses. They check license status with input closed. Setup installs missing npm dependencies and writes local SDK configuration before checking licenses. If a license is missing, setup stops before installing SDK packages and tells the user to accept it manually in an interactive terminal. Load the generated environment file first so the commands below use the SDK and JDK selected by setup. If your command-line tools are in a versioned directory instead of `latest`, use the `sdkmanager` path selected by setup.
 
 On Bash, the interactive command is:
 
 ```sh
+source ./.c4c-build-env.sh
 "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" --licenses
 ```
 
 On Windows PowerShell, run:
 
 ```powershell
+. .\.c4c-build-env.ps1
 & "$env:ANDROID_HOME\cmdline-tools\latest\bin\sdkmanager.bat" "--sdk_root=$env:ANDROID_HOME" --licenses
 ```
 

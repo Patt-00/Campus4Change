@@ -39,9 +39,9 @@ npm ci
 
 Do not run `npm ci` from the `android` directory. Gradle loads the React Native plugin from the root `node_modules` directory.
 
-## Android SDK setup
+## Manual Android SDK setup for desktop
 
-Install Android Studio, open **Tools > SDK Manager**, and install these packages:
+For a manual desktop setup, install Android Studio, open **Tools > SDK Manager**, and install these packages. The automated setup section below is an alternative. Termux uses the separate instructions in the Termux section.
 
 - Android SDK Platform 37.0
 - Android SDK Build Tools 37.0.0
@@ -176,6 +176,7 @@ Load the generated paths in the current PowerShell session:
 ```powershell
 . .\.c4c-build-env.ps1
 ```
+
 Build a debug APK from the repository root:
 
 ```powershell
@@ -229,7 +230,7 @@ Build a debug APK from the repository root:
 ./scripts/build-apk.sh --debug
 ```
 
-Run `cd ..` to return to the repository root. Start Metro with `npm start` in one terminal. In another terminal, run `npm run android` to install and launch the debug app.
+Keep the terminal at the repository root. Start Metro with `npm start` in one terminal. In another terminal at the same location, run `npm run android` to install and launch the debug app.
 
 Build a signed release APK from an interactive terminal at the repository root:
 

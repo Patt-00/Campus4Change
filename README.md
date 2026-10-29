@@ -9,6 +9,8 @@
 
 Campus4Change helps students at the Technological Institute of the Philippines find peer tutors, request sessions, join study groups, and message participants.
 
+Students can browse tutors by subject and request a time. Tutors can publish the subjects they teach and their availability. Study groups provide a space for members to share posts and messages.
+
 ## Download
 
 Download the signed Android APK from the [Campus4Change v1.4.4 GitHub release](https://github.com/Patt-00/Campus4Change/releases/tag/v1.4.4).
@@ -54,9 +56,29 @@ Tutoring payments, live voice or video calls, operating-system push notification
 
 Campus4Change uses React Native CLI 0.87.1, React 19.2.3, JavaScript/JSX, and Hermes. Kotlin Android modules provide encrypted local storage and profile photo capture. Firebase Authentication and Cloud Firestore provide online sign-in and shared data.
 
+## How the app is organized
+
+```mermaid
+flowchart LR
+    UI[React Native screens] --> Nav[App navigation and session state]
+    Nav --> Local[Encrypted local storage]
+    Nav --> Auth[Firebase Authentication]
+    Nav --> Cloud[Cloud Firestore]
+    UI --> Camera[Android camera and photo picker]
+```
+
+Screens live in [`src/features/`](src/features/). [`AppNavigator.jsx`](src/navigation/AppNavigator.jsx) connects the screens and shared state. Firebase access is implemented in [`src/shared/backend/`](src/shared/backend/) and feature data modules. The Android project contains the native storage and photo modules.
+
+Firestore rules and indexes are maintained in [`firestore.rules`](firestore.rules) and [`firestore.indexes.json`](firestore.indexes.json). Review them before configuring another Firebase project.
+
 ## Build from source
 
-Install a supported Node.js version, JDK 17, Git, and Android SDK packages listed in the [cross-platform build guide](docs/BUILDING.md). The setup scripts can install supported prerequisites and write local Android SDK configuration.
+Clone the repository, then run the setup script for your platform. The [build guide](docs/BUILDING.md) lists the supported Node.js, JDK, and Android SDK versions.
+
+```sh
+git clone https://github.com/Patt-00/Campus4Change.git
+cd Campus4Change
+```
 
 From the repository root, run the setup script for your shell:
 
@@ -87,3 +109,5 @@ For a copyable build request and agent workflow, see [AGENTS-BUILDING-GUIDE.md](
 - `android/` contains the Android project and native Kotlin modules.
 - `firestore.rules` and `firestore.indexes.json` define Firestore access and query indexes.
 - `docs/BUILDING.md` is the platform build guide.
+- `scripts/SCRIPT.md` explains the setup and APK build scripts.
+- `AGENTS-BUILDING-GUIDE.md` contains a build prompt and instructions for a coding agent.

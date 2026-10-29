@@ -31,7 +31,7 @@ Read AGENTS-BUILDING-GUIDE.md, docs/BUILDING.md, and scripts/SCRIPT.md first. Pr
    ```
 
 3. If a prerequisite is missing, run the matching setup mode. Setup installs supported tools, installs `npm` dependencies when React Native is absent from `node_modules`, and writes local SDK configuration.
-4. If Android SDK licenses remain unaccepted, open an interactive terminal. Run the `sdkmanager --licenses` command printed by setup, review the terms, and accept them yourself. Setup scripts never accept licenses automatically.
+4. If Android SDK licenses remain unaccepted, give the user the `sdkmanager --licenses` command for an interactive terminal. The user can review and accept the terms. Setup scripts never accept licenses automatically.
 5. Load the generated environment file in the build terminal when needed:
 
    ```sh
